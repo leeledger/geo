@@ -1,0 +1,175 @@
+{
+  "set": "b2b-workapps-kr",
+  "executions": 8,
+  "rows": [
+    {
+      "name": "더존비즈온",
+      "domain": "douzone.com",
+      "mentions": 5,
+      "presence": 62.5,
+      "geo": 70,
+      "grade": "보통"
+    },
+    {
+      "name": "이카운트",
+      "domain": "ecount.com",
+      "mentions": 3,
+      "presence": 37.5,
+      "geo": 69,
+      "grade": "보통"
+    },
+    {
+      "name": "위하고",
+      "domain": "wehago.com",
+      "mentions": 3,
+      "presence": 37.5,
+      "geo": 33,
+      "grade": "위험"
+    },
+    {
+      "name": "도토",
+      "domain": "doto.kr",
+      "mentions": 2,
+      "presence": 25,
+      "geo": 80,
+      "grade": "우수"
+    },
+    {
+      "name": "다우오피스",
+      "domain": "daouoffice.com",
+      "mentions": 2,
+      "presence": 25,
+      "geo": 74,
+      "grade": "보통"
+    },
+    {
+      "name": "시프티",
+      "domain": "shiftee.io",
+      "mentions": 2,
+      "presence": 25,
+      "geo": 70,
+      "grade": "보통"
+    },
+    {
+      "name": "잔디",
+      "domain": "jandi.com",
+      "mentions": 2,
+      "presence": 25,
+      "geo": 42,
+      "grade": "미흡"
+    },
+    {
+      "name": "한비로",
+      "domain": "hanbiro.com",
+      "mentions": 2,
+      "presence": 25,
+      "geo": 33,
+      "grade": "위험"
+    },
+    {
+      "name": "하이웍스",
+      "domain": "hiworks.co.kr",
+      "mentions": 2,
+      "presence": 25,
+      "geo": 30,
+      "grade": "위험"
+    },
+    {
+      "name": "자비스",
+      "domain": "jobis.co",
+      "mentions": 1,
+      "presence": 12.5,
+      "geo": 59,
+      "grade": "미흡"
+    },
+    {
+      "name": "플로우",
+      "domain": "flow.team",
+      "mentions": 1,
+      "presence": 12.5,
+      "geo": 54,
+      "grade": "미흡"
+    },
+    {
+      "name": "페이존",
+      "domain": "payzon.co.kr",
+      "mentions": 1,
+      "presence": 12.5,
+      "geo": 46,
+      "grade": "미흡"
+    },
+    {
+      "name": "이지샵",
+      "domain": "easyshop.co.kr",
+      "mentions": 1,
+      "presence": 12.5,
+      "geo": 37,
+      "grade": "위험"
+    },
+    {
+      "name": "카카오워크",
+      "domain": "kakaowork.com",
+      "mentions": 1,
+      "presence": 12.5,
+      "geo": 34,
+      "grade": "위험"
+    },
+    {
+      "name": "EncPay",
+      "domain": "encpay.co.kr",
+      "mentions": 1,
+      "presence": 12.5,
+      "geo": 34,
+      "grade": "위험"
+    },
+    {
+      "name": "닥스웨이브",
+      "domain": "docswave.com",
+      "mentions": 1,
+      "presence": 12.5,
+      "geo": 31,
+      "grade": "위험"
+    },
+    {
+      "name": "경리나라",
+      "domain": "webcash.co.kr",
+      "mentions": 1,
+      "presence": 12.5,
+      "geo": 19,
+      "grade": "위험"
+    },
+    {
+      "name": "영림원소프트랩",
+      "domain": "younglimwon.com",
+      "mentions": 1,
+      "presence": 12.5,
+      "geo": 19,
+      "grade": "위험"
+    },
+    {
+      "name": "메일플러그",
+      "domain": "mailplug.com",
+      "mentions": 0,
+      "presence": 0,
+      "geo": 53,
+      "grade": "미흡"
+    },
+    {
+      "name": "급여박사",
+      "domain": "drpay.co.kr",
+      "mentions": 0,
+      "presence": 0,
+      "geo": 31,
+      "grade": "위험"
+    },
+    {
+      "name": "가치업",
+      "domain": "gachiup.kr",
+      "mentions": 0,
+      "presence": 0,
+      "geo": 17,
+      "grade": "위험"
+    }
+  ],
+  "spearman": 0.45175401809715166
+}

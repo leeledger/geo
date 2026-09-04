@@ -1,0 +1,249 @@
+{
+  "origin": "https://jandi.com",
+  "scanned_at": "2026-09-02T11:17:55.829Z",
+  "total": 42,
+  "grade": "미흡",
+  "checks": {
+    "crawler": {
+      "score": 85,
+      "bots": [
+        {
+          "id": "OAI-SearchBot",
+          "label": "ChatGPT 검색",
+          "weight": 3,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "ChatGPT-User",
+          "label": "ChatGPT 사용자요청",
+          "weight": 3,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "PerplexityBot",
+          "label": "Perplexity",
+          "weight": 3,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "Perplexity-User",
+          "label": "Perplexity 사용자",
+          "weight": 2,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "ClaudeBot",
+          "label": "Claude",
+          "weight": 3,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "Googlebot",
+          "label": "구글 색인",
+          "weight": 3,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "Bingbot",
+          "label": "Bing/Copilot",
+          "weight": 2,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "Yeti",
+          "label": "네이버",
+          "weight": 2,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "GPTBot",
+          "label": "OpenAI 학습",
+          "weight": 1,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "Google-Extended",
+          "label": "Gemini 학습",
+          "weight": 1,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "CCBot",
+          "label": "Common Crawl",
+          "weight": 1,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        }
+      ],
+      "blocked": []
+    },
+    "llmstxt": {
+      "score": 50,
+      "exists": true,
+      "bytes": 16015,
+      "sections": 0,
+      "hasEntity": false
+    },
+    "sitemap": {
+      "score": 100,
+      "exists": true,
+      "urls": 2
+    },
+    "ssr": {
+      "score": 35,
+      "avgTextLen": 604,
+      "textRatio": 0.5313,
+      "thinPages": 2,
+      "totalPages": 3
+    },
+    "schema": {
+      "score": 27,
+      "pagesWithLd": 1,
+      "totalPages": 3,
+      "types": [
+        "Organization"
+      ],
+      "matched": [
+        "Organization"
+      ],
+      "invalid": 0
+    },
+    "chunk": {
+      "score": 10,
+      "paragraphs": 0,
+      "listItems": 0,
+      "inBand": 0,
+      "bandRate": 0,
+      "tooLong": 0,
+      "vagueSubjects": 0
+    },
+    "patterns": {
+      "score": 5,
+      "questionHeadings": 0,
+      "numericFacts": 0,
+      "pagesWithTable": 0,
+      "pagesWithList": 0,
+      "pagesWithMeta": 1
+    }
+  },
+  "pages": [
+    {
+      "url": "https://jandi.com",
+      "ok": true,
+      "textLen": 111,
+      "htmlLen": 8148,
+      "textRatio": 0.013622974963181149,
+      "ldCount": 1,
+      "ldInvalid": 0,
+      "types": [
+        "Organization"
+      ],
+      "paras": 0,
+      "items": 0,
+      "inBand": 0,
+      "tooLong": 0,
+      "headings": 0,
+      "qHeadings": 0,
+      "vague": 0,
+      "hasNumbers": 0,
+      "hasTable": false,
+      "hasList": false,
+      "lang": "ko-KR",
+      "title": "협업툴 잔디(JANDI) - AI로 진화한 메신저 기반 업무용 협업툴",
+      "desc": "메신저의 잠재력을 깨운 AI 협업툴 잔디는 맥락 요약, 향상된 정보 검색 그리고 생성으로 개인과 조직의 생산성을 한 번 더 끌어올립니다."
+    },
+    {
+      "url": "https://www.jandi.com/sitemap-static.xml.gz",
+      "ok": true,
+      "textLen": 246,
+      "htmlLen": 247,
+      "textRatio": 0.9959514170040485,
+      "ldCount": 0,
+      "ldInvalid": 0,
+      "types": [],
+      "paras": 0,
+      "items": 0,
+      "inBand": 0,
+      "tooLong": 0,
+      "headings": 0,
+      "qHeadings": 0,
+      "vague": 0,
+      "hasNumbers": 0,
+      "hasTable": false,
+      "hasList": false,
+      "lang": null,
+      "title": null,
+      "desc": null
+    },
+    {
+      "url": "https://www.jandi.com/sitemap-dynamic.xml.gz",
+      "ok": true,
+      "textLen": 1455,
+      "htmlLen": 2490,
+      "textRatio": 0.5843373493975904,
+      "ldCount": 0,
+      "ldInvalid": 0,
+      "types": [],
+      "paras": 0,
+      "items": 0,
+      "inBand": 0,
+      "tooLong": 0,
+      "headings": 0,
+      "qHeadings": 0,
+      "vague": 0,
+      "hasNumbers": 0,
+      "hasTable": false,
+      "hasList": false,
+      "lang": null,
+      "title": null,
+      "desc": null
+    }
+  ],
+  "notes": [
+    {
+      "pri": 1,
+      "msg": "2/3 페이지가 JS 없이는 본문이 거의 없습니다. AI 크롤러도 같은 것을 봅니다 — 서버 렌더링(SSR)이 필요합니다"
+    },
+    {
+      "pri": 1,
+      "msg": "산문 문단이 거의 없습니다. AI가 떼어갈 문장 자체가 없다는 뜻입니다"
+    },
+    {
+      "pri": 2,
+      "msg": "AI 크롤러가 * 규칙으로만 허용됩니다. User-agent 별로 명시하면 의도가 분명해집니다"
+    },
+    {
+      "pri": 2,
+      "msg": "FAQPage / HowTo 스키마가 없습니다. 질문-답변 형태가 AI 인용에 가장 잘 걸립니다"
+    },
+    {
+      "pri": 2,
+      "msg": "질문형 제목이 하나도 없습니다. 사람이 AI에게 묻는 문장을 그대로 제목으로 쓰세요"
+    },
+    {
+      "pri": 3,
+      "msg": "수치가 거의 없습니다. AI는 숫자·조건이 붙은 문장을 인용합니다"
+    }
+  ]
+}

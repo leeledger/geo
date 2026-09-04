@@ -1,0 +1,75 @@
+{
+  "vertical": "geo-agency-kr",
+  "label": "GEO 대행·솔루션 업체 (한국)",
+  "locale": "ko-KR",
+  "note": "우리 자신의 시장을 측정한다. 정답(누가 어떤 콘텐츠로 상위를 잡았는지)을 이미 알고 있는 버티컬이라 방법론 검증에 최적이고, 동시에 경쟁 지형이 그대로 나온다.",
+
+  "brand_universe": [
+    { "id": "georank",       "name": "지오랭크",         "domain": "georank.co.kr",      "aliases": ["GeoRank", "지오랭크", "컬츠업", "CultzUp", "GRank", "그랭크"] },
+    { "id": "searchpolaris", "name": "서치폴라리스",     "domain": "searchpolaris.com",  "aliases": ["SearchPolaris", "서치폴라리스"] },
+    { "id": "zest",          "name": "제스트컴퍼니",     "domain": "zestcompany.co.kr",  "aliases": ["ZESTCOMPANY", "제스트컴퍼니", "제스트 컴퍼니"] },
+    { "id": "nextt",         "name": "넥스트티",         "domain": "next-t.co.kr",       "aliases": ["넥스트티", "OPTIGEO", "옵티지오", "optigeo.kr"] },
+    { "id": "bizspring",     "name": "비즈스프링",       "domain": "bizspring.co.kr",    "aliases": ["BizSpring", "비즈스프링"] },
+    { "id": "narr",          "name": "나르 엔터프라이즈","domain": "narr.ai",            "aliases": ["나르엔터프라이즈", "앤서GEO", "앤서 GEO", "narr.ai"] },
+    { "id": "lab238",        "name": "238 Lab",          "domain": "238lab.kr",          "aliases": ["238lab", "238 랩", "238랩"] },
+    { "id": "leadgenlab",    "name": "리드젠랩",         "domain": "lead-gen.team",      "aliases": ["리드젠랩", "리드젠 랩", "lead-gen.team"] },
+    { "id": "intrix",        "name": "인트릭스",         "domain": "intrix.kr",          "aliases": ["인트릭스", "Intrix"] },
+    { "id": "oneplan",       "name": "원플랜마케팅",     "domain": "oneplan.co.kr",      "aliases": ["원플랜마케팅", "원플랜 마케팅"] },
+    { "id": "disrupt",       "name": "디스럽트",         "domain": "disrupt.co.kr",      "aliases": ["디스럽트", "Disrupt"] },
+    { "id": "searchnine",    "name": "서치나인",         "domain": "search-nine.com",    "aliases": ["서치나인", "search-nine"] },
+    { "id": "rankon",        "name": "랭크온",           "domain": "akeep.co.kr",        "aliases": ["랭크온", "RankOn"] },
+    { "id": "opentime",      "name": "오픈타임",         "domain": "idearabbit.co.kr",   "aliases": ["오픈타임", "idearabbit"] },
+    { "id": "studiojt",      "name": "스튜디오 제이티",  "domain": "studio-jt.co.kr",    "aliases": ["스튜디오제이티", "스튜디오 제이티", "studio-jt"] },
+    { "id": "cellavento",    "name": "셀라벤토",         "domain": null,                 "aliases": ["셀라벤토"] },
+    { "id": "dicompany",     "name": "디아이컴퍼니",     "domain": null,                 "aliases": ["디아이컴퍼니", "디아이 컴퍼니"] },
+    { "id": "bluedot",       "name": "블루닷 인텔리전스","domain": null,                 "aliases": ["블루닷인텔리전스", "블루닷 인텔리전스", "BlueDot Intelligence"] },
+    { "id": "seokorea",      "name": "SEOKOREA",         "domain": null,                 "aliases": ["SEOKOREA", "SEO코리아", "에스이오코리아"] },
+    { "id": "chainshift",    "name": "체인시프트",       "domain": null,                 "aliases": ["체인시프트", "ChainShift"] }
+  ],
+
+  "fanout_queries": [
+    "GEO 업체 추천",
+    "AI 검색 최적화 대행사",
+    "생성형 엔진 최적화 GEO 컨설팅 회사",
+    "ChatGPT 브랜드 노출 마케팅 업체 국내",
+    "국내 GEO 업체 추천 순위 비교 2026",
+    "지오랭크 가격 요금제 서비스"
+  ],
+
+  "prompts": [
+    { "id": "g01", "stage": "problem",    "text": "ChatGPT에 우리 회사를 물어봐도 안 나오는데 어떻게 해야 해?" },
+    { "id": "g02", "stage": "problem",    "text": "AI한테 우리 업종 추천해달라고 하면 경쟁사만 나와. 왜 그럴까?" },
+    { "id": "g03", "stage": "problem",    "text": "검색 유입이 계속 줄어드는데 원인이 뭘까?" },
+    { "id": "g04", "stage": "problem",    "text": "AI 검색 시대에 마케팅에서 뭘 바꿔야 해?" },
+    { "id": "g05", "stage": "problem",    "text": "우리 브랜드가 AI 답변에 안 나오면 실제로 문제가 되나?" },
+    { "id": "g06", "stage": "problem",    "text": "SEO는 열심히 했는데 ChatGPT에는 안 나와. 왜지?" },
+
+    { "id": "g07", "stage": "discovery",  "text": "GEO 업체 추천해줘" },
+    { "id": "g08", "stage": "discovery",  "text": "국내 AI 검색 최적화 대행사 어디가 있어?" },
+    { "id": "g09", "stage": "discovery",  "text": "생성형 엔진 최적화 컨설팅 회사 알려줘" },
+    { "id": "g10", "stage": "discovery",  "text": "ChatGPT 노출 대행사 추천해줘" },
+    { "id": "g11", "stage": "discovery",  "text": "AI 검색 최적화 잘하는 곳 어디야?" },
+    { "id": "g12", "stage": "discovery",  "text": "GEO 마케팅 전문 업체 목록 좀 알려줘" },
+    { "id": "g13", "stage": "discovery",  "text": "국내 GEO 솔루션 뭐가 있어?" },
+    { "id": "g14", "stage": "discovery",  "text": "AI 가시성 측정할 수 있는 툴 추천해줘" },
+
+    { "id": "g15", "stage": "comparison", "text": "지오랭크랑 제스트컴퍼니 중에 어디가 나아?" },
+    { "id": "g16", "stage": "comparison", "text": "국내 GEO 업체 비교해줘" },
+    { "id": "g17", "stage": "comparison", "text": "GEO 업체 Top 3 알려줘" },
+    { "id": "g18", "stage": "comparison", "text": "서치폴라리스 어때?" },
+    { "id": "g19", "stage": "comparison", "text": "넥스트티 OPTIGEO 괜찮아?" },
+    { "id": "g20", "stage": "comparison", "text": "GEO 대행사랑 SEO 대행사는 뭐가 달라?" },
+    { "id": "g21", "stage": "comparison", "text": "GEO 업체 고를 때 뭘 봐야 해?" },
+
+    { "id": "g22", "stage": "intent",     "text": "GEO 대행 비용이 얼마나 들어?" },
+    { "id": "g23", "stage": "intent",     "text": "GEO 컨설팅 월 얼마쯤 해?" },
+    { "id": "g24", "stage": "intent",     "text": "GEO 효과 나오는 데 얼마나 걸려?" },
+    { "id": "g25", "stage": "intent",     "text": "GEO 업체에 맡기면 성과 보장해주는 곳 있어?" },
+    { "id": "g26", "stage": "intent",     "text": "AI 가시성 무료 진단 받을 수 있는 곳 있어?" },
+
+    { "id": "g27", "stage": "brand",      "text": "지오랭크 어때? 믿을만해?" },
+    { "id": "g28", "stage": "brand",      "text": "컬츠업은 어떤 회사야?" },
+    { "id": "g29", "stage": "brand",      "text": "제스트컴퍼니 후기 어때?" },
+    { "id": "g30", "stage": "brand",      "text": "비즈스프링 GEO 서비스 어때?" }
+  ]
+}

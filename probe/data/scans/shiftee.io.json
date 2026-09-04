@@ -1,0 +1,242 @@
+{
+  "origin": "https://shiftee.io",
+  "scanned_at": "2026-09-02T11:18:02.020Z",
+  "total": 70,
+  "grade": "보통",
+  "checks": {
+    "crawler": {
+      "score": 85,
+      "bots": [
+        {
+          "id": "OAI-SearchBot",
+          "label": "ChatGPT 검색",
+          "weight": 3,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "ChatGPT-User",
+          "label": "ChatGPT 사용자요청",
+          "weight": 3,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "PerplexityBot",
+          "label": "Perplexity",
+          "weight": 3,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "Perplexity-User",
+          "label": "Perplexity 사용자",
+          "weight": 2,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "ClaudeBot",
+          "label": "Claude",
+          "weight": 3,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "Googlebot",
+          "label": "구글 색인",
+          "weight": 3,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "Bingbot",
+          "label": "Bing/Copilot",
+          "weight": 2,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "Yeti",
+          "label": "네이버",
+          "weight": 2,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "GPTBot",
+          "label": "OpenAI 학습",
+          "weight": 1,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "Google-Extended",
+          "label": "Gemini 학습",
+          "weight": 1,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "CCBot",
+          "label": "Common Crawl",
+          "weight": 1,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        }
+      ],
+      "blocked": []
+    },
+    "llmstxt": {
+      "score": 0,
+      "exists": false
+    },
+    "sitemap": {
+      "score": 100,
+      "exists": true,
+      "urls": 80
+    },
+    "ssr": {
+      "score": 100,
+      "avgTextLen": 7219,
+      "textRatio": 0.0923,
+      "thinPages": 0,
+      "totalPages": 3
+    },
+    "schema": {
+      "score": 64,
+      "pagesWithLd": 3,
+      "totalPages": 3,
+      "types": [
+        "Organization"
+      ],
+      "matched": [
+        "Organization"
+      ],
+      "invalid": 0
+    },
+    "chunk": {
+      "score": 50,
+      "paragraphs": 133,
+      "listItems": 68,
+      "inBand": 54,
+      "bandRate": 40.6,
+      "tooLong": 0,
+      "vagueSubjects": 0
+    },
+    "patterns": {
+      "score": 55,
+      "questionHeadings": 0,
+      "numericFacts": 32,
+      "pagesWithTable": 0,
+      "pagesWithList": 3,
+      "pagesWithMeta": 3
+    }
+  },
+  "pages": [
+    {
+      "url": "https://shiftee.io",
+      "ok": true,
+      "textLen": 6441,
+      "htmlLen": 84393,
+      "textRatio": 0.07632149585866127,
+      "ldCount": 1,
+      "ldInvalid": 0,
+      "types": [
+        "Organization"
+      ],
+      "paras": 44,
+      "items": 20,
+      "inBand": 17,
+      "tooLong": 0,
+      "headings": 18,
+      "qHeadings": 0,
+      "vague": 0,
+      "hasNumbers": 14,
+      "hasTable": false,
+      "hasList": true,
+      "lang": null,
+      "title": "통합 인력관리 솔루션 | 시프티",
+      "desc": "효과적인 근태관리 그리고 인력관리를 위한 통합 HR 솔루션. 시프티는 주 52시간 근무제, 유연근무제에 대응합니다."
+    },
+    {
+      "url": "https://shiftee.io/en",
+      "ok": true,
+      "textLen": 8776,
+      "htmlLen": 70574,
+      "textRatio": 0.12435174426842746,
+      "ldCount": 1,
+      "ldInvalid": 0,
+      "types": [
+        "Organization"
+      ],
+      "paras": 45,
+      "items": 28,
+      "inBand": 20,
+      "tooLong": 0,
+      "headings": 16,
+      "qHeadings": 0,
+      "vague": 0,
+      "hasNumbers": 4,
+      "hasTable": false,
+      "hasList": true,
+      "lang": null,
+      "title": "Workforce Management Software | Shiftee",
+      "desc": "Shiftee offers the powerful time and attendance management and workforce management solutions to help manage your entire workforce."
+    },
+    {
+      "url": "https://shiftee.io/ko",
+      "ok": true,
+      "textLen": 6441,
+      "htmlLen": 84393,
+      "textRatio": 0.07632149585866127,
+      "ldCount": 1,
+      "ldInvalid": 0,
+      "types": [
+        "Organization"
+      ],
+      "paras": 44,
+      "items": 20,
+      "inBand": 17,
+      "tooLong": 0,
+      "headings": 18,
+      "qHeadings": 0,
+      "vague": 0,
+      "hasNumbers": 14,
+      "hasTable": false,
+      "hasList": true,
+      "lang": null,
+      "title": "통합 인력관리 솔루션 | 시프티",
+      "desc": "효과적인 근태관리 그리고 인력관리를 위한 통합 HR 솔루션. 시프티는 주 52시간 근무제, 유연근무제에 대응합니다."
+    }
+  ],
+  "notes": [
+    {
+      "pri": 2,
+      "msg": "AI 크롤러가 * 규칙으로만 허용됩니다. User-agent 별로 명시하면 의도가 분명해집니다"
+    },
+    {
+      "pri": 2,
+      "msg": "llms.txt 가 없습니다. AI가 그대로 인용할 브랜드 설명문을 길이별로 넣으세요"
+    },
+    {
+      "pri": 2,
+      "msg": "FAQPage / HowTo 스키마가 없습니다. 질문-답변 형태가 AI 인용에 가장 잘 걸립니다"
+    },
+    {
+      "pri": 2,
+      "msg": "질문형 제목이 하나도 없습니다. 사람이 AI에게 묻는 문장을 그대로 제목으로 쓰세요"
+    }
+  ]
+}

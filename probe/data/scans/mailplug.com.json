@@ -1,0 +1,189 @@
+{
+  "origin": "https://mailplug.com",
+  "scanned_at": "2026-09-02T11:18:10.889Z",
+  "total": 53,
+  "grade": "미흡",
+  "checks": {
+    "crawler": {
+      "score": 85,
+      "bots": [
+        {
+          "id": "OAI-SearchBot",
+          "label": "ChatGPT 검색",
+          "weight": 3,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "ChatGPT-User",
+          "label": "ChatGPT 사용자요청",
+          "weight": 3,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "PerplexityBot",
+          "label": "Perplexity",
+          "weight": 3,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "Perplexity-User",
+          "label": "Perplexity 사용자",
+          "weight": 2,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "ClaudeBot",
+          "label": "Claude",
+          "weight": 3,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "Googlebot",
+          "label": "구글 색인",
+          "weight": 3,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "Bingbot",
+          "label": "Bing/Copilot",
+          "weight": 2,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "Yeti",
+          "label": "네이버",
+          "weight": 2,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "GPTBot",
+          "label": "OpenAI 학습",
+          "weight": 1,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "Google-Extended",
+          "label": "Gemini 학습",
+          "weight": 1,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "CCBot",
+          "label": "Common Crawl",
+          "weight": 1,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        }
+      ],
+      "blocked": []
+    },
+    "llmstxt": {
+      "score": 80,
+      "exists": true,
+      "bytes": 4126,
+      "sections": 6,
+      "hasEntity": false
+    },
+    "sitemap": {
+      "score": 0,
+      "exists": false,
+      "urls": 0
+    },
+    "ssr": {
+      "score": 100,
+      "avgTextLen": 4175,
+      "textRatio": 0.0611,
+      "thinPages": 0,
+      "totalPages": 1
+    },
+    "schema": {
+      "score": 0,
+      "pagesWithLd": 0,
+      "totalPages": 1,
+      "types": [],
+      "matched": [],
+      "invalid": 0
+    },
+    "chunk": {
+      "score": 15,
+      "paragraphs": 54,
+      "listItems": 3,
+      "inBand": 0,
+      "bandRate": 0,
+      "tooLong": 0,
+      "vagueSubjects": 0
+    },
+    "patterns": {
+      "score": 43,
+      "questionHeadings": 1,
+      "numericFacts": 8,
+      "pagesWithTable": 0,
+      "pagesWithList": 1,
+      "pagesWithMeta": 1
+    }
+  },
+  "pages": [
+    {
+      "url": "https://mailplug.com",
+      "ok": true,
+      "textLen": 4175,
+      "htmlLen": 68277,
+      "textRatio": 0.0611479707661438,
+      "ldCount": 0,
+      "ldInvalid": 0,
+      "types": [],
+      "paras": 54,
+      "items": 3,
+      "inBand": 0,
+      "tooLong": 0,
+      "headings": 6,
+      "qHeadings": 1,
+      "vague": 0,
+      "hasNumbers": 8,
+      "hasTable": false,
+      "hasList": true,
+      "lang": "ko",
+      "title": "기업솔루션 전문 메일플러그",
+      "desc": "기업에 필요한 모든 서비스를 담은 통합솔루션, 메일플러그. 메일플러그와 함께 우리 회사만의 업무 환경을 구축해 보세요."
+    }
+  ],
+  "notes": [
+    {
+      "pri": 1,
+      "msg": "JSON-LD 구조화 데이터가 한 페이지에도 없습니다. Organization·Article·FAQPage 부터 넣으세요"
+    },
+    {
+      "pri": 2,
+      "msg": "AI 크롤러가 * 규칙으로만 허용됩니다. User-agent 별로 명시하면 의도가 분명해집니다"
+    },
+    {
+      "pri": 2,
+      "msg": "문단의 0%만 인용하기 좋은 길이입니다. 한 문단 = 한 주제, 40~80단어로 쪼개세요"
+    },
+    {
+      "pri": 3,
+      "msg": "sitemap.xml 이 없습니다. 색인이 안 되면 검색층에서 탈락합니다"
+    }
+  ]
+}

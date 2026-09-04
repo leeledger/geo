@@ -1,0 +1,226 @@
+{
+  "origin": "https://payzon.co.kr",
+  "scanned_at": "2026-09-02T11:18:08.935Z",
+  "total": 46,
+  "grade": "미흡",
+  "checks": {
+    "crawler": {
+      "score": 87,
+      "bots": [
+        {
+          "id": "OAI-SearchBot",
+          "label": "ChatGPT 검색",
+          "weight": 3,
+          "allowed": true,
+          "basis": "규칙 없음"
+        },
+        {
+          "id": "ChatGPT-User",
+          "label": "ChatGPT 사용자요청",
+          "weight": 3,
+          "allowed": true,
+          "basis": "규칙 없음"
+        },
+        {
+          "id": "PerplexityBot",
+          "label": "Perplexity",
+          "weight": 3,
+          "allowed": true,
+          "basis": "규칙 없음"
+        },
+        {
+          "id": "Perplexity-User",
+          "label": "Perplexity 사용자",
+          "weight": 2,
+          "allowed": true,
+          "basis": "규칙 없음"
+        },
+        {
+          "id": "ClaudeBot",
+          "label": "Claude",
+          "weight": 3,
+          "allowed": true,
+          "basis": "규칙 없음"
+        },
+        {
+          "id": "Googlebot",
+          "label": "구글 색인",
+          "weight": 3,
+          "allowed": true,
+          "basis": "명시 그룹",
+          "explicit": true
+        },
+        {
+          "id": "Bingbot",
+          "label": "Bing/Copilot",
+          "weight": 2,
+          "allowed": true,
+          "basis": "규칙 없음"
+        },
+        {
+          "id": "Yeti",
+          "label": "네이버",
+          "weight": 2,
+          "allowed": true,
+          "basis": "규칙 없음"
+        },
+        {
+          "id": "GPTBot",
+          "label": "OpenAI 학습",
+          "weight": 1,
+          "allowed": true,
+          "basis": "규칙 없음"
+        },
+        {
+          "id": "Google-Extended",
+          "label": "Gemini 학습",
+          "weight": 1,
+          "allowed": true,
+          "basis": "규칙 없음"
+        },
+        {
+          "id": "CCBot",
+          "label": "Common Crawl",
+          "weight": 1,
+          "allowed": true,
+          "basis": "규칙 없음"
+        }
+      ],
+      "blocked": []
+    },
+    "llmstxt": {
+      "score": 0,
+      "exists": false
+    },
+    "sitemap": {
+      "score": 100,
+      "exists": true,
+      "urls": 500
+    },
+    "ssr": {
+      "score": 70,
+      "avgTextLen": 1778,
+      "textRatio": 0.0288,
+      "thinPages": 1,
+      "totalPages": 3
+    },
+    "schema": {
+      "score": 0,
+      "pagesWithLd": 0,
+      "totalPages": 3,
+      "types": [],
+      "matched": [],
+      "invalid": 0
+    },
+    "chunk": {
+      "score": 29,
+      "paragraphs": 31,
+      "listItems": 44,
+      "inBand": 5,
+      "bandRate": 16.1,
+      "tooLong": 0,
+      "vagueSubjects": 0
+    },
+    "patterns": {
+      "score": 25,
+      "questionHeadings": 0,
+      "numericFacts": 0,
+      "pagesWithTable": 0,
+      "pagesWithList": 3,
+      "pagesWithMeta": 3
+    }
+  },
+  "pages": [
+    {
+      "url": "https://payzon.co.kr",
+      "ok": true,
+      "textLen": 2159,
+      "htmlLen": 63762,
+      "textRatio": 0.033860292964461594,
+      "ldCount": 0,
+      "ldInvalid": 0,
+      "types": [],
+      "paras": 14,
+      "items": 21,
+      "inBand": 2,
+      "tooLong": 0,
+      "headings": 3,
+      "qHeadings": 0,
+      "vague": 0,
+      "hasNumbers": 0,
+      "hasTable": false,
+      "hasList": true,
+      "lang": null,
+      "title": "������ - �޿����� �ڵ�ȭ ����Ʈ",
+      "desc": "���� ���� ��-Ŭ�� �޿����� OK! �¶��� �޿���� �ڵ�ȭ, ���°���, 4�뺸��, �޿�����, �λ����, �ް�����, �޿���� ����"
+    },
+    {
+      "url": "http://www.payzon.co.kr/",
+      "ok": true,
+      "textLen": 2159,
+      "htmlLen": 63762,
+      "textRatio": 0.033860292964461594,
+      "ldCount": 0,
+      "ldInvalid": 0,
+      "types": [],
+      "paras": 14,
+      "items": 21,
+      "inBand": 2,
+      "tooLong": 0,
+      "headings": 3,
+      "qHeadings": 0,
+      "vague": 0,
+      "hasNumbers": 0,
+      "hasTable": false,
+      "hasList": true,
+      "lang": null,
+      "title": "������ - �޿����� �ڵ�ȭ ����Ʈ",
+      "desc": "���� ���� ��-Ŭ�� �޿����� OK! �¶��� �޿���� �ڵ�ȭ, ���°���, 4�뺸��, �޿�����, �λ����, �ް�����, �޿���� ����"
+    },
+    {
+      "url": "http://www.payzon.co.kr/pzServiceGuide/memberFinder.php",
+      "ok": true,
+      "textLen": 1017,
+      "htmlLen": 54226,
+      "textRatio": 0.018754840851252168,
+      "ldCount": 0,
+      "ldInvalid": 0,
+      "types": [],
+      "paras": 3,
+      "items": 2,
+      "inBand": 1,
+      "tooLong": 0,
+      "headings": 1,
+      "qHeadings": 0,
+      "vague": 0,
+      "hasNumbers": 0,
+      "hasTable": false,
+      "hasList": true,
+      "lang": null,
+      "title": "������ - �޿����� �ڵ�ȭ ����Ʈ : ��������, ��������, ������Ʈ, �¶��ι���, �ڷ��, �޿�������, �޿�����, ����������, ���������, �λ���ī��",
+      "desc": "������ - �޿����� �ڵ�ȭ ����Ʈ : �޿����, ���°���, �ް�����, 4�뺸��, ���뺸��, �ǰ�����, �޿�����, �λ����, �޿���ü, ������ ��"
+    }
+  ],
+  "notes": [
+    {
+      "pri": 1,
+      "msg": "JSON-LD 구조화 데이터가 한 페이지에도 없습니다. Organization·Article·FAQPage 부터 넣으세요"
+    },
+    {
+      "pri": 2,
+      "msg": "llms.txt 가 없습니다. AI가 그대로 인용할 브랜드 설명문을 길이별로 넣으세요"
+    },
+    {
+      "pri": 2,
+      "msg": "문단의 16%만 인용하기 좋은 길이입니다. 한 문단 = 한 주제, 40~80단어로 쪼개세요"
+    },
+    {
+      "pri": 2,
+      "msg": "질문형 제목이 하나도 없습니다. 사람이 AI에게 묻는 문장을 그대로 제목으로 쓰세요"
+    },
+    {
+      "pri": 3,
+      "msg": "수치가 거의 없습니다. AI는 숫자·조건이 붙은 문장을 인용합니다"
+    }
+  ]
+}

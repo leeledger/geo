@@ -1,0 +1,219 @@
+{
+  "origin": "https://kakaowork.com",
+  "scanned_at": "2026-09-02T11:17:56.491Z",
+  "total": 34,
+  "grade": "위험",
+  "checks": {
+    "crawler": {
+      "score": 0,
+      "bots": [
+        {
+          "id": "OAI-SearchBot",
+          "label": "ChatGPT 검색",
+          "weight": 3,
+          "allowed": false,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "ChatGPT-User",
+          "label": "ChatGPT 사용자요청",
+          "weight": 3,
+          "allowed": false,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "PerplexityBot",
+          "label": "Perplexity",
+          "weight": 3,
+          "allowed": false,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "Perplexity-User",
+          "label": "Perplexity 사용자",
+          "weight": 2,
+          "allowed": false,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "ClaudeBot",
+          "label": "Claude",
+          "weight": 3,
+          "allowed": false,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "Googlebot",
+          "label": "구글 색인",
+          "weight": 3,
+          "allowed": false,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "Bingbot",
+          "label": "Bing/Copilot",
+          "weight": 2,
+          "allowed": false,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "Yeti",
+          "label": "네이버",
+          "weight": 2,
+          "allowed": false,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "GPTBot",
+          "label": "OpenAI 학습",
+          "weight": 1,
+          "allowed": false,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "Google-Extended",
+          "label": "Gemini 학습",
+          "weight": 1,
+          "allowed": false,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "CCBot",
+          "label": "Common Crawl",
+          "weight": 1,
+          "allowed": false,
+          "basis": "* 그룹",
+          "explicit": false
+        }
+      ],
+      "blocked": [
+        "OAI-SearchBot",
+        "ChatGPT-User",
+        "PerplexityBot",
+        "Perplexity-User",
+        "ClaudeBot",
+        "Googlebot",
+        "Bingbot",
+        "Yeti",
+        "GPTBot",
+        "Google-Extended",
+        "CCBot"
+      ]
+    },
+    "llmstxt": {
+      "score": 0,
+      "exists": false
+    },
+    "sitemap": {
+      "score": 0,
+      "exists": false,
+      "urls": 0
+    },
+    "ssr": {
+      "score": 70,
+      "avgTextLen": 2374,
+      "textRatio": 0.0474,
+      "thinPages": 0,
+      "totalPages": 1
+    },
+    "schema": {
+      "score": 73,
+      "pagesWithLd": 1,
+      "totalPages": 1,
+      "types": [
+        "Organization",
+        "PostalAddress",
+        "Certification",
+        "WebSite"
+      ],
+      "matched": [
+        "Organization",
+        "WebSite"
+      ],
+      "invalid": 0
+    },
+    "chunk": {
+      "score": 15,
+      "paragraphs": 23,
+      "listItems": 39,
+      "inBand": 0,
+      "bandRate": 0,
+      "tooLong": 0,
+      "vagueSubjects": 0
+    },
+    "patterns": {
+      "score": 34,
+      "questionHeadings": 0,
+      "numericFacts": 6,
+      "pagesWithTable": 0,
+      "pagesWithList": 1,
+      "pagesWithMeta": 1
+    }
+  },
+  "pages": [
+    {
+      "url": "https://kakaowork.com",
+      "ok": true,
+      "textLen": 2374,
+      "htmlLen": 50043,
+      "textRatio": 0.04743920228603401,
+      "ldCount": 1,
+      "ldInvalid": 0,
+      "types": [
+        "Organization",
+        "PostalAddress",
+        "Certification",
+        "WebSite"
+      ],
+      "paras": 23,
+      "items": 39,
+      "inBand": 0,
+      "tooLong": 0,
+      "headings": 3,
+      "qHeadings": 0,
+      "vague": 0,
+      "hasNumbers": 6,
+      "hasTable": false,
+      "hasList": true,
+      "lang": "ko",
+      "title": "카카오워크",
+      "desc": "카카오워크. 무료 화상회의/메일/캘린더 기능 탑재. 강력한 통합검색과 AI 기능을 갖춘 종합 업무 플랫폼. 누구에게나 쉬운 사용성."
+    }
+  ],
+  "notes": [
+    {
+      "pri": 1,
+      "msg": "robots.txt 가 OAI-SearchBot, ChatGPT-User, PerplexityBot, Perplexity-User, ClaudeBot, Googlebot, Bingbot, Yeti, GPTBot, Google-Extended, CCBot 를 차단합니다. 이게 막히면 나머지 작업이 전부 무의미합니다"
+    },
+    {
+      "pri": 2,
+      "msg": "llms.txt 가 없습니다. AI가 그대로 인용할 브랜드 설명문을 길이별로 넣으세요"
+    },
+    {
+      "pri": 2,
+      "msg": "FAQPage / HowTo 스키마가 없습니다. 질문-답변 형태가 AI 인용에 가장 잘 걸립니다"
+    },
+    {
+      "pri": 2,
+      "msg": "문단의 0%만 인용하기 좋은 길이입니다. 한 문단 = 한 주제, 40~80단어로 쪼개세요"
+    },
+    {
+      "pri": 2,
+      "msg": "질문형 제목이 하나도 없습니다. 사람이 AI에게 묻는 문장을 그대로 제목으로 쓰세요"
+    },
+    {
+      "pri": 3,
+      "msg": "sitemap.xml 이 없습니다. 색인이 안 되면 검색층에서 탈락합니다"
+    }
+  ]
+}

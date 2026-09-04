@@ -1,0 +1,300 @@
+{
+  "origin": "https://iquest.co.kr",
+  "scanned_at": "2026-09-01T11:52:03.411Z",
+  "total": 73,
+  "grade": "보통",
+  "checks": {
+    "crawler": {
+      "score": 85,
+      "bots": [
+        {
+          "id": "OAI-SearchBot",
+          "label": "ChatGPT 검색",
+          "weight": 3,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "ChatGPT-User",
+          "label": "ChatGPT 사용자요청",
+          "weight": 3,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "PerplexityBot",
+          "label": "Perplexity",
+          "weight": 3,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "Perplexity-User",
+          "label": "Perplexity 사용자",
+          "weight": 2,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "ClaudeBot",
+          "label": "Claude",
+          "weight": 3,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "Googlebot",
+          "label": "구글 색인",
+          "weight": 3,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "Bingbot",
+          "label": "Bing/Copilot",
+          "weight": 2,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "Yeti",
+          "label": "네이버",
+          "weight": 2,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "GPTBot",
+          "label": "OpenAI 학습",
+          "weight": 1,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "Google-Extended",
+          "label": "Gemini 학습",
+          "weight": 1,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "CCBot",
+          "label": "Common Crawl",
+          "weight": 1,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        }
+      ],
+      "blocked": []
+    },
+    "llmstxt": {
+      "score": 0,
+      "exists": false
+    },
+    "sitemap": {
+      "score": 100,
+      "exists": true,
+      "urls": 37
+    },
+    "ssr": {
+      "score": 100,
+      "avgTextLen": 6554,
+      "textRatio": 0.0404,
+      "thinPages": 1,
+      "totalPages": 4
+    },
+    "schema": {
+      "score": 77,
+      "pagesWithLd": 3,
+      "totalPages": 4,
+      "types": [
+        "Corporation",
+        "PostalAddress",
+        "ContactPoint",
+        "OfferCatalog",
+        "Offer",
+        "SoftwareApplication",
+        "WebSite",
+        "WebPage",
+        "Organization",
+        "BreadcrumbList",
+        "ListItem",
+        "ItemList",
+        "FAQPage",
+        "Question",
+        "Answer"
+      ],
+      "matched": [
+        "Organization",
+        "WebSite",
+        "FAQPage",
+        "BreadcrumbList"
+      ],
+      "invalid": 0
+    },
+    "chunk": {
+      "score": 24,
+      "paragraphs": 196,
+      "listItems": 210,
+      "inBand": 21,
+      "bandRate": 10.7,
+      "tooLong": 0,
+      "vagueSubjects": 0
+    },
+    "patterns": {
+      "score": 96,
+      "questionHeadings": 56,
+      "numericFacts": 26,
+      "pagesWithTable": 1,
+      "pagesWithList": 4,
+      "pagesWithMeta": 3
+    }
+  },
+  "pages": [
+    {
+      "url": "https://iquest.co.kr",
+      "ok": true,
+      "textLen": 7674,
+      "htmlLen": 209248,
+      "textRatio": 0.03667418565529897,
+      "ldCount": 1,
+      "ldInvalid": 0,
+      "types": [
+        "Corporation",
+        "PostalAddress",
+        "ContactPoint",
+        "OfferCatalog",
+        "Offer",
+        "SoftwareApplication",
+        "WebSite",
+        "WebPage"
+      ],
+      "paras": 73,
+      "items": 64,
+      "inBand": 3,
+      "tooLong": 0,
+      "headings": 43,
+      "qHeadings": 15,
+      "vague": 0,
+      "hasNumbers": 11,
+      "hasTable": false,
+      "hasList": true,
+      "lang": "ko",
+      "title": "아이퀘스트 - 얼마에요 ERP · 경리회계 · 중소기업 ERP",
+      "desc": "아이퀘스트는 용도와 업종에 맞는 ERP "
+    },
+    {
+      "url": "https://www.iquest.co.kr/main.do",
+      "ok": true,
+      "textLen": 7674,
+      "htmlLen": 209248,
+      "textRatio": 0.03667418565529897,
+      "ldCount": 1,
+      "ldInvalid": 0,
+      "types": [
+        "Corporation",
+        "PostalAddress",
+        "ContactPoint",
+        "OfferCatalog",
+        "Offer",
+        "SoftwareApplication",
+        "WebSite",
+        "WebPage"
+      ],
+      "paras": 73,
+      "items": 64,
+      "inBand": 3,
+      "tooLong": 0,
+      "headings": 43,
+      "qHeadings": 15,
+      "vague": 0,
+      "hasNumbers": 11,
+      "hasTable": false,
+      "hasList": true,
+      "lang": "ko",
+      "title": "아이퀘스트 - 얼마에요 ERP · 경리회계 · 중소기업 ERP",
+      "desc": "아이퀘스트는 용도와 업종에 맞는 ERP "
+    },
+    {
+      "url": "https://www.iquest.co.kr/guide/guide_main.do",
+      "ok": true,
+      "textLen": 10519,
+      "htmlLen": 154914,
+      "textRatio": 0.06790219089301161,
+      "ldCount": 1,
+      "ldInvalid": 0,
+      "types": [
+        "Organization",
+        "PostalAddress",
+        "ContactPoint",
+        "BreadcrumbList",
+        "ListItem",
+        "ItemList",
+        "FAQPage",
+        "Question",
+        "Answer"
+      ],
+      "paras": 48,
+      "items": 74,
+      "inBand": 15,
+      "tooLong": 0,
+      "headings": 56,
+      "qHeadings": 26,
+      "vague": 0,
+      "hasNumbers": 4,
+      "hasTable": true,
+      "hasList": true,
+      "lang": "ko",
+      "title": "제품 한눈에 보기 | 아이퀘스트",
+      "desc": "아이퀘스트의 얼마에요 ERP, 얼마에요 Works, AI 얼마경리, 얼마365, HR365, 사인365를 한 페이지에서 비교하고 우리 회사에 맞는 제품을 고르세요."
+    },
+    {
+      "url": "https://www.iquest.co.kr/company/main.do",
+      "ok": true,
+      "textLen": 350,
+      "htmlLen": 17045,
+      "textRatio": 0.02053388090349076,
+      "ldCount": 0,
+      "ldInvalid": 0,
+      "types": [],
+      "paras": 2,
+      "items": 8,
+      "inBand": 0,
+      "tooLong": 0,
+      "headings": 0,
+      "qHeadings": 0,
+      "vague": 0,
+      "hasNumbers": 0,
+      "hasTable": false,
+      "hasList": true,
+      "lang": "ko",
+      "title": "아이퀘스트",
+      "desc": null
+    }
+  ],
+  "notes": [
+    {
+      "pri": 2,
+      "msg": "AI 크롤러가 * 규칙으로만 허용됩니다. User-agent 별로 명시하면 의도가 분명해집니다"
+    },
+    {
+      "pri": 2,
+      "msg": "llms.txt 가 없습니다. AI가 그대로 인용할 브랜드 설명문을 길이별로 넣으세요"
+    },
+    {
+      "pri": 2,
+      "msg": "문단의 11%만 인용하기 좋은 길이입니다. 한 문단 = 한 주제, 40~80단어로 쪼개세요"
+    }
+  ]
+}

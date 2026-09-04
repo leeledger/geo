@@ -1,0 +1,181 @@
+"use client";
+
+import { useState } from "react";
+import type { ScanResult } from "@/lib/scan";
+
+type Result = ScanResult & { scanId?: string | null };
+
+const PRIO: Record<number, { cls: string; label: string }> = {
+  1: { cls: "p1", label: "치명" },
+  2: { cls: "p2", label: "중요" },
+  3: { cls: "p3", label: "권장" },
+};
+
+export default function ScanForm({ id, placeholder }: { id: string; placeholder?: string }) {
+  const [domain, setDomain] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<Result | null>(null);
+
+  // 결과를 본 뒤 연락처 남기기
+  const [email, setEmail] = useState("");
+  const [company, setCompany] = useState("");
+  const [website, setWebsite] = useState(""); // 허니팟
+  const [leadBusy, setLeadBusy] = useState(false);
+  const [leadDone, setLeadDone] = useState(false);
+  const [leadError, setLeadError] = useState<string | null>(null);
+
+  async function run(e: React.FormEvent) {
+    e.preventDefault();
+    if (busy) return;
+    setBusy(true); setError(null); setResult(null); setLeadDone(false); setLeadError(null);
+    try {
+      const res = await fetch("/api/scan", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ domain }),
+      });
+      const data = await res.json();
+      if (!res.ok || data?.error) { setError(data?.error ?? "진단에 실패했습니다."); return; }
+      setResult(data as Result);
+    } catch {
+      setError("네트워크 오류로 진단하지 못했습니다. 잠시 후 다시 시도해 주세요.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function submitLead(e: React.FormEvent) {
+    e.preventDefault();
+    if (leadBusy) return;
+    setLeadBusy(true); setLeadError(null);
+    try {
+      const res = await fetch("/api/lead", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ email, company, website, scanId: result?.scanId ?? null, wants: "측정" }),
+      });
+      const data = await res.json();
+      if (!res.ok || data?.error) { setLeadError(data?.error ?? "저장에 실패했습니다."); return; }
+      setLeadDone(true);
+    } catch {
+      setLeadError("네트워크 오류가 발생했습니다.");
+    } finally {
+      setLeadBusy(false);
+    }
+  }
+
+  return (
+    <div>
+      <form className="form" onSubmit={run}>
+        <input
+          id={id}
+          type="text"
+          value={domain}
+          onChange={(e) => setDomain(e.target.value)}
+          placeholder={placeholder ?? "회사 홈페이지 주소 (예: example.co.kr)"}
+          aria-label="홈페이지 주소"
+          disabled={busy}
+          required
+        />
+        <button className="btn" type="submit" disabled={busy}>
+          {busy ? "진단 중…" : "무료 진단 받기"}
+        </button>
+      </form>
+
+      {busy && (
+        <p className="formnote loading">
+          robots.txt · llms.txt · sitemap · 본문 페이지를 받아 7개 항목을 점검하고 있습니다. 10~30초 걸립니다.
+        </p>
+      )}
+      {!busy && !result && !error && (
+        <p className="formnote">사이트 7개 항목 자동 점검. 가입도 결제도 없이 바로 결과가 나옵니다.</p>
+      )}
+      {error && <p className="err">{error}</p>}
+
+      {result && (
+        <div className="result">
+          <div className="result-hd">
+            <span className="score">{result.total}</span>
+            <span className="mono" style={{ color: "var(--muted)", fontSize: 13 }}>/ 100</span>
+            <span className="grade">{result.grade}</span>
+            <span className="dom">{result.origin.replace(/^https?:\/\//, "")}</span>
+          </div>
+
+          <div className="rows">
+            {result.weights.map((w) => (
+              <div className="rrow" key={w.key}>
+                <span className="l">{w.label}</span>
+                <span className="rtrack">
+                  <span className="rfill" style={{ width: `${Math.max(1, w.score)}%` }} />
+                </span>
+                <span className="s">{w.score}</span>
+              </div>
+            ))}
+          </div>
+
+          {result.notes.length > 0 && (
+            <div className="fixes">
+              <h4>먼저 고칠 것</h4>
+              {result.notes.slice(0, 5).map((n, i) => (
+                <div className="fix" key={i}>
+                  <span className={`p ${PRIO[n.pri].cls}`}>{PRIO[n.pri].label}</span>
+                  <span>{n.msg}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="result-ft">
+            검사 항목은 전부 코드로 확인 가능한 사실입니다. 브랜드 권위·E-E-A-T 같은 판단 항목은 점수에 넣지 않았습니다.
+            <br />
+            <b style={{ color: "var(--ink)" }}>다만 이 점수는 사이트 상태일 뿐, AI 답변 노출과는 다릅니다.</b>{" "}
+            자체 측정에서 사이트 점수가 AI 노출을 설명하는 비율은 20% 수준이었습니다 — 실제로 답변에 불리는지는 엔진에
+            직접 물어봐야 알 수 있습니다.
+          </div>
+
+          {/* 결과를 본 직후 = 관심이 가장 높은 지점 */}
+          <div className="lead">
+            {leadDone ? (
+              <p className="leaddone">
+                접수됐습니다. <b>{email}</b> 로 AI 노출 실측 리포트를 보내드리겠습니다.
+                <br />
+                <span style={{ color: "var(--muted)", fontSize: 12.5 }}>
+                  실제 구매자가 쓸 질문으로 4개 엔진에 물어, 경쟁사 대비 노출률을 표본·신뢰구간과 함께 정리해 드립니다.
+                </span>
+              </p>
+            ) : (
+              <form onSubmit={submitLead}>
+                <h4>AI가 실제로 당신을 추천하는지도 재볼까요?</h4>
+                <p className="leadsub">
+                  실제 구매자가 쓸 질문으로 4개 엔진에 물어, 경쟁사 대비 노출률을 <b>표본·신뢰구간과 함께</b> 보내드립니다.
+                  무료입니다.
+                </p>
+                <div className="leadrow">
+                  <input
+                    type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+                    placeholder="업무용 이메일" aria-label="이메일" required disabled={leadBusy}
+                  />
+                  <input
+                    type="text" value={company} onChange={(e) => setCompany(e.target.value)}
+                    placeholder="회사명 (선택)" aria-label="회사명" disabled={leadBusy}
+                  />
+                  <button className="btn" type="submit" disabled={leadBusy}>
+                    {leadBusy ? "전송 중…" : "리포트 신청"}
+                  </button>
+                </div>
+                {/* 허니팟 — 사람에게는 보이지 않는다 */}
+                <input
+                  type="text" value={website} onChange={(e) => setWebsite(e.target.value)}
+                  name="website" tabIndex={-1} autoComplete="off" aria-hidden="true"
+                  style={{ position: "absolute", left: "-9999px", width: 1, height: 1 }}
+                />
+                {leadError && <p className="err">{leadError}</p>}
+              </form>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

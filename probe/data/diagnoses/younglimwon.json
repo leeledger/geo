@@ -1,0 +1,214 @@
+{
+  "brand": {
+    "id": "younglimwon",
+    "name": "영림원소프트랩",
+    "domain": "younglimwon.com"
+  },
+  "generated_at": "2026-09-01T11:55:14.053Z",
+  "vertical": "중소기업용 ERP (한국)",
+  "engine": "websearch",
+  "executions": 15,
+  "prompts": 12,
+  "site": {
+    "total": 19,
+    "grade": "위험",
+    "checks": {
+      "crawler": 60,
+      "llmstxt": 0,
+      "sitemap": 0,
+      "ssr": 10,
+      "schema": 0,
+      "chunk": 10,
+      "patterns": 0
+    }
+  },
+  "ai": {
+    "presence": 53.3,
+    "share": 18.6,
+    "avgPos": 2.3,
+    "rank": 3,
+    "competitors": 13
+  },
+  "leaderboard": [
+    {
+      "name": "더존비즈온",
+      "presence": 60,
+      "avgPos": 1.3,
+      "isMe": false
+    },
+    {
+      "name": "이카운트",
+      "presence": 53.3,
+      "avgPos": 2.3,
+      "isMe": false
+    },
+    {
+      "name": "영림원소프트랩",
+      "presence": 53.3,
+      "avgPos": 2.3,
+      "isMe": true
+    },
+    {
+      "name": "SAP",
+      "presence": 26.7,
+      "avgPos": 1.8,
+      "isMe": false
+    },
+    {
+      "name": "도토",
+      "presence": 20,
+      "avgPos": 2.3,
+      "isMe": false
+    },
+    {
+      "name": "오라클",
+      "presence": 13.3,
+      "avgPos": 4.5,
+      "isMe": false
+    },
+    {
+      "name": "아이퀘스트",
+      "presence": 13.3,
+      "avgPos": 3,
+      "isMe": false
+    },
+    {
+      "name": "비젠트로",
+      "presence": 13.3,
+      "avgPos": 3.5,
+      "isMe": false
+    },
+    {
+      "name": "웹케시 경리나라",
+      "presence": 6.7,
+      "avgPos": 4,
+      "isMe": false
+    },
+    {
+      "name": "다해INC",
+      "presence": 6.7,
+      "avgPos": 3,
+      "isMe": false
+    },
+    {
+      "name": "하이웍스 파로스",
+      "presence": 6.7,
+      "avgPos": 2,
+      "isMe": false
+    },
+    {
+      "name": "자비스",
+      "presence": 6.7,
+      "avgPos": 3,
+      "isMe": false
+    },
+    {
+      "name": "한그루ERP",
+      "presence": 6.7,
+      "avgPos": 4,
+      "isMe": false
+    }
+  ],
+  "thirdParty": {
+    "totalDocs": 14,
+    "mine": 9,
+    "coverage": 64.3,
+    "rows": [
+      {
+        "id": "ecount",
+        "name": "이카운트",
+        "docs": 10
+      },
+      {
+        "id": "douzone",
+        "name": "더존비즈온",
+        "docs": 9
+      },
+      {
+        "id": "younglimwon",
+        "name": "영림원소프트랩",
+        "docs": 9
+      },
+      {
+        "id": "sap_b1",
+        "name": "SAP",
+        "docs": 9
+      },
+      {
+        "id": "netsuite",
+        "name": "오라클",
+        "docs": 6
+      },
+      {
+        "id": "webcash",
+        "name": "웹케시 경리나라",
+        "docs": 3
+      },
+      {
+        "id": "iquest",
+        "name": "아이퀘스트",
+        "docs": 2
+      },
+      {
+        "id": "odoo",
+        "name": "Odoo",
+        "docs": 1
+      }
+    ],
+    "missing": [
+      {
+        "url": "https://blog.wishket.com/blog/47929",
+        "domain": "blog.wishket.com",
+        "title": "ERP 구축 비용, 얼마나 필요할까?",
+        "has": [
+          "douzone",
+          "sap_b1"
+        ]
+      },
+      {
+        "url": "https://itnara.co.kr/erp-adoption-costs/",
+        "domain": "itnara.co.kr",
+        "title": "ERP 도입 비용, 견적서에 없는 진짜 숨은 비용 3가지",
+        "has": [
+          "odoo"
+        ]
+      },
+      {
+        "url": "https://www.waveon.io/blog/10-best-inventory-management-tools",
+        "domain": "waveon.io",
+        "title": "재고 관리 프로그램 추천 10가지 제품 비교",
+        "has": [
+          "ecount"
+        ]
+      },
+      {
+        "url": "https://blog.stackcube.io/ko/10-best-inventory-management-tools",
+        "domain": "blog.stackcube.io",
+        "title": "재고관리 프로그램 추천 10가지",
+        "has": [
+          "ecount"
+        ]
+      }
+    ]
+  },
+  "verdict": "제3자가 받쳐주는 중 — 기회",
+  "reason": "사이트는 미흡한데 이미 AI 답변에 등장합니다. 남의 문서가 대신 일하고 있다는 뜻이고, 사이트를 고치면 더 오를 여지가 큽니다.",
+  "focus": "site",
+  "actions": [
+    {
+      "kind": "사이트",
+      "pri": 1,
+      "msg": "JSON-LD 구조화 데이터가 한 페이지에도 없습니다. Organization·Article·FAQPage 부터 넣으세요"
+    },
+    {
+      "kind": "사이트",
+      "pri": 1,
+      "msg": "산문 문단이 거의 없습니다. AI가 떼어갈 문장 자체가 없다는 뜻입니다"
+    },
+    {
+      "kind": "사이트",
+      "pri": 2,
+      "msg": "robots.txt 를 만들고 AI 크롤러를 User-agent 별로 명시 허용하세요"
+    }
+  ]
+}

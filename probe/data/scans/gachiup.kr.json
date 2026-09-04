@@ -1,0 +1,210 @@
+{
+  "origin": "https://gachiup.kr",
+  "scanned_at": "2026-09-02T11:18:10.439Z",
+  "total": 17,
+  "grade": "위험",
+  "checks": {
+    "crawler": {
+      "score": 0,
+      "bots": [
+        {
+          "id": "OAI-SearchBot",
+          "label": "ChatGPT 검색",
+          "weight": 3,
+          "allowed": false,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "ChatGPT-User",
+          "label": "ChatGPT 사용자요청",
+          "weight": 3,
+          "allowed": false,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "PerplexityBot",
+          "label": "Perplexity",
+          "weight": 3,
+          "allowed": false,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "Perplexity-User",
+          "label": "Perplexity 사용자",
+          "weight": 2,
+          "allowed": false,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "ClaudeBot",
+          "label": "Claude",
+          "weight": 3,
+          "allowed": false,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "Googlebot",
+          "label": "구글 색인",
+          "weight": 3,
+          "allowed": false,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "Bingbot",
+          "label": "Bing/Copilot",
+          "weight": 2,
+          "allowed": false,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "Yeti",
+          "label": "네이버",
+          "weight": 2,
+          "allowed": false,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "GPTBot",
+          "label": "OpenAI 학습",
+          "weight": 1,
+          "allowed": false,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "Google-Extended",
+          "label": "Gemini 학습",
+          "weight": 1,
+          "allowed": false,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "CCBot",
+          "label": "Common Crawl",
+          "weight": 1,
+          "allowed": false,
+          "basis": "* 그룹",
+          "explicit": false
+        }
+      ],
+      "blocked": [
+        "OAI-SearchBot",
+        "ChatGPT-User",
+        "PerplexityBot",
+        "Perplexity-User",
+        "ClaudeBot",
+        "Googlebot",
+        "Bingbot",
+        "Yeti",
+        "GPTBot",
+        "Google-Extended",
+        "CCBot"
+      ]
+    },
+    "llmstxt": {
+      "score": 0,
+      "exists": false
+    },
+    "sitemap": {
+      "score": 0,
+      "exists": false,
+      "urls": 0
+    },
+    "ssr": {
+      "score": 35,
+      "avgTextLen": 1125,
+      "textRatio": 0.0312,
+      "thinPages": 1,
+      "totalPages": 1
+    },
+    "schema": {
+      "score": 0,
+      "pagesWithLd": 0,
+      "totalPages": 1,
+      "types": [],
+      "matched": [],
+      "invalid": 0
+    },
+    "chunk": {
+      "score": 48,
+      "paragraphs": 13,
+      "listItems": 11,
+      "inBand": 5,
+      "bandRate": 38.5,
+      "tooLong": 0,
+      "vagueSubjects": 0
+    },
+    "patterns": {
+      "score": 28,
+      "questionHeadings": 0,
+      "numericFacts": 2,
+      "pagesWithTable": 0,
+      "pagesWithList": 1,
+      "pagesWithMeta": 1
+    }
+  },
+  "pages": [
+    {
+      "url": "https://gachiup.kr",
+      "ok": true,
+      "textLen": 1125,
+      "htmlLen": 36106,
+      "textRatio": 0.031158256245499363,
+      "ldCount": 0,
+      "ldInvalid": 0,
+      "types": [],
+      "paras": 13,
+      "items": 11,
+      "inBand": 5,
+      "tooLong": 0,
+      "headings": 4,
+      "qHeadings": 0,
+      "vague": 0,
+      "hasNumbers": 2,
+      "hasTable": false,
+      "hasList": true,
+      "lang": "ko",
+      "title": "가치업 - 무료 출퇴근 관리 앱",
+      "desc": "손쉬운 출퇴근 관리! 터치 한 번으로 간편한 출퇴근 인증! 다양한 인증 방법으로 정확한 근무시간 기록을 지원합니다. 전자 근로계약서까지 한 번에 관리해 효율적인 업무 환경을 만들어 보세요."
+    }
+  ],
+  "notes": [
+    {
+      "pri": 1,
+      "msg": "robots.txt 가 OAI-SearchBot, ChatGPT-User, PerplexityBot, Perplexity-User, ClaudeBot, Googlebot, Bingbot, Yeti, GPTBot, Google-Extended, CCBot 를 차단합니다. 이게 막히면 나머지 작업이 전부 무의미합니다"
+    },
+    {
+      "pri": 1,
+      "msg": "1/1 페이지가 JS 없이는 본문이 거의 없습니다. AI 크롤러도 같은 것을 봅니다 — 서버 렌더링(SSR)이 필요합니다"
+    },
+    {
+      "pri": 1,
+      "msg": "JSON-LD 구조화 데이터가 한 페이지에도 없습니다. Organization·Article·FAQPage 부터 넣으세요"
+    },
+    {
+      "pri": 2,
+      "msg": "llms.txt 가 없습니다. AI가 그대로 인용할 브랜드 설명문을 길이별로 넣으세요"
+    },
+    {
+      "pri": 2,
+      "msg": "질문형 제목이 하나도 없습니다. 사람이 AI에게 묻는 문장을 그대로 제목으로 쓰세요"
+    },
+    {
+      "pri": 3,
+      "msg": "sitemap.xml 이 없습니다. 색인이 안 되면 검색층에서 탈락합니다"
+    },
+    {
+      "pri": 3,
+      "msg": "수치가 거의 없습니다. AI는 숫자·조건이 붙은 문장을 인용합니다"
+    }
+  ]
+}

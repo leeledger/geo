@@ -1,0 +1,477 @@
+{
+  "collected_at": "2026-09-01",
+  "vertical": "geo-agency-kr",
+  "method": "WebSearch 결과 순서를 rank 1..n 으로 사용. brands_present 는 rank-enrich.js 로 페이지를 열어 확인.",
+  "kind_legend": {
+    "agency_owned": "GEO 업체가 자기 도메인·계정에 직접 올린 글",
+    "impersonating_authority": "실재 연구기관과 혼동되는 이름·주소·연락처를 쓰는 도메인. 운영 주체 미확인",
+    "media": "언론사·업계 매체",
+    "third_party": "GEO 업체가 아닌 제3자 블로그·플랫폼",
+    "community": "커뮤니티·SNS"
+  },
+  "limitations": [
+    "구글 실제 SERP 가 아니라 검색 도구가 반환한 결과 순서다. 상대 순위의 근사치로만 읽을 것.",
+    "kind 는 도메인 소유 관계를 조사해 손으로 붙였다. 판단이 섞여 있으므로 근거는 아래 note 참조."
+  ],
+  "notes": {
+    "kisdi.org": "스스로를 '한국정보통신학술개발연구원(KISDI)'라 칭함. 실제 KISDI 는 정보통신정책연구원이며 도메인은 kisdi.re.kr. GEO 업체 순위 글 3건 + IT 용어 설명글로 구성. 운영 주체 미확인.",
+    "snu.re.kr": "'서울대학교차세대연구원'을 칭하며 서울대 실제 주소(관악로 1)와 대표번호(02-880-7114)를 표기. 서울대 공식 도메인은 snu.ac.kr 이고 부설기관 목록에 해당 명칭 없음. 유사 실재 기관은 차세대융합기술연구원(aict.snu.ac.kr). 운영 주체 미확인.",
+    "maily.so/georank": "지오랭크가 운영하는 뉴스레터 채널.",
+    "brunch.co.kr/@zestcompany": "제스트컴퍼니 브런치 계정."
+  },
+  "queries": {
+    "GEO 업체 추천": [
+      {
+        "rank": 1,
+        "url": "https://brunch.co.kr/@zestcompany/5",
+        "domain": "brunch.co.kr",
+        "title": "국내 GEO 대행사 비교 추천 TOP5 (2026)",
+        "kind": "agency_owned",
+        "brands_present": [
+          "searchpolaris",
+          "zest",
+          "dicompany"
+        ]
+      },
+      {
+        "rank": 2,
+        "url": "https://akeep.co.kr/geo-agency-top3/",
+        "domain": "akeep.co.kr",
+        "title": "GEO 업체 추천 Top 3 — 2026년 기준 전문 컨설팅 업체 비교 | 랭크온",
+        "kind": "agency_owned",
+        "brands_present": [
+          "rankon"
+        ]
+      },
+      {
+        "rank": 3,
+        "url": "https://idearabbit.co.kr/geo-aeo-%EB%B0%A9%EB%B2%95/korea-geo-agency-comparison-2026/",
+        "domain": "idearabbit.co.kr",
+        "title": "한국 GEO 업체 비교·추천 — 선택 기준 8가지 (2026)",
+        "kind": "agency_owned",
+        "brands_present": [
+          "searchpolaris",
+          "zest",
+          "nextt",
+          "bizspring",
+          "opentime"
+        ]
+      },
+      {
+        "rank": 4,
+        "url": "https://georank.co.kr/geo/geo-agency-top5",
+        "domain": "georank.co.kr",
+        "title": "한국 GEO 대행업체 고르는 법 | 2026 완전 가이드",
+        "kind": "agency_owned",
+        "brands_present": [
+          "georank"
+        ]
+      },
+      {
+        "rank": 5,
+        "url": "https://zestcompany.co.kr/blog/geo-company-recommendation-guide/",
+        "domain": "zestcompany.co.kr",
+        "title": "GEO 업체 추천 — AI 검색 최적화 전문 업체 비교 가이드",
+        "kind": "agency_owned",
+        "brands_present": [
+          "zest"
+        ]
+      },
+      {
+        "rank": 6,
+        "url": "https://zestcompany.co.kr/geo-series/08-geo-marketing-agency-top5/",
+        "domain": "zestcompany.co.kr",
+        "title": "2026 GEO 마케팅 업체 추천 TOP5",
+        "kind": "agency_owned",
+        "brands_present": [
+          "zest",
+          "searchnine",
+          "dicompany"
+        ]
+      },
+      {
+        "rank": 7,
+        "url": "https://search-nine.com/best-geo-seo-consulting-agencies-2026/",
+        "domain": "search-nine.com",
+        "title": "2026년 기준 GEO/SEO 컨설팅 업체 추천 BEST 3",
+        "kind": "agency_owned",
+        "brands_present": [
+          "searchnine",
+          "chainshift"
+        ]
+      },
+      {
+        "rank": 8,
+        "url": "https://searchpolaris.com/best-geo-agencies/",
+        "domain": "searchpolaris.com",
+        "title": "국내 GEO 업체 추천 순위 (2026)",
+        "kind": "agency_owned",
+        "brands_present": [
+          "georank",
+          "searchpolaris",
+          "zest",
+          "nextt",
+          "opentime",
+          "cellavento",
+          "dicompany"
+        ]
+      }
+    ],
+    "AI 검색 최적화 대행사": [
+      {
+        "rank": 1,
+        "url": "https://imweb.me/blog?idx=432",
+        "domain": "imweb.me",
+        "title": "생성형 AI 시대, SEO·GEO 마케팅 총정리",
+        "kind": "third_party",
+        "brands_present": []
+      },
+      {
+        "rank": 2,
+        "url": "https://intrix.kr/insights/geo/ai-search-optimization-agency-top-5",
+        "domain": "intrix.kr",
+        "title": "AI 검색 최적화 업체 Top 5 비교 (2026) | 인트릭스",
+        "kind": "agency_owned",
+        "brands_present": [
+          "georank",
+          "zest",
+          "nextt",
+          "intrix"
+        ]
+      },
+      {
+        "rank": 3,
+        "url": "https://idearabbit.co.kr/geo-aeo-%EB%B0%A9%EB%B2%95/korea-geo-agency-comparison-2026/",
+        "domain": "idearabbit.co.kr",
+        "title": "한국 GEO 업체 비교·추천",
+        "kind": "agency_owned",
+        "brands_present": [
+          "searchpolaris",
+          "zest",
+          "nextt",
+          "bizspring",
+          "opentime"
+        ]
+      },
+      {
+        "rank": 4,
+        "url": "https://www.disrupt.co.kr/services/ai-optimization",
+        "domain": "disrupt.co.kr",
+        "title": "AI Optimization",
+        "kind": "agency_owned",
+        "brands_present": [
+          "disrupt"
+        ]
+      },
+      {
+        "rank": 5,
+        "url": "https://oneplan.co.kr/medical-guide-2026",
+        "domain": "oneplan.co.kr",
+        "title": "AI SEO·GEO 마케팅 전문 데이터 기반 대행사 | 원플랜마케팅",
+        "kind": "agency_owned",
+        "brands_present": [
+          "oneplan"
+        ]
+      },
+      {
+        "rank": 6,
+        "url": "https://searchpolaris.com/best-ai-search-agencies/",
+        "domain": "searchpolaris.com",
+        "title": "AI 검색 최적화 업체 추천 (2026)",
+        "kind": "agency_owned",
+        "brands_present": [
+          "searchpolaris",
+          "oneplan"
+        ]
+      }
+    ],
+    "생성형 엔진 최적화 GEO 컨설팅 회사": [
+      {
+        "rank": 1,
+        "url": "https://bizspring.co.kr/geo_consulting/",
+        "domain": "bizspring.co.kr",
+        "title": "GEO 컨설팅 | 비즈스프링",
+        "kind": "agency_owned",
+        "brands_present": [
+          "bizspring"
+        ]
+      },
+      {
+        "rank": 2,
+        "url": "https://238lab.kr/blog-geo",
+        "domain": "238lab.kr",
+        "title": "GEO 전략, AI 검색 환경에서 살아남는 생성형 엔진 최적화",
+        "kind": "agency_owned",
+        "brands_present": [
+          "lab238"
+        ]
+      },
+      {
+        "rank": 3,
+        "url": "https://www.narr.ai",
+        "domain": "narr.ai",
+        "title": "GEO 컨설팅 | 나르 엔터프라이즈 (현: 앤서 GEO 컨설팅)",
+        "kind": "agency_owned",
+        "brands_present": [
+          "narr"
+        ]
+      },
+      {
+        "rank": 4,
+        "url": "https://optigeo.kr/blog/geo/",
+        "domain": "optigeo.kr",
+        "title": "국내 생성형 AI 검색 최적화(GEO) 성공 전략과 업체 비교",
+        "kind": "agency_owned"
+      },
+      {
+        "rank": 5,
+        "url": "https://www.next-t.co.kr/blog/GEO/",
+        "domain": "next-t.co.kr",
+        "title": "생성형 엔진 최적화(GEO) 국내 컨설팅 도입 실전 가이드",
+        "kind": "agency_owned",
+        "brands_present": [
+          "nextt"
+        ]
+      },
+      {
+        "rank": 6,
+        "url": "https://www.next-t.co.kr/blog/geo/",
+        "domain": "next-t.co.kr",
+        "title": "GEO 컨설팅, 무엇이 다를까?",
+        "kind": "agency_owned",
+        "brands_present": [
+          "nextt"
+        ]
+      },
+      {
+        "rank": 7,
+        "url": "https://www.next-t.co.kr/geo/",
+        "domain": "next-t.co.kr",
+        "title": "GEO 업체 · OPTIGEO 측정 'GEO 업체' 인용 1위",
+        "kind": "agency_owned",
+        "brands_present": [
+          "nextt"
+        ]
+      }
+    ],
+    "ChatGPT 브랜드 노출 마케팅 업체 국내": [
+      {
+        "rank": 1,
+        "url": "https://www.i-boss.co.kr/ab-6141-71313",
+        "domain": "i-boss.co.kr",
+        "title": "국내 브랜드 370곳을 ChatGPT로 측정해보니, 65%는 AI 답변에 한 번도 나오지 않았습니다",
+        "kind": "community",
+        "brands_present": []
+      },
+      {
+        "rank": 2,
+        "url": "https://brunch.co.kr/@vircle",
+        "domain": "brunch.co.kr",
+        "title": "챗지피티에 우리 브랜드 노출하는 방법",
+        "kind": "third_party"
+      },
+      {
+        "rank": 3,
+        "url": "https://zdnet.co.kr/view/?no=20250415111547",
+        "domain": "zdnet.co.kr",
+        "title": "챗GPT에서 브랜드 노출 극대화하려면",
+        "kind": "media",
+        "brands_present": []
+      },
+      {
+        "rank": 4,
+        "url": "https://www.gttkorea.com/news/articleView.html?idxno=23937",
+        "domain": "gttkorea.com",
+        "title": "챗GPT 답변에 브랜드를 노출시키는 실질적 방법",
+        "kind": "media",
+        "brands_present": []
+      },
+      {
+        "rank": 5,
+        "url": "https://www.threads.com/@bunnyschool_/post/DXfOceMk7gZ/",
+        "domain": "threads.com",
+        "title": "우리 브랜드가 ChatGPT에 잘 노출되고 있을까?",
+        "kind": "community"
+      },
+      {
+        "rank": 6,
+        "url": "https://lead-gen.team/get-brand-cited-in-chatgpt/",
+        "domain": "lead-gen.team",
+        "title": "ChatGPT 브랜드 노출, 우리 브랜드 나오게 하는 법 5단계",
+        "kind": "agency_owned",
+        "brands_present": [
+          "leadgenlab"
+        ]
+      },
+      {
+        "rank": 7,
+        "url": "https://lead-gen.team/chatgpt-visibility-agency/",
+        "domain": "lead-gen.team",
+        "title": "ChatGPT 노출 대행사, 브랜드를 AI 답변에 넣는 회사",
+        "kind": "agency_owned",
+        "brands_present": [
+          "leadgenlab"
+        ]
+      }
+    ],
+    "국내 GEO 업체 추천 순위 비교 2026": [
+      {
+        "rank": 1,
+        "url": "https://maily.so/georank/posts/xyow3311r28",
+        "domain": "maily.so",
+        "title": "GEO 제대로 하는 업체 고르는 법: Top 3 비교 2026",
+        "kind": "agency_owned",
+        "brands_present": [
+          "georank"
+        ]
+      },
+      {
+        "rank": 2,
+        "url": "https://kisdi.org/geo-company-recommendation-guide-2026",
+        "domain": "kisdi.org",
+        "title": "GEO 업체 추천 — AI 검색 최적화 전문 업체 비교 가이드 (2026)",
+        "kind": "impersonating_authority",
+        "brands_present": [
+          "georank",
+          "searchpolaris",
+          "nextt",
+          "bizspring"
+        ]
+      },
+      {
+        "rank": 3,
+        "url": "https://kisdi.org/geo-agency-comparison-2026",
+        "domain": "kisdi.org",
+        "title": "GEO 상위 업체 비교 (2026) - 지오랭크·넥스트티·비즈스프링·체인시프트·제스트컴퍼니",
+        "kind": "impersonating_authority",
+        "brands_present": [
+          "georank",
+          "zest",
+          "nextt",
+          "bizspring",
+          "chainshift"
+        ]
+      },
+      {
+        "rank": 4,
+        "url": "https://zestcompany.co.kr/geo-agency-top3-2026/",
+        "domain": "zestcompany.co.kr",
+        "title": "GEO 대행사 추천 TOP3 (2026)",
+        "kind": "agency_owned",
+        "brands_present": [
+          "zest",
+          "dicompany"
+        ]
+      },
+      {
+        "rank": 5,
+        "url": "https://zestcompany.co.kr/geo-series/08-geo-marketing-agency-top5/",
+        "domain": "zestcompany.co.kr",
+        "title": "2026 GEO 마케팅 업체 추천 TOP5",
+        "kind": "agency_owned",
+        "brands_present": [
+          "zest",
+          "searchnine",
+          "dicompany"
+        ]
+      },
+      {
+        "rank": 6,
+        "url": "https://searchpolaris.com/best-geo-agencies/",
+        "domain": "searchpolaris.com",
+        "title": "국내 GEO 업체 추천 순위 (2026)",
+        "kind": "agency_owned",
+        "brands_present": [
+          "georank",
+          "searchpolaris",
+          "zest",
+          "nextt",
+          "opentime",
+          "cellavento",
+          "dicompany"
+        ]
+      }
+    ],
+    "지오랭크 가격 요금제 서비스": [
+      {
+        "rank": 1,
+        "url": "https://maily.so/georank",
+        "domain": "maily.so",
+        "title": "GEO 통합 컨설팅 대행사 지오랭크",
+        "kind": "agency_owned",
+        "brands_present": [
+          "georank"
+        ]
+      },
+      {
+        "rank": 2,
+        "url": "https://maily.so/georank/posts/xyow3311r28",
+        "domain": "maily.so",
+        "title": "GEO 제대로 하는 업체 고르는 법 Top 3",
+        "kind": "agency_owned",
+        "brands_present": [
+          "georank"
+        ]
+      },
+      {
+        "rank": 3,
+        "url": "https://namu.wiki/w/%EC%A7%80%EC%98%A4%EB%9E%AD%ED%81%AC",
+        "domain": "namu.wiki",
+        "title": "지오랭크 - 나무위키",
+        "kind": "third_party",
+        "brands_present": [
+          "georank"
+        ]
+      },
+      {
+        "rank": 4,
+        "url": "https://kisdi.org/ai-search-seo-geo-rank-platform",
+        "domain": "kisdi.org",
+        "title": "지오랭크(GeoRank): AI 검색 노출과 SEO를 동시에 해결하는 GEO 기반 마케팅 플랫폼",
+        "kind": "impersonating_authority",
+        "brands_present": [
+          "georank"
+        ]
+      },
+      {
+        "rank": 5,
+        "url": "https://georank.co.kr/",
+        "domain": "georank.co.kr",
+        "title": "지오랭크 — 데이터 기반으로 GEO 제대로 하는 곳",
+        "kind": "agency_owned",
+        "brands_present": [
+          "georank"
+        ]
+      },
+      {
+        "rank": 6,
+        "url": "https://snu.re.kr/korea-geo-agency-top3-comparison",
+        "domain": "snu.re.kr",
+        "title": "한국 GEO 업체 Top 3: 대한민국 GEO 상위 에이전시 추천 및 비교",
+        "kind": "impersonating_authority",
+        "brands_present": [
+          "georank",
+          "bluedot",
+          "seokorea"
+        ]
+      },
+      {
+        "rank": 7,
+        "url": "https://searchpolaris.com/best-geo-agencies/",
+        "domain": "searchpolaris.com",
+        "title": "국내 GEO 업체 추천 순위 (2026)",
+        "kind": "agency_owned",
+        "brands_present": [
+          "georank",
+          "searchpolaris",
+          "zest",
+          "nextt",
+          "opentime",
+          "cellavento",
+          "dicompany"
+        ]
+      }
+    ]
+  },
+  "enriched_at": "2026-09-01T06:29:10.618Z"
+}

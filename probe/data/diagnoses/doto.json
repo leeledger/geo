@@ -1,0 +1,258 @@
+{
+  "brand": {
+    "id": "doto",
+    "name": "도토",
+    "domain": "doto.kr"
+  },
+  "generated_at": "2026-09-01T11:55:14.318Z",
+  "vertical": "중소기업용 ERP (한국)",
+  "engine": "websearch",
+  "executions": 15,
+  "prompts": 12,
+  "site": {
+    "total": 80,
+    "grade": "우수",
+    "checks": {
+      "crawler": 85,
+      "llmstxt": 80,
+      "sitemap": 100,
+      "ssr": 100,
+      "schema": 91,
+      "chunk": 41,
+      "patterns": 54
+    }
+  },
+  "ai": {
+    "presence": 20,
+    "share": 7,
+    "avgPos": 2.3,
+    "rank": 5,
+    "competitors": 13
+  },
+  "leaderboard": [
+    {
+      "name": "더존비즈온",
+      "presence": 60,
+      "avgPos": 1.3,
+      "isMe": false
+    },
+    {
+      "name": "이카운트",
+      "presence": 53.3,
+      "avgPos": 2.3,
+      "isMe": false
+    },
+    {
+      "name": "영림원소프트랩",
+      "presence": 53.3,
+      "avgPos": 2.3,
+      "isMe": false
+    },
+    {
+      "name": "SAP",
+      "presence": 26.7,
+      "avgPos": 1.8,
+      "isMe": false
+    },
+    {
+      "name": "도토",
+      "presence": 20,
+      "avgPos": 2.3,
+      "isMe": true
+    },
+    {
+      "name": "오라클",
+      "presence": 13.3,
+      "avgPos": 4.5,
+      "isMe": false
+    },
+    {
+      "name": "아이퀘스트",
+      "presence": 13.3,
+      "avgPos": 3,
+      "isMe": false
+    },
+    {
+      "name": "비젠트로",
+      "presence": 13.3,
+      "avgPos": 3.5,
+      "isMe": false
+    },
+    {
+      "name": "웹케시 경리나라",
+      "presence": 6.7,
+      "avgPos": 4,
+      "isMe": false
+    },
+    {
+      "name": "다해INC",
+      "presence": 6.7,
+      "avgPos": 3,
+      "isMe": false
+    },
+    {
+      "name": "하이웍스 파로스",
+      "presence": 6.7,
+      "avgPos": 2,
+      "isMe": false
+    },
+    {
+      "name": "자비스",
+      "presence": 6.7,
+      "avgPos": 3,
+      "isMe": false
+    },
+    {
+      "name": "한그루ERP",
+      "presence": 6.7,
+      "avgPos": 4,
+      "isMe": false
+    }
+  ],
+  "thirdParty": {
+    "totalDocs": 14,
+    "mine": 0,
+    "coverage": 0,
+    "rows": [
+      {
+        "id": "ecount",
+        "name": "이카운트",
+        "docs": 10
+      },
+      {
+        "id": "douzone",
+        "name": "더존비즈온",
+        "docs": 9
+      },
+      {
+        "id": "younglimwon",
+        "name": "영림원소프트랩",
+        "docs": 9
+      },
+      {
+        "id": "sap_b1",
+        "name": "SAP",
+        "docs": 9
+      },
+      {
+        "id": "netsuite",
+        "name": "오라클",
+        "docs": 6
+      },
+      {
+        "id": "webcash",
+        "name": "웹케시 경리나라",
+        "docs": 3
+      },
+      {
+        "id": "iquest",
+        "name": "아이퀘스트",
+        "docs": 2
+      },
+      {
+        "id": "odoo",
+        "name": "Odoo",
+        "docs": 1
+      }
+    ],
+    "missing": [
+      {
+        "url": "https://blog.wishket.com/blog/erp-program-korea-market-guide",
+        "domain": "blog.wishket.com",
+        "title": "중견·중소기업 ERP 프로그램 비교 가이드 2026",
+        "has": [
+          "douzone",
+          "ecount",
+          "younglimwon",
+          "sap_b1",
+          "netsuite",
+          "iquest",
+          "webcash"
+        ]
+      },
+      {
+        "url": "https://korea-erp.com/erp-company-top5/",
+        "domain": "korea-erp.com",
+        "title": "국내 ERP 업체 순위 Top5 및 글로벌 ERP 회사 5곳",
+        "has": [
+          "douzone",
+          "ecount",
+          "younglimwon",
+          "sap_b1",
+          "netsuite",
+          "iquest",
+          "webcash"
+        ]
+      },
+      {
+        "url": "https://clobe.ai/blog/2026-company-size-erp-recommendation-startup-to-enterprise-staged-solutions",
+        "domain": "clobe.ai",
+        "title": "2026 회사 규모별 ERP 추천",
+        "has": [
+          "douzone",
+          "ecount",
+          "younglimwon",
+          "sap_b1",
+          "netsuite",
+          "webcash"
+        ]
+      },
+      {
+        "url": "https://www.waveon.io/blog/best-erp-systems-comparison",
+        "domain": "waveon.io",
+        "title": "국내외 대표 ERP 시스템 종류 비교 분석",
+        "has": [
+          "douzone",
+          "ecount",
+          "younglimwon",
+          "sap_b1",
+          "netsuite"
+        ]
+      },
+      {
+        "url": "https://korea-erp.com/erp-recommendations/",
+        "domain": "korea-erp.com",
+        "title": "ERP 추천: 기업, 산업 별 가장 적합한 ERP Top5 비교",
+        "has": [
+          "douzone",
+          "ecount",
+          "younglimwon",
+          "sap_b1",
+          "netsuite"
+        ]
+      },
+      {
+        "url": "https://blog.stackcube.io/ko/best-erp-systems-comparison",
+        "domain": "blog.stackcube.io",
+        "title": "ERP 시스템 종류와 ERP 회사 비교: SAP·Oracle·더존·이카운트 선택 기준",
+        "has": [
+          "douzone",
+          "ecount",
+          "younglimwon",
+          "sap_b1",
+          "netsuite"
+        ]
+      }
+    ]
+  },
+  "verdict": "사이트는 됐는데 안 불립니다",
+  "reason": "사이트는 AI가 읽을 준비가 돼 있습니다. 문제는 남의 문서에 이름이 없다는 것이고, 이건 사이트를 더 고쳐도 해결되지 않습니다.",
+  "focus": "third_party",
+  "actions": [
+    {
+      "kind": "제3자 지면",
+      "pri": 1,
+      "msg": "blog.wishket.com — \"중견·중소기업 ERP 프로그램 비교 가이드 2026\" 에 더존비즈온, 이카운트, 영림원소프트랩 는 있고 도토 는 없습니다. 이 문서 진입이 최우선입니다."
+    },
+    {
+      "kind": "제3자 지면",
+      "pri": 1,
+      "msg": "korea-erp.com — \"국내 ERP 업체 순위 Top5 및 글로벌 ERP 회사 5곳\" 에 더존비즈온, 이카운트, 영림원소프트랩 는 있고 도토 는 없습니다. 이 문서 진입이 최우선입니다."
+    },
+    {
+      "kind": "제3자 지면",
+      "pri": 1,
+      "msg": "clobe.ai — \"2026 회사 규모별 ERP 추천\" 에 더존비즈온, 이카운트, 영림원소프트랩 는 있고 도토 는 없습니다. 이 문서 진입이 최우선입니다."
+    }
+  ]
+}

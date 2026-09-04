@@ -1,0 +1,184 @@
+{
+  "origin": "https://douzone.com",
+  "scanned_at": "2026-09-01T11:51:53.085Z",
+  "total": 70,
+  "grade": "보통",
+  "checks": {
+    "crawler": {
+      "score": 85,
+      "bots": [
+        {
+          "id": "OAI-SearchBot",
+          "label": "ChatGPT 검색",
+          "weight": 3,
+          "allowed": true,
+          "basis": "규칙 없음"
+        },
+        {
+          "id": "ChatGPT-User",
+          "label": "ChatGPT 사용자요청",
+          "weight": 3,
+          "allowed": true,
+          "basis": "규칙 없음"
+        },
+        {
+          "id": "PerplexityBot",
+          "label": "Perplexity",
+          "weight": 3,
+          "allowed": true,
+          "basis": "규칙 없음"
+        },
+        {
+          "id": "Perplexity-User",
+          "label": "Perplexity 사용자",
+          "weight": 2,
+          "allowed": true,
+          "basis": "규칙 없음"
+        },
+        {
+          "id": "ClaudeBot",
+          "label": "Claude",
+          "weight": 3,
+          "allowed": true,
+          "basis": "규칙 없음"
+        },
+        {
+          "id": "Googlebot",
+          "label": "구글 색인",
+          "weight": 3,
+          "allowed": true,
+          "basis": "규칙 없음"
+        },
+        {
+          "id": "Bingbot",
+          "label": "Bing/Copilot",
+          "weight": 2,
+          "allowed": true,
+          "basis": "규칙 없음"
+        },
+        {
+          "id": "Yeti",
+          "label": "네이버",
+          "weight": 2,
+          "allowed": true,
+          "basis": "규칙 없음"
+        },
+        {
+          "id": "GPTBot",
+          "label": "OpenAI 학습",
+          "weight": 1,
+          "allowed": true,
+          "basis": "규칙 없음"
+        },
+        {
+          "id": "Google-Extended",
+          "label": "Gemini 학습",
+          "weight": 1,
+          "allowed": true,
+          "basis": "규칙 없음"
+        },
+        {
+          "id": "CCBot",
+          "label": "Common Crawl",
+          "weight": 1,
+          "allowed": true,
+          "basis": "규칙 없음"
+        }
+      ],
+      "blocked": []
+    },
+    "llmstxt": {
+      "score": 50,
+      "exists": true,
+      "bytes": 53387,
+      "sections": 0,
+      "hasEntity": false
+    },
+    "sitemap": {
+      "score": 100,
+      "exists": true,
+      "urls": 0
+    },
+    "ssr": {
+      "score": 100,
+      "avgTextLen": 9136,
+      "textRatio": 0.075,
+      "thinPages": 0,
+      "totalPages": 1
+    },
+    "schema": {
+      "score": 64,
+      "pagesWithLd": 1,
+      "totalPages": 1,
+      "types": [
+        "Organization"
+      ],
+      "matched": [
+        "Organization"
+      ],
+      "invalid": 0
+    },
+    "chunk": {
+      "score": 17,
+      "paragraphs": 75,
+      "listItems": 163,
+      "inBand": 2,
+      "bandRate": 2.7,
+      "tooLong": 0,
+      "vagueSubjects": 0
+    },
+    "patterns": {
+      "score": 70,
+      "questionHeadings": 0,
+      "numericFacts": 24,
+      "pagesWithTable": 1,
+      "pagesWithList": 1,
+      "pagesWithMeta": 1
+    }
+  },
+  "pages": [
+    {
+      "url": "https://douzone.com",
+      "ok": true,
+      "textLen": 9136,
+      "htmlLen": 121839,
+      "textRatio": 0.07498420046126446,
+      "ldCount": 1,
+      "ldInvalid": 0,
+      "types": [
+        "Organization"
+      ],
+      "paras": 75,
+      "items": 163,
+      "inBand": 2,
+      "tooLong": 0,
+      "headings": 11,
+      "qHeadings": 0,
+      "vague": 0,
+      "hasNumbers": 24,
+      "hasTable": true,
+      "hasList": true,
+      "lang": "ko",
+      "title": "더존ICT그룹",
+      "desc": "더존, 더존ICT그룹 공식 사이트, 기업 전용 클라우드, ERP, 그룹웨어, 전자세금계산서, 보안 제품 안내"
+    }
+  ],
+  "notes": [
+    {
+      "pri": 2,
+      "msg": "AI 크롤러가 * 규칙으로만 허용됩니다. User-agent 별로 명시하면 의도가 분명해집니다"
+    },
+    {
+      "pri": 2,
+      "msg": "FAQPage / HowTo 스키마가 없습니다. 질문-답변 형태가 AI 인용에 가장 잘 걸립니다"
+    },
+    {
+      "pri": 2,
+      "msg": "문단의 3%만 인용하기 좋은 길이입니다. 한 문단 = 한 주제, 40~80단어로 쪼개세요"
+    },
+    {
+      "pri": 2,
+      "msg": "질문형 제목이 하나도 없습니다. 사람이 AI에게 묻는 문장을 그대로 제목으로 쓰세요"
+    }
+  ]
+}

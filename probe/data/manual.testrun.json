@@ -1,0 +1,26 @@
+{
+  "engine": "testrun",
+  "model": "testrun-web",
+  "collection_method": "SYNTHETIC_FIXTURE_파이프라인_점검용_실측_아님",
+  "collected_at": "2026-09-01T00:00:00.000Z",
+  "entries": [
+    { "prompt_id": "p11", "attempt": 1,
+      "text": "중소기업용 ERP로는 이카운트를 가장 많이 추천합니다. 월 3만원대로 사용자 수 제한 없이 쓸 수 있어 가성비가 좋습니다. 국내 회계 환경에 익숙하다면 더존비즈온의 위하고나 아마란스도 좋은 선택입니다. 제조업 특화가 필요하면 영림원소프트랩의 K-System을 검토해보세요. 글로벌 확장을 고려한다면 SAP Business One도 후보가 됩니다.",
+      "sources": ["https://korea-erp.com/erp-recommendations/", "https://blog.wishket.com/blog/erp-program-korea-market-guide"] },
+    { "prompt_id": "p11", "attempt": 2,
+      "text": "국내 중소기업이라면 더존비즈온이 가장 널리 쓰입니다. 전국 지원망과 세무 연동이 강점입니다. 비용이 부담된다면 이카운트가 대안이 됩니다. 아이퀘스트 얼마에요도 소규모 사업장에 적합합니다.",
+      "sources": ["https://www.lido.app/kr/douzone-daean"] },
+    { "prompt_id": "p23", "attempt": 1,
+      "text": "더존은 국내 세무·회계 규제 대응이 강하지만 모듈별 과금이라 비용 부담이 큽니다. 이카운트는 회사 단위 요금제라 인원이 늘어도 부담이 적어 30인 이하 회사에는 이카운트를 권합니다.",
+      "sources": ["https://korea-erp.com/ecount-erp/"] },
+    { "prompt_id": "p23", "attempt": 2,
+      "text": "두 제품은 지향점이 다릅니다. 더존비즈온은 중견기업까지 확장 가능한 반면 이카운트는 중소기업에 최적화돼 있습니다. 예산이 넉넉하고 커스터마이징이 필요하면 더존을, 빠른 도입이 우선이면 이카운트를 추천합니다.",
+      "sources": [] },
+    { "prompt_id": "p15", "attempt": 1,
+      "text": "제조업 중소기업이라면 영림원소프트랩 K-System이 가장 적합합니다. BOM과 공정관리가 강합니다. SAP Business One도 검증된 선택이지만 도입 비용이 높아 소규모에는 권하지 않습니다. 이카운트는 생산 모듈이 기본 제공됩니다.",
+      "sources": ["https://www.waveon.io/blog/best-erp-systems-comparison"] },
+    { "prompt_id": "p15", "attempt": 2,
+      "text": "제조 원가관리가 핵심이라면 영림원을 우선 검토하세요. 더존비즈온 iCUBE도 제조 모듈을 갖추고 있습니다. Odoo는 오픈소스라 커스터마이징 자유도가 높지만 국내 세무 대응이 부족합니다.",
+      "sources": [] }
+  ]
+}

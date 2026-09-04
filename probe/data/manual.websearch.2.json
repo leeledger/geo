@@ -1,0 +1,19 @@
+{
+  "engine": "websearch",
+  "model": "search-grounded-assistant",
+  "collection_method": "동일 질문 재실행 (2회차). 재현성 측정용.",
+  "collected_at": "2026-09-01T00:10:00.000Z",
+  "entries": [
+    { "prompt_id": "p11", "attempt": 2,
+      "text": "ERP는 기업 운영의 모든 업무를 하나로 통합하는 시스템입니다. 중소기업, 스타트업, 자영업이라면 클라우드형 ERP가 현실적이고 효율적입니다. 주요 ERP 솔루션 추천: 더존ERP - 더존ERP는 스타트업 부터 중견 기업에게 추천되는 ERP이며, 제조, 유통, 서비스 등 다양한 산업에 폭넓게 적합합니다. 영림원 K-System - 국내 시장 점유율 3위의 토종 ERP인 영림원 K-System은 물류 및 생산 관리 파트에 강점을 보이며, 대기업과 중견기업에게 추천되는 ERP이고 제조업·건설업·유통업 등 산업별 맞춤형 모듈을 제공합니다. 공급업체 지원 및 평판을 평가하기 위해 사례 연구, 고객 추천의 말 및 타사 리뷰를 검토하는 것이 중요합니다.",
+      "sources": ["https://blog.iquest.co.kr/entry/ERP프로그램", "https://www.sap.com/korea/resources/erp-for-small-manufacturing-companies", "https://www.waveon.io/blog/best-erp-systems-comparison", "https://doto.kr/blog/free-erp-comparison-2026.html", "https://www.dahaeinc.co.kr/mobile/index.aspx", "https://korea-erp.com/erp-recommendations/"] },
+
+    { "prompt_id": "p30", "attempt": 2,
+      "text": "중소기업 추천 ERP 3가지 비교. 1. 더존 iCUBE Cloud - 회계, 인사, 영업, 물류 기능을 통합 제공하면서도 중소기업이 감당할 수 있는 수준의 월 사용료를 책정하고 있습니다. 통합적인 기능 제공, 합리적인 월 구독료, 클라우드 기반 시스템이 특징입니다. 2. 영림원 K-System Ace - ERP 도입 컨설팅부터 구축, 사후관리까지 체계적인 서비스를 제공하며, 중소기업 특화 모델을 보유하고 있어 효율성과 비용 측면에서 좋은 평가를 받고 있습니다. 3. 이카운트 ERP - 클라우드 ERP는 월 구독료 기반으로 이용할 수 있는데, 이카운트의 경우 월 4만 원 수준으로 매우 저렴합니다. 가장 경제적인 가격, 클라우드 기반, 소규모 기업에 적합합니다. 가격만 볼 게 아니라 가격 대비 제공되는 기능이 우리 회사에 맞는지 체크해야 합니다.",
+      "sources": ["https://blog.iquest.co.kr/entry/ERP프로그램", "https://doto.kr/blog/free-erp-comparison-2026.html", "https://blog.stackcube.io/ko/best-erp-systems-comparison", "https://korea-erp.com/erp-recommendations/"] },
+
+    { "prompt_id": "p17", "attempt": 2,
+      "text": "저렴한 ERP 프로그램 추천. 1. 이카운트 ERP - 이카운트 ERP는 중소기업과 스타트업에게 추천되는 저렴한 웹 기반 ERP로, 월 4만원의 구독료로 사용자 수와 상관없이 이용할 수 있고, 회계·재고·생산 등 핵심 모듈이 미리 구축된 형태로 제공되어 도입 속도가 매우 빠르다는 장점이 있습니다. 2. 얼마에요 - 얼마에요는 중소기업 맞춤형으로, 간편한 사용자 환경과 합리적인 비용이 특징이며, 소규모 기업에 적합한 기능과 쉬운 사용법이 장점이고, 간단한 회계 및 재고 관리가 필요한 기업에 적합합니다. 3. 도토 - 도토는 무료이면서 인사, 결재, 회계, 재고를 한 번에 해결합니다. 4. 비젠트로 UNIERP - 비젠트로 UNIERP는 비교적 저렴한 도입 비용과 사용자 친화적 인터페이스가 특징입니다.",
+      "sources": ["https://blog.iquest.co.kr/entry/ERP프로그램", "https://www.clien.net/service/board/park/12011072", "https://doto.kr/blog/free-erp-comparison-2026.html", "https://reviewinsight.blog/2024/08/23/", "https://korea-erp.com/erp-recommendations/"] }
+  ]
+}

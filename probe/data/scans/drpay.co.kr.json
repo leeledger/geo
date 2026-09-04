@@ -1,0 +1,201 @@
+{
+  "origin": "https://drpay.co.kr",
+  "scanned_at": "2026-09-02T11:18:09.982Z",
+  "total": 31,
+  "grade": "위험",
+  "checks": {
+    "crawler": {
+      "score": 13,
+      "bots": [
+        {
+          "id": "OAI-SearchBot",
+          "label": "ChatGPT 검색",
+          "weight": 3,
+          "allowed": false,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "ChatGPT-User",
+          "label": "ChatGPT 사용자요청",
+          "weight": 3,
+          "allowed": false,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "PerplexityBot",
+          "label": "Perplexity",
+          "weight": 3,
+          "allowed": false,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "Perplexity-User",
+          "label": "Perplexity 사용자",
+          "weight": 2,
+          "allowed": false,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "ClaudeBot",
+          "label": "Claude",
+          "weight": 3,
+          "allowed": false,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "Googlebot",
+          "label": "구글 색인",
+          "weight": 3,
+          "allowed": true,
+          "basis": "명시 그룹",
+          "explicit": true
+        },
+        {
+          "id": "Bingbot",
+          "label": "Bing/Copilot",
+          "weight": 2,
+          "allowed": false,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "Yeti",
+          "label": "네이버",
+          "weight": 2,
+          "allowed": false,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "GPTBot",
+          "label": "OpenAI 학습",
+          "weight": 1,
+          "allowed": false,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "Google-Extended",
+          "label": "Gemini 학습",
+          "weight": 1,
+          "allowed": false,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "CCBot",
+          "label": "Common Crawl",
+          "weight": 1,
+          "allowed": false,
+          "basis": "* 그룹",
+          "explicit": false
+        }
+      ],
+      "blocked": [
+        "OAI-SearchBot",
+        "ChatGPT-User",
+        "PerplexityBot",
+        "Perplexity-User",
+        "ClaudeBot",
+        "Bingbot",
+        "Yeti",
+        "GPTBot",
+        "Google-Extended",
+        "CCBot"
+      ]
+    },
+    "llmstxt": {
+      "score": 0,
+      "exists": false
+    },
+    "sitemap": {
+      "score": 0,
+      "exists": false,
+      "urls": 0
+    },
+    "ssr": {
+      "score": 100,
+      "avgTextLen": 3932,
+      "textRatio": 0.0387,
+      "thinPages": 0,
+      "totalPages": 1
+    },
+    "schema": {
+      "score": 0,
+      "pagesWithLd": 0,
+      "totalPages": 1,
+      "types": [],
+      "matched": [],
+      "invalid": 0
+    },
+    "chunk": {
+      "score": 15,
+      "paragraphs": 8,
+      "listItems": 28,
+      "inBand": 0,
+      "bandRate": 0,
+      "tooLong": 0,
+      "vagueSubjects": 0
+    },
+    "patterns": {
+      "score": 52,
+      "questionHeadings": 0,
+      "numericFacts": 8,
+      "pagesWithTable": 1,
+      "pagesWithList": 1,
+      "pagesWithMeta": 1
+    }
+  },
+  "pages": [
+    {
+      "url": "https://drpay.co.kr",
+      "ok": true,
+      "textLen": 3932,
+      "htmlLen": 101595,
+      "textRatio": 0.03870269206161721,
+      "ldCount": 0,
+      "ldInvalid": 0,
+      "types": [],
+      "paras": 8,
+      "items": 28,
+      "inBand": 0,
+      "tooLong": 0,
+      "headings": 28,
+      "qHeadings": 0,
+      "vague": 0,
+      "hasNumbers": 8,
+      "hasTable": true,
+      "hasList": true,
+      "lang": "ko",
+      "title": "급여박사",
+      "desc": "급여담당자도 행복한 급여일! 스마트한 급여사무자동화!!"
+    }
+  ],
+  "notes": [
+    {
+      "pri": 1,
+      "msg": "robots.txt 가 OAI-SearchBot, ChatGPT-User, PerplexityBot, Perplexity-User, ClaudeBot, Bingbot, Yeti, GPTBot, Google-Extended, CCBot 를 차단합니다. 이게 막히면 나머지 작업이 전부 무의미합니다"
+    },
+    {
+      "pri": 1,
+      "msg": "JSON-LD 구조화 데이터가 한 페이지에도 없습니다. Organization·Article·FAQPage 부터 넣으세요"
+    },
+    {
+      "pri": 2,
+      "msg": "llms.txt 가 없습니다. AI가 그대로 인용할 브랜드 설명문을 길이별로 넣으세요"
+    },
+    {
+      "pri": 2,
+      "msg": "질문형 제목이 하나도 없습니다. 사람이 AI에게 묻는 문장을 그대로 제목으로 쓰세요"
+    },
+    {
+      "pri": 3,
+      "msg": "sitemap.xml 이 없습니다. 색인이 안 되면 검색층에서 탈락합니다"
+    }
+  ]
+}

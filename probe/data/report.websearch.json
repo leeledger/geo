@@ -1,0 +1,616 @@
+{
+  "generated_at": "2026-09-01T08:09:03.153Z",
+  "vertical": "smb-erp-kr",
+  "engine": "websearch",
+  "executions": 15,
+  "prompts": 12,
+  "mention_events": 43,
+  "brands": [
+    {
+      "id": "douzone",
+      "name": "더존비즈온",
+      "hits": 9,
+      "mrr": 7.5,
+      "endorsed": 4,
+      "dismissed": 0,
+      "positions": [
+        1,
+        2,
+        1,
+        2,
+        1,
+        2,
+        1,
+        1,
+        1
+      ],
+      "presence": 0.6,
+      "share": 0.20930232558139536,
+      "rankScore": 0.8333333333333334,
+      "avgPos": 1.3333333333333333,
+      "endorseRate": 0.4444444444444444,
+      "aiVisibility": 7.5
+    },
+    {
+      "id": "ecount",
+      "name": "이카운트",
+      "hits": 8,
+      "mrr": 4.866666666666667,
+      "endorsed": 3,
+      "dismissed": 0,
+      "positions": [
+        3,
+        2,
+        1,
+        2,
+        5,
+        1,
+        3,
+        1
+      ],
+      "presence": 0.5333333333333333,
+      "share": 0.18604651162790697,
+      "rankScore": 0.6083333333333334,
+      "avgPos": 2.25,
+      "endorseRate": 0.375,
+      "aiVisibility": 4.866666666666667
+    },
+    {
+      "id": "younglimwon",
+      "name": "영림원소프트랩",
+      "hits": 8,
+      "mrr": 3.6666666666666665,
+      "endorsed": 2,
+      "dismissed": 0,
+      "positions": [
+        2,
+        3,
+        2,
+        3,
+        2,
+        2,
+        2,
+        2
+      ],
+      "presence": 0.5333333333333333,
+      "share": 0.18604651162790697,
+      "rankScore": 0.4583333333333333,
+      "avgPos": 2.25,
+      "endorseRate": 0.25,
+      "aiVisibility": 3.6666666666666665
+    },
+    {
+      "id": "sap_b1",
+      "name": "SAP",
+      "hits": 4,
+      "mrr": 3.25,
+      "endorsed": 1,
+      "dismissed": 0,
+      "positions": [
+        1,
+        4,
+        1,
+        1
+      ],
+      "presence": 0.26666666666666666,
+      "share": 0.09302325581395349,
+      "rankScore": 0.8125,
+      "avgPos": 1.75,
+      "endorseRate": 0.25,
+      "aiVisibility": 3.25
+    },
+    {
+      "id": "doto",
+      "name": "도토",
+      "hits": 3,
+      "mrr": 1.6666666666666665,
+      "endorsed": 2,
+      "dismissed": 0,
+      "positions": [
+        1,
+        3,
+        3
+      ],
+      "presence": 0.2,
+      "share": 0.06976744186046512,
+      "rankScore": 0.5555555555555555,
+      "avgPos": 2.3333333333333335,
+      "endorseRate": 0.6666666666666666,
+      "aiVisibility": 1.6666666666666665
+    },
+    {
+      "id": "iquest",
+      "name": "아이퀘스트",
+      "hits": 2,
+      "mrr": 0.75,
+      "endorsed": 0,
+      "dismissed": 0,
+      "positions": [
+        4,
+        2
+      ],
+      "presence": 0.13333333333333333,
+      "share": 0.046511627906976744,
+      "rankScore": 0.375,
+      "avgPos": 3,
+      "endorseRate": 0,
+      "aiVisibility": 0.75
+    },
+    {
+      "id": "vizentro",
+      "name": "비젠트로",
+      "hits": 2,
+      "mrr": 0.5833333333333333,
+      "endorsed": 1,
+      "dismissed": 0,
+      "positions": [
+        3,
+        4
+      ],
+      "presence": 0.13333333333333333,
+      "share": 0.046511627906976744,
+      "rankScore": 0.29166666666666663,
+      "avgPos": 3.5,
+      "endorseRate": 0.5,
+      "aiVisibility": 0.5833333333333333
+    },
+    {
+      "id": "hiworks",
+      "name": "하이웍스 파로스",
+      "hits": 1,
+      "mrr": 0.5,
+      "endorsed": 0,
+      "dismissed": 0,
+      "positions": [
+        2
+      ],
+      "presence": 0.06666666666666667,
+      "share": 0.023255813953488372,
+      "rankScore": 0.5,
+      "avgPos": 2,
+      "endorseRate": 0,
+      "aiVisibility": 0.5
+    },
+    {
+      "id": "netsuite",
+      "name": "오라클",
+      "hits": 2,
+      "mrr": 0.45,
+      "endorsed": 0,
+      "dismissed": 0,
+      "positions": [
+        5,
+        4
+      ],
+      "presence": 0.13333333333333333,
+      "share": 0.046511627906976744,
+      "rankScore": 0.225,
+      "avgPos": 4.5,
+      "endorseRate": 0,
+      "aiVisibility": 0.45
+    },
+    {
+      "id": "dahae",
+      "name": "다해INC",
+      "hits": 1,
+      "mrr": 0.3333333333333333,
+      "endorsed": 1,
+      "dismissed": 0,
+      "positions": [
+        3
+      ],
+      "presence": 0.06666666666666667,
+      "share": 0.023255813953488372,
+      "rankScore": 0.3333333333333333,
+      "avgPos": 3,
+      "endorseRate": 1,
+      "aiVisibility": 0.3333333333333333
+    },
+    {
+      "id": "jarvis",
+      "name": "자비스",
+      "hits": 1,
+      "mrr": 0.3333333333333333,
+      "endorsed": 0,
+      "dismissed": 0,
+      "positions": [
+        3
+      ],
+      "presence": 0.06666666666666667,
+      "share": 0.023255813953488372,
+      "rankScore": 0.3333333333333333,
+      "avgPos": 3,
+      "endorseRate": 0,
+      "aiVisibility": 0.3333333333333333
+    },
+    {
+      "id": "webcash",
+      "name": "웹케시 경리나라",
+      "hits": 1,
+      "mrr": 0.25,
+      "endorsed": 0,
+      "dismissed": 0,
+      "positions": [
+        4
+      ],
+      "presence": 0.06666666666666667,
+      "share": 0.023255813953488372,
+      "rankScore": 0.25,
+      "avgPos": 4,
+      "endorseRate": 0,
+      "aiVisibility": 0.25
+    },
+    {
+      "id": "hangru",
+      "name": "한그루ERP",
+      "hits": 1,
+      "mrr": 0.25,
+      "endorsed": 0,
+      "dismissed": 0,
+      "positions": [
+        4
+      ],
+      "presence": 0.06666666666666667,
+      "share": 0.023255813953488372,
+      "rankScore": 0.25,
+      "avgPos": 4,
+      "endorseRate": 0,
+      "aiVisibility": 0.25
+    }
+  ],
+  "zero_mention": [
+    "newgen",
+    "bizonco",
+    "odoo",
+    "kysystem",
+    "godo"
+  ],
+  "outsiders": [],
+  "stability": 0.7222222222222222,
+  "fanout_avg": 0,
+  "unique_queries": 0,
+  "cited_domains": [
+    [
+      "korea-erp.com",
+      11
+    ],
+    [
+      "blog.iquest.co.kr",
+      9
+    ],
+    [
+      "doto.kr",
+      6
+    ],
+    [
+      "blog.stackcube.io",
+      5
+    ],
+    [
+      "sap.com",
+      4
+    ],
+    [
+      "waveon.io",
+      4
+    ],
+    [
+      "reviewinsight.blog",
+      4
+    ],
+    [
+      "dahaeinc.co.kr",
+      3
+    ],
+    [
+      "clien.net",
+      3
+    ],
+    [
+      "blog.wishket.com",
+      2
+    ],
+    [
+      "brunch.co.kr",
+      2
+    ],
+    [
+      "wikidocs.net",
+      2
+    ],
+    [
+      "blog.aspn.co.kr",
+      1
+    ],
+    [
+      "xrp.kr",
+      1
+    ],
+    [
+      "finnest.ai",
+      1
+    ],
+    [
+      "clobe.ai",
+      1
+    ],
+    [
+      "tilnote.io",
+      1
+    ],
+    [
+      "lido.app",
+      1
+    ],
+    [
+      "chungoose.kr",
+      1
+    ],
+    [
+      "blog.pluuug.com",
+      1
+    ],
+    [
+      "appmaster.io",
+      1
+    ],
+    [
+      "biz-solution.hiworks.com",
+      1
+    ],
+    [
+      "bloter.net",
+      1
+    ],
+    [
+      "erpcloud.douzone.com",
+      1
+    ],
+    [
+      "systemever.kr",
+      1
+    ],
+    [
+      "download.ecounterp.com",
+      1
+    ],
+    [
+      "totb.kr",
+      1
+    ],
+    [
+      "itnara.co.kr",
+      1
+    ]
+  ],
+  "own_citation_share": 0.18309859154929578,
+  "search": {
+    "douzone": {
+      "id": "douzone",
+      "name": "더존비즈온",
+      "own": 0,
+      "thirdParty": 12.009418185991777,
+      "bestOwnRank": null,
+      "inTop10": true,
+      "inTop20": true,
+      "confirmedPages": 21,
+      "inferredPages": 0,
+      "searchVisibility": 12.009418185991777
+    },
+    "ecount": {
+      "id": "ecount",
+      "name": "이카운트",
+      "own": 0,
+      "thirdParty": 10.427231684744651,
+      "bestOwnRank": null,
+      "inTop10": true,
+      "inTop20": true,
+      "confirmedPages": 21,
+      "inferredPages": 0,
+      "searchVisibility": 10.427231684744651
+    },
+    "younglimwon": {
+      "id": "younglimwon",
+      "name": "영림원소프트랩",
+      "own": 0,
+      "thirdParty": 8.596524188724382,
+      "bestOwnRank": null,
+      "inTop10": true,
+      "inTop20": true,
+      "confirmedPages": 18,
+      "inferredPages": 0,
+      "searchVisibility": 8.596524188724382
+    },
+    "sap_b1": {
+      "id": "sap_b1",
+      "name": "SAP",
+      "own": 1.1309297535714575,
+      "thirdParty": 9.062937659892986,
+      "bestOwnRank": 2,
+      "inTop10": true,
+      "inTop20": true,
+      "confirmedPages": 20,
+      "inferredPages": 0,
+      "searchVisibility": 10.193867413464444
+    },
+    "netsuite": {
+      "id": "netsuite",
+      "name": "오라클",
+      "own": 0,
+      "thirdParty": 6.25827135390557,
+      "bestOwnRank": null,
+      "inTop10": true,
+      "inTop20": true,
+      "confirmedPages": 13,
+      "inferredPages": 0,
+      "searchVisibility": 6.25827135390557
+    },
+    "iquest": {
+      "id": "iquest",
+      "name": "아이퀘스트",
+      "own": 2,
+      "thirdParty": 2.5616063116448506,
+      "bestOwnRank": 1,
+      "inTop10": true,
+      "inTop20": true,
+      "confirmedPages": 6,
+      "inferredPages": 0,
+      "searchVisibility": 4.561606311644851
+    },
+    "newgen": {
+      "id": "newgen",
+      "name": "뉴젠솔루션",
+      "own": 0,
+      "thirdParty": 0,
+      "bestOwnRank": null,
+      "inTop10": false,
+      "inTop20": false,
+      "confirmedPages": 0,
+      "inferredPages": 0,
+      "searchVisibility": 0
+    },
+    "webcash": {
+      "id": "webcash",
+      "name": "웹케시 경리나라",
+      "own": 0,
+      "thirdParty": 3.6232126232897013,
+      "bestOwnRank": null,
+      "inTop10": true,
+      "inTop20": true,
+      "confirmedPages": 6,
+      "inferredPages": 0,
+      "searchVisibility": 3.6232126232897013
+    },
+    "bizonco": {
+      "id": "bizonco",
+      "name": "비즈니스온",
+      "own": 0,
+      "thirdParty": 0,
+      "bestOwnRank": null,
+      "inTop10": false,
+      "inTop20": false,
+      "confirmedPages": 0,
+      "inferredPages": 0,
+      "searchVisibility": 0
+    },
+    "odoo": {
+      "id": "odoo",
+      "name": "Odoo",
+      "own": 0,
+      "thirdParty": 1.5,
+      "bestOwnRank": null,
+      "inTop10": true,
+      "inTop20": true,
+      "confirmedPages": 2,
+      "inferredPages": 0,
+      "searchVisibility": 1.5
+    },
+    "kysystem": {
+      "id": "kysystem",
+      "name": "케이아이시스템",
+      "own": 0,
+      "thirdParty": 0,
+      "bestOwnRank": null,
+      "inTop10": false,
+      "inTop20": false,
+      "confirmedPages": 0,
+      "inferredPages": 0,
+      "searchVisibility": 0
+    },
+    "godo": {
+      "id": "godo",
+      "name": "고도소프트",
+      "own": 0,
+      "thirdParty": 0,
+      "bestOwnRank": null,
+      "inTop10": false,
+      "inTop20": false,
+      "confirmedPages": 0,
+      "inferredPages": 0,
+      "searchVisibility": 0
+    },
+    "doto": {
+      "id": "doto",
+      "name": "도토",
+      "own": 0.8562071871080221,
+      "thirdParty": 0,
+      "bestOwnRank": 3,
+      "inTop10": true,
+      "inTop20": true,
+      "confirmedPages": 2,
+      "inferredPages": 0,
+      "searchVisibility": 0.8562071871080221
+    },
+    "dahae": {
+      "id": "dahae",
+      "name": "다해INC",
+      "own": 0,
+      "thirdParty": 0,
+      "bestOwnRank": null,
+      "inTop10": false,
+      "inTop20": false,
+      "confirmedPages": 0,
+      "inferredPages": 0,
+      "searchVisibility": 0
+    },
+    "hiworks": {
+      "id": "hiworks",
+      "name": "하이웍스 파로스",
+      "own": 0,
+      "thirdParty": 0.43067655807339306,
+      "bestOwnRank": null,
+      "inTop10": true,
+      "inTop20": true,
+      "confirmedPages": 1,
+      "inferredPages": 0,
+      "searchVisibility": 0.43067655807339306
+    },
+    "jarvis": {
+      "id": "jarvis",
+      "name": "자비스",
+      "own": 0,
+      "thirdParty": 0.6309297535714575,
+      "bestOwnRank": null,
+      "inTop10": true,
+      "inTop20": true,
+      "confirmedPages": 1,
+      "inferredPages": 0,
+      "searchVisibility": 0.6309297535714575
+    },
+    "vizentro": {
+      "id": "vizentro",
+      "name": "비젠트로",
+      "own": 0,
+      "thirdParty": 0,
+      "bestOwnRank": null,
+      "inTop10": false,
+      "inTop20": false,
+      "confirmedPages": 0,
+      "inferredPages": 0,
+      "searchVisibility": 0
+    },
+    "hangru": {
+      "id": "hangru",
+      "name": "한그루ERP",
+      "own": 0,
+      "thirdParty": 0,
+      "bestOwnRank": null,
+      "inTop10": false,
+      "inTop20": false,
+      "confirmedPages": 0,
+      "inferredPages": 0,
+      "searchVisibility": 0
+    }
+  },
+  "spearman": 0.7506630591683962,
+  "residual": 0.43650497159994495,
+  "coverage": {
+    "notInTop10": 0.09302325581395349,
+    "notInTop20": 0.09302325581395349
+  },
+  "inversion": {
+    "ai": "더존비즈온",
+    "search": "더존비즈온",
+    "inverted": false
+  }
+}

@@ -1,0 +1,28 @@
+# 의존성 · 빌드
+node_modules/
+.next/
+out/
+dist/
+
+# 환경변수 — service_role 키가 유출되면 DB 전체가 열린다
+.env
+.env.*
+!.env.example
+
+# 로컬 데이터 폴백 (개발용)
+.data/
+
+# OS · 편집기
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+
+# Next
+next-env.d.ts
+*.tsbuildinfo
+
+# 스크래치
+/tmp/
+*.log

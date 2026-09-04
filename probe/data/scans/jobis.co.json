@@ -1,0 +1,246 @@
+{
+  "origin": "https://jobis.co",
+  "scanned_at": "2026-09-02T11:18:00.437Z",
+  "total": 59,
+  "grade": "미흡",
+  "checks": {
+    "crawler": {
+      "score": 85,
+      "bots": [
+        {
+          "id": "OAI-SearchBot",
+          "label": "ChatGPT 검색",
+          "weight": 3,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "ChatGPT-User",
+          "label": "ChatGPT 사용자요청",
+          "weight": 3,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "PerplexityBot",
+          "label": "Perplexity",
+          "weight": 3,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "Perplexity-User",
+          "label": "Perplexity 사용자",
+          "weight": 2,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "ClaudeBot",
+          "label": "Claude",
+          "weight": 3,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "Googlebot",
+          "label": "구글 색인",
+          "weight": 3,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "Bingbot",
+          "label": "Bing/Copilot",
+          "weight": 2,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "Yeti",
+          "label": "네이버",
+          "weight": 2,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "GPTBot",
+          "label": "OpenAI 학습",
+          "weight": 1,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "Google-Extended",
+          "label": "Gemini 학습",
+          "weight": 1,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "CCBot",
+          "label": "Common Crawl",
+          "weight": 1,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        }
+      ],
+      "blocked": []
+    },
+    "llmstxt": {
+      "score": 0,
+      "exists": false
+    },
+    "sitemap": {
+      "score": 100,
+      "exists": true,
+      "urls": 12
+    },
+    "ssr": {
+      "score": 70,
+      "avgTextLen": 1674,
+      "textRatio": 0.043,
+      "thinPages": 0,
+      "totalPages": 3
+    },
+    "schema": {
+      "score": 64,
+      "pagesWithLd": 3,
+      "totalPages": 3,
+      "types": [
+        "Organization"
+      ],
+      "matched": [
+        "Organization"
+      ],
+      "invalid": 0
+    },
+    "chunk": {
+      "score": 15,
+      "paragraphs": 30,
+      "listItems": 39,
+      "inBand": 0,
+      "bandRate": 0,
+      "tooLong": 0,
+      "vagueSubjects": 0
+    },
+    "patterns": {
+      "score": 55,
+      "questionHeadings": 0,
+      "numericFacts": 78,
+      "pagesWithTable": 0,
+      "pagesWithList": 3,
+      "pagesWithMeta": 3
+    }
+  },
+  "pages": [
+    {
+      "url": "https://jobis.co",
+      "ok": true,
+      "textLen": 1674,
+      "htmlLen": 38926,
+      "textRatio": 0.04300467553820069,
+      "ldCount": 1,
+      "ldInvalid": 0,
+      "types": [
+        "Organization"
+      ],
+      "paras": 10,
+      "items": 13,
+      "inBand": 0,
+      "tooLong": 0,
+      "headings": 14,
+      "qHeadings": 0,
+      "vague": 0,
+      "hasNumbers": 26,
+      "hasTable": false,
+      "hasList": true,
+      "lang": "ko",
+      "title": "자비스 - 우리회사의 모든 세무/금융정보를 한 곳에서 관리하세요!",
+      "desc": "자비스가 우리 회사 경리업무를 1/10로 줄여드립니다."
+    },
+    {
+      "url": "https://jobisbiz.co/",
+      "ok": true,
+      "textLen": 1674,
+      "htmlLen": 38926,
+      "textRatio": 0.04300467553820069,
+      "ldCount": 1,
+      "ldInvalid": 0,
+      "types": [
+        "Organization"
+      ],
+      "paras": 10,
+      "items": 13,
+      "inBand": 0,
+      "tooLong": 0,
+      "headings": 14,
+      "qHeadings": 0,
+      "vague": 0,
+      "hasNumbers": 26,
+      "hasTable": false,
+      "hasList": true,
+      "lang": "ko",
+      "title": "자비스 - 우리회사의 모든 세무/금융정보를 한 곳에서 관리하세요!",
+      "desc": "자비스가 우리 회사 경리업무를 1/10로 줄여드립니다."
+    },
+    {
+      "url": "https://jobisbiz.co/index.php",
+      "ok": true,
+      "textLen": 1674,
+      "htmlLen": 38935,
+      "textRatio": 0.04299473481443431,
+      "ldCount": 1,
+      "ldInvalid": 0,
+      "types": [
+        "Organization"
+      ],
+      "paras": 10,
+      "items": 13,
+      "inBand": 0,
+      "tooLong": 0,
+      "headings": 14,
+      "qHeadings": 0,
+      "vague": 0,
+      "hasNumbers": 26,
+      "hasTable": false,
+      "hasList": true,
+      "lang": "ko",
+      "title": "자비스 - 우리회사의 모든 세무/금융정보를 한 곳에서 관리하세요!",
+      "desc": "자비스가 우리 회사 경리업무를 1/10로 줄여드립니다."
+    }
+  ],
+  "notes": [
+    {
+      "pri": 2,
+      "msg": "AI 크롤러가 * 규칙으로만 허용됩니다. User-agent 별로 명시하면 의도가 분명해집니다"
+    },
+    {
+      "pri": 2,
+      "msg": "llms.txt 가 없습니다. AI가 그대로 인용할 브랜드 설명문을 길이별로 넣으세요"
+    },
+    {
+      "pri": 2,
+      "msg": "FAQPage / HowTo 스키마가 없습니다. 질문-답변 형태가 AI 인용에 가장 잘 걸립니다"
+    },
+    {
+      "pri": 2,
+      "msg": "문단의 0%만 인용하기 좋은 길이입니다. 한 문단 = 한 주제, 40~80단어로 쪼개세요"
+    },
+    {
+      "pri": 2,
+      "msg": "질문형 제목이 하나도 없습니다. 사람이 AI에게 묻는 문장을 그대로 제목으로 쓰세요"
+    }
+  ]
+}

@@ -1,0 +1,480 @@
+{
+  "collected_at": "2026-09-01",
+  "vertical": "smb-erp-kr",
+  "method": "WebSearch 결과 순서를 rank 1..n 으로 사용. brands_present 는 해당 페이지를 실제로 열어 확인한 브랜드 목록.",
+  "limitations": [
+    "구글 실제 SERP 가 아니라 검색 도구가 반환한 결과 순서다. 절대 순위가 아니라 상대 순위의 근사치로만 읽을 것.",
+    "brands_present 가 없는 항목은 아직 페이지를 열어보지 않은 것. src/rank-enrich.js 로 채운다.",
+    "개인화·지역화가 반영되지 않았다. 실제 사용자가 보는 SERP 와 다를 수 있다."
+  ],
+  "queries": {
+    "중소기업 ERP 추천": [
+      {
+        "rank": 1,
+        "url": "https://blog.iquest.co.kr/entry/ERP프로그램",
+        "domain": "blog.iquest.co.kr",
+        "title": "ERP 프로그램 추천! 중소기업 사장님들이 직접 써보고 극찬한 가성비 ERP",
+        "kind": "own_blog",
+        "brands_present": [
+          "douzone",
+          "iquest"
+        ]
+      },
+      {
+        "rank": 2,
+        "url": "https://www.sap.com/korea/resources/erp-for-small-manufacturing-companies",
+        "domain": "sap.com",
+        "title": "중소중견기업에 적합한 ERP를 선택하는 방법",
+        "kind": "own",
+        "brands_present": [
+          "sap_b1"
+        ]
+      },
+      {
+        "rank": 3,
+        "url": "https://blog.wishket.com/blog/erp-program-korea-market-guide",
+        "domain": "blog.wishket.com",
+        "title": "중견·중소기업 ERP 프로그램 비교 가이드 2026",
+        "kind": "third_party",
+        "brands_present": [
+          "douzone",
+          "ecount",
+          "younglimwon",
+          "sap_b1",
+          "netsuite",
+          "iquest",
+          "webcash"
+        ]
+      },
+      {
+        "rank": 4,
+        "url": "https://clobe.ai/blog/2026-company-size-erp-recommendation-startup-to-enterprise-staged-solutions",
+        "domain": "clobe.ai",
+        "title": "2026 회사 규모별 ERP 추천",
+        "kind": "third_party",
+        "brands_present": [
+          "douzone",
+          "ecount",
+          "younglimwon",
+          "sap_b1",
+          "netsuite",
+          "webcash"
+        ]
+      },
+      {
+        "rank": 5,
+        "url": "https://www.waveon.io/blog/best-erp-systems-comparison",
+        "domain": "waveon.io",
+        "title": "국내외 대표 ERP 시스템 종류 비교 분석",
+        "kind": "third_party",
+        "brands_present": [
+          "douzone",
+          "ecount",
+          "younglimwon",
+          "sap_b1",
+          "netsuite"
+        ]
+      },
+      {
+        "rank": 6,
+        "url": "https://doto.kr/blog/free-erp-comparison-2026.html",
+        "domain": "doto.kr",
+        "title": "2026년 무료 ERP 프로그램 비교 추천",
+        "kind": "competitor_blog",
+        "brands_present": [
+          "doto"
+        ]
+      },
+      {
+        "rank": 7,
+        "url": "https://blog.irisinfotech.co.kr/entry/중소기업ERP-선택-기준-7가지",
+        "domain": "blog.irisinfotech.co.kr",
+        "title": "중소기업ERP 선택 기준 7가지",
+        "kind": "third_party"
+      },
+      {
+        "rank": 8,
+        "url": "https://korea-erp.com/erp-recommendations/",
+        "domain": "korea-erp.com",
+        "title": "ERP 추천: 기업, 산업 별 가장 적합한 ERP Top5 비교",
+        "kind": "third_party",
+        "brands_present": [
+          "douzone",
+          "ecount",
+          "younglimwon",
+          "sap_b1",
+          "netsuite"
+        ]
+      }
+    ],
+    "중소기업 ERP 비교 이카운트 더존": [
+      {
+        "rank": 1,
+        "url": "https://blog.wishket.com/blog/erp-program-korea-market-guide",
+        "domain": "blog.wishket.com",
+        "title": "중견·중소기업 ERP 프로그램 비교 가이드 2026",
+        "kind": "third_party",
+        "brands_present": [
+          "douzone",
+          "ecount",
+          "younglimwon",
+          "sap_b1",
+          "netsuite",
+          "iquest",
+          "webcash"
+        ]
+      },
+      {
+        "rank": 2,
+        "url": "https://www.lido.app/kr/douzone-daean",
+        "domain": "lido.app",
+        "title": "더존비즈온 대안 5가지: ERP·회계 솔루션 비교 (2026)",
+        "kind": "competitor_blog",
+        "brands_present": [
+          "douzone",
+          "ecount",
+          "younglimwon",
+          "sap_b1",
+          "webcash",
+          "jarvis"
+        ]
+      },
+      {
+        "rank": 3,
+        "url": "https://www.waveon.io/blog/best-erp-systems-comparison",
+        "domain": "waveon.io",
+        "title": "국내외 대표 ERP 시스템 종류 비교 분석",
+        "kind": "third_party",
+        "brands_present": [
+          "douzone",
+          "ecount",
+          "younglimwon",
+          "sap_b1",
+          "netsuite"
+        ]
+      },
+      {
+        "rank": 4,
+        "url": "https://blog.stackcube.io/ko/best-erp-systems-comparison",
+        "domain": "blog.stackcube.io",
+        "title": "ERP 시스템 종류와 ERP 회사 비교: SAP·Oracle·더존·이카운트 선택 기준",
+        "kind": "third_party",
+        "brands_present": [
+          "douzone",
+          "ecount",
+          "younglimwon",
+          "sap_b1",
+          "netsuite"
+        ]
+      },
+      {
+        "rank": 5,
+        "url": "https://korea-erp.com/erp-recommendations/",
+        "domain": "korea-erp.com",
+        "title": "ERP 추천: 기업, 산업 별 가장 적합한 ERP Top5 비교",
+        "kind": "third_party",
+        "brands_present": [
+          "douzone",
+          "ecount",
+          "younglimwon",
+          "sap_b1",
+          "netsuite"
+        ]
+      },
+      {
+        "rank": 6,
+        "url": "https://korea-erp.com/ecount-erp/",
+        "domain": "korea-erp.com",
+        "title": "이카운트 ERP: 프로그램 가격, 장단점 고려한 리뷰",
+        "kind": "third_party",
+        "brands_present": [
+          "douzone",
+          "ecount",
+          "younglimwon",
+          "sap_b1"
+        ]
+      },
+      {
+        "rank": 7,
+        "url": "https://korea-erp.com/groupware-comparison/",
+        "domain": "korea-erp.com",
+        "title": "그룹웨어 비교 분석",
+        "kind": "third_party",
+        "brands_present": [
+          "douzone",
+          "ecount",
+          "younglimwon"
+        ]
+      }
+    ],
+    "클라우드 ERP 국내 업체": [
+      {
+        "rank": 1,
+        "url": "https://www.workday.com/ko-kr/pages/erp-workday-enterprise-management-cloud.html",
+        "domain": "workday.com",
+        "title": "ERP에서 진일보한 엔터프라이즈 관리 클라우드",
+        "kind": "own",
+        "brands_present": []
+      },
+      {
+        "rank": 2,
+        "url": "https://www.systemever.kr/html/main.html",
+        "domain": "systemever.kr",
+        "title": "국내 클라우드 ERP SystemEver",
+        "kind": "own",
+        "brands_present": [
+          "younglimwon"
+        ]
+      },
+      {
+        "rank": 3,
+        "url": "https://www.waveon.io/blog/best-erp-systems-comparison",
+        "domain": "waveon.io",
+        "title": "국내외 대표 ERP 시스템 종류 비교 분석",
+        "kind": "third_party",
+        "brands_present": [
+          "douzone",
+          "ecount",
+          "younglimwon",
+          "sap_b1",
+          "netsuite"
+        ]
+      },
+      {
+        "rank": 4,
+        "url": "https://korea-erp.com/erp-company-top5/",
+        "domain": "korea-erp.com",
+        "title": "국내 ERP 업체 순위 Top5 및 글로벌 ERP 회사 5곳",
+        "kind": "third_party",
+        "brands_present": [
+          "douzone",
+          "ecount",
+          "younglimwon",
+          "sap_b1",
+          "netsuite",
+          "iquest",
+          "webcash"
+        ]
+      },
+      {
+        "rank": 5,
+        "url": "https://www.dvn.ci/blog/erp-뜻부터-대표적-erp-추천",
+        "domain": "dvn.ci",
+        "title": "ERP 뜻부터 대표적 ERP 추천, ERP 구축 방법 3가지",
+        "kind": "third_party"
+      }
+    ],
+    "제조업 중소기업 ERP 추천": [
+      {
+        "rank": 1,
+        "url": "https://blog.iquest.co.kr/entry/ERP프로그램",
+        "domain": "blog.iquest.co.kr",
+        "title": "ERP 프로그램 추천! 가성비 ERP",
+        "kind": "own_blog",
+        "brands_present": [
+          "douzone",
+          "iquest"
+        ]
+      },
+      {
+        "rank": 2,
+        "url": "https://blog.wishket.com/blog/erp-program-korea-market-guide",
+        "domain": "blog.wishket.com",
+        "title": "중견·중소기업 ERP 프로그램 비교 가이드 2026",
+        "kind": "third_party",
+        "brands_present": [
+          "douzone",
+          "ecount",
+          "younglimwon",
+          "sap_b1",
+          "netsuite",
+          "iquest",
+          "webcash"
+        ]
+      },
+      {
+        "rank": 3,
+        "url": "https://www.sap.com/korea/resources/erp-for-small-manufacturing-companies",
+        "domain": "sap.com",
+        "title": "중소중견기업에 적합한 ERP를 선택하는 방법",
+        "kind": "own",
+        "brands_present": [
+          "sap_b1"
+        ]
+      },
+      {
+        "rank": 4,
+        "url": "https://www.waveon.io/blog/best-erp-systems-comparison",
+        "domain": "waveon.io",
+        "title": "국내외 대표 ERP 시스템 종류 비교 분석",
+        "kind": "third_party",
+        "brands_present": [
+          "douzone",
+          "ecount",
+          "younglimwon",
+          "sap_b1",
+          "netsuite"
+        ]
+      },
+      {
+        "rank": 5,
+        "url": "https://tool-blog.waveon.io/ko/best-erp-systems-comparison",
+        "domain": "tool-blog.waveon.io",
+        "title": "국내외 대표 ERP 시스템 종류 비교 분석",
+        "kind": "third_party"
+      },
+      {
+        "rank": 6,
+        "url": "https://blog.irisinfotech.co.kr/entry/중소기업ERP-선택-기준-7가지",
+        "domain": "blog.irisinfotech.co.kr",
+        "title": "중소기업ERP 선택 기준 7가지",
+        "kind": "third_party"
+      },
+      {
+        "rank": 7,
+        "url": "https://www.dvn.ci/blog/erp-뜻부터-대표적-erp-추천",
+        "domain": "dvn.ci",
+        "title": "ERP 뜻부터 대표적 ERP 추천",
+        "kind": "third_party"
+      },
+      {
+        "rank": 8,
+        "url": "https://korea-erp.com/erp-recommendations/",
+        "domain": "korea-erp.com",
+        "title": "ERP 추천 Top5 비교",
+        "kind": "third_party",
+        "brands_present": [
+          "douzone",
+          "ecount",
+          "younglimwon",
+          "sap_b1",
+          "netsuite"
+        ]
+      }
+    ],
+    "중소기업 ERP 도입 비용 가격": [
+      {
+        "rank": 1,
+        "url": "https://blog.wishket.com/blog/47929",
+        "domain": "blog.wishket.com",
+        "title": "ERP 구축 비용, 얼마나 필요할까?",
+        "kind": "third_party",
+        "brands_present": [
+          "douzone",
+          "sap_b1"
+        ]
+      },
+      {
+        "rank": 2,
+        "url": "https://totb.kr/Site_E/blog/blog.asp?idx=677",
+        "domain": "totb.kr",
+        "title": "중소기업 통합형 ERP 시스템 구축 비용 관련",
+        "kind": "third_party",
+        "brands_present": []
+      },
+      {
+        "rank": 3,
+        "url": "https://itnara.co.kr/erp-adoption-costs/",
+        "domain": "itnara.co.kr",
+        "title": "ERP 도입 비용, 견적서에 없는 진짜 숨은 비용 3가지",
+        "kind": "third_party",
+        "brands_present": [
+          "odoo"
+        ]
+      },
+      {
+        "rank": 4,
+        "url": "https://blog.upharos.co.kr/erp-implementation-success-guide",
+        "domain": "blog.upharos.co.kr",
+        "title": "ERP 프로그램 선택 노하우와 비용",
+        "kind": "competitor_blog",
+        "brands_present": [
+          "douzone",
+          "ecount",
+          "sap_b1",
+          "hiworks"
+        ]
+      },
+      {
+        "rank": 5,
+        "url": "https://reviewinsight.blog/2025/05/12/erp-도입-비용",
+        "domain": "reviewinsight.blog",
+        "title": "ERP 도입 비용 얼마나 드나요?",
+        "kind": "third_party",
+        "brands_present": [
+          "younglimwon",
+          "sap_b1"
+        ]
+      },
+      {
+        "rank": 6,
+        "url": "https://decomsoft.com/상용-erp-가격과-구축형-erp-가격/",
+        "domain": "decomsoft.com",
+        "title": "상용 ERP 가격과 구축형 ERP 가격",
+        "kind": "competitor_blog"
+      }
+    ],
+    "재고관리 ERP 프로그램 추천 중소기업": [
+      {
+        "rank": 1,
+        "url": "https://www.fanruan.com/ko-kr/blog/inventory-management-programs",
+        "domain": "fanruan.com",
+        "title": "재고관리 프로그램 BEST 5, 기능과 가격 한눈에 보기",
+        "kind": "competitor_blog",
+        "brands_present": [
+          "douzone",
+          "ecount",
+          "odoo"
+        ]
+      },
+      {
+        "rank": 2,
+        "url": "https://www.waveon.io/blog/10-best-inventory-management-tools",
+        "domain": "waveon.io",
+        "title": "재고 관리 프로그램 추천 10가지 제품 비교",
+        "kind": "third_party",
+        "brands_present": [
+          "ecount"
+        ]
+      },
+      {
+        "rank": 3,
+        "url": "https://doto.kr/blog/free-erp-comparison-2026.html",
+        "domain": "doto.kr",
+        "title": "2026년 무료 ERP 프로그램 비교 추천",
+        "kind": "competitor_blog",
+        "brands_present": [
+          "doto"
+        ]
+      },
+      {
+        "rank": 4,
+        "url": "https://blog.stackcube.io/ko/10-best-inventory-management-tools",
+        "domain": "blog.stackcube.io",
+        "title": "재고관리 프로그램 추천 10가지",
+        "kind": "third_party",
+        "brands_present": [
+          "ecount"
+        ]
+      },
+      {
+        "rank": 5,
+        "url": "https://www.blanclucy.co.kr/2026/06/erp.html",
+        "domain": "blanclucy.co.kr",
+        "title": "중소기업 맞춤 ERP, 재고/회계 한번에 해결하는 방법",
+        "kind": "third_party"
+      },
+      {
+        "rank": 6,
+        "url": "https://www.sweepingoms.com/blog/inventory-management-solutions-top5",
+        "domain": "sweepingoms.com",
+        "title": "재고 관리 프로그램 TOP 5",
+        "kind": "competitor_blog",
+        "brands_present": [
+          "ecount"
+        ]
+      }
+    ]
+  },
+  "enriched_at": "2026-09-01T08:07:43.039Z"
+}
