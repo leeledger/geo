@@ -179,3 +179,13 @@ footer .row{display:flex;gap:26px;flex-wrap:wrap;align-items:baseline}
 .leadrow .btn{padding:11px 18px;font-size:14px}
 .leaddone{font-size:14px;color:var(--ink-2);line-height:1.7}
 .leaddone b{color:var(--ink)}
+
+/* ── 관리자 리드 테이블 ── */
+.lead-table{border-collapse:collapse;width:100%;font-size:13px;min-width:760px}
+.lead-table th,.lead-table td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--rule-soft);vertical-align:middle}
+.lead-table thead th{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--faint);font-weight:400;background:var(--sunken);white-space:nowrap;border-bottom:1px solid var(--rule)}
+.lead-table tbody tr:last-child td{border-bottom:0}
+.lead-table tbody tr:hover{background:var(--sunken)}
+.pill{font-family:"IBM Plex Mono",monospace;font-size:10px;padding:2px 7px;border:1px solid var(--rule);
+  border-radius:2px;color:var(--muted)}
