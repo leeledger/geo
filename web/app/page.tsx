@@ -3,6 +3,7 @@ import Reveal from "./Reveal";
 import SiteNav from "./SiteNav";
 import Interval from "./Interval";
 import Count from "./Count";
+import ChatDemo from "./ChatDemo";
 import Link from "next/link";
 import { SERVICES } from "@/lib/services";
 
@@ -30,48 +31,7 @@ export default function Home() {
           </div>
 
           <div>
-            {/* 히어로는 방법이 아니라 문제를 보여준다.
-                오차막대·표본 같은 방법론은 "다른 점" 절로 내렸다.
-                여기서 읽는 사람이 알아야 할 것은 하나다 — 내 이름이 저 목록에 없다. */}
-            <figure className="ask">
-              <figcaption className="askq">
-                <span className="dots"><i /><i /><i /></span>
-                <span>“이 분야 괜찮은 곳 세 군데만 알려줘”</span>
-              </figcaption>
-
-              <div className="askbody">
-                <div className="asklead mono">AI 답변</div>
-                <ol className="asklist">
-                  <li><span className="rk mono">1</span> 경쟁사 A</li>
-                  <li><span className="rk mono">2</span> 경쟁사 B</li>
-                  <li><span className="rk mono">3</span> 경쟁사 C</li>
-                </ol>
-                <div className="askme">
-                  <span className="mek">우리 회사</span>
-                  <span className="mev">목록에 없음</span>
-                </div>
-              </div>
-
-              <figcaption className="askft">
-                고객은 세 곳만 봅니다. <b>검색과 달리 2페이지가 없습니다.</b>
-              </figcaption>
-            </figure>
-
-            <div className="again">
-              <div className="againh mono">같은 질문을 한 번 더 물으면</div>
-              <div className="againrow mono">
-                <span className="rn">1회차</span>
-                <span>A</span><span>B</span><span className="sw">C</span>
-              </div>
-              <div className="againrow mono">
-                <span className="rn">2회차</span>
-                <span>A</span><span>B</span><span className="sw alt">D</span>
-              </div>
-              <div className="againf">
-                세 번째 자리는 물어볼 때마다 바뀝니다.
-                <b>한 번 물어보고 “우리가 3위”라고 적으면 그건 우연을 기록한 것</b>입니다.
-              </div>
-            </div>
+            <ChatDemo />
           </div>
         </div>
       </header>
@@ -424,47 +384,57 @@ export default function Home() {
       <section id="price">
         <div className="wrap">
           <div className="lab">요금</div>
-          <h2>재는 값이 포함된 요금</h2>
+          <h2>한 번 내는 돈과<br />매달 내는 돈을 나눴습니다</h2>
           <p className="sub2">
-            국내 GEO 대행은 측정 없이 콘텐츠만 발행하는 월 100~300만원대와, 측정을 갖춘 월 500만원 이상으로 갈려 있습니다.
-            Cited는 그 사이에 있습니다 — 재는 값을 넣되 실행까지 합니다.
+            세팅은 한 번이면 끝나는 일이라 월 요금에 넣지 않습니다.
+            섞어 두면 그만둘 때 <b>“세팅비는 다 낸 건가”</b>로 다투게 됩니다.
           </p>
 
-          <div className="plans">
-            <div className="plan">
-              <div className="pn">진단</div>
-              <div className="pp">
-                0<small>원</small>
+          {/* ── 한 번 · 시작할 때 ── */}
+          <div className="ponce">
+            <div className="poh">
+              <span className="mono pok">한 번 · 시작할 때</span>
+              <span className="pod">진단 결과에 따라 필요한 것만. 셋 다 필요 없는 회사도 많습니다.</span>
+            </div>
+            <div className="porow">
+              <div className="po">
+                <div className="pot">무료 진단</div>
+                <div className="pop mono">0원</div>
+                <p>7개 항목 자동 점검. 아래 셋 중 뭐가 필요한지 여기서 정해집니다.</p>
               </div>
-              <div className="for">지금 상태를 알고 싶은 분</div>
-              <ul>
-                <li>사이트 7개 항목 점검</li>
-                <li>우선 조치 항목 제시</li>
-                <li>가입·결제 없음</li>
-                <li>즉시 결과 확인</li>
-              </ul>
-              <div className="cta">
-                <a className="btn ghost" style={{ width: "100%", display: "block", textAlign: "center" }} href="#dom-hero">
-                  위에서 바로 받기
-                </a>
+              <div className="po">
+                <div className="pot">기술 세팅</div>
+                <div className="pop mono">80만원</div>
+                <p>쓸 만한 사이트가 있는 경우. AI가 읽을 수 있는 상태로 만듭니다.</p>
+              </div>
+              <div className="po">
+                <div className="pot">사이트 구축</div>
+                <div className="pop mono">250만원</div>
+                <p>사이트가 없거나 못 쓰는 경우. 기술 세팅이 포함됩니다.</p>
+              </div>
+              <div className="po">
+                <div className="pot">블로그 글 이관</div>
+                <div className="pop mono">+80만원</div>
+                <p>블로그만 있는 경우. 몇 년치 글을 AI가 읽는 곳으로 옮깁니다. 30편 기준.</p>
               </div>
             </div>
+          </div>
 
+          {/* ── 매달 ── */}
+          <div className="plans">
             <div className="plan hi">
               <div className="pn">측정 · 주력</div>
               <div className="pp">
                 89<small>만원 / 월</small>
               </div>
-              <div className="for">실행은 직접 하시는 팀</div>
+              <div className="for">고치는 건 직접 하시는 팀</div>
               <ul>
-                <li>질문 60개 × 4엔진 주간 측정</li>
-                <li>
-                  노출률·점유율·순서 + <b>신뢰구간</b>
-                </li>
+                <li>질문 60개 × 주요 AI 4곳 · 매주</li>
+                <li>몇 번에 몇 번 불렸는지 + 흔들리는 범위</li>
                 <li>답변 원문 전량 열람</li>
-                <li>경쟁사 5곳 추적</li>
-                <li>AI가 참고하는 글 분석 · 어디부터 실릴지 순서</li>
-                <li>월간 리포트 · 이상 알림</li>
+                <li>경쟁사 5곳 나란히 비교</li>
+                <li>AI가 참고한 글 분석 · 어디부터 실릴지</li>
+                <li>월간 리포트 · 크게 떨어지면 알림</li>
               </ul>
               <div className="cta">
                 <a className="btn" style={{ width: "100%", display: "block", textAlign: "center" }} href={mailto("측정")}>
@@ -478,13 +448,12 @@ export default function Home() {
               <div className="pp">
                 249<small>만원 / 월</small>
               </div>
-              <div className="for">실행까지 맡기실 팀</div>
+              <div className="for">고치는 일까지 맡기실 팀</div>
               <ul>
                 <li>측정 플랜 전체 포함</li>
-                <li>기술 세팅 (robots·스키마·llms.txt)</li>
                 <li>AI가 인용할 만한 글 월 2~3건 작성·발행</li>
                 <li>외부 매체·목록에 싣기 월 1~2건</li>
-                <li>사실 오류 정정</li>
+                <li>퍼져 있는 틀린 정보 바로잡기</li>
                 <li>월 1회 전략 리뷰</li>
               </ul>
               <div className="cta">
@@ -501,10 +470,9 @@ export default function Home() {
               </div>
               <div className="for">다국어 · 다브랜드 · 대행사</div>
               <ul>
-                <li>브랜드 다중 · 계정 분리</li>
-                <li>영어·일본어 답변 측정</li>
-                <li>화이트라벨 리포트</li>
-                <li>데이터 API</li>
+                <li>질문·엔진·주기 맞춤 설계</li>
+                <li>브랜드별 대시보드</li>
+                <li>사내 보고용 원본 데이터 제공</li>
               </ul>
               <div className="cta">
                 <a className="btn ghost" style={{ width: "100%", display: "block", textAlign: "center" }} href={mailto("엔터프라이즈")}>
@@ -513,7 +481,27 @@ export default function Home() {
               </div>
             </div>
           </div>
-          <p className="formnote" style={{ marginTop: 18 }}>
+
+          {/* ── 실제 견적 예시 — 케이스와 같은 회사면 얼마인지 ── */}
+          <div className="quote">
+            <div className="qh mono">견적 예시 · 위 케이스와 같은 조건이라면</div>
+            <div className="qrow">
+              <span>홈페이지 없음 · 블로그만 운영</span>
+              <span className="qcalc mono">
+                구축 250 <i>+</i> 이관 80 <i>=</i> <b>초기 330만원</b>
+              </span>
+            </div>
+            <div className="qrow">
+              <span>이후 매달</span>
+              <span className="qcalc mono">측정 <b>89만원</b> <em>또는</em> 측정+실행 <b>249만원</b></span>
+            </div>
+            <p className="qnote">
+              쓸 만한 사이트가 이미 있으면 초기 비용은 <b>80만원</b>이거나 <b>0원</b>입니다.
+              진단을 먼저 받아 보시면 어느 쪽인지 알 수 있습니다.
+            </p>
+          </div>
+
+          <p className="formnote" style={{ marginTop: 20 }}>
             최소 약정 없음 · 월 단위 · 세금계산서 발행 · 부가세 별도
           </p>
         </div>
@@ -532,6 +520,23 @@ export default function Home() {
                 건 하루면 됩니다. 오히려 그렇게 하시길 권합니다. 직접 하기 어려운 건 <b>지속</b>과 <b>판단</b>입니다. 4개
                 엔진에 매주 반복 질의해 집계하는 일, 그리고 “어느 질문에서 지고 있고 어느 문서에 들어가야 하는가”를 아는
                 일입니다. 저희가 파는 건 그 두 가지입니다.
+              </p>
+            </details>
+            <details>
+              <summary>세팅비를 왜 월 요금에 안 넣나요?</summary>
+              <p>
+                robots.txt 나 구조화 데이터는 <b>한 번 고치면 끝나는 일</b>입니다.
+                월 요금에 녹이면 처음엔 싸 보이지만, 그만둘 때 “세팅비는 다 낸 건가”로
+                다투게 됩니다. 한 번 하는 일은 한 번 받고, 계속 하는 일만 매달 받습니다.
+              </p>
+            </details>
+            <details>
+              <summary>측정은 실제 화면으로 하나요, 프로그램으로 하나요?</summary>
+              <p>
+                매주 도는 측정은 프로그램(API)으로 합니다. 사람이 매주 240번 물어볼 수는 없으니까요.
+                다만 <b>API 답과 실제 화면의 답은 다를 수 있습니다.</b> 그래서 매달 한 번은
+                실제 화면에서 표본을 뽑아 <b>둘이 얼마나 어긋나는지 함께 보고</b>합니다.
+                이 차이를 말해주는 업체가 드문데, 말하지 않으면 측정이 아니라 연출입니다.
               </p>
             </details>
             <details>
