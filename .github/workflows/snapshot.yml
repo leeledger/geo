@@ -1,0 +1,38 @@
+# 로봇&코딩학원 · 일별 AI 노출 스냅샷
+#
+# 왜 GitHub Actions 인가: Vercel Cron 은 유료 플랜에서만 쓸 수 있다.
+# 하는 일은 사이트의 /api/snapshot 을 하루 한 번 호출하는 것뿐이라
+# 무료 러너로 충분하다. 실패하면 로그에 남는다.
+#
+# 필요한 시크릿 (Settings → Secrets and variables → Actions)
+#   SNAPSHOT_URL     https://robotncoding.com/api/snapshot
+#   CRON_SECRET      Vercel 환경변수 CRON_SECRET 과 같은 값
+
+name: snapshot
+
+on:
+  schedule:
+    # 03:23 KST = 18:23 UTC (전날). :00 을 피해 러너 혼잡을 줄인다.
+    - cron: "23 18 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: 스냅샷 기록
+        env:
+          URL: ${{ secrets.SNAPSHOT_URL }}
+          KEY: ${{ secrets.CRON_SECRET }}
+        run: |
+          set -euo pipefail
+          if [ -z "${URL:-}" ]; then echo "SNAPSHOT_URL 시크릿이 없습니다"; exit 1; fi
+          code=$(curl -sS -o body.json -w '%{http_code}' \
+            --max-time 45 --retry 3 --retry-delay 10 --retry-all-errors \
+            -H "authorization: Bearer ${KEY}" "$URL")
+          echo "HTTP $code"
+          cat body.json
+          echo
+          # 200 이 아니면 실패로 남겨야 알아챈다
+          test "$code" = "200"

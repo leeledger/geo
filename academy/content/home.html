@@ -1,0 +1,1357 @@
+<nav id="nav">
+  <input type="checkbox" id="navtoggle" class="navtoggle" hidden>
+  <div class="wrap">
+    <a class="brand" href="/" aria-label="로봇·코딩학원 홈"><span class="lk" aria-hidden="true"><i class="br"></i><b>로봇</b><i class="pd"></i><b>코딩</b><i class="br r"></i></span><span class="aib" aria-hidden="true">AI</span></a>
+    <div class="navlinks">
+      <a href="/#why">교육 철학</a>
+      <a href="/#curriculum">커리큘럼</a>
+      <a href="/#ai">AI 리터러시</a>
+      <a href="/#tutor">학습 프로그램</a>
+      <a href="/#principal">원장 소개</a>
+      <a href="/blog">수업 기록</a>
+      <a href="/#contact">상담</a>
+      <a href="/#location">오시는 길</a>
+      <a class="mtel" href="tel:02-422-0525">전화 02-422-0525</a>
+    </div>
+    <a class="navtel mono" href="tel:02-422-0525">02-422-0525</a>
+    <label for="navtoggle" class="burger" aria-label="메뉴 열기"><span></span><span></span><span></span></label>
+  </div>
+</nav>
+
+<div class="hero">
+  <canvas id="grid" aria-hidden="true"></canvas>
+  <div class="wrap">
+    <div>
+      <span class="eyebrow mono"><span class="blink"></span>SONGPA · SEOKCHON</span>
+      <h1>코딩을 가르치지<br>않습니다.<br><span class="hl">생각하는 방법</span>을<br>가르칩니다.<span class="caret" aria-hidden="true"></span></h1>
+      <p class="sub">
+        코드는 이제 AI가 씁니다. 남는 것은 <b style="color:var(--fg)">무엇을 만들지 정의하고, 왜 안 되는지 찾아내는 힘</b>입니다.
+        로봇&amp;코딩학원은 문법을 외우게 하는 대신 그 힘을 기릅니다.
+      </p>
+      <div class="cta">
+        <a class="btn primary" href="tel:02-422-0525">상담 전화 02-422-0525</a>
+        <a class="btn kakao" href="http://pf.kakao.com/_Bxhxbxjxb/chat" target="_blank" rel="noopener">카카오톡 상담</a>
+        <a class="btn ghost" href="#curriculum">5단계 커리큘럼 보기</a>
+      </div>
+    </div>
+
+    <figure class="editor rise" style="margin:0">
+      <figcaption class="bar"><i></i><i></i><i></i><span class="mono">how_we_think.py</span></figcaption>
+      <pre><code><span class="c"># 로봇이 벽에 부딪힌다. 어떻게 고칠까?</span>
+
+<span class="c"># 1. 진짜 문제가 뭐지?</span>
+<span class="c">#    → 벽이 있는 걸 '언제' 알아야 하나</span>
+<span class="c"># 2. 내가 알 수 있는 건?</span>
+<span class="c">#    → 센서가 거리를 알려준다</span>
+<span class="c"># 3. 그럼 규칙은?</span>
+<span class="c">#    → 10cm 남으면 멈춘다</span>
+
+<span class="k">while</span> sensor.distance() &gt; <span class="n">10</span>:
+    motor.forward(<span class="n">60</span>)
+motor.stop()<span class="caret"></span>
+
+<span class="c"># 코드는 마지막 세 줄이다.</span>
+<span class="c"># 우리는 위의 세 문장을 가르친다.</span></code></pre>
+    </figure>
+  </div>
+</div>
+
+<div class="stats">
+  <div class="wrap">
+    <div class="stat rise"><div class="v mono" data-count="5">5<small>단계</small></div><div class="k">기초 사고력 → 영재고·SW특기자</div></div>
+    <div class="stat rise"><div class="v mono">7세<small>~성인</small></div><div class="k">수강 가능 연령</div></div>
+    <div class="stat rise"><div class="v mono" data-count="1597">1,597<small>챕터</small></div><div class="k">직접 개발한 학습 프로그램</div></div>
+    <div class="stat rise"><div class="v mono">현업<small> 개발자</small></div><div class="k">원장이 직접 지도</div></div>
+  </div>
+</div>
+
+<section id="why">
+  <div class="wrap">
+    <div class="lab rise">PHILOSOPHY</div>
+    <h2 class="rise">AI가 코드를 써주는데,<br>왜 아직 코딩을 배울까요</h2>
+    <p class="lead rise">
+      코드를 타이핑하는 일은 이미 AI가 더 빠릅니다. 그런데 <b style="color:var(--fg)">무엇을 만들지 정하는 일</b>과
+      <b style="color:var(--fg)">결과가 맞는지 판단하는 일</b>은 여전히 사람이 합니다.
+      로봇&amp;코딩학원은 사라질 능력이 아니라 남을 능력을 가르칩니다.
+    </p>
+
+    <div class="cards">
+      <article class="card rise">
+        <span class="idx mono">01</span>
+        <h3>문제를 먼저 쪼갭니다</h3>
+        <p>"게임을 만들자"는 문제가 아닙니다. 무엇이 움직이고, 언제 점수가 오르고, 어떻게 끝나는지를 나눠야 문제가 됩니다. 로봇&amp;코딩학원은 코드를 쓰기 전에 이 단계를 먼저 훈련합니다.</p>
+      </article>
+      <article class="card rise">
+        <span class="idx mono">02</span>
+        <h3>막혔을 때를 가르칩니다</h3>
+        <p>정답을 알려주면 다음에 또 막힙니다. 로봇&amp;코딩학원은 어디부터 의심해야 하는지, 무엇을 확인해야 원인이 좁혀지는지를 가르칩니다. 디버깅은 코딩이 아니라 사고의 훈련입니다.</p>
+      </article>
+      <article class="card rise">
+        <span class="idx mono">03</span>
+        <h3>AI에게 시키는 법을 가르칩니다</h3>
+        <p>무엇을 만들지 정확히 설명할 수 있어야 AI가 제대로 답합니다. 로봇&amp;코딩학원은 AI에게 어떻게 물어야 하는지, 돌아온 코드가 맞는지 어떻게 확인하는지를 함께 가르칩니다.</p>
+      </article>
+      <article class="card rise">
+        <span class="idx mono">04</span>
+        <h3>만들어 본 사람이 가르칩니다</h3>
+        <p>로봇&amp;코딩학원의 원장은 병원 정보시스템, 공장 ERP, 카드사 콜센터 시스템을 실제로 개발했습니다. 현장에서 문제를 정의하고 풀어 본 경험이 수업의 기준입니다.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section id="curriculum" class="paper">
+  <div class="wrap">
+    <div class="lab rise">CURRICULUM</div>
+    <h2 class="rise">5단계 로드맵</h2>
+    <p class="lead rise">
+      로봇&amp;코딩학원의 커리큘럼은 초등 1학년 블록코딩에서 시작해 정보영재·SW특기자 전형 준비까지 이어집니다.
+      단계마다 <b>사고력 → 도구 → 결과물</b> 순서로 진행합니다.
+    </p>
+    <p class="lead rise" style="margin-top:-8px">
+      로봇 과정은 <b>로보티즈 공식 교육센터(석촌점)</b>로 운영합니다.
+      로보티즈 드림 단계별 과정을 그대로 다루고, 스팀컵·국제로봇콘테스트 같은 대회 출전으로 이어집니다.
+    </p>
+
+    <div class="roadmap rise">
+
+      <article class="stage">
+        <div class="marker mono">01</div>
+        <div class="stage-hd">
+          <div>
+            <h3>컴퓨팅 사고력 기초 형성</h3>
+            <div class="stage-meta">초등 1~4학년 (만 7~10세) · 1~3개월 과정</div>
+          </div>
+          <span class="badge">입문</span>
+        </div>
+        <p class="stage-goal">
+          1단계에서는 코드를 쓰지 않습니다. 순차·반복·조건이라는 사고의 뼈대를 블록코딩과 언플러그드 활동으로 몸에 익히고,
+          문제를 쪼개고 패턴을 찾는 습관을 만듭니다. 논리적 사고력의 기초를 다지는 구간입니다.
+        </p>
+        <details>
+          <summary>학습 내용 · 도구 · 프로젝트 보기</summary>
+          <div class="stage-detail">
+            <div>
+              <h4>핵심 학습 내용</h4>
+              <ul>
+                <li>순차 구조 — 명령을 순서대로 실행하기</li>
+                <li>반복 구조 — 같은 동작을 여러 번 수행하기</li>
+                <li>조건 구조 — 상황에 따라 다르게 행동하기</li>
+                <li>변수와 함수의 기본 개념</li>
+                <li>패턴 인식과 문제 분해</li>
+                <li>디버깅 — 오류를 찾고 고치는 방법</li>
+                <li>AI 첫 경험 — 그림·음성 AI를 직접 써보고 원리 감 잡기</li>
+              </ul>
+            </div>
+            <div>
+              <h4>사용 도구</h4>
+              <div class="chips">
+                <span class="chip">Entry</span><span class="chip">code.org</span>
+                <span class="chip">OctoStudio</span><span class="chip">스크래치 주니어</span>
+                <span class="chip">언플러그드</span>
+              </div>
+            </div>
+            <div>
+              <h4>주요 프로젝트</h4>
+              <ul>
+                <li>미로 탈출 게임</li>
+                <li>점프 게임</li>
+                <li>캐릭터 애니메이션</li>
+                <li>퀴즈 게임</li>
+                <li>디지털 스토리텔링</li>
+              </ul>
+            </div>
+          </div>
+        </details>
+        <div class="stage-out">완료 후 — <b>블록 코딩 능력과 논리적 사고력의 기초</b>가 완성됩니다.</div>
+      </article>
+
+      <article class="stage">
+        <div class="marker mono">02</div>
+        <div class="stage-hd">
+          <div>
+            <h3>알고리즘 + 창의 융합 코딩</h3>
+            <div class="stage-meta">초등 3~6학년 (만 9~12세) · 3~6개월 과정</div>
+          </div>
+          <span class="badge">기초</span>
+        </div>
+        <p class="stage-goal">
+          2단계에서는 "어떻게 하면 더 좋은 방법일까"를 다룹니다. 정렬과 탐색 같은 알고리즘의 원리를 이해하고,
+          센서를 붙여 실제 세상의 문제를 코드로 옮깁니다. AI 기초도 이 단계에서 체험합니다.
+        </p>
+        <details>
+          <summary>학습 내용 · 도구 · 프로젝트 보기</summary>
+          <div class="stage-detail">
+            <div>
+              <h4>핵심 학습 내용</h4>
+              <ul>
+                <li>정렬 알고리즘 (버블·선택 정렬)</li>
+                <li>탐색 알고리즘 (순차·이진 탐색)</li>
+                <li>재귀 함수의 기본 개념</li>
+                <li>자료구조 기초 (배열, 리스트)</li>
+                <li>센서 활용 피지컬 컴퓨팅</li>
+                <li>AI 기초 체험과 활용</li>
+                <li>학습 데이터가 결과를 바꾼다는 것 이해하기</li>
+                <li>AI에게 원하는 것을 말로 설명하는 연습</li>
+              </ul>
+            </div>
+            <div>
+              <h4>사용 도구</h4>
+              <div class="chips">
+                <span class="chip">Entry 고급</span><span class="chip">아두이노</span>
+                <span class="chip">마이크로비트</span><span class="chip">Entry AI 블록</span>
+                <span class="chip">피지컬보드</span><span class="chip">센서 모듈</span>
+              </div>
+            </div>
+            <div>
+              <h4>주요 프로젝트</h4>
+              <ul>
+                <li>스마트 환경 모니터링 시스템</li>
+                <li>얼굴 인식 출입 시스템</li>
+                <li>감정 분류 AI 체험</li>
+                <li>IoT 스마트홈 모델</li>
+                <li>알고리즘 시각화 프로그램</li>
+              </ul>
+            </div>
+          </div>
+        </details>
+        <div class="stage-out">완료 후 — <b>알고리즘 기초 이해, 피지컬 컴퓨팅 경험, AI 활용 능력</b>을 갖춥니다.</div>
+      </article>
+
+      <article class="stage">
+        <div class="marker mono">03</div>
+        <div class="stage-hd">
+          <div>
+            <h3>텍스트 기반 프로그래밍 입문</h3>
+            <div class="stage-meta">초등 5학년 이상 (만 11세~) · 6~9개월 과정</div>
+          </div>
+          <span class="badge">전환</span>
+        </div>
+        <p class="stage-goal">
+          3단계에서 블록을 떠나 Python으로 넘어갑니다. 로봇&amp;코딩학원은 이 전환을 서두르지 않습니다.
+          같은 문제를 블록과 코드 양쪽으로 풀어 보며, 문법이 아니라 구조가 같다는 것을 먼저 이해하게 합니다.
+        </p>
+        <details>
+          <summary>학습 내용 · 도구 · 프로젝트 보기</summary>
+          <div class="stage-detail">
+            <div>
+              <h4>핵심 학습 내용</h4>
+              <ul>
+                <li>Python 기본 문법 (변수·연산자·자료형)</li>
+                <li>조건문과 반복문 활용</li>
+                <li>함수 정의와 호출</li>
+                <li>리스트·딕셔너리 등 자료구조</li>
+                <li>파일 입출력 및 예외 처리</li>
+                <li>모듈과 패키지 활용</li>
+                <li><b>자연어 코딩</b> — 만들고 싶은 것을 말로 설명해 코드 얻기</li>
+                <li>AI가 준 코드를 읽고, 고치고, 왜 그런지 설명하기</li>
+              </ul>
+            </div>
+            <div>
+              <h4>사용 도구</h4>
+              <div class="chips">
+                <span class="chip">Python IDLE</span><span class="chip">PyCharm Edu</span>
+                <span class="chip">Turtle</span><span class="chip">Pygame</span>
+                <span class="chip">Jupyter</span><span class="chip">Git 기초</span>
+                <span class="chip">AI 코딩 도구</span>
+              </div>
+            </div>
+            <div>
+              <h4>주요 프로젝트</h4>
+              <ul>
+                <li>Turtle 그래픽 아트</li>
+                <li>숫자 맞추기 게임</li>
+                <li>단어장 프로그램</li>
+                <li>계산기 만들기</li>
+                <li>텍스트 기반 RPG 게임</li>
+              </ul>
+            </div>
+          </div>
+        </details>
+        <div class="stage-out">완료 후 — <b>Python 기본 문법 완성, 간단한 프로그램을 혼자 만들 수 있는 수준</b>이 됩니다.</div>
+      </article>
+
+      <article class="stage adv">
+        <div class="marker mono">04</div>
+        <div class="stage-hd">
+          <div>
+            <h3>문제 해결 중심의 알고리즘 강화</h3>
+            <div class="stage-meta">초등 5~6학년 및 중등 연계 · 심화 과정</div>
+          </div>
+          <span class="badge hot">진학·대회</span>
+        </div>
+        <p class="stage-goal">
+          4단계는 정보영재·영재고 진학과 SW특기자 전형을 목표로 하는 과정입니다.
+          문제를 읽고 어떤 방법으로 접근해야 하는지 판단하는 훈련을 반복합니다. 개별 맞춤 코칭으로 진행합니다.
+        </p>
+        <details>
+          <summary>학습 내용 · 대회 · 목표 보기</summary>
+          <div class="stage-detail">
+            <div>
+              <h4>핵심 학습 내용</h4>
+              <ul>
+                <li>동적 계획법 (Dynamic Programming)</li>
+                <li>그래프 알고리즘 (BFS, DFS)</li>
+                <li>수학과 연계한 논리 퍼즐</li>
+                <li>기출 유형 분석과 풀이</li>
+                <li>AI를 보조로 쓰되 풀이의 정당성은 스스로 검증하기</li>
+              </ul>
+            </div>
+            <div>
+              <h4>대회 · 시험</h4>
+              <div class="chips">
+                <span class="chip">한국코드페어</span><span class="chip">SW사고력올림피아드</span>
+                <span class="chip">USACO Bronze</span><span class="chip">정보올림피아드</span>
+              </div>
+            </div>
+            <div>
+              <h4>목표</h4>
+              <ul>
+                <li>정보영재 선발 대비</li>
+                <li>영재고 진학 기반 다지기</li>
+                <li>SW특기자 전형 대비</li>
+              </ul>
+            </div>
+          </div>
+        </details>
+        <div class="stage-out">완료 후 — <b>대회 출전 역량과 진학 전형에 쓸 수 있는 실적</b>을 확보합니다.
+        이 과정에서 한국코드페어 금상, SW사고력올림피아드 우수상이 나왔고, KAIST·한국과학영재학교·선린인터넷고 등 진학으로 이어졌습니다.</div>
+      </article>
+
+      <article class="stage adv">
+        <div class="marker mono">05</div>
+        <div class="stage-hd">
+          <div>
+            <h3>진로 체험 및 융합 프로젝트</h3>
+            <div class="stage-meta">고급 과정 · 개별 일정</div>
+          </div>
+          <span class="badge hot">포트폴리오</span>
+        </div>
+        <p class="stage-goal">
+          5단계에서는 실제로 쓸 수 있는 결과물을 만듭니다. AI·IoT·데이터 분석·앱 개발을 직접 경험하고,
+          팀으로 프로젝트를 완성해 발표합니다. 진학과 진로에 쓸 포트폴리오가 이 단계에서 나옵니다.
+        </p>
+        <details>
+          <summary>학습 내용 · 결과물 보기</summary>
+          <div class="stage-detail">
+            <div>
+              <h4>핵심 학습 내용</h4>
+              <ul>
+                <li>AI · IoT 체험 수업</li>
+                <li>데이터 분석 입문</li>
+                <li>앱 개발 체험</li>
+                <li>Python + Flask 웹개발 입문</li>
+                <li>AI API를 붙인 프로젝트 (챗봇·이미지 분류 등)</li>
+              </ul>
+            </div>
+            <div>
+              <h4>진행 방식</h4>
+              <div class="chips">
+                <span class="chip">팀 프로젝트</span><span class="chip">발표</span>
+                <span class="chip">포트폴리오 지도</span>
+              </div>
+            </div>
+            <div>
+              <h4>목표</h4>
+              <ul>
+                <li>진로 탐색</li>
+                <li>포트폴리오 구축</li>
+                <li>협업 경험</li>
+              </ul>
+            </div>
+          </div>
+        </details>
+        <div class="stage-out">완료 후 — <b>수시·학생부종합전형에 제출할 수 있는 포트폴리오</b>가 남습니다.
+        학생 작품이 학생발명품대회 최우수상, 서울시교육청 과학전람회 중등부 최우수상, 특허 등록 2건으로 이어졌습니다.</div>
+      </article>
+
+    </div>
+
+    <div class="track-note rise">
+      <div class="track">
+        <div class="t mono">배정 방식</div>
+        <h4>학년이 아니라 수준으로</h4>
+        <p>같은 학년이라도 시작점이 다릅니다. 상담과 진단 후 맞는 단계에서 시작합니다.</p>
+      </div>
+      <div class="track">
+        <div class="t mono">수업 형태</div>
+        <h4>소그룹 · 개별 맞춤</h4>
+        <p>단계에 따라 소그룹 수업과 개별 코칭을 병행합니다. 4단계는 개별 맞춤 코칭 중심입니다.</p>
+      </div>
+      <div class="track">
+        <div class="t mono">성인 과정</div>
+        <h4>실무 중심으로 별도 진행</h4>
+        <p>직무 전환·업무 자동화가 목적인 성인은 3~5단계 내용을 실무 기준으로 재구성해 진행합니다.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<section id="ai" class="ai-band">
+  <div class="wrap">
+    <div class="lab rise">AI Orchestration</div>
+    <h2 class="rise">AI의 부품이 될 것인가,<br><span class="hl">지휘하는 사람</span>이 될 것인가.</h2>
+    <p class="lead rise">
+      오케스트라의 지휘자는 악기를 직접 연주하지 않습니다.
+      무엇을 연주할지 정하고, 지금 소리가 맞는지 판단하고, 아니면 다시 시킵니다.
+      <b style="color:var(--fg)">AI를 쓰는 시대의 사람 역할이 정확히 이것입니다.</b>
+      로봇&amp;코딩학원은 연주자가 아니라 지휘자를 기릅니다.
+    </p>
+
+    <div class="orch rise">
+      <div class="row">
+        <div class="who">
+          <div class="k mono">AI가 하는 일</div>
+          <ul>
+            <li>코드를 타이핑한다</li>
+            <li>문법을 기억한다</li>
+            <li>빠르게 여러 안을 만든다</li>
+            <li>시킨 것을 시킨 대로 한다</li>
+          </ul>
+        </div>
+        <div class="vs mono">사람이 남는 자리</div>
+        <div class="who me">
+          <div class="k mono">사람이 하는 일 — 감독</div>
+          <ul>
+            <li><b>무엇을 만들지 정한다</b></li>
+            <li><b>정확히 지시한다</b></li>
+            <li><b>결과가 맞는지 판단한다</b></li>
+            <li><b>내놓은 것을 책임진다</b></li>
+          </ul>
+        </div>
+      </div>
+      <p class="note">
+        AI는 시킨 것을 시킨 대로 합니다. <b>잘못 시키면 잘못된 것을 아주 빠르게 만들어 냅니다.</b>
+        그래서 지시하는 사람이 무엇을 원하는지 스스로 알고 있어야 합니다 —
+        이건 코딩 실력이 아니라 <b>문제를 정의하는 힘</b>입니다.
+      </p>
+    </div>
+
+    <p class="lead rise" style="margin-top:44px">
+      그래서 AI는 마지막에 얹는 특강이 아닙니다.
+      1단계에서 처음 만져보고, 3단계에서 말로 설명해 코드를 얻고,
+      5단계에서 AI를 붙인 서비스를 완성합니다.
+      <b style="color:var(--fg)">감독의 네 가지 일을 단계마다 나눠서 훈련합니다.</b>
+    </p>
+
+    <div class="pillars">
+      <article class="pillar rise">
+        <div class="pn">01 · 기획</div>
+        <h3>무엇을 만들지 정한다</h3>
+        <p>지휘자의 첫 일은 곡을 고르는 것입니다. 만들 것이 정해지지 않으면 AI에게 시킬 말도 없습니다. 로봇&amp;코딩학원이 <b style="color:var(--fg)">코드보다 문제 정의를 먼저 가르치는 이유</b>가 여기 있습니다.</p>
+      </article>
+      <article class="pillar rise">
+        <div class="pn">02 · 지시</div>
+        <h3>정확히 시킨다</h3>
+        <p>지휘는 손짓 하나로 소리를 바꿉니다. 무엇을 입력받고, 무엇을 내놓아야 하고, 어떤 경우를 조심해야 하는지 말할 수 있으면 AI는 제대로 답합니다. <b style="color:var(--fg)">애매하게 시키면 애매한 것이 나옵니다.</b></p>
+      </article>
+      <article class="pillar rise">
+        <div class="pn">03 · 판단</div>
+        <h3>맞는지 판단한다</h3>
+        <p>지휘자는 소리가 틀리면 압니다. AI는 <b style="color:var(--fg)">그럴듯하게 틀립니다.</b> 돌아온 코드를 읽고, 직접 돌려보고, 이상한 입력을 넣어보며 맞는지 확인하는 귀를 만듭니다.</p>
+      </article>
+      <article class="pillar rise">
+        <div class="pn">04 · 책임</div>
+        <h3>내놓은 것을 책임진다</h3>
+        <p>무대에 올라간 연주는 지휘자의 이름으로 남습니다. AI가 못 하는 것, 지어내는 것, 남의 것을 가져오는 것을 구분하게 하고 <b style="color:var(--fg)">저작권과 개인정보</b>를 함께 다룹니다.</p>
+      </article>
+    </div>
+
+    <div class="nl2code rise">
+      <div class="side human">
+        <div class="t mono"><b>STUDENT</b> · 우리말로 설명하기</div>
+        <p>"학생 점수를 여러 개 받아서<br>평균을 내고, 60점보다 낮으면<br>재시험이라고 알려줘."</p>
+        <div class="q">
+          여기서 배우는 것 —<br>
+          · 무엇을 <b style="color:var(--fg-2)">입력</b>받는가 (점수 여러 개)<br>
+          · 무엇을 <b style="color:var(--fg-2)">출력</b>하는가 (평균, 판정)<br>
+          · <b style="color:var(--fg-2)">기준</b>은 무엇인가 (60점)
+        </div>
+      </div>
+      <div class="arrow mono">→</div>
+      <div class="side">
+        <div class="t mono"><b>AI</b> · 코드로 옮기기</div>
+        <pre><code><span style="color:var(--fg-3)"># AI 가 돌려준 코드</span>
+scores = [<span style="color:var(--amber)">88</span>, <span style="color:var(--amber)">54</span>, <span style="color:var(--amber)">71</span>]
+avg = sum(scores) / len(scores)
+
+<span style="color:var(--violet)">print</span>(<span style="color:var(--cyan)">f"평균 {avg:.1f}점"</span>)
+<span style="color:var(--violet)">if</span> avg &lt; <span style="color:var(--amber)">60</span>:
+    <span style="color:var(--violet)">print</span>(<span style="color:var(--cyan)">"재시험 대상입니다"</span>)</code></pre>
+      </div>
+      <div class="verdict" style="grid-column:1/-1">
+        <b>여기서부터가 감독의 일입니다.</b>
+        점수가 하나도 없으면 어떻게 될까요? 딱 60점이면 재시험일까요?
+        AI는 시킨 것만 하고 여기까지 묻지 않습니다. <b>묻는 사람이 지휘자입니다.</b>
+      </div>
+    </div>
+
+
+    <div class="proof rise">
+      <div class="txt">
+        <div class="k">실제 사례 · 고등부</div>
+        <h3>지휘를 해 본 학생은<br>결과물이 남습니다.</h3>
+        <p>
+          한 고등학생이 진로 고민을 <b>인터랙티브 진로 분석 서비스</b>로 직접 풀었습니다.
+          MBTI 형식을 빌려 심리적 문턱을 낮추고, 5단계 답변으로 행동 양식을 분석하고,
+          밤하늘 별빛을 형상화한 화면까지 설계했습니다.
+        </p>
+        <p>
+          이 학생은 <b>코드를 한 줄씩 타이핑하지 않았습니다.</b>
+          전체 로직의 의도를 설계하고 구현은 AI와 나눠 했습니다.
+          "MBTI처럼 점수를 합산해 결과를 보여줘" — 이 한 줄이 나오려면
+          무엇을 만들지, 무엇을 입력받고 무엇을 내놓을지가 먼저 정해져 있어야 합니다.
+        </p>
+        <p>
+          <b>지시가 정확했기 때문에 결과가 나왔습니다.</b> 이것이 감독의 일입니다.
+        </p>
+        <a class="more" href="/blog/godeunghaksaengi-aiwa-ssoa-olrin-jinroui-byeol">수업 기록에서 자세히 보기 →</a>
+      </div>
+      <div class="side">
+        <div><b>기획</b>진로 고민을 테스트로 바꾼다</div>
+        <div><b>지시</b>점수 합산 방식과 화면을 말로 설계</div>
+        <div><b>판단</b>모바일에서 한눈에 보이는지 확인</div>
+        <div><b>책임</b>또래가 실제로 쓰는 서비스로 공개</div>
+      </div>
+    </div>
+
+    <div class="ai-flow rise">
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr><th>단계</th><th>AI 리터러시로 다루는 것</th></tr></thead>
+          <tbody>
+            <tr><td>1단계</td><td><b>AI 첫 경험</b> — 그림·음성 AI를 직접 써보며 "무엇을 할 수 있는 도구인지" 감을 잡습니다.</td></tr>
+            <tr><td>2단계</td><td><b>AI 기초 체험</b> — 얼굴 인식·감정 분류를 만들어 보고, 학습 데이터가 결과를 바꾼다는 것을 확인합니다.</td></tr>
+            <tr><td>3단계</td><td><b>자연어 코딩</b> — 만들고 싶은 것을 말로 설명해 코드를 얻고, 그 코드를 읽고 고칩니다.</td></tr>
+            <tr><td>4단계</td><td><b>보조로 쓰되 검증</b> — 알고리즘 문제에 AI를 참고하되 풀이의 정당성은 스스로 증명합니다.</td></tr>
+            <tr><td>5단계</td><td><b>AI를 붙여 만들기</b> — AI API를 활용한 챗봇·이미지 분류 같은 실제 서비스를 완성합니다.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<section id="tutor" class="paper">
+  <div class="wrap">
+    <div class="lab rise">Our Own Tool</div>
+    <h2 class="rise">"오늘 뭐 했어?"에<br>학원이 대답합니다.</h2>
+    <p class="lead rise">
+      코딩 학원을 고를 때 가장 어려운 건 아이가 거기서 뭘 배우는지 보이지 않는다는 점입니다.
+      저희는 그 문제부터 풀었습니다. 시중 교재를 따라가는 대신
+      <b style="color:var(--paper-ink)">원장이 직접 학습 프로그램을 개발했습니다.</b>
+      70개 과정, 1,597개 챕터가 이미 준비돼 있습니다.
+    </p>
+
+    <div class="loop rise">
+      <div class="st">
+        <div class="k">STEP 1</div>
+        <h4>데모 먼저</h4>
+        <p>완성된 모습을 먼저 봅니다. 무엇을 만드는지 모르면 몰입이 시작되지 않습니다.</p>
+      </div>
+      <div class="st self">
+        <div class="k">STEP 2</div>
+        <h4>생각해 볼까요</h4>
+        <p>코드를 보기 전에 먼저 묻습니다. "어떻게 하면 될까?" 답을 주지 않고 기다립니다.</p>
+      </div>
+      <div class="st">
+        <div class="k">STEP 3</div>
+        <h4>따라하기</h4>
+        <p>생각을 마친 뒤에야 방법을 봅니다. 순서가 바뀌면 훈련이 되지 않습니다.</p>
+      </div>
+      <div class="st self">
+        <div class="k">STEP 4</div>
+        <h4>직접 해보기</h4>
+        <p>바로 실행해 결과를 봅니다. 기대와 다르면 왜 다른지 스스로 찾습니다.</p>
+      </div>
+      <div class="st">
+        <div class="k">STEP 5</div>
+        <h4>나의 도전</h4>
+        <p>조건을 바꿔 다시 만듭니다. 여기서부터는 정답이 하나가 아닙니다.</p>
+      </div>
+    </div>
+
+    <figure class="appwin rise" style="margin:40px 0 0">
+      <figcaption class="bar"><i></i><i></i><i></i><span>학습 프로그램 · 오늘의 미션</span></figcaption>
+      <div class="appbody">
+        <div class="pane">
+          <div class="ph">오늘의 미션</div>
+          <p class="task">줄넘기 기록이 45번, 62번, 58번이에요.<br>가장 큰 기록을 컴퓨터가 찾게 해요.</p>
+          <div class="think">
+            <b style="color:#3DD6C4">생각해 볼까요</b><br>
+            세 개를 한 번에 비교할 수 있을까요?<br>
+            아니면 하나씩 꺼내서 비교해야 할까요?
+          </div>
+          <div class="hint">막히면 이걸 보세요 — 접혀 있습니다. 먼저 생각한 다음 펼칩니다.</div>
+        </div>
+        <div class="pane">
+          <div class="ph">직접 해보기 · ▶ 실행</div>
+          <pre><code>best = 0
+for r in [45, 62, 58]:
+    if r &gt; best:
+        best = r
+print(best)</code></pre>
+          <div class="out">
+            결과&nbsp;&nbsp;62<br>
+            기대 출력&nbsp;&nbsp;62<br>
+            <b>✅ 미션 성공 · +10점</b>
+          </div>
+        </div>
+      </div>
+    </figure>
+
+    <div class="duo">
+      <div class="d rise">
+        <div class="k">GRADING</div>
+        <h4>정답을 베껴 넣어도<br>통과되지 않습니다.</h4>
+        <p>
+          채점 기준이 정답 코드와의 일치가 아닙니다.
+          <b>미로는 로봇이 실제로 도착했는지, 배달은 물건이 실제로 전해졌는지를 보고 채점합니다.</b>
+        </p>
+        <p>
+          그래서 답이 하나가 아닙니다. 아이마다 다른 풀이가 나오고,
+          다른 풀이도 작동하면 통과입니다. 베낄 대상이 없으니 스스로 세우는 수밖에 없습니다.
+        </p>
+        <div class="x"><s>정답 코드와 일치하는가</s><br>→ 실제로 작동했는가</div>
+      </div>
+      <div class="d rise">
+        <div class="k">AI TUTOR</div>
+        <h4>막히면 AI가 옆에 있습니다.<br>정답은 주지 않습니다.</h4>
+        <p>
+          아이가 막혔을 때 AI 튜터가 <b>어디가 어긋났는지 짚어 주고, 채워야 할 칸만 남긴 골격</b>을 보여 줍니다.
+        </p>
+        <p>
+          완성된 코드는 절대 내주지 않습니다.
+          채우는 몫은 언제나 아이에게 남깁니다 — 그 칸을 채우는 순간이 실제로 배우는 순간이기 때문입니다.
+        </p>
+        <div class="x"><s>여기 정답 코드입니다</s><br>→ 이 줄의 조건을 다시 볼까요?</div>
+      </div>
+    </div>
+
+    <div class="tw vs rise">
+      <table>
+        <caption class="mono" style="caption-side:bottom;text-align:left;padding:12px 16px;font-size:12.5px;color:#8B7F6B">
+          같은 "코딩 학원"이라는 이름 아래 실제로 다른 것들
+        </caption>
+        <thead><tr><th></th><th>보통의 코딩 학원</th><th>로봇&amp;코딩학원</th></tr></thead>
+        <tbody>
+          <tr><td>학년이 바뀌면</td><td>과정이 끝나 다른 곳으로</td><td>유아~중등 한 곳에서 이어짐</td></tr>
+          <tr><td>집에서 보이는 것</td><td>"재밌었대요"</td><td>아이가 만든 화면 + 아이가 쓴 한 줄</td></tr>
+          <tr><td>학기 말</td><td>없음</td><td>학습 포트폴리오 문서 + 공유 링크</td></tr>
+          <tr><td>AI 시대 대비</td><td>코드 문법</td><td>프롬프트 + 문제 정의·설계 3단계</td></tr>
+          <tr><td>교재</td><td>시중 교재 · 공용 커리큘럼</td><td>원장이 직접 개발한 학습 프로그램</td></tr>
+          <tr><td>채점</td><td>정답 코드 일치</td><td>실제로 작동했는가</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="tfeat">
+      <div class="f rise">
+        <div class="n">70 · 1,597</div>
+        <h4>70개 과정 · 1,597챕터</h4>
+        <p>단계를 잘게 나눴습니다. 다음 칸이 너무 멀면 아이는 포기하고, 너무 가까우면 지루해합니다.</p>
+      </div>
+      <div class="f rise">
+        <div class="n">5세~</div>
+        <h4>글자를 몰라도 시작</h4>
+        <p>아직 글자를 못 읽는 아이는 타이핑도 드래그도 없이 큰 버튼만 눌러 시작합니다.</p>
+      </div>
+      <div class="f rise">
+        <div class="n">기록</div>
+        <h4>막혔던 지점이 남습니다</h4>
+        <p>어디서 몇 번 다시 시도했는지가 그대로 남습니다. 같은 자리에서 또 막히면 그때 손을 봅니다.</p>
+      </div>
+      <div class="f rise">
+        <div class="n">자동</div>
+        <h4>그 순간의 화면이 저장</h4>
+        <p>미로를 풀고 게임을 완성한 그 화면이 자동으로 남습니다. 아이가 이모지와 한 줄 소감을 붙입니다.</p>
+      </div>
+      <div class="f rise">
+        <div class="n">6영역</div>
+        <h4>성장을 점수가 아닌 방향으로</h4>
+        <p>태도·집중력·학습 의지·이해력·표현력·창의성을 선생님이 수업 중 지켜본 대로 기록합니다.</p>
+      </div>
+      <div class="f rise">
+        <div class="n">회차별</div>
+        <h4>수업마다 선생님 코멘트</h4>
+        <p>몇 회차에 무엇을 했고 어디를 어려워했는지 한 줄씩 남습니다. 쌓이면 그대로 포트폴리오가 됩니다.</p>
+      </div>
+    </div>
+
+
+    <div class="rept rise">
+      <div class="rh">
+        <span class="t">학습 성장 리포트</span>
+        <span class="m">김○○ · 초4 · 담당 이종림 · 수업 5회</span>
+      </div>
+
+      <div class="rsec">
+        <div class="rlab">우리 아이 성장 프로필</div>
+        <div class="grow">
+          <div class="g top"><div class="n">태도</div><div class="bar"><i style="width:88%"></i></div><span class="s">가장 빛나는 모습</span></div>
+          <div class="g"><div class="n">집중력</div><div class="bar"><i style="width:74%"></i></div><span class="s">쑥쑥 자라고 있어요</span></div>
+          <div class="g"><div class="n">학습 의지</div><div class="bar"><i style="width:62%"></i></div><span class="s">꾸준히 자라는 중</span></div>
+          <div class="g"><div class="n">이해력</div><div class="bar"><i style="width:60%"></i></div><span class="s">꾸준히 자라는 중</span></div>
+          <div class="g"><div class="n">표현력</div><div class="bar"><i style="width:57%"></i></div><span class="s">꾸준히 자라는 중</span></div>
+          <div class="g"><div class="n">창의성</div><div class="bar"><i style="width:59%"></i></div><span class="s">꾸준히 자라는 중</span></div>
+        </div>
+      </div>
+
+      <div class="rsec">
+        <div class="rlab">수업 기록</div>
+        <div class="rlog">
+          <div class="l">
+            <span class="d">2026.02.24</span>
+            <span class="c"><b>파이썬 · 문법1</b>전반적인 내용을 잘 이해하고 따라왔습니다. 수업 시간 내내 높은 집중력을 보여주었습니다.</span>
+          </div>
+          <div class="l">
+            <span class="d">2026.04.17</span>
+            <span class="c"><b>파이썬 · 문법1</b>선생님의 도움이 조금 필요했고 일부 개념을 어려워했지만, 반복 설명을 통해 이해하여 잘 수행했습니다.</span>
+          </div>
+          <div class="l">
+            <span class="d">2026.04.24</span>
+            <span class="c"><b>코드마스터 · 튼튼블록</b>어려운 문제가 나와도 적극적으로 질문하면서 해결하는 모습을 보여주었습니다.</span>
+          </div>
+          <div class="l">
+            <span class="d">2026.05.22</span>
+            <span class="c"><b>코드마스터 · 튼튼블록</b>스크래치 수업을 진행했고 높은 집중력을 보여주었습니다. 꾸준히 성장하며 발전 가능성이 큽니다.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="rfoot">
+        실제 발송되는 리포트의 구성입니다. 학생 이름은 가렸습니다.
+        사진과 함께 링크로 보내 드리고, 인쇄용 문서로도 받으실 수 있습니다.
+      </div>
+    </div>
+
+    <div class="route" style="border-color:var(--paper-line);border-left:3px solid #B5760A;background:rgba(181,118,10,.06)">
+      <h4 style="color:var(--paper-ink)">점수가 아니라 자라는 방향을 적습니다</h4>
+      <p style="color:var(--paper-ink-2)">
+        아이를 몇 점으로 줄 세우지 않습니다. 선생님이 수업 중 지켜본 모습을
+        <b style="color:var(--paper-ink)">태도 · 집중력 · 학습 의지 · 이해력 · 표현력 · 창의성</b>
+        여섯 영역으로 나눠 적고, 이번 기간에 가장 빛난 부분을 짚어 드립니다.
+      </p>
+      <p style="color:var(--paper-ink-2)">
+        회차마다 무엇을 했고 어디를 어려워했는지도 한 줄씩 남깁니다.
+        <b style="color:var(--paper-ink)">"오늘 뭐 했어?"에 아이 대신 학원이 대답하는 방식</b>입니다.
+      </p>
+      <p style="color:var(--paper-ink-2)">
+        아이마다 자라는 속도와 방향이 다릅니다. 리포트는 비교하려고 쓰는 것이 아니라,
+        이 아이가 지난 달보다 어디가 나아졌는지 보려고 씁니다.
+      </p>
+    </div>
+
+    <div class="route" style="border-color:var(--paper-line);border-left:3px solid #B5760A;background:rgba(181,118,10,.06)">
+      <h4 style="color:var(--paper-ink)">유아부터 중등까지, 학원을 옮기지 않습니다</h4>
+      <p style="color:var(--paper-ink-2)">
+        버튼만 눌러 로봇을 움직이는 5세부터 파이썬으로 게임을 만드는 중3까지 한 곳에서 이어집니다.
+        블록을 붙이는 단계를 지나 파이썬으로 넘어가고, 원한다면
+        <b style="color:var(--paper-ink)">자바 · 자바스크립트 · SQL · 아두이노</b>까지 갑니다.
+        COS Pro 3급도 같은 화면에서 준비합니다.
+      </p>
+      <div class="tags">
+        <span style="color:#B5760A;border-color:rgba(181,118,10,.35)">첫 코딩 · 7세~초3 · 15주</span>
+        <span style="color:#B5760A;border-color:rgba(181,118,10,.35)">AI 시대 코딩 · 초5~중3 · 24주</span>
+        <span style="color:#B5760A;border-color:rgba(181,118,10,.35)">코딩으로 수학 저학년 · 초1~4 · 16주</span>
+        <span style="color:#B5760A;border-color:rgba(181,118,10,.35)">코딩으로 수학 · 초5~중3 · 23주</span>
+        <span style="color:#B5760A;border-color:rgba(181,118,10,.35)">메이커 · 초4~중2 · 19주</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="principal">
+  <div class="wrap">
+    <div class="lab rise">PRINCIPAL</div>
+    <h2 class="rise">원장 약력</h2>
+    <p class="lead rise">
+      로봇&amp;코딩학원의 원장은 실제로 돌아가는 시스템을 만들어 온 개발자입니다.
+      병원, 공장, 금융사에서 쓰는 소프트웨어를 개발했고, 그 아래의 하드웨어와 펌웨어도 직접 다뤘습니다.
+      화면 위의 코드와 회로 위의 신호를 모두 만져 본 사람이 로봇과 코딩을 함께 가르칩니다.
+    </p>
+    <div class="timeline rise">
+      <div class="tl"><h4>의료정보시스템 개발</h4><p>병원에서 실제로 운영되는 정보시스템을 개발했습니다.</p></div>
+      <div class="tl"><h4>생산·물류 ERP 개발</h4><p>제조와 물류 현장의 업무를 처리하는 전사 시스템을 개발했습니다.</p></div>
+      <div class="tl"><h4>쇼핑몰 개발</h4><p>이커머스 서비스를 구축하고 운영했습니다.</p></div>
+      <div class="tl"><h4>금융사·카드사 콜센터 시스템 개발</h4><p>대규모 트래픽을 다루는 금융권 시스템을 개발했습니다.</p></div>
+      <div class="tl"><h4>시스템·하드웨어 개발</h4><p>소프트웨어 위쪽만이 아니라 장비 자체를 만들었습니다. 회로와 부품이 실제로 어떻게 맞물리는지 다뤄 본 경험입니다.</p></div>
+      <div class="tl"><h4>펌웨어 개발</h4><p>하드웨어를 직접 제어하는 펌웨어를 작성했습니다. 로봇 수업에서 센서와 모터를 다룰 때 그대로 쓰이는 영역입니다.</p></div>
+      <div class="tl"><h4>카메라 영상처리 모듈 개발</h4><p>카메라로 들어온 영상을 처리하는 모듈을 개발했습니다. 요즘 아이들이 배우는 이미지 인식 AI의 바탕이 되는 기술입니다.</p></div>
+      <div class="tl"><h4>데이터베이스 설계·운영</h4><p>대용량 데이터를 다루는 데이터베이스를 설계하고 운영했습니다. 그 밖에 여러 분야의 소프트웨어 개발 경험이 있습니다.</p></div>
+      <div class="tl"><h4>중앙대학교 산학 자문위원</h4><p>중앙대학교 산학협력 자문위원으로 활동했습니다.</p></div>
+      <div class="tl"><h4>중앙대학교 학기 특강 교수</h4><p>중앙대학교에서 학기 특강을 맡아 강의했습니다.</p></div>
+      <div class="tl"><h4>코딩교육 플랫폼 개발</h4><p>코딩 교육용 플랫폼을 직접 설계하고 개발했습니다.</p></div>
+      <div class="tl"><h4>로봇&amp;코딩학원 운영</h4><p>현재 서울 송파구 석촌동에서 로봇&amp;코딩학원을 운영하고 있습니다.</p></div>
+      <div class="tl"><h4>학생 지도</h4><p>학생 특허 출원을 아이디어 단계부터 지도해 2건을 등록했고, 지도한 학생들이 영재고·과학고·서울대에 진학했습니다.</p></div>
+    </div>
+
+    <div class="records rise">
+      <div class="rlab">Student Records</div>
+      <h3>학생들이 받은 상</h3>
+      <p class="rlead">
+        학원이 받은 상이 아니라 학생이 받은 상입니다. 대회는 목표가 아니라 그때까지 배운 것을 밖에서
+        한 번 검증받는 자리로 봅니다. 아래는 지도한 학생들의 기록입니다.
+      </p>
+      <div class="rgrid">
+        <div class="r pat"><span class="n">학생 특허 등록<br><span style="color:var(--fg-3);font-size:13px">아이디어 단계부터 출원까지 지도</span></span><span class="v">2건 등록</span></div>
+        <div class="r"><span class="n">한국코드페어</span><span class="v">금상</span></div>
+        <div class="r"><span class="n">학생발명품대회</span><span class="v">최우수상</span></div>
+        <div class="r"><span class="n">스팀컵 로봇&amp;코딩</span><span class="v">금상</span></div>
+        <div class="r"><span class="n">학생통계활용대회</span><span class="v">우수상</span></div>
+        <div class="r"><span class="n">SW사고력올림피아드</span><span class="v">우수상</span></div>
+        <div class="r"><span class="n">서울시교육청 과학전람회<br><span style="color:var(--fg-3);font-size:13px">전년도 초등부 장려상</span></span><span class="v">중등부 최우수상</span></div>
+        <div class="r"><span class="n">그 외 다수 대회</span><span class="v">입상</span></div>
+      </div>
+
+      <div class="rlab" style="margin-top:40px">Admissions</div>
+      <h3>진학한 학교</h3>
+      <p class="rlead">
+        진학은 학원이 시켜주는 것이 아니라 학생이 해내는 것입니다.
+        여기서 만든 결과물과 기록이 생활기록부와 포트폴리오로 쓰였을 뿐입니다.
+      </p>
+      <div class="paths">
+        <div class="pgroup">
+          <div class="h">진학 · 대학</div>
+          <ul>
+            <li><b>서울대학교 의과대학</b><br><span style="color:var(--fg-3);font-size:13px">수시 · 학생부종합전형</span></li>
+            <li><b>한국과학기술원 (KAIST)</b></li>
+          </ul>
+        </div>
+        <div class="pgroup">
+          <div class="h">진학 · 영재학교 &amp; 과학고</div>
+          <ul>
+            <li><b>한국과학영재학교</b></li>
+            <li>과학고등학교 · 영재학교</li>
+          </ul>
+        </div>
+        <div class="pgroup">
+          <div class="h">진학 · 특성화 &amp; 마이스터고</div>
+          <ul>
+            <li><b>선린인터넷고등학교</b></li>
+            <li><b>미림마이스터고등학교</b></li>
+            <li><b>단국대학교부속소프트웨어고등학교</b></li>
+            <li><b>서울로봇고등학교</b></li>
+          </ul>
+        </div>
+        <div class="pgroup">
+          <div class="h">대학 입시 지도</div>
+          <ul>
+            <li><b>한양대학교 공과대학</b></li>
+          </ul>
+          <p style="font-size:13.2px;color:var(--fg-3);line-height:1.7;margin:14px 0 0">
+            고교 진학 이후에도 수시 포트폴리오와 면접 준비를 이어서 지도한 경우입니다.
+          </p>
+        </div>
+      </div>
+
+      <div class="route">
+        <h4>대부분 수시모집 · 학생부종합전형으로 갔습니다</h4>
+        <p>
+          시험 점수로 간 것이 아닙니다. <b>학교생활기록부에 쓸 수 있는 활동</b>과
+          <b>제출할 수 있는 포트폴리오</b>를 몇 년에 걸쳐 쌓아서 간 결과입니다.
+        </p>
+        <p>
+          그래서 5단계 과정은 작품을 만들고 끝내지 않습니다. 무엇을 왜 만들었는지, 어디서 막혔고
+          어떻게 풀었는지를 <b>글과 코드로 남기게</b> 합니다. 대회 참가와 특허 출원도 같은 이유입니다 —
+          생기부와 자기소개서에 쓸 수 있는 <b>근거 있는 기록</b>이 되기 때문입니다.
+        </p>
+        <p>
+          <b>서울대 의예과에 간 학생</b>은 Pima 인디언 당뇨병 데이터로 건강 지표를 넣으면 발병 가능성을
+          예측하는 웹 AI 프로그램을 직접 만들었습니다. 데이터 전처리부터 모델 구성, 웹 배포까지 스스로 했고,
+          <b>"의학 문제를 데이터와 AI로 풀려는 태도"</b>가 학생부종합전형에서 평가받았습니다.
+        </p>
+        <p>
+          면접에서 "이건 왜 이렇게 만들었나요"를 물었을 때 스스로 답할 수 있어야 합니다.
+          남이 만들어 준 포트폴리오로는 그 질문을 넘지 못합니다.
+        </p>
+        <div class="tags">
+          <span>수시모집</span><span>학생부종합전형</span><span>생활기록부 활동</span>
+          <span>포트폴리오</span><span>자기소개서 소재</span><span>면접 대비</span>
+        </div>
+      </div>
+      <p class="rfoot">
+        그 외에도 여러 학교로 진학했습니다.
+        다만 상과 진학을 목표로 다니는 학원은 아닙니다 — 문제를 스스로 정의할 수 있게 되면 결과는 따라옵니다.
+      </p>
+    </div>
+
+  </div>
+</section>
+
+<section id="faq">
+  <div class="wrap narrow" style="padding:0">
+    <div class="lab rise">FAQ</div>
+    <h2 class="rise">자주 묻는 질문</h2>
+
+    <div class="qa rise">
+      <details open>
+        <summary>AI가 코드를 다 짜주는데 아이가 코딩을 배울 필요가 있나요?</summary>
+        <div class="ans">
+          <p>코드를 타이핑하는 일은 AI가 대신할 수 있습니다. 하지만 무엇을 만들지 정의하고, 돌아온 결과가 맞는지 판단하는 일은 사람이 합니다.</p>
+          <p>로봇&amp;코딩학원은 문법을 외우게 하는 대신 문제를 쪼개고, 규칙을 세우고, 틀렸을 때 원인을 찾는 훈련을 합니다. AI를 못 쓰게 막지 않고, 결과를 검증하는 방법을 함께 가르칩니다.</p>
+        </div>
+      </details>
+      <details>
+        <summary>자연어 코딩이 뭔가요? 그럼 코드를 안 배워도 되나요?</summary>
+        <div class="ans">
+          <p>자연어 코딩은 만들고 싶은 것을 우리말로 설명해 AI에게 코드를 받는 방식입니다. 로봇&amp;코딩학원은 이것을 3단계부터 정식으로 다룹니다.</p>
+          <p>다만 코드를 안 배워도 된다는 뜻은 아닙니다. AI가 준 코드가 맞는지 읽을 수 없으면 틀린 것을 그대로 쓰게 됩니다. 설명하는 힘과 읽는 힘을 함께 길러야 합니다.</p>
+        </div>
+      </details>
+      <details>
+        <summary>코딩은 몇 학년부터 배우는 것이 좋은가요?</summary>
+        <div class="ans">
+          <p>로봇&amp;코딩학원의 1단계 과정은 초등학교 1~4학년을 대상으로 합니다. 이 단계에서는 코드를 쓰지 않고 블록코딩과 언플러그드 활동으로 순차·반복·조건이라는 사고의 뼈대를 만듭니다.</p>
+          <p>텍스트 코딩(Python)은 초등 5학년 이상인 3단계에서 시작합니다. 서두를 필요가 없습니다.</p>
+        </div>
+      </details>
+      <details>
+        <summary>코딩학원 수강료는 얼마인가요?</summary>
+        <div class="ans">
+          <p>로봇&amp;코딩학원의 수강료는 월 4회 기준으로 초등 저학년 16만원, 초등 고학년 19만원, 중학생 이상 20만원입니다. 수업 시간은 초등 저학년 90분, 초등 고학년 이상 120분입니다.</p>
+        </div>
+      </details>
+      <details>
+        <summary>정보영재나 영재고, SW특기자 전형 준비도 되나요?</summary>
+        <div class="ans">
+          <p>로봇&amp;코딩학원의 4단계 과정이 그 준비 과정입니다. 동적 계획법과 그래프 알고리즘을 다루고, 한국코드페어·SW사고력올림피아드·USACO Bronze 문제를 훈련합니다.</p>
+          <p>5단계에서는 진학에 제출할 포트폴리오 작성까지 지도합니다.</p>
+        </div>
+      </details>
+      <details>
+        <summary>다른 코딩학원과 무엇이 다른가요?</summary>
+        <div class="ans">
+          <p>원장이 직접 개발한 학습 프로그램으로 수업합니다. 70개 과정, 1,597개 챕터가 준비돼 있습니다.</p>
+          <p>채점 기준이 다릅니다. 정답 코드를 베껴 넣는 것으로는 통과되지 않고, 미로는 로봇이 실제로 도착했는지·배달은 물건이 실제로 전해졌는지를 보고 채점합니다. 그래서 답이 하나가 아니고 아이마다 다른 풀이가 나옵니다.</p>
+          <p>막히면 AI 튜터가 돕지만 정답 코드는 주지 않습니다. 어디가 어긋났는지 짚어 주고 채워야 할 칸만 남긴 골격을 보여 줍니다.</p>
+          <p>또 유아부터 중등까지 한 곳에서 이어집니다. 학년이 올라갈 때마다 학원을 옮길 필요가 없습니다.</p>
+        </div>
+      </details>
+      <details>
+        <summary>아이가 학원에서 뭘 배웠는지 집에서 알 수 있나요?</summary>
+        <div class="ans">
+          <p>알 수 있습니다. 아이가 미로를 풀고 게임을 완성한 <b>그 순간의 화면이 자동으로 저장</b>되고, 아이는 "오늘 어땠어요?"에 이모지를 골라 한 줄을 남깁니다.</p>
+          <p>여기에 담당 선생님이 수업 중 지켜본 모습을 더해 <b>학습 성장 리포트</b>를 보내 드립니다. 태도·집중력·학습 의지·이해력·표현력·창의성 여섯 영역으로 자라는 방향을 적고, 회차마다 무엇을 했고 어디를 어려워했는지 한 줄씩 남깁니다.</p>
+          <p>수업이 끝나면 링크 하나로 보내 드리므로 카톡에서 바로 확인하실 수 있습니다. 이 기록이 쌓여 학습 포트폴리오가 되고, 학기 말에는 진학·상담에 낼 수 있도록 인쇄용 문서로도 나옵니다.</p>
+        </div>
+      </details>
+      <details>
+        <summary>몇 살부터 시작할 수 있나요? 글자를 못 읽어도 되나요?</summary>
+        <div class="ans">
+          <p>글자를 몰라도 시작합니다. 첫 코딩 과정(7세~초등 3학년, 15주)은 타이핑도 드래그도 없이 큰 버튼만 눌러 로봇을 움직이는 것부터 시작합니다.</p>
+          <p>이후 블록을 붙이는 단계를 지나 파이썬으로 넘어가고, 원한다면 자바·자바스크립트·SQL·아두이노까지 이어집니다. COS Pro 3급도 같은 화면에서 준비합니다.</p>
+        </div>
+      </details>
+      <details>
+        <summary>대회 수상이나 진학 실적이 있나요?</summary>
+        <div class="ans">
+          <p>지도한 학생들이 한국코드페어 금상, 학생발명품대회 최우수상, 스팀컵 로봇&amp;코딩 부문 금상, 전국학생통계활용대회 우수상, SW사고력올림피아드 우수상, 서울특별시교육청 과학전람회 중등부 최우수상을 받았습니다. 그 외에도 여러 대회에서 입상했습니다.</p>
+          <p>학생 특허는 아이디어 단계부터 출원까지 지도해 2건이 등록됐습니다.</p>
+          <p>진학한 학교는 <b>서울대학교 의과대학</b>, 한국과학기술원(KAIST), 한국과학영재학교, 선린인터넷고등학교, 미림마이스터고등학교, 단국대학교부속소프트웨어고등학교, 서울로봇고등학교 등입니다. 한양대학교 공과대학은 입시를 지도했습니다.</p>
+          <p>진학은 대부분 정시가 아니라 <b>수시모집 학생부종합전형</b>이었습니다. 몇 년에 걸쳐 쌓은 활동 기록과 포트폴리오가 생활기록부·자기소개서의 근거가 됐습니다.</p>
+          <p>다만 대회는 목표가 아니라 그때까지 배운 것을 밖에서 검증받는 자리로 봅니다.</p>
+        </div>
+      </details>
+      <details>
+        <summary>성인도 배울 수 있나요?</summary>
+        <div class="ans">
+          <p>로봇&amp;코딩학원은 성인 수강생도 받습니다. 의료정보시스템과 금융권 시스템을 개발해 온 원장이 직접 지도하므로 실무에 필요한 내용을 중심으로 진행합니다.</p>
+        </div>
+      </details>
+    </div>
+  </div>
+</section>
+
+<section id="tuition" class="quiet">
+  <div class="wrap">
+    <div class="lab rise">Tuition</div>
+    <h3 class="rise">수강료</h3>
+    <p class="qlead rise">월 4회 기준입니다.</p>
+    <div class="tw rise">
+      <table>
+        <caption class="mono tcap">
+          월 4회 기준 · 부가세 포함
+        </caption>
+        <thead>
+          <tr><th>대상</th><th>해당 단계</th><th>수업 시간</th><th>월 수강료</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><b>초등 저학년</b></td><td>1단계 컴퓨팅 사고력</td><td>90분</td><td class="num">160,000원</td></tr>
+          <tr><td><b>초등 고학년</b></td><td>2~3단계 알고리즘·Python</td><td>120분</td><td class="num">190,000원</td></tr>
+          <tr><td><b>중학생 이상</b><span class="sub">성인 포함</span></td><td>3~5단계 심화·프로젝트</td><td>120분</td><td class="num">200,000원</td></tr>
+          <tr><td><b>대회 · 진학 대비</b></td><td>4단계 개별 코칭</td><td>개별 일정</td><td class="num">상담 후 안내</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="note rise">
+      <b>수업 시간은 초등 저학년 90분, 초등 고학년 이상 120분입니다.</b>
+      반 편성과 시간표는 상담 시 안내해 드립니다. 전화 <a class="mono tel" href="tel:02-422-0525">02-422-0525</a>
+    </div>
+  </div>
+</section>
+
+
+<section id="contact" class="quiet">
+  <div class="wrap">
+    <div class="lab rise">Contact</div>
+    <h3 class="rise">상담</h3>
+    <p class="qlead rise">
+      전화가 편하시면 전화로, 글이 편하시면 카카오톡으로 남겨 주세요.
+      아이 나이와 지금 어디까지 해봤는지만 알려 주시면 어느 단계부터 시작할지 안내해 드립니다.
+    </p>
+    <div class="contact rise">
+      <a class="cway" href="tel:02-422-0525">
+        <div class="ck mono">전화</div>
+        <div class="cv">02-422-0525</div>
+        <div class="cn">평일 상담 가능</div>
+      </a>
+      <a class="cway ka" href="http://pf.kakao.com/_Bxhxbxjxb/chat" target="_blank" rel="noopener">
+        <div class="ck mono">카카오톡 채널</div>
+        <div class="cv">로봇&amp;코딩학원</div>
+        <div class="cn">pf.kakao.com/_Bxhxbxjxb</div>
+      </a>
+      <div class="cqr">
+        <img src="/kakao-qr.svg" alt="로봇&amp;코딩학원 카카오톡 채널 QR 코드" width="132" height="132" loading="lazy">
+        <span class="mono">휴대폰으로 찍으면<br>카카오톡 채널이 열립니다</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="location" class="paper">
+  <div class="wrap">
+    <div class="lab rise">LOCATION</div>
+    <h2 class="rise">오시는 길</h2>
+    <p class="lead rise">로봇&amp;코딩학원은 서울 송파구 석촌동 274-8 2층에 있습니다. 헬리오시티·가락초등학교에서 도보로 오실 수 있습니다.</p>
+    <div class="locgrid rise">
+      <div class="loccard" style="background:var(--paper-card);border-color:var(--paper-line)">
+        <div class="k mono" style="color:#8B7F6B">주소</div>
+        <div class="v" style="color:var(--paper-ink)">서울특별시 송파구<br>석촌동 274-8 2층</div>
+        <div class="n" style="color:var(--paper-ink-2)">헬리오시티·가락초등학교 인근</div>
+      </div>
+      <div class="loccard" style="background:var(--paper-card);border-color:var(--paper-line)">
+        <div class="k mono" style="color:#8B7F6B">전화</div>
+        <div class="v"><a class="mono" href="tel:02-422-0525" style="color:#B5760A">02-422-0525</a></div>
+        <div class="n" style="color:var(--paper-ink-2)">상담·수업 문의</div>
+      </div>
+      <div class="loccard" style="background:var(--paper-card);border-color:var(--paper-line)">
+        <div class="k mono" style="color:#8B7F6B">지도</div>
+        <div class="v"><a href="https://map.naver.com/p/search/송파구%20석촌동%20274-8" target="_blank" rel="noopener" style="color:#B5760A">네이버 지도에서 보기</a></div>
+        <div class="n" style="color:var(--paper-ink-2)">석촌동 274-8</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="final">
+  <div class="wrap">
+    <h2 class="rise">체험 수업 문의</h2>
+    <p class="lead rise">
+      한 번 와서 직접 해보면 어느 단계부터 시작할지 바로 정해집니다.
+      학년이 아니라 수준으로 배정합니다.
+    </p>
+    <div class="cta rise">
+      <a class="btn primary" href="tel:02-422-0525">전화 02-422-0525</a>
+      <a class="btn kakao" href="http://pf.kakao.com/_Bxhxbxjxb/chat" target="_blank" rel="noopener">카카오톡 문의</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="fgrid">
+      <div>
+        <div class="flogo">
+          <span class="brand" aria-hidden="true"><span class="lk"><i class="br"></i><b>로봇</b><i class="pd"></i><b>코딩</b><i class="br r"></i></span><span class="aib">AI</span></span>
+          <span class="tag">Robot · Coding · AI Academy</span>
+        </div>
+        <p style="margin-top:16px">서울특별시 송파구 석촌동 274-8 2층<br>
+        <a class="mono" href="tel:02-422-0525">02-422-0525</a><br>
+        <a class="mono" href="http://pf.kakao.com/_Bxhxbxjxb/chat" target="_blank" rel="noopener">카카오톡 상담</a></p>
+      </div>
+      <div>
+        <h3>커리큘럼</h3>
+        <p><a href="#curriculum">1단계 · 컴퓨팅 사고력 기초</a><br>
+        <a href="#curriculum">2단계 · 알고리즘 융합</a><br>
+        <a href="#curriculum">3단계 · Python 입문</a><br>
+        <a href="#curriculum">4단계 · 대회·진학 대비</a><br>
+        <a href="#curriculum">5단계 · 진로·포트폴리오</a></p>
+      </div>
+      <div>
+        <h3>안내</h3>
+        <p><a href="#why">교육 철학</a><br>
+        <a href="#ai">AI 리터러시</a><br>
+        <a href="#tutor">학습 프로그램</a><br>
+        <a href="#principal">원장 소개</a><br>
+        <a href="#faq">자주 묻는 질문</a><br>
+        <a href="#location">오시는 길</a></p>
+      </div>
+    </div>
+    <div class="copy">
+      로봇&amp;코딩학원 · 서울특별시 송파구 석촌동 274-8 2층 · 02-422-0525<br>
+      코딩 · 로봇 · AI 교육 · 7세부터 성인까지
+    </div>
+  </div>
+</footer>
+
+<script>
+/* 인터랙션은 전부 선택적이다. 이 스크립트가 실행되지 않아도 본문은 그대로 보인다. */
+(function () {
+  var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  var risers = document.querySelectorAll(".rise");
+  if (reduce || !("IntersectionObserver" in window)) {
+    risers.forEach(function (el) { el.classList.add("in"); });
+  } else {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e, i) {
+        if (!e.isIntersecting) return;
+        setTimeout(function () { e.target.classList.add("in"); }, Math.min(i * 70, 350));
+        io.unobserve(e.target);
+      });
+    }, { rootMargin: "0px 0px -12% 0px", threshold: 0.06 });
+    risers.forEach(function (el) { io.observe(el); });
+  }
+
+  var nav = document.getElementById("nav");
+  var onScroll = function () { nav.classList.toggle("stuck", window.scrollY > 8); };
+  onScroll(); window.addEventListener("scroll", onScroll, { passive: true });
+
+  document.querySelectorAll(".card").forEach(function (c) {
+    c.addEventListener("pointermove", function (e) {
+      var r = c.getBoundingClientRect();
+      c.style.setProperty("--mx", (e.clientX - r.left) + "px");
+      c.style.setProperty("--my", (e.clientY - r.top) + "px");
+    });
+  });
+
+  /* 히어로 격자 캔버스 — 로봇·회로 모티프 */
+  var cv = document.getElementById("grid");
+  if (cv) {
+    /* 히어로 배경 — 로봇이 미로를 푼다.
+       흔한 파티클 격자 대신 이 학원의 채점 방식을 그대로 그린다:
+       정답 코드를 맞히는 게 아니라 로봇이 실제로 도착해야 통과다.
+       그래서 막다른 길로 들어갔다가 되돌아 나오는 과정까지 보여준다.
+       마우스를 올리면 그 주변이 밝아지고, 누르면 새 미로가 만들어진다. */
+    var ctx = cv.getContext("2d"), W = 0, H = 0, C = 56;
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    var cols, rows, cell, walk, path, step, done, hold;
+    var mx = -9999, my = -9999, tx = -9999, ty = -9999;
+
+    function idx(x, y) { return y * cols + x; }
+
+    /* 무작위 DFS 로 미로를 판다 */
+    function carve() {
+      cell = [];
+      for (var i = 0; i < cols * rows; i++) cell.push({ n: 1, e: 1, s: 1, w: 1, v: 0 });
+      var st = [{ x: 0, y: 0 }];
+      cell[0].v = 1;
+      while (st.length) {
+        var c = st[st.length - 1], nb = [];
+        if (c.y > 0        && !cell[idx(c.x, c.y - 1)].v) nb.push([0, -1, "n", "s"]);
+        if (c.x < cols - 1 && !cell[idx(c.x + 1, c.y)].v) nb.push([1, 0, "e", "w"]);
+        if (c.y < rows - 1 && !cell[idx(c.x, c.y + 1)].v) nb.push([0, 1, "s", "n"]);
+        if (c.x > 0        && !cell[idx(c.x - 1, c.y)].v) nb.push([-1, 0, "w", "e"]);
+        if (!nb.length) { st.pop(); continue; }
+        var d = nb[(Math.random() * nb.length) | 0];
+        var nx = c.x + d[0], ny = c.y + d[1];
+        cell[idx(c.x, c.y)][d[2]] = 0;
+        cell[idx(nx, ny)][d[3]] = 0;
+        cell[idx(nx, ny)].v = 1;
+        st.push({ x: nx, y: ny });
+      }
+    }
+
+    /* 출발점에서 도착점까지 DFS. 막다른 길에 들어갔다 나온 흔적까지 남긴다. */
+    function solve() {
+      var seen = {}, st = [{ x: 0, y: 0, p: [] }];
+      walk = []; path = [];
+      var gx = cols - 1, gy = rows - 1;
+      while (st.length) {
+        var c = st.pop(), k = c.x + "," + c.y;
+        if (seen[k]) continue;
+        seen[k] = 1;
+        var here = c.p.concat([[c.x, c.y]]);
+        walk.push([c.x, c.y]);
+        if (c.x === gx && c.y === gy) { path = here; break; }
+        var cc = cell[idx(c.x, c.y)], nx = [];
+        if (!cc.n) nx.push([c.x, c.y - 1]);
+        if (!cc.w) nx.push([c.x - 1, c.y]);
+        if (!cc.e) nx.push([c.x + 1, c.y]);
+        if (!cc.s) nx.push([c.x, c.y + 1]);
+        for (var i = 0; i < nx.length; i++)
+          if (!seen[nx[i][0] + "," + nx[i][1]])
+            st.push({ x: nx[i][0], y: nx[i][1], p: here });
+      }
+    }
+
+    function build() {
+      var r = cv.getBoundingClientRect();
+      W = r.width; H = r.height;
+      if (W < 2 || H < 2) return;
+      cv.width = W * dpr; cv.height = H * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      C = W < 480 ? 52 : (W < 700 ? 56 : 62);
+      cols = Math.max(5, Math.ceil(W / C));
+      rows = Math.max(4, Math.ceil(H / C));
+      carve(); solve();
+      step = 0; done = 0; hold = 0;
+    }
+
+    function walls() {
+      ctx.beginPath();
+      for (var y = 0; y < rows; y++) for (var x = 0; x < cols; x++) {
+        var c = cell[idx(x, y)], px = x * C, py = y * C;
+        if (c.n) { ctx.moveTo(px, py); ctx.lineTo(px + C, py); }
+        if (c.w) { ctx.moveTo(px, py); ctx.lineTo(px, py + C); }
+        if (x === cols - 1 && c.e) { ctx.moveTo(px + C, py); ctx.lineTo(px + C, py + C); }
+        if (y === rows - 1 && c.s) { ctx.moveTo(px, py + C); ctx.lineTo(px + C, py + C); }
+      }
+      ctx.stroke();
+    }
+
+    function draw() {
+      if (!cell) return;
+      ctx.clearRect(0, 0, W, H);
+      var h = C / 2;
+
+      /* 벽 — 청사진 */
+      ctx.lineWidth = 1.4;
+      ctx.strokeStyle = "rgba(150,180,225,.26)";
+      walls();
+
+      /* 밝은 영역을 항상 하나 둔다.
+         커서가 있으면 커서를, 없으면(모바일·터치) 로봇을 따라간다.
+         이게 없으면 화면이 그냥 흐린 격자로만 보인다. */
+      var cur0 = walk[Math.min(step, walk.length - 1)];
+      var sx = mx > -9000 ? mx : (cur0 ? cur0[0] * C + h : W / 2);
+      var sy = mx > -9000 ? my : (cur0 ? cur0[1] * C + h : H / 2);
+      var R = mx > -9000 ? 190 : 150;
+      ctx.save();
+      ctx.beginPath(); ctx.arc(sx, sy, R, 0, Math.PI * 2); ctx.clip();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = "rgba(245,166,35,.46)";
+      walls();
+      ctx.restore();
+
+      /* 지나온 자취 — 최근 것일수록 밝다 */
+      var n = Math.min(step, walk.length);
+      for (var i = 0; i < n; i++) {
+        var age = (n - i) / 26;
+        var al = age < 1 ? 0.20 + (1 - age) * 0.50 : 0.20;
+        ctx.fillStyle = "rgba(47,107,246," + al.toFixed(3) + ")";
+        var s = age < 1 ? 6 + (1 - age) * 4 : 6;
+        ctx.fillRect(walk[i][0] * C + h - s / 2, walk[i][1] * C + h - s / 2, s, s);
+      }
+
+      /* 갈 길을 흐리게 미리 깔아 둔다.
+         이동 중에도 미로 전체의 모양이 읽혀야 단조롭지 않다. */
+      if (path.length) {
+        ctx.strokeStyle = "rgba(245,166,35,.13)";
+        ctx.lineWidth = 2.5; ctx.lineCap = "round"; ctx.lineJoin = "round";
+        ctx.beginPath();
+        for (var q = 0; q < path.length; q++) {
+          var qx = path[q][0] * C + h, qy = path[q][1] * C + h;
+          if (q === 0) ctx.moveTo(qx, qy); else ctx.lineTo(qx, qy);
+        }
+        ctx.stroke();
+      }
+
+      /* 찾아낸 길 — 도착한 뒤에는 또렷하게 */
+      if (done && path.length) {
+        ctx.strokeStyle = "rgba(245,166,35,.60)";
+        ctx.lineWidth = 3; ctx.lineCap = "round"; ctx.lineJoin = "round";
+        ctx.beginPath();
+        for (var j = 0; j < path.length; j++) {
+          var px2 = path[j][0] * C + h, py2 = path[j][1] * C + h;
+          if (j === 0) ctx.moveTo(px2, py2); else ctx.lineTo(px2, py2);
+        }
+        ctx.stroke();
+      }
+
+      /* 도착점 */
+      var gx2 = (cols - 1) * C + h, gy2 = (rows - 1) * C + h;
+      ctx.strokeStyle = done ? "rgba(47,107,246,.85)" : "rgba(47,107,246,.40)";
+      ctx.lineWidth = 2; ctx.beginPath();
+      ctx.arc(gx2, gy2, done ? 15 : 11, 0, Math.PI * 2); ctx.stroke();
+
+      /* 로봇 */
+      var cur = walk[Math.min(step, walk.length - 1)];
+      if (cur) {
+        var rx = cur[0] * C + h, ry = cur[1] * C + h;
+        var gl = ctx.createRadialGradient(rx, ry, 0, rx, ry, 58);
+        gl.addColorStop(0, "rgba(245,166,35,.40)");
+        gl.addColorStop(.45, "rgba(245,166,35,.12)");
+        gl.addColorStop(1, "rgba(245,166,35,0)");
+        ctx.fillStyle = gl;
+        ctx.beginPath(); ctx.arc(rx, ry, 58, 0, Math.PI * 2); ctx.fill();
+        /* 로봇 본체 — 모바일에서도 눈에 들어와야 한다 */
+        ctx.strokeStyle = "rgba(255,196,90,.55)";
+        ctx.lineWidth = 1.6;
+        ctx.strokeRect(rx - 12.5, ry - 12.5, 25, 25);
+        ctx.fillStyle = "rgba(255,205,110,.98)";
+        ctx.fillRect(rx - 7, ry - 7, 14, 14);
+      }
+    }
+
+    var last = 0;
+    function tick(t) {
+      if (!last) last = t;
+      /* 커서를 부드럽게 따라간다 — 딱딱 끊기면 값싸 보인다 */
+      if (tx > -9000) { mx += (tx - mx) * 0.16; my += (ty - my) * 0.16; }
+      if (t - last > 60) {
+        last = t;
+        if (!done) { step++; if (step >= walk.length) { done = 1; hold = t; } }
+        else if (t - hold > 3600) build();
+      }
+      draw();
+      requestAnimationFrame(tick);
+    }
+
+    build();
+    draw();
+    if (!reduce) requestAnimationFrame(tick);
+    else { step = walk ? walk.length : 0; done = 1; draw(); }
+
+    var host = cv.parentElement;
+    host.addEventListener("pointermove", function (e) {
+      var r = cv.getBoundingClientRect();
+      if (mx < -9000) { mx = e.clientX - r.left; my = e.clientY - r.top; }
+      tx = e.clientX - r.left; ty = e.clientY - r.top;
+    });
+    host.addEventListener("pointerleave", function () { tx = ty = -9999; mx = my = -9999; });
+    /* 눌러 보면 새 미로가 나온다 — 반응이 있다는 걸 알게 하는 장치 */
+    host.addEventListener("pointerdown", function () { if (!reduce) { build(); draw(); } });
+
+    var rt;
+    window.addEventListener("resize", function () {
+      clearTimeout(rt); rt = setTimeout(function () { build(); draw(); }, 180);
+    });
+  }
+
+  var counted = new WeakSet();
+  document.querySelectorAll("[data-count]").forEach(function (el) {
+    var target = parseInt(el.getAttribute("data-count"), 10);
+    if (reduce || !("IntersectionObserver" in window) || isNaN(target)) return;
+    var suffix = el.querySelector("small") ? el.querySelector("small").outerHTML : "";
+    var o = new IntersectionObserver(function (es) {
+      es.forEach(function (e) {
+        if (!e.isIntersecting || counted.has(el)) return;
+        counted.add(el);
+        var start = performance.now(), dur = 900;
+        (function tick(now) {
+          var k = Math.min((now - start) / dur, 1);
+          var v = Math.round(target * (1 - Math.pow(1 - k, 3)));
+          el.innerHTML = v + suffix;
+          if (k < 1) requestAnimationFrame(tick);
+        })(start);
+        o.unobserve(el);
+      });
+    }, { threshold: 0.5 });
+    o.observe(el);
+  });
+})();
+</script>

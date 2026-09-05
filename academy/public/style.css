@@ -1,0 +1,1081 @@
+/* 로봇&코딩학원
+   ─────────────────────────────────────────────────────────
+   모티프: 코드 에디터. 주제(코딩 교육)에서 직접 나온 시각 언어다.
+   제약: 모든 본문은 JS 없이 HTML 에 존재해야 한다 (AI 크롤러가 읽어야 함).
+        JS 는 등장 애니메이션·상호작용만 담당한다. 없어도 전부 보인다.
+   ───────────────────────────────────────────────────────── */
+
+:root{
+  --bg:#0B0F16;
+  --bg-2:#111722;
+  --panel:#151C28;
+  --panel-2:#1B2431;
+  --line:#232D3D;
+  --line-soft:#1B2431;
+  --fg:#E8EDF5;
+  --fg-2:#AFBACB;
+  --fg-3:#7A869A;
+  --amber:#F5A623;
+  --amber-soft:rgba(245,166,35,.13);
+  --cyan:#3DD6C4;
+  --blue:#2F6BF6;   /* 로고 파랑 */
+  --violet:#8B7BF7;
+  --good:#4ADE80;
+  --paper:#FAFAF8;
+  --paper-ink:#131A26;
+  --paper-ink-2:#3D4859;
+  --paper-line:#E4E4DE;
+  --paper-card:#FFFFFF;
+  --paper-sunken:#F2F2EE;
+  color-scheme: dark;
+}
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg);color:var(--fg);
+  font-family:"Noto Sans KR",-apple-system,BlinkMacSystemFont,"Malgun Gothic",sans-serif;
+  font-size:16px;line-height:1.8;letter-spacing:-.011em;-webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+h1,h2,h3,h4{margin:0;line-height:1.32;letter-spacing:-.035em;font-weight:800;text-wrap:balance}
+p{margin:0}
+a{color:inherit;text-decoration:none}
+img{max-width:100%}
+:focus-visible{outline:2px solid var(--amber);outline-offset:3px;border-radius:4px}
+.mono{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;font-variant-numeric:tabular-nums}
+.wrap{max-width:1080px;margin:0 auto;padding:0 24px}
+.narrow{max-width:760px}
+
+/* ── 등장 애니메이션 (JS 로 .in 부여) ───────────────────── */
+.rise{opacity:0;transform:translateY(22px);transition:opacity .7s cubic-bezier(.2,.7,.3,1),transform .7s cubic-bezier(.2,.7,.3,1)}
+.rise.in{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){ .rise{opacity:1;transform:none;transition:none} }
+
+/* ── 네비 ─────────────────────────────────────────────── */
+nav{position:sticky;top:0;z-index:60;background:rgba(11,15,22,.72);backdrop-filter:blur(14px) saturate(140%);
+  border-bottom:1px solid transparent;transition:border-color .3s, background .3s}
+nav.stuck{border-bottom-color:var(--line);background:rgba(11,15,22,.94)}
+nav .wrap{display:flex;align-items:center;gap:18px;height:64px}
+
+.navlinks{margin-left:auto;display:flex;align-items:center;gap:2px;font-size:14px}
+.navlinks a{padding:7px 10px;border-radius:6px;color:var(--fg-2);white-space:nowrap;
+  transition:color .18s,background .18s}
+.navlinks a:hover{color:var(--fg);background:var(--panel)}
+.navlinks .mtel{display:none}
+.navtel{margin-left:6px;padding:8px 14px;border-radius:6px;border:1px solid var(--line);
+  font-family:"IBM Plex Mono",monospace;font-size:13.5px;color:var(--amber);font-weight:500;
+  white-space:nowrap;transition:background .18s,border-color .18s}
+.navtel:hover{background:var(--amber-soft);border-color:var(--amber)}
+
+/* 햄버거 — 자바스크립트 없이 체크박스로 연다. 스크립트가 막혀도 메뉴는 열린다. */
+.burger{display:none;flex-direction:column;justify-content:center;gap:5px;
+  width:42px;height:42px;margin-left:auto;padding:11px;border-radius:9px;
+  border:1px solid var(--line);cursor:pointer;transition:border-color .18s}
+.burger span{display:block;height:2px;background:var(--fg-2);border-radius:2px;transition:transform .22s,opacity .22s}
+.burger:hover{border-color:var(--fg-3)}
+.navtoggle:checked ~ .wrap .burger span:nth-child(1){transform:translateY(7px) rotate(45deg)}
+.navtoggle:checked ~ .wrap .burger span:nth-child(2){opacity:0}
+.navtoggle:checked ~ .wrap .burger span:nth-child(3){transform:translateY(-7px) rotate(-45deg)}
+
+/* 좁아지면 글자를 줄여 한 줄을 지킨다 */
+@media(max-width:1180px){
+  .navlinks{font-size:13.2px}
+  .navlinks a{padding:7px 8px}
+  .navtel{font-size:13px;padding:7px 12px}
+}
+@media(max-width:1040px){ .navtel{display:none} }
+
+/* 모바일 — 접었다 편다 */
+@media(max-width:900px){
+  nav .wrap{gap:12px}
+  .burger{display:flex}
+  .navtel{display:none}
+  .navlinks{
+    position:absolute;left:0;right:0;top:64px;margin:0;
+    flex-direction:column;align-items:stretch;gap:0;font-size:16px;
+    background:rgba(9,13,19,.985);backdrop-filter:blur(18px);
+    border-top:1px solid var(--line);border-bottom:1px solid var(--line);
+    padding:8px 0 12px;
+    max-height:0;overflow:hidden;opacity:0;visibility:hidden;
+    transition:max-height .3s ease,opacity .22s ease,visibility .22s}
+  .navlinks a{padding:14px 26px;border-radius:0;color:var(--fg-2)}
+  .navlinks a:active{background:var(--panel)}
+  .navlinks .mtel{display:block;margin-top:8px;color:var(--amber);
+    font-family:"IBM Plex Mono",monospace;border-top:1px solid var(--line-soft);padding-top:16px}
+  .navtoggle:checked ~ .wrap .navlinks{max-height:78vh;overflow-y:auto;opacity:1;visibility:visible}
+}
+@media (prefers-reduced-motion:reduce){
+  .navlinks{transition:none}.burger span{transition:none}
+}
+
+/* ── 히어로 ───────────────────────────────────────────── */
+.hero{position:relative;padding:74px 0 84px;overflow:hidden;touch-action:manipulation}
+.hero canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.hero::after{content:"";position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(900px 420px at 22% 8%, rgba(245,166,35,.10), transparent 62%),
+             radial-gradient(700px 400px at 92% 78%, rgba(61,214,196,.09), transparent 60%)}
+.hero .wrap{position:relative;z-index:2;display:grid;grid-template-columns:minmax(0,1.06fr) minmax(0,.94fr);
+  gap:52px;align-items:center}
+@media(max-width:920px){.hero .wrap{grid-template-columns:minmax(0,1fr);gap:40px}
+  .hero{padding:60px 0 68px;min-height:74vh}}
+
+.eyebrow{display:inline-flex;align-items:center;gap:9px;font-family:"IBM Plex Mono",monospace;font-size:11.5px;
+  letter-spacing:.15em;color:var(--amber);border:1px solid var(--line);border-radius:100px;padding:6px 14px;
+  background:var(--panel)}
+.eyebrow .blink{width:8px;height:15px;border-radius:2px;background:var(--amber);
+  box-shadow:0 0 12px rgba(245,166,35,.7);animation:blink 1.1s steps(2) infinite}
+@keyframes blink{50%{opacity:.15}}
+@media (prefers-reduced-motion:reduce){.eyebrow .blink{animation:none}}
+
+.hero h1{font-size:clamp(30px,5.4vw,54px);margin-top:24px;font-weight:900;letter-spacing:-.045em}
+.hero h1 .hl{position:relative;color:var(--amber);white-space:nowrap}
+.hero h1 .hl::after{content:"";position:absolute;left:-2px;right:-2px;bottom:.08em;height:.28em;
+  background:var(--amber-soft);border-radius:3px;z-index:-1}
+.hero .sub{margin-top:22px;font-size:17px;color:var(--fg-2);max-width:50ch;line-height:1.85}
+.cta{display:flex;gap:11px;margin-top:32px;flex-wrap:wrap}
+.btn{position:relative;display:inline-flex;align-items:center;gap:9px;padding:15px 26px;border-radius:8px;
+  font-weight:700;font-size:15.5px;border:1px solid transparent;transition:transform .16s,box-shadow .22s,background .18s;
+  will-change:transform}
+.btn.primary{background:var(--amber);color:#12161F;box-shadow:0 6px 22px -8px rgba(245,166,35,.65)}
+.btn.primary:hover{transform:translateY(-2px);box-shadow:0 12px 30px -10px rgba(245,166,35,.75)}
+.btn.ghost{border-color:var(--line);color:var(--fg);background:var(--panel)}
+.btn.ghost:hover{border-color:var(--fg-3);transform:translateY(-2px)}
+@media (prefers-reduced-motion:reduce){.btn:hover{transform:none}}
+
+/* 코드 에디터 카드 */
+.editor{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--panel);
+  box-shadow:0 26px 60px -30px rgba(0,0,0,.8)}
+.editor .bar{display:flex;align-items:center;gap:8px;padding:11px 15px;background:var(--panel-2);
+  border-bottom:1px solid var(--line)}
+.editor .bar i{width:11px;height:11px;border-radius:50%;display:block;background:#3A4657}
+.editor .bar i:nth-child(1){background:#F5655B}.editor .bar i:nth-child(2){background:#F5BF4F}
+.editor .bar i:nth-child(3){background:#5BD07A}
+.editor .bar span{margin-left:8px;font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--fg-3)}
+.editor pre{margin:0;padding:20px 18px;font-family:"IBM Plex Mono",monospace;font-size:13.5px;line-height:1.95;
+  overflow-x:auto;color:var(--fg-2)}
+.editor .c{color:var(--fg-3)}      /* 주석 */
+.editor .k{color:var(--violet)}     /* 키워드 */
+.editor .s{color:var(--cyan)}       /* 문자열 */
+.editor .n{color:var(--amber)}      /* 숫자 */
+.editor .f{color:#7FB4FF}           /* 함수 */
+.caret{display:inline-block;width:8px;height:1.05em;background:var(--amber);vertical-align:-2px;
+  animation:blink 1.05s steps(2) infinite}
+@media (prefers-reduced-motion:reduce){.caret{animation:none}}
+
+/* ── 통계 스트립 ──────────────────────────────────────── */
+.stats{background:var(--bg-2);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.stats .wrap{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:0}
+.stat{padding:26px 22px;border-right:1px solid var(--line-soft)}
+.stat:last-child{border-right:0}
+@media(max-width:760px){.stat{border-right:0;border-bottom:1px solid var(--line-soft)}.stat:last-child{border-bottom:0}}
+.stat .v{font-family:"IBM Plex Mono",monospace;font-size:31px;font-weight:600;color:var(--amber);line-height:1;letter-spacing:-.02em}
+.stat .v small{font-size:15px;color:var(--fg-2);font-weight:400;margin-left:3px}
+.stat .k{margin-top:10px;font-size:13.5px;color:var(--fg-3)}
+
+/* ── 섹션 ─────────────────────────────────────────────── */
+section{padding:78px 0;position:relative}
+section.paper{background:var(--paper);color:var(--paper-ink)}
+section.paper h2,section.paper h3{color:var(--paper-ink)}
+section.paper .lead,section.paper .body{color:var(--paper-ink-2)}
+section.paper .lab{color:#B5760A}
+.lab{font-family:"IBM Plex Mono",monospace;font-size:11.5px;letter-spacing:.17em;color:var(--amber);
+  display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.lab::before{content:"";width:22px;height:1px;background:currentColor;opacity:.6}
+h2{font-size:clamp(23px,3.5vw,34px);max-width:21ch}
+.lead{margin-top:18px;color:var(--fg-2);max-width:58ch;font-size:17px}
+
+/* 카드 그리드 — 커서 스포트라이트 */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(258px,1fr));gap:16px;margin-top:38px}
+.card{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:26px 24px;
+  overflow:hidden;transition:transform .22s,border-color .22s}
+.card::before{content:"";position:absolute;inset:0;opacity:0;transition:opacity .3s;pointer-events:none;
+  background:radial-gradient(320px circle at var(--mx,50%) var(--my,50%), rgba(245,166,35,.10), transparent 65%)}
+.card:hover{transform:translateY(-4px);border-color:#33415A}
+.card:hover::before{opacity:1}
+section.paper .card{background:var(--paper-card);border-color:var(--paper-line)}
+section.paper .card:hover{border-color:#C9C8C0}
+.card .idx{font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--amber);letter-spacing:.1em}
+.card h3{font-size:18px;margin:12px 0 10px}
+.card p{font-size:14.8px;color:var(--fg-2);line-height:1.75}
+section.paper .card p{color:var(--paper-ink-2)}
+@media (prefers-reduced-motion:reduce){.card:hover{transform:none}}
+
+/* 탭 (커리큘럼) */
+.tabs{margin-top:34px}
+.tabbar{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:20px}
+.tabbar button{padding:10px 18px;border-radius:100px;border:1px solid var(--paper-line);background:transparent;
+  color:var(--paper-ink-2);font-family:inherit;font-size:14.5px;font-weight:600;cursor:pointer;
+  transition:background .18s,color .18s,border-color .18s}
+.tabbar button[aria-selected="true"]{background:var(--paper-ink);color:var(--paper);border-color:var(--paper-ink)}
+.tabpanel{background:var(--paper-card);border:1px solid var(--paper-line);border-radius:12px;padding:28px 26px}
+.tabpanel[hidden]{display:none}
+.tabpanel h3{font-size:19px;margin-bottom:6px}
+.tabpanel .meta{font-family:"IBM Plex Mono",monospace;font-size:12.5px;color:#8B7F6B;margin-bottom:16px}
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-top:20px}
+.step{background:var(--paper-sunken);border-radius:9px;padding:18px 17px}
+.step .n{font-family:"IBM Plex Mono",monospace;font-size:11px;color:#B5760A;letter-spacing:.1em}
+.step h4{font-size:15.5px;margin:8px 0 7px;font-weight:700}
+.step p{font-size:13.8px;color:var(--paper-ink-2);line-height:1.7}
+
+/* 타임라인 (원장 약력) */
+.timeline{margin-top:34px;position:relative;padding-left:26px}
+.timeline::before{content:"";position:absolute;left:6px;top:8px;bottom:8px;width:2px;
+  background:linear-gradient(var(--amber),rgba(245,166,35,.12))}
+.tl{position:relative;padding:0 0 22px 6px}
+.tl:last-child{padding-bottom:0}
+.tl::before{content:"";position:absolute;left:-26px;top:9px;width:11px;height:11px;border-radius:50%;
+  background:var(--bg);border:2px solid var(--amber)}
+.tl h4{font-size:16px;font-weight:700;margin-bottom:4px}
+.tl p{font-size:14.5px;color:var(--fg-2)}
+
+/* 표 */
+.tw{overflow-x:auto;border:1px solid var(--paper-line);border-radius:12px;background:var(--paper-card);margin-top:32px}
+table{border-collapse:collapse;width:100%;font-size:15.5px;min-width:460px}
+th,td{text-align:left;padding:16px 20px;border-bottom:1px solid var(--paper-sunken)}
+thead th{font-size:12px;letter-spacing:.08em;color:#8B7F6B;background:var(--paper-sunken);font-weight:600;white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+tbody tr{transition:background .16s}
+tbody tr:hover{background:var(--paper-sunken)}
+td.num{font-family:"IBM Plex Mono",monospace;font-weight:600;white-space:nowrap;color:var(--paper-ink)}
+td .sub{display:block;font-size:13px;color:#8B7F6B;margin-top:3px}
+
+/* FAQ — details 라 JS 없이도 열린다 */
+.qa{margin-top:32px;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--panel)}
+details{border-bottom:1px solid var(--line-soft)}
+details:last-child{border-bottom:0}
+summary{padding:20px 24px;cursor:pointer;font-weight:700;font-size:16.5px;list-style:none;
+  display:flex;justify-content:space-between;gap:16px;align-items:center;transition:background .16s}
+summary:hover{background:var(--panel-2)}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"+";font-family:"IBM Plex Mono",monospace;font-size:19px;color:var(--amber);
+  flex:0 0 auto;transition:transform .22s}
+details[open] summary::after{transform:rotate(45deg)}
+details .ans{padding:0 24px 22px;color:var(--fg-2);font-size:15.5px;max-width:66ch}
+details .ans p+p{margin-top:12px}
+
+/* 위치 */
+.locgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px;margin-top:34px}
+.loccard{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:24px}
+.loccard .k{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.12em;color:var(--fg-3)}
+.loccard .v{margin-top:9px;font-size:17px;font-weight:700}
+.loccard .v a{color:var(--amber)}
+.loccard .n{margin-top:8px;font-size:14px;color:var(--fg-2)}
+
+/* 마지막 CTA */
+.final{background:linear-gradient(160deg,#141C2A,#0C1119);border-top:1px solid var(--line);text-align:center}
+.final h2{margin:0 auto;max-width:17ch}
+.final .lead{margin:18px auto 0;text-align:center}
+.final .cta{justify-content:center}
+
+footer{background:#080C12;border-top:1px solid var(--line);padding:52px 0 40px;font-size:14.5px;color:var(--fg-3)}
+.fgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:32px}
+footer h3{color:var(--fg);font-size:16px;margin-bottom:14px}
+footer a:hover{color:var(--amber)}
+footer .mono{color:var(--fg-2)}
+.copy{margin-top:34px;padding-top:22px;border-top:1px solid var(--line-soft);font-size:12.5px;line-height:1.9}
+
+/* ── 커리큘럼 로드맵 ─────────────────────────────────── */
+.roadmap{margin-top:38px;position:relative}
+.roadmap::before{content:"";position:absolute;left:26px;top:36px;bottom:36px;width:2px;
+  background:linear-gradient(180deg,var(--amber),rgba(245,166,35,.45) 55%,rgba(245,166,35,.12));border-radius:2px}
+@media(max-width:640px){.roadmap::before{left:18px}}
+
+.stage{position:relative;margin-left:66px;margin-bottom:16px;background:var(--paper-card);
+  border:1px solid var(--paper-line);border-radius:14px;padding:24px 26px;transition:transform .22s,box-shadow .22s,border-color .22s}
+.stage:hover{transform:translateX(3px);border-color:#D6D4CB;box-shadow:0 14px 34px -22px rgba(0,0,0,.35)}
+@media(max-width:640px){.stage{margin-left:48px;padding:20px 18px}}
+@media (prefers-reduced-motion:reduce){.stage:hover{transform:none}}
+
+.stage .marker{position:absolute;left:-56px;top:24px;width:54px;height:54px;border-radius:50%;
+  background:var(--paper-card);border:2px solid var(--amber);display:flex;align-items:center;justify-content:center;
+  font-family:"IBM Plex Mono",monospace;font-size:16px;font-weight:600;color:#B5760A;
+  box-shadow:0 0 0 6px var(--paper)}
+@media(max-width:640px){.stage .marker{left:-42px;width:42px;height:42px;font-size:13px;top:18px}}
+.stage.adv .marker{background:var(--paper-ink);color:var(--amber);border-color:var(--paper-ink)}
+
+.stage-hd{display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap}
+.stage-hd h3{font-size:20px;letter-spacing:-.035em}
+.stage-meta{font-family:"IBM Plex Mono",monospace;font-size:12.5px;color:#8B7F6B;margin-top:6px}
+.badge{margin-left:auto;font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.11em;
+  padding:5px 11px;border-radius:100px;border:1px solid var(--paper-line);color:#8B7F6B;white-space:nowrap}
+.badge.hot{border-color:#E3BE7A;background:#FDF3E2;color:#9A6407}
+.stage-goal{margin-top:14px;color:var(--paper-ink-2);font-size:15.5px;max-width:62ch}
+
+.stage details{border:0;margin-top:16px}
+.stage summary{padding:11px 16px;border:1px solid var(--paper-line);border-radius:9px;background:var(--paper-sunken);
+  font-size:14px;font-weight:600;color:var(--paper-ink-2)}
+.stage summary:hover{background:#EAEAE4}
+.stage summary::after{content:"+";font-size:17px;color:#B5760A}
+.stage details[open] summary{border-radius:9px 9px 0 0;border-bottom-color:transparent}
+.stage-detail{border:1px solid var(--paper-line);border-top:0;border-radius:0 0 9px 9px;padding:22px 20px;
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:24px}
+.stage-detail h4{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.13em;color:#B5760A;
+  margin-bottom:11px;font-weight:500}
+.stage-detail ul{margin:0;padding-left:17px;font-size:14.2px;color:var(--paper-ink-2);line-height:1.75}
+.stage-detail ul li{margin-bottom:6px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-family:"IBM Plex Mono",monospace;font-size:12px;padding:5px 10px;border-radius:6px;
+  background:var(--paper-sunken);border:1px solid var(--paper-line);color:var(--paper-ink-2)}
+.stage-out{margin-top:16px;padding-top:14px;border-top:1px dashed var(--paper-line);
+  font-size:14px;color:#8B7F6B}
+.stage-out b{color:var(--paper-ink)}
+
+.track-note{margin-top:30px;display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.track{background:var(--paper-sunken);border-radius:11px;padding:20px 19px;border:1px solid var(--paper-line)}
+.track .t{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.12em;color:#B5760A}
+.track h4{font-size:16px;margin:9px 0 7px}
+.track p{font-size:14px;color:var(--paper-ink-2);line-height:1.7}
+
+/* ── AI 리터러시 섹션 ────────────────────────────────── */
+.ai-band{background:linear-gradient(165deg,#121A28 0%,#0C1119 70%);position:relative;overflow:hidden}
+.ai-band::before{content:"";position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(700px 380px at 88% 12%, rgba(61,214,196,.10), transparent 62%),
+             radial-gradient(600px 340px at 6% 88%, rgba(139,123,247,.09), transparent 60%)}
+.ai-band .wrap{position:relative;z-index:2}
+
+.pillars{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin-top:38px}
+.pillar{background:rgba(21,28,40,.72);border:1px solid var(--line);border-radius:13px;padding:24px 22px;
+  transition:transform .22s,border-color .22s,background .22s}
+.pillar:hover{transform:translateY(-4px);border-color:#3A4C68;background:rgba(27,36,49,.86)}
+@media (prefers-reduced-motion:reduce){.pillar:hover{transform:none}}
+.pillar .pn{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.13em;color:var(--cyan)}
+.pillar h3{font-size:17.5px;margin:11px 0 10px}
+.pillar p{font-size:14.6px;color:var(--fg-2);line-height:1.75}
+
+/* 자연어 → 코드 변환 데모 */
+.nl2code{margin-top:38px;display:grid;grid-template-columns:minmax(0,1fr) 52px minmax(0,1fr);gap:0;align-items:stretch}
+@media(max-width:800px){.nl2code{grid-template-columns:minmax(0,1fr);gap:14px}}
+.nl2code .side{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:20px 20px 22px}
+.nl2code .side .t{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.13em;color:var(--fg-3);
+  margin-bottom:13px;display:flex;align-items:center;gap:8px}
+.nl2code .side .t b{color:var(--amber);font-weight:500}
+.nl2code .human p{font-size:15.5px;color:var(--fg);line-height:1.8}
+.nl2code .human .q{color:var(--fg-3);font-size:13.5px;margin-top:12px;line-height:1.7}
+.nl2code pre{margin:0;font-family:"IBM Plex Mono",monospace;font-size:13px;line-height:1.9;color:var(--fg-2);
+  overflow-x:auto}
+.nl2code .arrow{display:flex;align-items:center;justify-content:center;color:var(--amber);font-size:22px}
+@media(max-width:800px){.nl2code .arrow{transform:rotate(90deg);height:22px}}
+.nl2code .verdict{margin-top:26px;border-left:3px solid var(--cyan);background:rgba(61,214,196,.07);
+  padding:17px 20px;border-radius:0 4px 4px 0;font-size:15px;color:var(--fg-2);max-width:70ch}
+.nl2code .verdict b{color:var(--fg)}
+
+/* 단계별 AI 학습 흐름 */
+.ai-flow{margin-top:40px;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--panel)}
+.ai-flow table{min-width:520px;font-size:14.6px}
+.ai-flow th,.ai-flow td{padding:14px 18px;border-bottom:1px solid var(--line-soft);color:var(--fg-2)}
+.ai-flow thead th{background:var(--panel-2);color:var(--fg-3);font-size:11.5px;letter-spacing:.1em;
+  font-family:"IBM Plex Mono",monospace;font-weight:400}
+.ai-flow tbody tr:last-child td{border-bottom:0}
+.ai-flow tbody tr:hover{background:var(--panel-2)}
+.ai-flow td:first-child{font-family:"IBM Plex Mono",monospace;color:var(--amber);white-space:nowrap;font-size:13px}
+.ai-flow td b{color:var(--fg)}
+
+/* ── 지도 실적 — 트로피가 아니라 기록으로 ─────────────── */
+.records{margin-top:44px;border-top:1px solid var(--line);padding-top:34px}
+.records .rlab{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.14em;
+  color:var(--fg-3);text-transform:uppercase}
+.records h3{font-size:20px;margin:10px 0 8px;font-weight:700}
+.records .rlead{font-size:14.8px;color:var(--fg-2);line-height:1.8;max-width:62ch;margin-bottom:22px}
+.rgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1px;
+  background:var(--line);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.rgrid .r{background:var(--panel);padding:17px 19px;display:flex;align-items:baseline;
+  justify-content:space-between;gap:14px;transition:background .18s}
+.rgrid .r:hover{background:var(--panel-2)}
+.rgrid .r .n{font-size:14.8px;color:var(--fg-2);line-height:1.5}
+.rgrid .r .v{font-family:"IBM Plex Mono",monospace;font-size:12.5px;color:var(--amber);
+  white-space:nowrap;letter-spacing:.02em}
+.rgrid .r.pat .v{color:var(--cyan)}
+.records .rfoot{margin-top:16px;font-size:13.6px;color:var(--fg-3);line-height:1.8}
+
+/* ── 진학 실적 ─────────────────────────────────────────── */
+.paths{margin-top:34px;display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px}
+.pgroup{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:20px 20px 22px}
+.pgroup .h{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.13em;
+  color:var(--fg-3);text-transform:uppercase;padding-bottom:12px;border-bottom:1px solid var(--line-soft)}
+.pgroup ul{list-style:none;margin:14px 0 0;padding:0;display:flex;flex-direction:column;gap:9px}
+.pgroup li{font-size:15px;color:var(--fg-2);line-height:1.5;padding-left:15px;position:relative}
+.pgroup li::before{content:"";position:absolute;left:0;top:9px;width:5px;height:5px;
+  border-radius:50%;background:var(--cyan);opacity:.75}
+.pgroup li b{color:var(--fg);font-weight:600}
+
+/* ── 전형 경로 설명 ────────────────────────────────────── */
+.route{margin-top:26px;border:1px solid var(--line);border-left:3px solid var(--amber);
+  border-radius:0 12px 12px 0;background:rgba(245,166,35,.055);padding:22px 24px}
+.route h4{font-size:16.5px;margin:0 0 10px;color:var(--fg)}
+.route p{font-size:14.8px;color:var(--fg-2);line-height:1.85;margin:0 0 10px}
+.route p:last-child{margin-bottom:0}
+.route b{color:var(--fg)}
+.route .tags{display:flex;flex-wrap:wrap;gap:7px;margin-top:14px}
+.route .tags span{font-family:"IBM Plex Mono",monospace;font-size:11.5px;letter-spacing:.02em;
+  color:var(--amber);border:1px solid rgba(245,166,35,.35);border-radius:20px;padding:5px 12px}
+
+/* ── 자체 개발 코딩 튜터 ────────────────────────────────── */
+.loop{display:grid;grid-template-columns:repeat(5,1fr);gap:0;margin-top:38px;
+  border:1px solid var(--paper-line);border-radius:13px;overflow:hidden;background:var(--paper-card)}
+@media(max-width:860px){.loop{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:480px){.loop{grid-template-columns:1fr}}
+.loop .st{padding:22px 20px 24px;border-right:1px solid var(--paper-line);position:relative}
+.loop .st:last-child{border-right:0}
+@media(max-width:860px){.loop .st{border-right:1px solid var(--paper-line);border-bottom:1px solid var(--paper-line)}}
+.loop .st .k{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.13em;color:#B5760A}
+.loop .st h4{font-size:16px;margin:10px 0 8px;color:var(--paper-ink);font-weight:700}
+.loop .st p{font-size:13.6px;color:var(--paper-ink-2);line-height:1.7;margin:0}
+.loop .st.self{background:rgba(181,118,10,.055)}
+.loop .st.self h4::after{content:"핵심";font-family:"IBM Plex Mono",monospace;font-size:9.5px;
+  letter-spacing:.1em;color:#B5760A;border:1px solid rgba(181,118,10,.4);border-radius:20px;
+  padding:2px 7px;margin-left:8px;vertical-align:middle}
+
+.appwin{margin-top:40px;border-radius:14px;overflow:hidden;background:#0B0F16;
+  border:1px solid #1D2735;box-shadow:0 24px 60px rgba(20,18,12,.22)}
+.appwin .bar{display:flex;align-items:center;gap:7px;padding:11px 15px;background:#111823;
+  border-bottom:1px solid #1D2735}
+.appwin .bar i{width:10px;height:10px;border-radius:50%;background:#2A3648;display:block}
+.appwin .bar span{margin-left:10px;font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:#7A869A}
+.appbody{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:#1D2735}
+@media(max-width:760px){.appbody{grid-template-columns:1fr}}
+.appbody .pane{background:#0B0F16;padding:20px 20px 22px}
+.appbody .ph{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.12em;
+  color:#7A869A;text-transform:uppercase;margin-bottom:13px}
+.appbody .task{font-size:15px;color:#E8EDF5;line-height:1.7;margin:0 0 14px}
+.appbody .think{border-left:2px solid #3DD6C4;background:rgba(61,214,196,.07);padding:12px 14px;
+  border-radius:0 8px 8px 0;font-size:13.8px;color:#AFBACB;line-height:1.75}
+.appbody pre{margin:0;font-family:"IBM Plex Mono",monospace;font-size:13px;line-height:1.95;
+  color:#AFBACB;overflow-x:auto}
+.appbody .out{margin-top:14px;border-top:1px solid #1D2735;padding-top:13px;
+  font-family:"IBM Plex Mono",monospace;font-size:12.6px;color:#7A869A;line-height:1.8}
+.appbody .out b{color:#3DD6C4;font-weight:500}
+.appbody .hint{margin-top:12px;font-size:12.8px;color:#5F6B7E;font-style:normal}
+
+.tfeat{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:13px;margin-top:34px}
+.tfeat .f{background:var(--paper-card);border:1px solid var(--paper-line);border-radius:12px;padding:19px 19px 21px}
+.tfeat .f .n{font-family:"IBM Plex Mono",monospace;font-size:19px;color:#B5760A;letter-spacing:-.01em}
+.tfeat .f h4{font-size:15.5px;margin:8px 0 7px;color:var(--paper-ink)}
+.tfeat .f p{font-size:13.6px;color:var(--paper-ink-2);line-height:1.7;margin:0}
+
+/* ── 채점·AI튜터 대비 블록 ─────────────────────────────── */
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:36px}
+@media(max-width:820px){.duo{grid-template-columns:1fr}}
+.duo .d{background:var(--paper-card);border:1px solid var(--paper-line);border-radius:13px;padding:24px 23px 26px}
+.duo .d .k{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.13em;color:#B5760A}
+.duo .d h4{font-size:18px;margin:11px 0 11px;color:var(--paper-ink);line-height:1.45}
+.duo .d p{font-size:14.6px;color:var(--paper-ink-2);line-height:1.8;margin:0 0 11px}
+.duo .d p:last-child{margin-bottom:0}
+.duo .d b{color:var(--paper-ink)}
+.duo .d .x{margin-top:15px;padding-top:15px;border-top:1px solid var(--paper-line);
+  font-family:"IBM Plex Mono",monospace;font-size:12.4px;color:#8B7F6B;line-height:1.85}
+.duo .d .x s{color:#B0A492}
+
+/* 비교표 */
+.vs{margin-top:36px}
+.vs table{min-width:560px;font-size:14.6px}
+.vs th,.vs td{padding:14px 16px;border-bottom:1px solid var(--paper-line);vertical-align:top}
+.vs thead th{background:rgba(181,118,10,.07);font-size:11.5px;letter-spacing:.09em;
+  color:#8B7F6B;text-transform:uppercase;font-weight:600}
+.vs thead th:last-child{color:#B5760A}
+.vs td:first-child{color:#8B7F6B;font-size:13.6px;white-space:nowrap}
+.vs td:nth-child(2){color:#A2988A}
+.vs td:last-child{color:var(--paper-ink);font-weight:600}
+.vs tbody tr:last-child td{border-bottom:0}
+
+/* ── 블로그 ────────────────────────────────────────────── */
+.bloghead{padding:120px 0 60px;background:linear-gradient(170deg,#101825 0%,#0B0F16 75%)}
+.bloghead h1{font-size:clamp(30px,4.4vw,46px);line-height:1.25;letter-spacing:-.02em;margin:12px 0 16px}
+.bloghead .lead{max-width:60ch}
+.cats{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
+.cats span{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--fg-3);
+  border:1px solid var(--line);border-radius:20px;padding:5px 13px}
+.cats span b{color:var(--cyan);font-weight:500;margin-left:4px}
+
+.postlist{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;margin-top:34px}
+.pcard{background:var(--paper-card);border:1px solid var(--paper-line);border-radius:13px;
+  transition:transform .2s,border-color .2s}
+.pcard:hover{transform:translateY(-3px);border-color:#C9C8C0}
+@media (prefers-reduced-motion:reduce){.pcard:hover{transform:none}}
+.pcard a{display:block;padding:22px 22px 24px;color:inherit;text-decoration:none}
+.pcard h2,.pcard h3{font-size:18.5px;line-height:1.45;margin:11px 0 9px;color:var(--paper-ink)}
+.pcard p{font-size:14.4px;color:var(--paper-ink-2);line-height:1.75;margin:0}
+.pmeta{display:flex;align-items:center;gap:10px;font-size:11.5px;letter-spacing:.05em}
+.pcat{color:#B5760A;text-decoration:none;font-weight:500}
+.pmeta time{color:#A2988A}
+
+.post{padding:118px 0 70px}
+.post .wrap{max-width:720px}
+.post .pmeta{margin-bottom:16px}
+.post .pmeta .pcat{color:var(--amber)}
+.post .pmeta time{color:var(--fg-3)}
+.post h1{font-size:clamp(27px,4vw,40px);line-height:1.3;letter-spacing:-.02em;margin:0 0 18px}
+.psum{font-size:17px;color:var(--fg-2);line-height:1.85;padding-bottom:26px;
+  border-bottom:1px solid var(--line);margin:0 0 34px}
+.pbody{font-size:16.5px;line-height:1.95;color:var(--fg-2)}
+.pbody h2{font-size:23px;color:var(--fg);margin:44px 0 16px;letter-spacing:-.015em}
+.pbody h3{font-size:19px;color:var(--fg);margin:34px 0 13px}
+.pbody h4{font-size:17px;color:var(--fg);margin:28px 0 11px}
+.pbody p{margin:0 0 20px}
+.pbody b{color:var(--fg)}
+.pbody a{color:var(--cyan)}
+.pbody ul,.pbody ol{margin:0 0 20px;padding-left:22px}
+.pbody li{margin-bottom:9px}
+.pbody blockquote{margin:26px 0;padding:16px 20px;border-left:3px solid var(--amber);
+  background:rgba(245,166,35,.06);border-radius:0 10px 10px 0}
+.pbody blockquote p{margin:0;color:var(--fg)}
+.pbody pre{background:var(--panel);border:1px solid var(--line);border-radius:11px;
+  padding:18px 20px;overflow-x:auto;margin:0 0 22px}
+.pbody pre code{font-family:"IBM Plex Mono",monospace;font-size:13.5px;line-height:1.9;color:var(--fg-2)}
+.pbody :not(pre)>code{font-family:"IBM Plex Mono",monospace;font-size:14px;
+  background:var(--panel-2);border:1px solid var(--line);border-radius:5px;padding:1px 6px;color:var(--cyan)}
+.ptags{margin-top:38px;display:flex;flex-wrap:wrap;gap:8px}
+.ptags span{font-size:12px;color:var(--fg-3);border:1px solid var(--line);border-radius:20px;padding:5px 12px}
+.psrc{margin-top:18px;font-size:12.8px;color:var(--fg-3)}
+.psrc a{color:var(--fg-3);text-decoration:underline}
+.pcta{margin-top:44px;padding-top:30px;border-top:1px solid var(--line)}
+.pcta p{font-size:15px;color:var(--fg-2);line-height:1.8;margin:0 0 18px}
+
+/* ── 관리 화면 ─────────────────────────────────────────── */
+.adm{padding:70px 0 90px}
+.wrap.narrow{max-width:760px}
+.adm h1{font-size:28px;margin:0 0 10px}
+.adm h2{font-size:20px;margin:52px 0 16px}
+.admform{display:flex;flex-direction:column;gap:16px;margin-top:26px}
+.admform label{display:flex;flex-direction:column;gap:7px;font-size:13.5px;color:var(--fg-3)}
+.admform .two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:640px){.admform .two{grid-template-columns:1fr}}
+.admform input,.admform textarea,.admform select{
+  background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:11px 13px;
+  color:var(--fg);font-family:inherit;font-size:15px;line-height:1.7}
+.admform textarea{font-family:"IBM Plex Mono",monospace;font-size:14px;resize:vertical}
+.admform input:focus,.admform textarea:focus,.admform select:focus{outline:2px solid var(--amber);outline-offset:1px}
+.admform .chk{flex-direction:row;align-items:center;gap:9px;color:var(--fg-2);font-size:14.5px}
+.admform .chk input{width:auto}
+.admrow{display:flex;gap:10px;align-items:center;margin-top:6px}
+.admrow input{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:9px;
+  padding:11px 13px;color:var(--fg);font-size:15px}
+.admmsg{margin-top:14px;font-size:14px;color:var(--cyan)}
+.admmsg.err{color:#F5766B}
+.admlist{display:flex;flex-direction:column;gap:8px}
+.admitem{display:flex;justify-content:space-between;align-items:center;gap:14px;
+  background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.admitem b{display:block;font-size:15px;color:var(--fg);margin-bottom:4px}
+.admitem span{font-size:12px;color:var(--fg-3)}
+.admbtns{display:flex;gap:7px;flex-shrink:0}
+.admbtns button{background:transparent;border:1px solid var(--line);border-radius:7px;
+  padding:6px 12px;color:var(--fg-2);font-size:13px;cursor:pointer}
+.admbtns button:hover{border-color:var(--fg-3)}
+.admbtns .danger:hover{border-color:#F5766B;color:#F5766B}
+
+/* ── 블로그 ────────────────────────────────────────────── */
+.bloghead{padding:120px 0 60px;background:linear-gradient(170deg,#101825 0%,#0B0F16 75%)}
+.bloghead h1{font-size:clamp(30px,4.4vw,46px);line-height:1.25;letter-spacing:-.02em;margin:12px 0 16px}
+.bloghead .lead{max-width:60ch}
+.cats{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
+.cats span{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--fg-3);
+  border:1px solid var(--line);border-radius:20px;padding:5px 13px}
+.cats span b{color:var(--cyan);font-weight:500;margin-left:4px}
+
+.postlist{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;margin-top:34px}
+.pcard{background:var(--paper-card);border:1px solid var(--paper-line);border-radius:13px;
+  transition:transform .2s,border-color .2s}
+.pcard:hover{transform:translateY(-3px);border-color:#C9C8C0}
+@media (prefers-reduced-motion:reduce){.pcard:hover{transform:none}}
+.pcard a{display:block;padding:22px 22px 24px;color:inherit;text-decoration:none}
+.pcard h2,.pcard h3{font-size:18.5px;line-height:1.45;margin:11px 0 9px;color:var(--paper-ink)}
+.pcard p{font-size:14.4px;color:var(--paper-ink-2);line-height:1.75;margin:0}
+.pmeta{display:flex;align-items:center;gap:10px;font-size:11.5px;letter-spacing:.05em}
+.pcat{color:#B5760A;text-decoration:none;font-weight:500}
+.pmeta time{color:#A2988A}
+
+.post{padding:118px 0 70px}
+.post .wrap{max-width:720px}
+.post .pmeta{margin-bottom:16px}
+.post .pmeta .pcat{color:var(--amber)}
+.post .pmeta time{color:var(--fg-3)}
+.post h1{font-size:clamp(27px,4vw,40px);line-height:1.3;letter-spacing:-.02em;margin:0 0 18px}
+.psum{font-size:17px;color:var(--fg-2);line-height:1.85;padding-bottom:26px;
+  border-bottom:1px solid var(--line);margin:0 0 34px}
+.pbody{font-size:16.5px;line-height:1.95;color:var(--fg-2)}
+.pbody h2{font-size:23px;color:var(--fg);margin:44px 0 16px;letter-spacing:-.015em}
+.pbody h3{font-size:19px;color:var(--fg);margin:34px 0 13px}
+.pbody h4{font-size:17px;color:var(--fg);margin:28px 0 11px}
+.pbody p{margin:0 0 20px}
+.pbody b{color:var(--fg)}
+.pbody a{color:var(--cyan)}
+.pbody ul,.pbody ol{margin:0 0 20px;padding-left:22px}
+.pbody li{margin-bottom:9px}
+.pbody blockquote{margin:26px 0;padding:16px 20px;border-left:3px solid var(--amber);
+  background:rgba(245,166,35,.06);border-radius:0 10px 10px 0}
+.pbody blockquote p{margin:0;color:var(--fg)}
+.pbody pre{background:var(--panel);border:1px solid var(--line);border-radius:11px;
+  padding:18px 20px;overflow-x:auto;margin:0 0 22px}
+.pbody pre code{font-family:"IBM Plex Mono",monospace;font-size:13.5px;line-height:1.9;color:var(--fg-2)}
+.pbody :not(pre)>code{font-family:"IBM Plex Mono",monospace;font-size:14px;
+  background:var(--panel-2);border:1px solid var(--line);border-radius:5px;padding:1px 6px;color:var(--cyan)}
+.ptags{margin-top:38px;display:flex;flex-wrap:wrap;gap:8px}
+.ptags span{font-size:12px;color:var(--fg-3);border:1px solid var(--line);border-radius:20px;padding:5px 12px}
+.psrc{margin-top:18px;font-size:12.8px;color:var(--fg-3)}
+.psrc a{color:var(--fg-3);text-decoration:underline}
+.pcta{margin-top:44px;padding-top:30px;border-top:1px solid var(--line)}
+.pcta p{font-size:15px;color:var(--fg-2);line-height:1.8;margin:0 0 18px}
+
+/* ── 관리 화면 ─────────────────────────────────────────── */
+.adm{padding:70px 0 90px}
+.wrap.narrow{max-width:760px}
+.adm h1{font-size:28px;margin:0 0 10px}
+.adm h2{font-size:20px;margin:52px 0 16px}
+.admform{display:flex;flex-direction:column;gap:16px;margin-top:26px}
+.admform label{display:flex;flex-direction:column;gap:7px;font-size:13.5px;color:var(--fg-3)}
+.admform .two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:640px){.admform .two{grid-template-columns:1fr}}
+.admform input,.admform textarea,.admform select{
+  background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:11px 13px;
+  color:var(--fg);font-family:inherit;font-size:15px;line-height:1.7}
+.admform textarea{font-family:"IBM Plex Mono",monospace;font-size:14px;resize:vertical}
+.admform input:focus,.admform textarea:focus,.admform select:focus{outline:2px solid var(--amber);outline-offset:1px}
+.admform .chk{flex-direction:row;align-items:center;gap:9px;color:var(--fg-2);font-size:14.5px}
+.admform .chk input{width:auto}
+.admrow{display:flex;gap:10px;align-items:center;margin-top:6px}
+.admrow input{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:9px;
+  padding:11px 13px;color:var(--fg);font-size:15px}
+.admmsg{margin-top:14px;font-size:14px;color:var(--cyan)}
+.admmsg.err{color:#F5766B}
+.admlist{display:flex;flex-direction:column;gap:8px}
+.admitem{display:flex;justify-content:space-between;align-items:center;gap:14px;
+  background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.admitem b{display:block;font-size:15px;color:var(--fg);margin-bottom:4px}
+.admitem span{font-size:12px;color:var(--fg-3)}
+.admbtns{display:flex;gap:7px;flex-shrink:0}
+.admbtns button{background:transparent;border:1px solid var(--line);border-radius:7px;
+  padding:6px 12px;color:var(--fg-2);font-size:13px;cursor:pointer}
+.admbtns button:hover{border-color:var(--fg-3)}
+.admbtns .danger:hover{border-color:#F5766B;color:#F5766B}
+
+/* ── 브랜드 마크 (CI) ──────────────────────────────────────
+   ㄹ — 「로봇」의 첫 자음. 획이 꺾이는 순서(위→오른쪽→아래→왼쪽→아래→오른쪽)가
+   그대로 미로를 지나는 로봇의 동선이다. 출발점은 빈 사각형, 도착점은 채워진 원.
+   "정답 코드가 아니라 실제로 도착했는지로 채점한다"는 이 학원의 방식이 곧 로고다. */
+.brand .mark{
+  width:32px;height:32px;flex-shrink:0;border-radius:9px;background:#0E1520;
+  border:1px solid rgba(245,166,35,.22);
+  display:flex;align-items:center;justify-content:center;
+  transition:transform .24s cubic-bezier(.34,1.56,.64,1),border-color .24s}
+.brand .mark svg{width:100%;height:100%;display:block}
+.brand .mark path{fill:none;stroke:var(--amber);stroke-width:5.5;
+  stroke-linecap:round;stroke-linejoin:round;
+  stroke-dasharray:96;stroke-dashoffset:96;animation:trace 1.5s .25s ease-out forwards}
+.brand .mark .st{fill:#0E1520;stroke:var(--amber);stroke-width:2}
+.brand .mark .gl{fill:var(--cyan);opacity:0;animation:arrive .4s 1.6s ease-out forwards}
+@keyframes trace{to{stroke-dashoffset:0}}
+@keyframes arrive{to{opacity:1}}
+@media (prefers-reduced-motion:reduce){
+  .brand .mark path{stroke-dashoffset:0;animation:none}
+  .brand .mark .gl{opacity:1;animation:none}}
+.brand:hover .mark{transform:rotate(-4deg);border-color:rgba(245,166,35,.55)}
+@media (prefers-reduced-motion:reduce){.brand:hover .mark{transform:none}}
+.brand .bt{display:inline-block}
+@media(max-width:420px){.brand .bt{display:none}}
+footer .brand .mark{width:28px;height:28px;border-radius:8px}
+
+/* ── 히어로 타이핑 커서 ────────────────────────────────────
+   제목이 방금 타이핑된 것처럼 보이게 한다. 배경 미로와 함께
+   "이 화면은 지금 돌아가고 있다"는 인상을 만드는 장치다. */
+.hero h1 .caret{
+  display:inline-block;width:.11em;height:.88em;margin-left:.09em;
+  vertical-align:-.06em;border-radius:2px;background:var(--amber);
+  box-shadow:0 0 22px rgba(245,166,35,.65),0 0 46px rgba(245,166,35,.28);
+  animation:blink 1.1s steps(2) infinite}
+@media (prefers-reduced-motion:reduce){.hero h1 .caret{animation:none;opacity:.85}}
+
+/* 배경 미로 위에 얹는 안개 — 글자 가독성은 지키고 그림은 살린다 */
+.hero::after{background:
+  radial-gradient(1100px 460px at 8% 8%, rgba(11,15,22,.90), rgba(11,15,22,.42) 46%, transparent 72%),
+  radial-gradient(900px 520px at 96% 100%, rgba(11,15,22,.72), transparent 68%)}
+
+/* ── 브랜드 (CI) ──────────────────────────────────────────
+   대괄호 안에 「로봇 · 코딩」, 가운데 파란 점, 뒤에 AI 배지.
+   대괄호는 코드의 배열 기호이자 "이 안이 우리 영역"이라는 테두리로 읽힌다. */
+.brand{display:flex;align-items:center;gap:9px;white-space:nowrap;text-decoration:none}
+.brand .lk{display:inline-flex;align-items:center}
+.brand .lk b{font-weight:900;font-size:20px;letter-spacing:-.06em;color:#fff;line-height:1}
+.brand .lk .br{width:8px;height:26px;flex-shrink:0;
+  border:2.5px solid #fff;border-right:0;margin-right:8px}
+.brand .lk .br.r{border:2.5px solid #fff;border-left:0;margin:0 0 0 8px}
+.brand .lk .pd{width:8px;height:8px;border-radius:50%;background:var(--blue);
+  margin:0 7px;flex-shrink:0;position:relative;top:1px;transition:box-shadow .2s}
+.brand .aib{font-weight:700;font-size:12px;line-height:1;color:#fff;background:var(--blue);
+  border-radius:6px;padding:6px 9px;letter-spacing:.01em}
+.brand:hover .lk .pd{box-shadow:0 0 0 5px rgba(47,107,246,.22)}
+@media(max-width:420px){.brand .lk b{font-size:18px}.brand .aib{font-size:11px;padding:5px 7px}}
+
+/* 푸터에는 영문 태그라인까지 넣는다 */
+.flogo{display:flex;flex-direction:column;gap:10px;align-items:flex-start}
+.flogo .tag{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.24em;
+  color:var(--fg-3);text-transform:uppercase}
+
+/* ── 블로그 ────────────────────────────────────────────── */
+.bloghead{padding:120px 0 60px;background:linear-gradient(170deg,#101825 0%,#0B0F16 75%)}
+.bloghead h1{font-size:clamp(30px,4.4vw,46px);line-height:1.25;letter-spacing:-.02em;margin:12px 0 16px}
+.bloghead .lead{max-width:60ch}
+.cats{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
+.cats span{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--fg-3);
+  border:1px solid var(--line);border-radius:20px;padding:5px 13px}
+.cats span b{color:var(--cyan);font-weight:500;margin-left:4px}
+
+.postlist{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;margin-top:34px}
+.pcard{background:var(--paper-card);border:1px solid var(--paper-line);border-radius:13px;
+  transition:transform .2s,border-color .2s}
+.pcard:hover{transform:translateY(-3px);border-color:#C9C8C0}
+@media (prefers-reduced-motion:reduce){.pcard:hover{transform:none}}
+.pcard a{display:block;padding:22px 22px 24px;color:inherit;text-decoration:none}
+.pcard h2,.pcard h3{font-size:18.5px;line-height:1.45;margin:11px 0 9px;color:var(--paper-ink)}
+.pcard p{font-size:14.4px;color:var(--paper-ink-2);line-height:1.75;margin:0}
+.pmeta{display:flex;align-items:center;gap:10px;font-size:11.5px;letter-spacing:.05em}
+.pcat{color:#B5760A;text-decoration:none;font-weight:500}
+.pmeta time{color:#A2988A}
+
+.post{padding:118px 0 70px}
+.post .wrap{max-width:720px}
+.post .pmeta{margin-bottom:16px}
+.post .pmeta .pcat{color:var(--amber)}
+.post .pmeta time{color:var(--fg-3)}
+.post h1{font-size:clamp(27px,4vw,40px);line-height:1.3;letter-spacing:-.02em;margin:0 0 18px}
+.psum{font-size:17px;color:var(--fg-2);line-height:1.85;padding-bottom:26px;
+  border-bottom:1px solid var(--line);margin:0 0 34px}
+.pbody{font-size:16.5px;line-height:1.95;color:var(--fg-2)}
+.pbody h2{font-size:23px;color:var(--fg);margin:44px 0 16px;letter-spacing:-.015em}
+.pbody h3{font-size:19px;color:var(--fg);margin:34px 0 13px}
+.pbody h4{font-size:17px;color:var(--fg);margin:28px 0 11px}
+.pbody p{margin:0 0 20px}
+.pbody b{color:var(--fg)}
+.pbody a{color:var(--cyan)}
+.pbody ul,.pbody ol{margin:0 0 20px;padding-left:22px}
+.pbody li{margin-bottom:9px}
+.pbody blockquote{margin:26px 0;padding:16px 20px;border-left:3px solid var(--amber);
+  background:rgba(245,166,35,.06);border-radius:0 10px 10px 0}
+.pbody blockquote p{margin:0;color:var(--fg)}
+.pbody pre{background:var(--panel);border:1px solid var(--line);border-radius:11px;
+  padding:18px 20px;overflow-x:auto;margin:0 0 22px}
+.pbody pre code{font-family:"IBM Plex Mono",monospace;font-size:13.5px;line-height:1.9;color:var(--fg-2)}
+.pbody :not(pre)>code{font-family:"IBM Plex Mono",monospace;font-size:14px;
+  background:var(--panel-2);border:1px solid var(--line);border-radius:5px;padding:1px 6px;color:var(--cyan)}
+.ptags{margin-top:38px;display:flex;flex-wrap:wrap;gap:8px}
+.ptags span{font-size:12px;color:var(--fg-3);border:1px solid var(--line);border-radius:20px;padding:5px 12px}
+.psrc{margin-top:18px;font-size:12.8px;color:var(--fg-3)}
+.psrc a{color:var(--fg-3);text-decoration:underline}
+.pcta{margin-top:44px;padding-top:30px;border-top:1px solid var(--line)}
+.pcta p{font-size:15px;color:var(--fg-2);line-height:1.8;margin:0 0 18px}
+
+/* ── 관리 화면 ─────────────────────────────────────────── */
+.adm{padding:70px 0 90px}
+.wrap.narrow{max-width:760px}
+.adm h1{font-size:28px;margin:0 0 10px}
+.adm h2{font-size:20px;margin:52px 0 16px}
+.admform{display:flex;flex-direction:column;gap:16px;margin-top:26px}
+.admform label{display:flex;flex-direction:column;gap:7px;font-size:13.5px;color:var(--fg-3)}
+.admform .two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:640px){.admform .two{grid-template-columns:1fr}}
+.admform input,.admform textarea,.admform select{
+  background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:11px 13px;
+  color:var(--fg);font-family:inherit;font-size:15px;line-height:1.7}
+.admform textarea{font-family:"IBM Plex Mono",monospace;font-size:14px;resize:vertical}
+.admform input:focus,.admform textarea:focus,.admform select:focus{outline:2px solid var(--amber);outline-offset:1px}
+.admform .chk{flex-direction:row;align-items:center;gap:9px;color:var(--fg-2);font-size:14.5px}
+.admform .chk input{width:auto}
+.admrow{display:flex;gap:10px;align-items:center;margin-top:6px}
+.admrow input{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:9px;
+  padding:11px 13px;color:var(--fg);font-size:15px}
+.admmsg{margin-top:14px;font-size:14px;color:var(--cyan)}
+.admmsg.err{color:#F5766B}
+.admlist{display:flex;flex-direction:column;gap:8px}
+.admitem{display:flex;justify-content:space-between;align-items:center;gap:14px;
+  background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.admitem b{display:block;font-size:15px;color:var(--fg);margin-bottom:4px}
+.admitem span{font-size:12px;color:var(--fg-3)}
+.admbtns{display:flex;gap:7px;flex-shrink:0}
+.admbtns button{background:transparent;border:1px solid var(--line);border-radius:7px;
+  padding:6px 12px;color:var(--fg-2);font-size:13px;cursor:pointer}
+.admbtns button:hover{border-color:var(--fg-3)}
+.admbtns .danger:hover{border-color:#F5766B;color:#F5766B}
+
+/* ── 블로그 ────────────────────────────────────────────── */
+.bloghead{padding:120px 0 60px;background:linear-gradient(170deg,#101825 0%,#0B0F16 75%)}
+.bloghead h1{font-size:clamp(30px,4.4vw,46px);line-height:1.25;letter-spacing:-.02em;margin:12px 0 16px}
+.bloghead .lead{max-width:60ch}
+.cats{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
+.cats span{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--fg-3);
+  border:1px solid var(--line);border-radius:20px;padding:5px 13px}
+.cats span b{color:var(--cyan);font-weight:500;margin-left:4px}
+
+.postlist{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;margin-top:34px}
+.pcard{background:var(--paper-card);border:1px solid var(--paper-line);border-radius:13px;
+  transition:transform .2s,border-color .2s}
+.pcard:hover{transform:translateY(-3px);border-color:#C9C8C0}
+@media (prefers-reduced-motion:reduce){.pcard:hover{transform:none}}
+.pcard a{display:block;padding:22px 22px 24px;color:inherit;text-decoration:none}
+.pcard h2,.pcard h3{font-size:18.5px;line-height:1.45;margin:11px 0 9px;color:var(--paper-ink)}
+.pcard p{font-size:14.4px;color:var(--paper-ink-2);line-height:1.75;margin:0}
+.pmeta{display:flex;align-items:center;gap:10px;font-size:11.5px;letter-spacing:.05em}
+.pcat{color:#B5760A;text-decoration:none;font-weight:500}
+.pmeta time{color:#A2988A}
+
+.post{padding:118px 0 70px}
+.post .wrap{max-width:720px}
+.post .pmeta{margin-bottom:16px}
+.post .pmeta .pcat{color:var(--amber)}
+.post .pmeta time{color:var(--fg-3)}
+.post h1{font-size:clamp(27px,4vw,40px);line-height:1.3;letter-spacing:-.02em;margin:0 0 18px}
+.psum{font-size:17px;color:var(--fg-2);line-height:1.85;padding-bottom:26px;
+  border-bottom:1px solid var(--line);margin:0 0 34px}
+.pbody{font-size:16.5px;line-height:1.95;color:var(--fg-2)}
+.pbody h2{font-size:23px;color:var(--fg);margin:44px 0 16px;letter-spacing:-.015em}
+.pbody h3{font-size:19px;color:var(--fg);margin:34px 0 13px}
+.pbody h4{font-size:17px;color:var(--fg);margin:28px 0 11px}
+.pbody p{margin:0 0 20px}
+.pbody b{color:var(--fg)}
+.pbody a{color:var(--cyan)}
+.pbody ul,.pbody ol{margin:0 0 20px;padding-left:22px}
+.pbody li{margin-bottom:9px}
+.pbody blockquote{margin:26px 0;padding:16px 20px;border-left:3px solid var(--amber);
+  background:rgba(245,166,35,.06);border-radius:0 10px 10px 0}
+.pbody blockquote p{margin:0;color:var(--fg)}
+.pbody pre{background:var(--panel);border:1px solid var(--line);border-radius:11px;
+  padding:18px 20px;overflow-x:auto;margin:0 0 22px}
+.pbody pre code{font-family:"IBM Plex Mono",monospace;font-size:13.5px;line-height:1.9;color:var(--fg-2)}
+.pbody :not(pre)>code{font-family:"IBM Plex Mono",monospace;font-size:14px;
+  background:var(--panel-2);border:1px solid var(--line);border-radius:5px;padding:1px 6px;color:var(--cyan)}
+.ptags{margin-top:38px;display:flex;flex-wrap:wrap;gap:8px}
+.ptags span{font-size:12px;color:var(--fg-3);border:1px solid var(--line);border-radius:20px;padding:5px 12px}
+.psrc{margin-top:18px;font-size:12.8px;color:var(--fg-3)}
+.psrc a{color:var(--fg-3);text-decoration:underline}
+.pcta{margin-top:44px;padding-top:30px;border-top:1px solid var(--line)}
+.pcta p{font-size:15px;color:var(--fg-2);line-height:1.8;margin:0 0 18px}
+
+/* ── 관리 화면 ─────────────────────────────────────────── */
+.adm{padding:70px 0 90px}
+.wrap.narrow{max-width:760px}
+.adm h1{font-size:28px;margin:0 0 10px}
+.adm h2{font-size:20px;margin:52px 0 16px}
+.admform{display:flex;flex-direction:column;gap:16px;margin-top:26px}
+.admform label{display:flex;flex-direction:column;gap:7px;font-size:13.5px;color:var(--fg-3)}
+.admform .two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:640px){.admform .two{grid-template-columns:1fr}}
+.admform input,.admform textarea,.admform select{
+  background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:11px 13px;
+  color:var(--fg);font-family:inherit;font-size:15px;line-height:1.7}
+.admform textarea{font-family:"IBM Plex Mono",monospace;font-size:14px;resize:vertical}
+.admform input:focus,.admform textarea:focus,.admform select:focus{outline:2px solid var(--amber);outline-offset:1px}
+.admform .chk{flex-direction:row;align-items:center;gap:9px;color:var(--fg-2);font-size:14.5px}
+.admform .chk input{width:auto}
+.admrow{display:flex;gap:10px;align-items:center;margin-top:6px}
+.admrow input{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:9px;
+  padding:11px 13px;color:var(--fg);font-size:15px}
+.admmsg{margin-top:14px;font-size:14px;color:var(--cyan)}
+.admmsg.err{color:#F5766B}
+.admlist{display:flex;flex-direction:column;gap:8px}
+.admitem{display:flex;justify-content:space-between;align-items:center;gap:14px;
+  background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.admitem b{display:block;font-size:15px;color:var(--fg);margin-bottom:4px}
+.admitem span{font-size:12px;color:var(--fg-3)}
+.admbtns{display:flex;gap:7px;flex-shrink:0}
+.admbtns button{background:transparent;border:1px solid var(--line);border-radius:7px;
+  padding:6px 12px;color:var(--fg-2);font-size:13px;cursor:pointer}
+.admbtns button:hover{border-color:var(--fg-3)}
+.admbtns .danger:hover{border-color:#F5766B;color:#F5766B}
+
+/* ── 브랜드 마크 (CI) ──────────────────────────────────────
+   ㄹ — 「로봇」의 첫 자음. 획이 꺾이는 순서(위→오른쪽→아래→왼쪽→아래→오른쪽)가
+   그대로 미로를 지나는 로봇의 동선이다. 출발점은 빈 사각형, 도착점은 채워진 원.
+   "정답 코드가 아니라 실제로 도착했는지로 채점한다"는 이 학원의 방식이 곧 로고다. */
+.brand .mark{
+  width:32px;height:32px;flex-shrink:0;border-radius:9px;background:#0E1520;
+  border:1px solid rgba(245,166,35,.22);
+  display:flex;align-items:center;justify-content:center;
+  transition:transform .24s cubic-bezier(.34,1.56,.64,1),border-color .24s}
+.brand .mark svg{width:100%;height:100%;display:block}
+.brand .mark path{fill:none;stroke:var(--amber);stroke-width:5.5;
+  stroke-linecap:round;stroke-linejoin:round;
+  stroke-dasharray:96;stroke-dashoffset:96;animation:trace 1.5s .25s ease-out forwards}
+.brand .mark .st{fill:#0E1520;stroke:var(--amber);stroke-width:2}
+.brand .mark .gl{fill:var(--cyan);opacity:0;animation:arrive .4s 1.6s ease-out forwards}
+@keyframes trace{to{stroke-dashoffset:0}}
+@keyframes arrive{to{opacity:1}}
+@media (prefers-reduced-motion:reduce){
+  .brand .mark path{stroke-dashoffset:0;animation:none}
+  .brand .mark .gl{opacity:1;animation:none}}
+.brand:hover .mark{transform:rotate(-4deg);border-color:rgba(245,166,35,.55)}
+@media (prefers-reduced-motion:reduce){.brand:hover .mark{transform:none}}
+.brand .bt{display:inline-block}
+@media(max-width:420px){.brand .bt{display:none}}
+footer .brand .mark{width:28px;height:28px;border-radius:8px}
+
+/* ── 히어로 타이핑 커서 ────────────────────────────────────
+   제목이 방금 타이핑된 것처럼 보이게 한다. 배경 미로와 함께
+   "이 화면은 지금 돌아가고 있다"는 인상을 만드는 장치다. */
+.hero h1 .caret{
+  display:inline-block;width:.11em;height:.88em;margin-left:.09em;
+  vertical-align:-.06em;border-radius:2px;background:var(--amber);
+  box-shadow:0 0 22px rgba(245,166,35,.65),0 0 46px rgba(245,166,35,.28);
+  animation:blink 1.1s steps(2) infinite}
+@media (prefers-reduced-motion:reduce){.hero h1 .caret{animation:none;opacity:.85}}
+
+/* 배경 미로 위에 얹는 안개 — 글자 가독성은 지키고 그림은 살린다 */
+.hero::after{background:
+  radial-gradient(1100px 460px at 8% 8%, rgba(11,15,22,.90), rgba(11,15,22,.42) 46%, transparent 72%),
+  radial-gradient(900px 520px at 96% 100%, rgba(11,15,22,.72), transparent 68%)}
+
+/* ── 브랜드 (CI) ──────────────────────────────────────────
+   대괄호 안에 「로봇 · 코딩」, 가운데 파란 점, 뒤에 회색 「학원」과 AI 배지.
+   대괄호는 코드의 배열 기호이자 "이 안이 우리 영역"이라는 테두리로 읽힌다. */
+.brand{display:flex;align-items:center;gap:7px;white-space:nowrap;text-decoration:none}
+.brand .lk{display:inline-flex;align-items:center;gap:0}
+.brand .lk b{font-weight:900;font-size:19px;letter-spacing:-.055em;color:#fff;line-height:1}
+.brand .lk .br{width:7px;height:23px;flex-shrink:0;
+  border:2px solid #fff;border-right:0;border-radius:1px;margin-right:6px}
+.brand .lk .br.r{border:2px solid #fff;border-left:0;margin:0 0 0 6px}
+.brand .lk .pd{width:7px;height:7px;border-radius:50%;background:var(--blue);
+  margin:0 6px;flex-shrink:0;position:relative;top:1px}
+.brand .hg{font-weight:500;font-size:16px;letter-spacing:.02em;color:#9BA1A8;margin-left:2px}
+.brand .aib{font-weight:700;font-size:11px;line-height:1;color:#fff;background:var(--blue);
+  border-radius:5px;padding:5px 7px;margin-left:3px;letter-spacing:.01em}
+.brand:hover .lk .pd{box-shadow:0 0 0 4px rgba(47,107,246,.22)}
+.brand .lk .pd{transition:box-shadow .2s}
+@media(max-width:520px){.brand .hg{display:none}}
+@media(max-width:420px){.brand .aib{display:none}}
+footer .brand .lk b{font-size:17px}
+
+/* ── 글 본문 사진 ─────────────────────────────────────── */
+.pbody .pimg{margin:30px 0;padding:0}
+.pbody .pimg img{width:100%;height:auto;display:block;border-radius:12px;
+  border:1px solid var(--line);background:var(--panel)}
+.pbody hr{border:0;border-top:1px solid var(--line);margin:38px 0}
+
+/* ── AI 오케스트레이션 · 감독자 대비 ───────────────────── */
+.orch{margin-top:40px;border:1px solid var(--line);border-radius:14px;
+  background:rgba(17,24,35,.55);overflow:hidden}
+.orch .row{display:grid;grid-template-columns:1fr auto 1fr;align-items:stretch}
+@media(max-width:800px){.orch .row{grid-template-columns:1fr}}
+.orch .who{padding:26px 26px 28px}
+.orch .who .k{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--fg-3);padding-bottom:14px;border-bottom:1px solid var(--line-soft)}
+.orch .who ul{list-style:none;margin:16px 0 0;padding:0;display:flex;flex-direction:column;gap:11px}
+.orch .who li{font-size:15.2px;color:var(--fg-3);line-height:1.6;padding-left:17px;position:relative}
+.orch .who li::before{content:"";position:absolute;left:0;top:9px;width:6px;height:1.5px;background:var(--fg-3)}
+.orch .who.me{background:rgba(47,107,246,.07);border-left:1px solid var(--line)}
+@media(max-width:800px){.orch .who.me{border-left:0;border-top:1px solid var(--line)}}
+.orch .who.me .k{color:var(--blue)}
+.orch .who.me li{color:var(--fg-2)}
+.orch .who.me li b{color:var(--fg);font-weight:600}
+.orch .who.me li::before{background:var(--blue);width:7px;height:7px;border-radius:50%;top:8px}
+.orch .vs{display:flex;align-items:center;justify-content:center;padding:0 18px;
+  font-size:10.5px;letter-spacing:.14em;color:var(--fg-3);writing-mode:vertical-rl;
+  border-left:1px solid var(--line-soft)}
+@media(max-width:800px){.orch .vs{display:none}}
+.orch .note{margin:0;padding:22px 26px 24px;border-top:1px solid var(--line);
+  background:rgba(9,13,19,.5);font-size:14.8px;color:var(--fg-2);line-height:1.85}
+.orch .note b{color:var(--fg)}
+
+/* 실제 학생 사례 */
+.proof{margin-top:40px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,320px);gap:0;
+  border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--panel)}
+@media(max-width:820px){.proof{grid-template-columns:1fr}}
+.proof .txt{padding:28px 28px 30px}
+.proof .k{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--blue)}
+.proof h3{font-size:20px;margin:11px 0 13px;line-height:1.45}
+.proof p{font-size:14.9px;color:var(--fg-2);line-height:1.85;margin:0 0 12px}
+.proof p:last-of-type{margin-bottom:18px}
+.proof b{color:var(--fg)}
+.proof .more{font-family:"IBM Plex Mono",monospace;font-size:13px;color:var(--blue)}
+.proof .more:hover{text-decoration:underline}
+.proof .side{background:rgba(47,107,246,.06);border-left:1px solid var(--line);
+  padding:28px 26px;display:flex;flex-direction:column;justify-content:center;gap:16px}
+@media(max-width:820px){.proof .side{border-left:0;border-top:1px solid var(--line)}}
+.proof .side div{font-size:13.8px;color:var(--fg-3);line-height:1.65}
+.proof .side div b{display:block;color:var(--fg);font-size:15px;margin-bottom:3px}
+
+/* ── 조용한 섹션 (수강료) ──────────────────────────────────
+   가격은 결정 직전에 확인하는 정보다. 위쪽에서 크게 말하면
+   무엇을 배우는지보다 얼마인지가 먼저 읽힌다. 그래서 아래로 내리고 톤을 낮춘다. */
+section.quiet{padding:56px 0;background:var(--panel);border-top:1px solid var(--line)}
+section.quiet .lab{color:var(--fg-3)}
+section.quiet h3{font-size:22px;font-weight:700;letter-spacing:-.02em;margin:10px 0 10px}
+section.quiet .qlead{font-size:14.6px;color:var(--fg-3);line-height:1.8;margin:0 0 24px;max-width:56ch}
+section.quiet .tw{border-color:var(--line)}
+section.quiet table{font-size:14.4px}
+section.quiet .note{margin-top:20px;font-size:13.8px;color:var(--fg-3);line-height:1.8}
+section.quiet .note b{color:var(--fg-2);font-weight:600}
+
+/* ── 상담 ─────────────────────────────────────────────── */
+.btn.kakao{background:#FEE500;color:#191600;border:1px solid #FEE500;font-weight:700}
+.btn.kakao:hover{background:#FFD900;border-color:#FFD900;transform:translateY(-2px)}
+@media (prefers-reduced-motion:reduce){.btn.kakao:hover{transform:none}}
+
+.contact{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:13px;align-items:stretch}
+.cway{background:var(--panel-2);border:1px solid var(--line);border-radius:13px;
+  padding:22px 22px 24px;text-decoration:none;display:block;transition:border-color .2s,transform .2s}
+.cway:hover{border-color:var(--fg-3);transform:translateY(-2px)}
+@media (prefers-reduced-motion:reduce){.cway:hover{transform:none}}
+.cway .ck{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--fg-3)}
+.cway .cv{font-size:20px;font-weight:700;color:var(--fg);margin:11px 0 6px;letter-spacing:-.02em}
+.cway .cn{font-size:13px;color:var(--fg-3);word-break:break-all}
+.cway.ka{border-color:rgba(254,229,0,.28);background:rgba(254,229,0,.05)}
+.cway.ka:hover{border-color:rgba(254,229,0,.6)}
+.cway.ka .ck{color:#D9C400}
+.cqr{display:flex;align-items:center;gap:16px;background:var(--panel-2);
+  border:1px solid var(--line);border-radius:13px;padding:18px 20px}
+.cqr img{width:112px;height:112px;flex-shrink:0;border-radius:8px;background:#fff;padding:6px}
+.cqr span{font-size:12px;color:var(--fg-3);line-height:1.7;letter-spacing:.01em}
+@media(max-width:400px){.cqr{flex-direction:column;text-align:center}}
+
+/* 조용한 섹션 안의 표 — 기본 표 스타일은 밝은 지면(.paper)용이라
+   어두운 배경에 그대로 쓰면 밝은 글자가 흰 바탕에 얹혀 읽히지 않는다. */
+section.quiet .tw{background:var(--panel-2);border-color:var(--line)}
+section.quiet table{color:var(--fg-2)}
+section.quiet th,
+section.quiet td{border-bottom-color:var(--line-soft)}
+section.quiet thead th{background:rgba(255,255,255,.035);color:var(--fg-3)}
+section.quiet tbody tr:hover{background:rgba(255,255,255,.03)}
+section.quiet tbody td{color:var(--fg-2)}
+section.quiet tbody td b{color:var(--fg)}
+section.quiet td.num{color:var(--amber)}
+section.quiet td .sub{color:var(--fg-3)}
+section.quiet caption{color:var(--fg-3) !important}
+section.quiet .note a{color:var(--amber)}
+.tcap{caption-side:bottom;text-align:left;padding:12px 20px;font-size:12.5px;color:#8B7F6B}
+section.quiet .tcap{color:var(--fg-3)}
+.note .tel{color:#B5760A;font-weight:700}
+section.quiet .note .tel{color:var(--amber)}
+
+/* ── 학습 성장 리포트 (실물 구조) ─────────────────────────
+   "오늘 뭐 했어?"에 학원이 대답한다는 주장의 증거다.
+   추상적으로 "리포트를 드립니다"라고 쓰는 대신 실제로 무엇이 적히는지 보여준다. */
+.rept{margin-top:44px;border:1px solid var(--paper-line);border-radius:16px;
+  background:var(--paper-card);overflow:hidden;box-shadow:0 18px 44px rgba(20,18,12,.10)}
+.rept .rh{display:flex;align-items:baseline;justify-content:space-between;gap:14px;flex-wrap:wrap;
+  padding:20px 24px;border-bottom:1px solid var(--paper-line);background:rgba(181,118,10,.05)}
+.rept .rh .t{font-size:16.5px;font-weight:800;color:var(--paper-ink);letter-spacing:-.02em}
+.rept .rh .m{font-family:"IBM Plex Mono",monospace;font-size:12px;color:#8B7F6B}
+.rept .rsec{padding:24px}
+.rept .rsec + .rsec{border-top:1px solid var(--paper-line)}
+.rept .rlab{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.13em;
+  text-transform:uppercase;color:#B5760A;margin-bottom:15px}
+
+.grow{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.grow .g{border:1px solid var(--paper-line);border-radius:11px;padding:14px 15px 16px;background:var(--paper)}
+.grow .g .n{font-size:14.5px;font-weight:700;color:var(--paper-ink);margin-bottom:9px}
+.grow .g .bar{height:5px;border-radius:4px;background:var(--paper-sunken);overflow:hidden}
+.grow .g .bar i{display:block;height:100%;border-radius:4px;background:#B5760A}
+.grow .g .s{display:block;margin-top:9px;font-size:12px;color:#8B7F6B}
+.grow .g.top{background:rgba(181,118,10,.07);border-color:rgba(181,118,10,.32)}
+.grow .g.top .s{color:#B5760A;font-weight:600}
+
+.rlog{display:flex;flex-direction:column;gap:0}
+.rlog .l{display:grid;grid-template-columns:96px 1fr;gap:16px;padding:14px 0;
+  border-bottom:1px dashed var(--paper-line)}
+@media(max-width:640px){.rlog .l{grid-template-columns:1fr;gap:5px}}
+.rlog .l:last-child{border-bottom:0}
+.rlog .d{font-family:"IBM Plex Mono",monospace;font-size:12.5px;color:#8B7F6B;white-space:nowrap}
+.rlog .c{font-size:14.5px;color:var(--paper-ink-2);line-height:1.75}
+.rlog .c b{display:block;color:var(--paper-ink);font-weight:700;font-size:13.5px;margin-bottom:4px}
+.rept .rfoot{padding:16px 24px 20px;border-top:1px solid var(--paper-line);
+  font-size:13px;color:#8B7F6B;line-height:1.75;background:var(--paper-sunken)}

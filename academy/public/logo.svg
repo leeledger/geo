@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1438 520" width="1438" height="520" role="img" aria-label="로봇·코딩 AI — ROBOT CODING AI ACADEMY">
+  <rect width="1438" height="520" fill="#141414"/>
+  <!-- 대괄호 -->
+  <path d="M170 122 H116 V338 H170" fill="none" stroke="#FFFFFF" stroke-width="15" stroke-linecap="butt"/>
+  <path d="M1015 122 H1069 V338 H1015" fill="none" stroke="#FFFFFF" stroke-width="15" stroke-linecap="butt"/>
+  <!-- 로봇 · 코딩 -->
+  <text x="228" y="228" dominant-baseline="central"
+        font-family="'Noto Sans KR', system-ui, sans-serif" font-weight="900"
+        font-size="196" letter-spacing="-6" fill="#FFFFFF">로봇</text>
+  <circle cx="607" cy="240" r="26" fill="#2F6BF6"/>
+  <text x="655" y="228" dominant-baseline="central"
+        font-family="'Noto Sans KR', system-ui, sans-serif" font-weight="900"
+        font-size="196" letter-spacing="-6" fill="#FFFFFF">코딩</text>
+  <!-- AI 배지 -->
+  <rect x="1134" y="175" width="185" height="106" rx="12" fill="#2F6BF6"/>
+  <text x="1226" y="230" text-anchor="middle" dominant-baseline="central"
+        font-family="'Noto Sans KR', system-ui, sans-serif" font-weight="700"
+        font-size="66" fill="#FFFFFF">AI</text>
+  <!-- 영문 -->
+  <text x="122" y="408" dominant-baseline="central"
+        font-family="'Noto Sans KR', system-ui, sans-serif" font-weight="400"
+        font-size="46" letter-spacing="16" fill="#7C7C7C">ROBOT · CODING · AI ACADEMY</text>
+</svg>

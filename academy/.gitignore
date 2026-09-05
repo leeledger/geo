@@ -1,0 +1,11 @@
+node_modules
+.next
+.vercel
+.env*.local
+# 생성된 비밀값 — 저장소에 들어가면 안 된다
+.adminpw
+.crawlkey
+.cronsecret
+# 이관 중간 산출물
+naver-posts.json
+data/
