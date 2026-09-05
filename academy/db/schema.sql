@@ -80,3 +80,45 @@ create table if not exists academy.snapshots (
   vendors      text[] not null default '{}',
   by_bot       jsonb not null default '{}'
 );
+
+-- 커버리지 지표
+--
+-- 크롤러 방문 횟수만 세면 레퍼런스로 약하다. "35회 왔다"는 규모를 말하지 못한다.
+-- 사이트가 몇 쪽인데 그중 몇 쪽이 읽혔는가(커버리지), 처음 방문까지 며칠 걸렸는가(리드타임),
+-- 몇 개 엔진이 왔는가(폭). 이 셋이 있어야 다음 고객사에 "보통 이렇습니다"라고 말할 수 있다.
+create or replace view academy.coverage as
+with pages as (
+  -- 실제 문서 수 (홈 + 목록 + 글). 이미지·정적 파일은 세지 않는다.
+  select count(*)::int + 2 as total from academy.published_posts
+),
+seen as (
+  select count(distinct path)::int as n
+    from academy.crawl_hits
+   where path !~ '\.(png|jpg|jpeg|gif|webp|svg|css|js|txt|xml|ico)$'
+)
+select
+  p.total                                              as pages_total,
+  s.n                                                  as pages_crawled,
+  round(100.0 * s.n / nullif(p.total,0), 1)            as coverage_pct
+from pages p, seen s;
+
+-- 엔진별 커버리지 — 어느 엔진이 얼마나 읽었는가
+create or replace view academy.coverage_by_vendor as
+with pages as (select count(*)::int + 2 as total from academy.published_posts)
+select h.vendor,
+       count(distinct h.path)::int                          as pages_crawled,
+       (select total from pages)                            as pages_total,
+       round(100.0 * count(distinct h.path) / nullif((select total from pages),0), 1) as coverage_pct,
+       min(h.seen_at)                                       as first_seen,
+       max(h.seen_at)                                       as last_seen
+  from academy.crawl_hits h
+ where h.path !~ '\.(png|jpg|jpeg|gif|webp|svg|css|js|txt|xml|ico)$'
+ group by h.vendor
+ order by count(distinct h.path) desc;
+
+-- 스냅샷에 커버리지 지표 추가
+alter table academy.snapshots add column if not exists pages_total   int;
+alter table academy.snapshots add column if not exists pages_crawled int;
+alter table academy.snapshots add column if not exists coverage_pct  numeric(5,1);
+alter table academy.snapshots add column if not exists engines       int;
+alter table academy.snapshots add column if not exists lead_hours    int;

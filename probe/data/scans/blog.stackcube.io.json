@@ -1,0 +1,257 @@
+{
+  "origin": "https://blog.stackcube.io",
+  "scanned_at": "2026-09-05T10:44:05.445Z",
+  "total": 72,
+  "grade": "보통",
+  "platform": {
+    "id": "custom",
+    "name": "자체 개발",
+    "kind": "자체개발",
+    "rootFile": "yes",
+    "schema": "yes",
+    "publish": "hard",
+    "owner": "확인 필요",
+    "evidence": "server: cloudflare",
+    "note": "기술적으로는 전부 가능하지만, 실제 작업을 누가 하는지에 따라 리드타임이 크게 달라집니다. 내부 개발팀이면 며칠, 외주 유지보수사를 거치면 몇 주가 걸립니다."
+  },
+  "checks": {
+    "crawler": {
+      "score": 85,
+      "bots": [
+        {
+          "id": "OAI-SearchBot",
+          "label": "ChatGPT 검색",
+          "weight": 3,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "ChatGPT-User",
+          "label": "ChatGPT 사용자요청",
+          "weight": 3,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "PerplexityBot",
+          "label": "Perplexity",
+          "weight": 3,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "Perplexity-User",
+          "label": "Perplexity 사용자",
+          "weight": 2,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "ClaudeBot",
+          "label": "Claude",
+          "weight": 3,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "Googlebot",
+          "label": "구글 색인",
+          "weight": 3,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "Bingbot",
+          "label": "Bing/Copilot",
+          "weight": 2,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "Yeti",
+          "label": "네이버",
+          "weight": 2,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "GPTBot",
+          "label": "OpenAI 학습",
+          "weight": 1,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "Google-Extended",
+          "label": "Gemini 학습",
+          "weight": 1,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "CCBot",
+          "label": "Common Crawl",
+          "weight": 1,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        }
+      ],
+      "blocked": []
+    },
+    "llmstxt": {
+      "score": 0,
+      "exists": false
+    },
+    "sitemap": {
+      "score": 100,
+      "exists": true,
+      "urls": 124
+    },
+    "ssr": {
+      "score": 100,
+      "avgTextLen": 11294,
+      "textRatio": 0.2033,
+      "thinPages": 0,
+      "totalPages": 3
+    },
+    "schema": {
+      "score": 64,
+      "pagesWithLd": 3,
+      "totalPages": 3,
+      "types": [
+        "BreadcrumbList",
+        "ListItem"
+      ],
+      "matched": [
+        "BreadcrumbList"
+      ],
+      "invalid": 0
+    },
+    "chunk": {
+      "score": 61,
+      "paragraphs": 243,
+      "listItems": 0,
+      "inBand": 132,
+      "bandRate": 54.3,
+      "tooLong": 0,
+      "vagueSubjects": 0
+    },
+    "patterns": {
+      "score": 59,
+      "questionHeadings": 45,
+      "numericFacts": 9,
+      "pagesWithTable": 0,
+      "pagesWithList": 0,
+      "pagesWithMeta": 3
+    }
+  },
+  "pages": [
+    {
+      "url": "https://blog.stackcube.io",
+      "ok": true,
+      "textLen": 11294,
+      "htmlLen": 55549,
+      "textRatio": 0.20331599128697186,
+      "ldCount": 1,
+      "ldInvalid": 0,
+      "types": [
+        "BreadcrumbList",
+        "ListItem"
+      ],
+      "paras": 81,
+      "items": 0,
+      "inBand": 44,
+      "tooLong": 0,
+      "headings": 81,
+      "qHeadings": 15,
+      "vague": 0,
+      "hasNumbers": 3,
+      "hasTable": false,
+      "hasList": false,
+      "lang": "ko",
+      "title": "스택큐브(StackCube) 블로그 — 발주·재고·정산 운영 가이드",
+      "desc": "발주 운영에 관한 인사이트와 가이드 스택큐브 관점에서 거래처 주문 접수, 품목 매칭, 승인, ERP 입력 전 데이터 정리 기준까지 함께 확인합니다. 카톡·문자·이메일·엑셀 발주가 흩어질 때 실무자가 바로 적용할 점검 항목도 정리합니다."
+    },
+    {
+      "url": "https://blog.stackcube.io/",
+      "ok": true,
+      "textLen": 11294,
+      "htmlLen": 55549,
+      "textRatio": 0.20331599128697186,
+      "ldCount": 1,
+      "ldInvalid": 0,
+      "types": [
+        "BreadcrumbList",
+        "ListItem"
+      ],
+      "paras": 81,
+      "items": 0,
+      "inBand": 44,
+      "tooLong": 0,
+      "headings": 81,
+      "qHeadings": 15,
+      "vague": 0,
+      "hasNumbers": 3,
+      "hasTable": false,
+      "hasList": false,
+      "lang": "ko",
+      "title": "스택큐브(StackCube) 블로그 — 발주·재고·정산 운영 가이드",
+      "desc": "발주 운영에 관한 인사이트와 가이드 스택큐브 관점에서 거래처 주문 접수, 품목 매칭, 승인, ERP 입력 전 데이터 정리 기준까지 함께 확인합니다. 카톡·문자·이메일·엑셀 발주가 흩어질 때 실무자가 바로 적용할 점검 항목도 정리합니다."
+    },
+    {
+      "url": "https://blog.stackcube.io/ko/",
+      "ok": true,
+      "textLen": 11294,
+      "htmlLen": 55549,
+      "textRatio": 0.20331599128697186,
+      "ldCount": 1,
+      "ldInvalid": 0,
+      "types": [
+        "BreadcrumbList",
+        "ListItem"
+      ],
+      "paras": 81,
+      "items": 0,
+      "inBand": 44,
+      "tooLong": 0,
+      "headings": 81,
+      "qHeadings": 15,
+      "vague": 0,
+      "hasNumbers": 3,
+      "hasTable": false,
+      "hasList": false,
+      "lang": "ko",
+      "title": "스택큐브(StackCube) 블로그 — 발주·재고·정산 운영 가이드",
+      "desc": "발주 운영에 관한 인사이트와 가이드 스택큐브 관점에서 거래처 주문 접수, 품목 매칭, 승인, ERP 입력 전 데이터 정리 기준까지 함께 확인합니다. 카톡·문자·이메일·엑셀 발주가 흩어질 때 실무자가 바로 적용할 점검 항목도 정리합니다."
+    }
+  ],
+  "notes": [
+    {
+      "pri": 2,
+      "msg": "AI 크롤러가 * 규칙으로만 허용됩니다. User-agent 별로 명시하면 의도가 분명해집니다"
+    },
+    {
+      "pri": 2,
+      "msg": "llms.txt 가 없습니다. AI가 그대로 인용할 브랜드 설명문을 길이별로 넣으세요"
+    },
+    {
+      "pri": 2,
+      "msg": "FAQPage / HowTo 스키마가 없습니다. 질문-답변 형태가 AI 인용에 가장 잘 걸립니다"
+    },
+    {
+      "pri": 3,
+      "msg": "자체 개발 사이트로 보입니다 (server: cloudflare). 기술적으로는 전부 가능하지만, 실제 작업을 누가 하는지에 따라 리드타임이 크게 달라집니다. 내부 개발팀이면 며칠, 외주 유지보수사를 거치면 몇 주가 걸립니다. 착수 전에 사이트를 누가 관리하는지부터 확인하세요 — 여기서 일정이 갈립니다."
+    }
+  ]
+}

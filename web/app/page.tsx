@@ -1,82 +1,139 @@
 import ScanForm from "./ScanForm";
+import Reveal from "./Reveal";
+import SiteNav from "./SiteNav";
+import Link from "next/link";
+import { SERVICES } from "@/lib/services";
 
-const MAIL = "hello@example.co.kr";
+const MAIL = "hello@cited.kr";
 const mailto = (kind: string) =>
-  `mailto:${MAIL}?subject=${encodeURIComponent(`[사이트밴드] ${kind} 신청`)}` +
+  `mailto:${MAIL}?subject=${encodeURIComponent(`[Cited] ${kind} 신청`)}` +
   `&body=${encodeURIComponent(`홈페이지 주소: \n회사명: \n담당자: \n연락처: \n\n요청: ${kind}\n`)}`;
 
 export default function Home() {
   return (
     <>
-      <nav>
-        <div className="wrap">
-          <span className="logo">
-            사이트<em>밴드</em>
-          </span>
-          <span className="links">
-            <a href="#how">작동 방식</a>
-            <a href="#data">실측 데이터</a>
-            <a href="#diff">다른 점</a>
-            <a href="#price">요금</a>
-            <a href="#faq">FAQ</a>
-          </span>
-        </div>
-      </nav>
+      <Reveal />
+      <SiteNav />
 
       <header className="hero">
         <div className="wrap hero-grid">
           <div>
             <div className="eyebrow">AI 답변 노출 측정 · GEO</div>
-            <h1>ChatGPT는 당신 브랜드를 추천하고 있습니까?</h1>
+            <h1>AI가 추천하는 목록에<br />당신 회사가 있습니까?</h1>
             <p className="lede">
-              고객은 이제 검색창이 아니라 AI에게 묻습니다. 답변에 이름이 없으면 후보에서 아예 빠집니다. 사이트밴드는 그
-              노출을 <b>표본과 오차범위까지 붙여</b> 재고, 원인이 사이트인지 남의 문서인지 갈라냅니다.
+              AI는 세 곳만 말합니다. 거기 없으면 <b>비교 대상에도 오르지 못합니다.</b><br />
+              지금 몇 번에 한 번 불리는지 재고, <b>왜 안 불리는지</b> 찾아냅니다.
             </p>
             <ScanForm id="dom-hero" />
           </div>
 
           <div>
-            <figure className="spec">
-              <figcaption className="spec-hd">
-                <span className="dots">
-                  <i /><i /><i />
-                </span>
-                <span>“중소기업 ERP 세 개만 골라서 비교해줘”</span>
+            {/* 히어로는 방법이 아니라 문제를 보여준다.
+                오차막대·표본 같은 방법론은 "다른 점" 절로 내렸다.
+                여기서 읽는 사람이 알아야 할 것은 하나다 — 내 이름이 저 목록에 없다. */}
+            <figure className="ask">
+              <figcaption className="askq">
+                <span className="dots"><i /><i /><i /></span>
+                <span>“이 분야 괜찮은 곳 세 군데만 알려줘”</span>
               </figcaption>
-              <div className="spec-b">
-                <b>1회차</b> — 더존 iCUBE / 영림원 K-System / <mark>도토</mark>
-                <br />
-                <b>2회차</b> — 더존 iCUBE / 영림원 K-System / <mark>이카운트</mark>
+
+              <div className="askbody">
+                <div className="asklead mono">AI 답변</div>
+                <ol className="asklist">
+                  <li><span className="rk mono">1</span> 경쟁사 A</li>
+                  <li><span className="rk mono">2</span> 경쟁사 B</li>
+                  <li><span className="rk mono">3</span> 경쟁사 C</li>
+                </ol>
+                <div className="askme">
+                  <span className="mek">우리 회사</span>
+                  <span className="mev">목록에 없음</span>
+                </div>
               </div>
-              <div className="spec-ft">
-                같은 질문 · 같은 날 · <b>3순위가 교체됨</b>
-              </div>
+
+              <figcaption className="askft">
+                고객은 세 곳만 봅니다. <b>검색과 달리 2페이지가 없습니다.</b>
+              </figcaption>
             </figure>
-            <div className="runs">
-              <span>반복 측정</span>
-              <span className="chip hit">1</span>
-              <span className="chip hit">2</span>
-              <span className="chip">3</span>
-              <span className="chip hit">4</span>
-              <span className="chip">5</span>
-              <span className="chip hit">6</span>
-              <span className="chip">7</span>
-              <span className="chip hit">8</span>
-              <span style={{ marginLeft: 6 }}>
-                → 노출률은 순위가 아니라 <b style={{ color: "var(--accent)" }}>확률</b>입니다
-              </span>
+
+            <div className="again">
+              <div className="againh mono">같은 질문을 한 번 더 물으면</div>
+              <div className="againrow mono">
+                <span className="rn">1회차</span>
+                <span>A</span><span>B</span><span className="sw">C</span>
+              </div>
+              <div className="againrow mono">
+                <span className="rn">2회차</span>
+                <span>A</span><span>B</span><span className="sw alt">D</span>
+              </div>
+              <div className="againf">
+                세 번째 자리는 물어볼 때마다 바뀝니다.
+                <b>한 번 물어보고 “우리가 3위”라고 적으면 그건 우연을 기록한 것</b>입니다.
+              </div>
             </div>
           </div>
         </div>
       </header>
 
+
+      {/* 히어로 다음에 바로 "그래서 뭐가 좋은데"를 답한다.
+          방법론(표본·신뢰구간)을 먼저 말하면 사는 사람은 이해하기 전에 나간다. */}
+      <section id="why">
+        <div className="wrap">
+          <div className="lab">쓰면 달라지는 것</div>
+          <h2>모르던 것 세 가지를<br />알게 됩니다</h2>
+
+          <div className="whys">
+            <article className="w" data-reveal="0">
+              <div className="wq">“우리가 지금 불리긴 하나?”</div>
+              <div className="wa">
+                20번 물어서 3번 불리면 15%. <b>짐작이 아니라 센 값</b>입니다.
+              </div>
+              <div className="wb mono">
+                <span className="wbar" data-reveal="260"><i style={{ ["--w" as string]: "15%" }} /></span>
+                <span>15% · 20회 중 3회</span>
+              </div>
+            </article>
+
+            <article className="w" data-reveal="110">
+              <div className="wq">“홈페이지를 고치면 되나?”</div>
+              <div className="wa">
+                아닐 때가 더 많습니다. 효과의 <b>80%는 다른 사람이 쓴 글</b>에서 옵니다.
+              </div>
+              <div className="wb mono">
+                <span className="wsplit" data-reveal="360"><i className="a" style={{ ["--w" as string]: "20%" }} /><i className="b" style={{ ["--w" as string]: "80%" }} /></span>
+                <span>홈페이지 20% · 외부 글 80%</span>
+              </div>
+            </article>
+
+            <article className="w" data-reveal="220">
+              <div className="wq">“고쳤는데 좋아진 게 맞나?”</div>
+              <div className="wa">
+                착수 전 값을 남겨 두고, <b>두 달 뒤 같은 방식으로 다시 잽니다.</b>
+              </div>
+              <div className="wb mono">
+                <span className="wdelta">
+                  <span className="d0">0%</span>
+                  <span className="darrow">→</span>
+                  <span className="d1">?</span>
+                </span>
+                <span>착수일 기록 · 재측정</span>
+              </div>
+            </article>
+          </div>
+
+          <p className="whyfoot">
+            <b>순위를 넣어 드릴 수는 없습니다.</b> "몇 달 안에 몇 % 보장"도 하지 않습니다.
+            AI 답변은 매번 달라지기 때문에, 그런 약속을 하는 쪽이 오히려 위험합니다.
+          </p>
+        </div>
+      </section>
+
       <section className="deep" id="data">
         <div className="wrap">
           <div className="lab">우리가 직접 잰 것</div>
-          <h2>추측이 아니라 실측입니다</h2>
+          <h2>직접 재봤습니다.<br />결과는 예상과 달랐습니다.</h2>
           <p className="sub2">
-            국내 B2B 업무 솔루션 26곳의 사이트를 점검하고, 실제 구매자가 쓸 법한 질문을 AI에 던져 브랜드 노출을
-            측정했습니다.
+            국내 B2B 26곳을 점검하고, 실제 구매자가 쓸 질문을 AI에 던져봤습니다.
           </p>
 
           <div className="facts">
@@ -91,7 +148,7 @@ export default function Home() {
                 <span className="c">사이트 점검 26곳</span>
               </div>
               <div className="t">
-                <b>사이트 GEO 점수 60점을 넘긴 곳은 5곳뿐</b>이었습니다. 시장 1위를 자처하는 그룹웨어가 30점이었습니다.
+                <b>60점을 넘긴 곳이 5곳뿐.</b> 업계 선두를 표방하는 회사가 30점이었습니다.
               </div>
             </div>
             <div className="fact">
@@ -105,8 +162,8 @@ export default function Home() {
                 <span className="c">반복 측정 기준</span>
               </div>
               <div className="t">
-                같은 질문을 다시 물으면 <b>추천 브랜드의 28%가 바뀝니다.</b> 한 번 조회한 결과를 “순위”라 부르는 리포트는
-                소음입니다.
+                두 번 물으면 <b>추천 목록의 28%가 바뀝니다.</b>
+                한 번 재고 “1위”라 적는 건 <b>동전 한 번 던지는 것</b>과 같습니다.
               </div>
             </div>
             <div className="fact">
@@ -120,8 +177,8 @@ export default function Home() {
                 <span className="c">설명된 분산 · 브랜드 21곳</span>
               </div>
               <div className="t">
-                사이트 점수가 AI 노출을 설명하는 비율은 <b>20%뿐</b>입니다. 나머지 80%는 사이트 밖, 남이 쓴 문서에
-                있습니다.
+                홈페이지의 기여는 <b>20%</b>. 나머지 80%는 비교 기사·커뮤니티 글·업계 목록
+                같은 <b>남이 쓴 글</b>에서 왔습니다.
               </div>
             </div>
           </div>
@@ -130,41 +187,130 @@ export default function Home() {
 
       <section id="how">
         <div className="wrap">
-          <div className="lab">작동 방식</div>
-          <h2>재고, 원인을 가르고, 순서를 정합니다</h2>
-          <div className="steps">
-            <div className="step">
-              <div className="n">STEP 01</div>
-              <h3>진단</h3>
+          <div className="lab">서비스</div>
+          <h2>넷 중 필요한 것만</h2>
+          <p className="sub2">
+            대부분은 <b>측정</b>부터 시작합니다. 나머지는 재본 뒤에 정해도 늦지 않습니다.
+          </p>
+
+          <div className="svcs">
+            {SERVICES.map((sv) => (
+              <Link className="svc" key={sv.slug} href={`/services/${sv.slug}`}>
+                <div className="svch">
+                  <span className="mono no">{sv.no}</span>
+                  <span className="mono tag">{sv.tag}</span>
+                </div>
+                <h3>{sv.name}</h3>
+                <p>{sv.short}</p>
+                <span className="svcgo mono">자세히 →</span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="deep" id="case">
+        <div className="wrap">
+          <div className="lab">첫 고객사 · 진행중</div>
+          <h2>착수 하루 만에<br />AI가 사이트를 다 읽어갔습니다</h2>
+          <p className="sub2">
+            수도권의 코딩·로봇 교육 학원입니다. 홈페이지가 없고 블로그만 있었습니다.
+            착수한 날 지금 상태를 먼저 재고, 같은 날 홈페이지를 만들고, 블로그 글 32편을 옮겼습니다.
+            아래 숫자는 <b>서버에 남은 기록을 그대로 가져온 것</b>입니다.
+          </p>
+
+          <div className="case">
+            <div className="cx">
+              <div className="cxh">
+                <span className="lab2">착수 시점 · 09.05</span>
+                <span className="mono cxn">0 / 6</span>
+              </div>
               <p>
-                AI 크롤러 접근 허용, 자바스크립트 없이 본문이 나오는지, 구조화 데이터, 문단 길이 등 7개 항목을 코드로
-                점검합니다. 브랜드 권위 같은 주관적 항목은 점수에 넣지 않습니다.
+                학부모가 쓸 질문 6개를 검색엔진에 넣었습니다. <b>전부 미노출.</b>
+                더 중요한 건 상위 결과에 <b>개별 학원 홈페이지가 하나도 없었다</b>는 점입니다 — 전부 디렉터리였습니다.
+                홈페이지를 아무리 잘 만들어도 이 질의는 못 이깁니다.
               </p>
             </div>
-            <div className="step">
-              <div className="n">STEP 02</div>
-              <h3>측정</h3>
+            <div className="cx">
+              <div className="cxh">
+                <span className="lab2">사이트 진단</span>
+                <span className="mono cxn">83 → 91</span>
+              </div>
               <p>
-                실제 구매자가 쓸 질문 세트를 4개 엔진에 반복 질의합니다. 매번 새 세션으로 개인화를 배제하고,
-                노출률·점유율·답변 내 순서를 표본 수와 함께 기록합니다.
+                크롤러 허용·llms.txt·구조화 데이터·문단 구조 7개 항목. 전부 코드로 확인 가능한 사실만 셉니다.
+                <b>브랜드 권위 같은 판단 항목은 점수에 넣지 않습니다.</b>
               </p>
             </div>
-            <div className="step">
-              <div className="n">STEP 03</div>
-              <h3>판정</h3>
+            <div className="cx">
+              <div className="cxh">
+                <span className="lab2">이관한 문서</span>
+                <span className="mono cxn">0 → 32편</span>
+              </div>
               <p>
-                사이트 점수와 노출률을 교차해 <b>원인이 사이트인지, 남의 문서인지</b> 가릅니다. 사이트가 문제가 아니면
-                “사이트는 문제가 아닙니다”라고 말합니다.
+                국내 대형 블로그 플랫폼은 robots.txt 로 GPTBot·ClaudeBot·PerplexityBot 을 전부 막습니다.
+                <b>7년치 블로그 글이 AI 에게는 없는 글이나 마찬가지였습니다.</b> 막히지 않은 곳으로 옮겼습니다.
               </p>
             </div>
-            <div className="step">
-              <div className="n">STEP 04</div>
-              <h3>실행</h3>
+            <div className="cx hi">
+              <div className="cxh">
+                <span className="lab2">AI가 읽은 비율 · 1일차</span>
+                <span className="mono cxn">91.2%</span>
+              </div>
               <p>
-                AI가 실제로 인용하는 문서를 역추적해, 경쟁사는 실려 있고 당신은 빠진 문서를 우선순위로 제시합니다.
-                원하시면 진입과 콘텐츠 제작까지 대행합니다.
+                AI가 <b>사이트 34쪽 중 31쪽</b>을 읽어 갔습니다.
+                "몇 번 왔다"가 아니라 <b>몇 쪽을 읽었느냐</b>로 셉니다.
+                10쪽짜리 사이트에 10번 온 것과 100쪽짜리에 10번 온 것은 전혀 다른 일이니까요.
               </p>
             </div>
+            <div className="cx">
+              <div className="cxh">
+                <span className="lab2">첫 크롤까지</span>
+                <span className="mono cxn">2시간</span>
+              </div>
+              <p>
+                주소를 연결하고 나서 AI가 처음 찾아오기까지 걸린 시간입니다.
+                <b>대부분의 회사는 이걸 모릅니다.</b> 구글 검색 콘솔에도 안 나오고,
+                서버에 직접 기록을 심어야만 알 수 있기 때문입니다.
+              </p>
+            </div>
+            <div className="cx">
+              <div className="cxh">
+                <span className="lab2">읽은 엔진</span>
+                <span className="mono cxn">2 / 6</span>
+              </div>
+              <p>
+                주요 AI 6곳 중 2곳이 다녀갔습니다. 나머지 4곳은 아직입니다.
+                <b>AI마다 새 사이트를 찾아오는 시점이 다릅니다.</b>
+                이 숫자가 언제 6이 되는지가 다음 달에 볼 것입니다.
+              </p>
+            </div>
+          </div>
+
+          <div className="caselog">
+            <div className="clh mono">서버가 기록한 실제 방문 로그</div>
+            <div className="cl mono">
+              <span>15:49:01</span><span>ClaudeBot</span><span>/robots.txt</span>
+            </div>
+            <div className="cl mono">
+              <span>15:49:27</span><span>ClaudeBot</span><span>/blog/seouldae-uiyegwa-hapgyeok</span>
+            </div>
+            <div className="cl mono">
+              <span>15:49:53</span><span>ClaudeBot</span><span>/blog/jayeoneo-koding</span>
+            </div>
+            <div className="cl mono">
+              <span>+18h</span><span>Googlebot</span><span>/ · /blog · /sitemap.xml</span>
+            </div>
+            <div className="cl mono dim">
+              <span>…</span><span>AI 2곳</span><span>34쪽 중 31쪽을 읽어감 · 91.2%</span>
+            </div>
+          </div>
+
+          <div className="casenote">
+            <b>여기까지가 지금 확인된 전부입니다.</b> AI가 이 학원을 실제로 추천하는지는
+            아직 모릅니다. 검색에 다 올라가기 전에 물어보면 어차피 “모른다”는 답만 나오기 때문에,
+            <b> 다음 달에 다시 물어보고 그 결과를 이 자리에 그대로 적겠습니다.</b>
+            <br />
+            좋아진 것만 골라 보여주는 사례는 만들지 않습니다.
           </div>
         </div>
       </section>
@@ -172,10 +318,11 @@ export default function Home() {
       <section id="diff">
         <div className="wrap">
           <div className="lab">다른 점</div>
-          <h2>숫자를 크게 보이게 만들지 않습니다</h2>
+          <h2>보기 좋은 숫자를<br />만들지 않습니다</h2>
           <p className="sub2">
-            이 시장의 리포트는 대부분 “AI 가시성 97%” 같은 확정값을 내놓습니다. 표본이 몇 개인지, 오차가 얼마인지는 적지
-            않습니다.
+            이 시장의 리포트는 대부분 “AI 가시성 97%” 같은 딱 떨어지는 숫자를 내놓습니다.
+            몇 번 물어봤는지, 다시 물으면 얼마나 달라지는지는 적혀 있지 않습니다.
+            <b>한 번 물어본 결과를 점수라고 부르는 것</b>이 지금 이 업계의 표준입니다.
           </p>
 
           <div className="diff">
@@ -187,6 +334,54 @@ export default function Home() {
                   <div className="us">62% (95% 신뢰구간 48–74%, 표본 150회)</div>
                 </div>
               </div>
+                {/* 표본이 늘수록 구간이 좁아진다 — 이 사업의 방법론을 한 장으로 보여준다 */}
+                <figure className="conv">
+                  <figcaption className="convh">
+                    <span className="mono">많이 물어볼수록 답이 또렷해집니다</span>
+                    <span className="mono dim">세로 막대 = 값이 흔들리는 범위</span>
+                  </figcaption>
+                  <svg viewBox="0 0 320 118" role="img"
+                       aria-label="표본 수가 5회에서 150회로 늘수록 신뢰구간이 좁아지는 그래프">
+                    {[0, 25, 50, 75, 100].map((v) => (
+                      <g key={v}>
+                        <line x1="34" x2="312" y1={16 + (100 - v) * 0.72} y2={16 + (100 - v) * 0.72}
+                              stroke="currentColor" strokeOpacity=".10" strokeWidth="1" />
+                        <text x="28" y={19 + (100 - v) * 0.72} textAnchor="end"
+                              fontSize="8" fill="currentColor" fillOpacity=".45"
+                              fontFamily="IBM Plex Mono, monospace">{v}</text>
+                      </g>
+                    ))}
+                    {[
+                      { x: 66,  lo: 22, hi: 96, n: "5" },
+                      { x: 132, lo: 38, hi: 84, n: "20" },
+                      { x: 198, lo: 48, hi: 74, n: "50" },
+                      { x: 268, lo: 56, hi: 68, n: "150" },
+                    ].map((d, i) => {
+                      const y = (v: number) => 16 + (100 - v) * 0.72;
+                      const mid = (d.lo + d.hi) / 2;
+                      return (
+                        <g key={d.n} className="ci" data-reveal={i * 220}
+                           style={{ ["--y0" as string]: `${y(mid)}px`, ["--h" as string]: `${y(d.lo) - y(d.hi)}px` }}>
+                          <line x1={d.x} x2={d.x} y1={y(d.hi)} y2={y(d.lo)}
+                                stroke="currentColor" strokeOpacity=".30" strokeWidth="9"
+                                strokeLinecap="round" />
+                          <line x1={d.x - 6} x2={d.x + 6} y1={y(d.hi)} y2={y(d.hi)}
+                                stroke="currentColor" strokeOpacity=".55" strokeWidth="1.5" />
+                          <line x1={d.x - 6} x2={d.x + 6} y1={y(d.lo)} y2={y(d.lo)}
+                                stroke="currentColor" strokeOpacity=".55" strokeWidth="1.5" />
+                          <circle cx={d.x} cy={y(mid)} r="4" fill="currentColor" />
+                          <text x={d.x} y="112" textAnchor="middle" fontSize="8.5"
+                                fill="currentColor" fillOpacity=".55"
+                                fontFamily="IBM Plex Mono, monospace">{d.n}회</text>
+                        </g>
+                      );
+                    })}
+                  </svg>
+                  <div className="convf">
+                    5번 물어보고 낸 60%와 150번 물어보고 낸 60%는 <b>같은 숫자가 아닙니다.</b>
+                    앞의 것은 22%일 수도 96%일 수도 있습니다. <b>몇 번 물어봤는지 안 적힌 숫자는 믿을 게 못 됩니다.</b>
+                  </div>
+                </figure>
               <div className="body">
                 생성형 AI는 같은 질문에도 매번 다른 답을 냅니다. 하루 5회 측정한 값의 오차는 ±40%p대입니다.{" "}
                 <b>표본을 밝히지 않은 단일 숫자는 근거가 아닙니다.</b> 표본을 늘리면 구간이 좁아지고, 그 과정을 그대로
@@ -224,13 +419,60 @@ export default function Home() {
         </div>
       </section>
 
+
+      {/* 대행사를 고를 때 구매자가 실제로 확인하는 항목.
+          대부분의 업체는 "무엇을 하는지"만 말하고 "무엇을 안 하는지"는 말하지 않는다.
+          이 절이 이 페이지에서 가장 신뢰를 만드는 자리다. */}
+      <section id="nots">
+        <div className="wrap">
+          <div className="lab">경계</div>
+          <h2>하지 않는 일</h2>
+          <p className="sub2">
+            검색·AI 노출 업계에는 단기 효과가 나지만 결국 손해가 되는 방법이 있습니다.
+            아래는 <b>계약서에 넣어도 되는 항목</b>입니다.
+          </p>
+
+          <div className="nots">
+            <div className="nt"><span className="x">✕</span><div>
+              <b>링크 사고팔기</b>
+              <p>돈을 주고 링크를 심지 않습니다. 적발되면 회복에 몇 달이 걸립니다.</p>
+            </div></div>
+            <div className="nt"><span className="x">✕</span><div>
+              <b>댓글·후기 작업</b>
+              <p>사람을 동원해 커뮤니티에 글이나 댓글을 뿌리지 않습니다.</p>
+            </div></div>
+            <div className="nt"><span className="x">✕</span><div>
+              <b>같은 글 여러 곳 도배</b>
+              <p>한 글을 돌려 쓰지 않습니다. AI는 중복 문서를 걸러냅니다.</p>
+            </div></div>
+            <div className="nt"><span className="x">✕</span><div>
+              <b>없는 사실 만들기</b>
+              <p>실적·수상·연혁을 부풀리지 않습니다. 다른 문서와 어긋나면 오히려 손해입니다.</p>
+            </div></div>
+            <div className="nt"><span className="x">✕</span><div>
+              <b>고객사 명의 도용</b>
+              <p>대표자 인증이 필요한 계정을 대신 만들지 않습니다. 계정은 고객사 소유입니다.</p>
+            </div></div>
+            <div className="nt"><span className="x">✕</span><div>
+              <b>결과 보장</b>
+              <p>“몇 위 보장” 같은 말을 하지 않습니다. 할 수 있다면 그건 조작입니다.</p>
+            </div></div>
+          </div>
+
+          <div className="notsfoot">
+            <b>그럼 뭘 하느냐면</b> — 측정으로 <b>어느 문서가 실제로 인용되는지</b> 찾아내고,
+            그 문서에 <b>사실만으로</b> 들어갑니다. 뿌리는 게 아니라 다섯 곳을 고르는 일입니다.
+          </div>
+        </div>
+      </section>
+
       <section id="price">
         <div className="wrap">
           <div className="lab">요금</div>
-          <h2>측정이 포함된 유일한 구간</h2>
+          <h2>재는 값이 포함된 요금</h2>
           <p className="sub2">
             국내 GEO 대행은 측정 없이 콘텐츠만 발행하는 월 100~300만원대와, 측정을 갖춘 월 500만원 이상으로 갈려 있습니다.
-            사이트밴드는 그 사이를 채웁니다.
+            Cited는 그 사이에 있습니다 — 재는 값을 넣되 실행까지 합니다.
           </p>
 
           <div className="plans">
@@ -266,7 +508,7 @@ export default function Home() {
                 </li>
                 <li>답변 원문 전량 열람</li>
                 <li>경쟁사 5곳 추적</li>
-                <li>인용 소스 분석 · 진입 우선순위</li>
+                <li>AI가 참고하는 글 분석 · 어디부터 실릴지 순서</li>
                 <li>월간 리포트 · 이상 알림</li>
               </ul>
               <div className="cta">
@@ -285,8 +527,8 @@ export default function Home() {
               <ul>
                 <li>측정 플랜 전체 포함</li>
                 <li>기술 세팅 (robots·스키마·llms.txt)</li>
-                <li>인용용 콘텐츠 월 2~3건 제작·발행</li>
-                <li>제3자 매체 진입 월 1~2건</li>
+                <li>AI가 인용할 만한 글 월 2~3건 작성·발행</li>
+                <li>외부 매체·목록에 싣기 월 1~2건</li>
                 <li>사실 오류 정정</li>
                 <li>월 1회 전략 리뷰</li>
               </ul>
@@ -340,9 +582,9 @@ export default function Home() {
             <details>
               <summary>얼마나 걸리나요?</summary>
               <p>
-                엔진마다 다릅니다. Perplexity처럼 실시간 검색 비중이 큰 엔진은 2~4주, ChatGPT는 모델 갱신 주기 때문에
-                2~3개월가량 걸리는 경향이 있습니다. <b>보장 수치가 아니라 관찰되는 경향</b>이며, 업종 경쟁도와 기존 신뢰
-                신호에 따라 달라집니다.
+                AI마다 다릅니다. 질문을 받을 때마다 웹을 찾아보는 쪽은 <b>2~4주</b>면 반영되고,
+                미리 학습한 내용으로 답하는 쪽은 <b>2~3개월</b>쯤 걸립니다.
+                보장하는 기간이 아니라 지금까지 관찰된 대략의 흐름이며, 업종 경쟁이 심하면 더 걸립니다.
               </p>
             </details>
             <details>
@@ -389,7 +631,7 @@ export default function Home() {
         <div className="wrap">
           <div className="row">
             <span className="logo">
-              사이트<em>밴드</em>
+              <span className="mk" aria-hidden="true">[ ]</span>Cited<em>사이티드</em>
             </span>
             <span>AI 답변 노출 측정 · GEO</span>
             <span className="mono" style={{ marginLeft: "auto" }}>
@@ -397,9 +639,9 @@ export default function Home() {
             </span>
           </div>
           <div className="wm">
-            <b>내부 검토용 초안입니다.</b> “사이트밴드”는 가안이며 확정 브랜드명이 아닙니다. 페이지의 실측 수치(26곳 점검 ·
-            반복 시 28% 변동 · 설명력 20%)는 자체 측정값이며, 표본이 작아 확정치가 아닌 방향 신호입니다. 대외 발행 전 표본
-            확대가 필요합니다.
+            이 페이지의 수치(국내 B2B 26곳 점검 · 다시 물었을 때 28% 변동 · 홈페이지 기여도 20%)는 저희가 직접 잰 값입니다.
+            표본이 크지 않아 확정된 수치가 아니라 <b>대략의 방향</b>으로 읽어 주십시오 — 표본과 한계를 밝히는 것이
+            저희가 이 시장에서 하려는 일이기도 합니다. 케이스 스터디의 크롤러 방문 기록은 서버 원본입니다.
           </div>
         </div>
       </footer>

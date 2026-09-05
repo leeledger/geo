@@ -1,0 +1,136 @@
+{
+  "vertical": "coding-academy-songpa",
+  "label": "코딩·로봇 학원 (서울 송파)",
+  "locale": "ko-KR",
+  "note": "로봇&코딩학원(송파 석촌동)의 AI 답변 노출 기준선 측정용. 학부모가 실제로 쓰는 구어체로 작성했다. 지역 질문(석촌동·송파)과 비지역 질문(코딩 언제부터·AI 시대)을 섞었다 — 지역 질문은 경쟁이 얕아 먼저 잡히고, 비지역 질문은 인용될 문장이 있어야 잡힌다. 둘을 나눠 봐야 무엇이 효과가 있었는지 구분된다.",
+
+  "brand_universe": [
+    {
+      "id": "robotncoding",
+      "name": "로봇&코딩학원",
+      "domain": "robotncoding.com",
+      "aliases": [
+        "로봇앤코딩",
+        "로봇앤코딩학원",
+        "로봇&코딩",
+        "로봇 코딩학원",
+        "석촌동 코딩학원",
+        "송파 로봇코딩",
+        "robotncoding"
+      ]
+    },
+    {
+      "id": "codingmax",
+      "name": "코딩맥스",
+      "domain": "",
+      "aliases": ["코딩맥스", "CodingMax"]
+    },
+    {
+      "id": "codingon",
+      "name": "코딩온",
+      "domain": "",
+      "aliases": ["코딩온", "CodingOn"]
+    },
+    {
+      "id": "cmsedu",
+      "name": "CMS영재교육",
+      "domain": "cmsedu.co.kr",
+      "aliases": ["CMS", "씨엠에스", "CMS영재", "CMS에듀"]
+    },
+    {
+      "id": "codingbrain",
+      "name": "코딩브레인",
+      "domain": "",
+      "aliases": ["코딩브레인"]
+    },
+    {
+      "id": "eyelevel",
+      "name": "눈높이 코딩",
+      "domain": "",
+      "aliases": ["눈높이", "대교 눈높이"]
+    },
+    {
+      "id": "wecode",
+      "name": "위코드",
+      "domain": "",
+      "aliases": ["위코드", "wecode"]
+    },
+    {
+      "id": "elice",
+      "name": "엘리스",
+      "domain": "elice.io",
+      "aliases": ["엘리스", "elice", "엘리스코딩"]
+    },
+    {
+      "id": "codingx",
+      "name": "코딩엑스",
+      "domain": "",
+      "aliases": ["코딩엑스", "codingx"]
+    },
+    {
+      "id": "robotis",
+      "name": "로보티즈",
+      "domain": "robotis.com",
+      "aliases": ["로보티즈", "ROBOTIS", "로보티즈 드림"]
+    }
+  ],
+
+  "fanout_queries": [
+    "송파구 코딩학원",
+    "석촌동 코딩학원",
+    "송파 로봇학원",
+    "잠실 코딩학원 추천",
+    "헬리오시티 코딩학원",
+    "가락동 코딩학원",
+    "초등 코딩학원 추천",
+    "초등학생 코딩 몇 학년부터",
+    "정보영재 준비 학원",
+    "SW특기자 전형 준비",
+    "한국코드페어 준비 학원",
+    "파이썬 초등학생 학원",
+    "AI 시대 코딩 교육",
+    "아이 코딩 배워야 하나",
+    "코딩학원 고르는 법"
+  ],
+
+  "prompts": [
+    { "id": "loc01", "stage": "local", "text": "서울 송파구에서 초등학생 코딩학원 좀 추천해줘" },
+    { "id": "loc02", "stage": "local", "text": "석촌동 근처에 로봇이랑 코딩 같이 배울 수 있는 학원 있어?" },
+    { "id": "loc03", "stage": "local", "text": "헬리오시티 사는데 애 코딩학원 어디 보내면 좋을까" },
+    { "id": "loc04", "stage": "local", "text": "잠실이나 송파 쪽에 파이썬 가르치는 초등 학원 알려줘" },
+    { "id": "loc05", "stage": "local", "text": "가락동 근처 코딩학원 중에 대회 준비도 해주는 데 있어?" },
+    { "id": "loc06", "stage": "local", "text": "송파구 로봇코딩학원 학원비가 보통 얼마나 해?" },
+    { "id": "loc07", "stage": "local", "text": "석촌호수 근처 아이 코딩 배울 만한 곳 알려줘" },
+    { "id": "loc08", "stage": "local", "text": "송파에서 중학생도 다닐 수 있는 코딩학원 추천해줘" },
+
+    { "id": "start01", "stage": "problem", "text": "초등학교 몇 학년부터 코딩 배우는 게 좋아?" },
+    { "id": "start02", "stage": "problem", "text": "7살인데 코딩 시켜도 될까? 아직 글자를 잘 못 읽어" },
+    { "id": "start03", "stage": "problem", "text": "우리 애가 코딩 학원 다니는데 뭘 배우는지 모르겠어. 어떻게 확인해?" },
+    { "id": "start04", "stage": "problem", "text": "블록코딩만 계속 하는데 언제 파이썬으로 넘어가야 해?" },
+    { "id": "start05", "stage": "problem", "text": "코딩학원 고를 때 뭘 봐야 해?" },
+
+    { "id": "ai01", "stage": "consider", "text": "AI가 코드를 다 짜주는데 아이한테 코딩 가르칠 필요가 있어?" },
+    { "id": "ai02", "stage": "consider", "text": "AI 시대에 아이한테 뭘 가르쳐야 할까?" },
+    { "id": "ai03", "stage": "consider", "text": "초등학생한테 챗GPT 쓰게 해도 될까?" },
+    { "id": "ai04", "stage": "consider", "text": "바이브 코딩이 뭐야? 아이도 배울 수 있어?" },
+    { "id": "ai05", "stage": "consider", "text": "AI 리터러시 교육하는 코딩학원 있어?" },
+    { "id": "ai06", "stage": "consider", "text": "자연어 코딩을 가르치는 학원이 있나?" },
+
+    { "id": "goal01", "stage": "consider", "text": "영재고나 과학고 가려면 코딩 어떻게 준비해?" },
+    { "id": "goal02", "stage": "consider", "text": "생기부에 쓸 수 있는 코딩 프로젝트 뭐가 좋아?" },
+    { "id": "goal03", "stage": "consider", "text": "학생부종합전형에 코딩 포트폴리오가 도움이 돼?" },
+    { "id": "goal04", "stage": "consider", "text": "한국코드페어 준비하려면 어디서 배워야 해?" },
+    { "id": "goal05", "stage": "consider", "text": "SW특기자 전형 준비하는 학원 알려줘" },
+    { "id": "goal06", "stage": "consider", "text": "정보올림피아드 준비 초등학생 어디서 시작해?" },
+
+    { "id": "cmp01", "stage": "compare", "text": "코딩학원이랑 코딩 온라인 강의 중에 뭐가 나아?" },
+    { "id": "cmp02", "stage": "compare", "text": "엔트리랑 스크래치 중에 뭐부터 하는 게 좋아?" },
+    { "id": "cmp03", "stage": "compare", "text": "로봇코딩이랑 그냥 코딩이랑 뭐가 달라?" },
+    { "id": "cmp04", "stage": "compare", "text": "대형 프랜차이즈 코딩학원이랑 동네 학원 중 어디가 나아?" },
+
+    { "id": "brand01", "stage": "brand", "text": "로봇앤코딩학원 어디 있어?" },
+    { "id": "brand02", "stage": "brand", "text": "송파 로봇&코딩학원 어떤 곳이야?" },
+    { "id": "brand03", "stage": "brand", "text": "robotncoding.com 이 사이트 무슨 학원이야?" },
+    { "id": "brand04", "stage": "brand", "text": "석촌동 274-8에 있는 코딩학원 알려줘" }
+  ]
+}

@@ -31,17 +31,34 @@ export async function GET(req: Request) {
     `select bot, vendor, count(*)::int hits from academy.crawl_hits group by bot, vendor`,
   );
 
+  // 커버리지 — "몇 회 왔다"보다 "몇 쪽 중 몇 쪽을 읽었다"가 규모를 말한다
+  const [cov] = await q<{ pages_total: number; pages_crawled: number; coverage_pct: string }>(
+    `select * from academy.coverage`,
+  );
+  // 첫 방문까지 걸린 시간 — 다음 고객사에 "보통 이렇습니다"라고 말할 근거
+  const [lead] = await q<{ hours: number | null }>(
+    `select round(extract(epoch from (min(seen_at) - '2026-09-05 14:00+09'::timestamptz))/3600)::int hours
+       from academy.crawl_hits`,
+  );
+
   const vendors = [...new Set(bots.map((b) => b.vendor))];
   const byBot = Object.fromEntries(bots.map((b) => [b.bot, b.hits]));
 
   await q(
-    `insert into academy.snapshots (day, taken_at, posts, chars, crawl_total, crawl_1d, crawl_7d, vendors, by_bot)
-     values (current_date, now(), $1,$2,$3,$4,$5,$6,$7)
+    `insert into academy.snapshots
+       (day, taken_at, posts, chars, crawl_total, crawl_1d, crawl_7d, vendors, by_bot,
+        pages_total, pages_crawled, coverage_pct, engines, lead_hours)
+     values (current_date, now(), $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
      on conflict (day) do update set
        taken_at=now(), posts=excluded.posts, chars=excluded.chars,
        crawl_total=excluded.crawl_total, crawl_1d=excluded.crawl_1d,
-       crawl_7d=excluded.crawl_7d, vendors=excluded.vendors, by_bot=excluded.by_bot`,
-    [posts.n, posts.chars, hits.total, hits.d1, hits.d7, vendors, JSON.stringify(byBot)],
+       crawl_7d=excluded.crawl_7d, vendors=excluded.vendors, by_bot=excluded.by_bot,
+       pages_total=excluded.pages_total, pages_crawled=excluded.pages_crawled,
+       coverage_pct=excluded.coverage_pct, engines=excluded.engines,
+       lead_hours=coalesce(academy.snapshots.lead_hours, excluded.lead_hours)`,
+    [posts.n, posts.chars, hits.total, hits.d1, hits.d7, vendors, JSON.stringify(byBot),
+     cov?.pages_total ?? 0, cov?.pages_crawled ?? 0, Number(cov?.coverage_pct ?? 0),
+     vendors.length, lead?.hours ?? null],
   );
 
   return NextResponse.json({
@@ -49,6 +66,9 @@ export async function GET(req: Request) {
     posts: posts.n,
     crawl_total: hits.total,
     crawl_1d: hits.d1,
+    coverage: `${cov?.pages_crawled ?? 0}/${cov?.pages_total ?? 0} (${cov?.coverage_pct ?? 0}%)`,
+    engines: vendors.length,
+    lead_hours: lead?.hours ?? null,
     vendors,
   });
 }

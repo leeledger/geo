@@ -1,0 +1,4 @@
+
+# 중간 배포 URL 스캔은 노이즈다. 최종 도메인 측정만 이력으로 남긴다.
+data/scans/*-codeis-projects-*.vercel.app.json
+data/scans/*-codeis-projects-*.vercel.app.txt

@@ -1,0 +1,375 @@
+{
+  "origin": "https://robotncoding.com",
+  "scanned_at": "2026-09-05T14:35:06.372Z",
+  "total": 91,
+  "grade": "우수",
+  "platform": {
+    "id": "nextjs",
+    "name": "Next.js",
+    "kind": "프레임워크",
+    "rootFile": "yes",
+    "schema": "yes",
+    "publish": "medium",
+    "owner": "개발팀",
+    "note": "기술적으로는 전부 가능합니다. 다만 배포 절차를 타므로 콘텐츠 발행 경로(CMS 연동 여부)를 확인하세요.",
+    "evidence": "/_next/static/"
+  },
+  "checks": {
+    "crawler": {
+      "score": 100,
+      "bots": [
+        {
+          "id": "OAI-SearchBot",
+          "label": "ChatGPT 검색",
+          "weight": 3,
+          "allowed": true,
+          "basis": "명시 그룹",
+          "explicit": true
+        },
+        {
+          "id": "ChatGPT-User",
+          "label": "ChatGPT 사용자요청",
+          "weight": 3,
+          "allowed": true,
+          "basis": "명시 그룹",
+          "explicit": true
+        },
+        {
+          "id": "PerplexityBot",
+          "label": "Perplexity",
+          "weight": 3,
+          "allowed": true,
+          "basis": "명시 그룹",
+          "explicit": true
+        },
+        {
+          "id": "Perplexity-User",
+          "label": "Perplexity 사용자",
+          "weight": 2,
+          "allowed": true,
+          "basis": "명시 그룹",
+          "explicit": true
+        },
+        {
+          "id": "ClaudeBot",
+          "label": "Claude",
+          "weight": 3,
+          "allowed": true,
+          "basis": "명시 그룹",
+          "explicit": true
+        },
+        {
+          "id": "Googlebot",
+          "label": "구글 색인",
+          "weight": 3,
+          "allowed": true,
+          "basis": "명시 그룹",
+          "explicit": true
+        },
+        {
+          "id": "Bingbot",
+          "label": "Bing/Copilot",
+          "weight": 2,
+          "allowed": true,
+          "basis": "명시 그룹",
+          "explicit": true
+        },
+        {
+          "id": "Yeti",
+          "label": "네이버",
+          "weight": 2,
+          "allowed": true,
+          "basis": "명시 그룹",
+          "explicit": true
+        },
+        {
+          "id": "GPTBot",
+          "label": "OpenAI 학습",
+          "weight": 1,
+          "allowed": true,
+          "basis": "명시 그룹",
+          "explicit": true
+        },
+        {
+          "id": "Google-Extended",
+          "label": "Gemini 학습",
+          "weight": 1,
+          "allowed": true,
+          "basis": "명시 그룹",
+          "explicit": true
+        },
+        {
+          "id": "CCBot",
+          "label": "Common Crawl",
+          "weight": 1,
+          "allowed": true,
+          "basis": "명시 그룹",
+          "explicit": true
+        }
+      ],
+      "blocked": []
+    },
+    "llmstxt": {
+      "score": 100,
+      "exists": true,
+      "bytes": 25145,
+      "sections": 14,
+      "hasEntity": true
+    },
+    "sitemap": {
+      "score": 100,
+      "exists": true,
+      "urls": 34
+    },
+    "ssr": {
+      "score": 100,
+      "avgTextLen": 6961,
+      "textRatio": 0.0805,
+      "thinPages": 0,
+      "totalPages": 6
+    },
+    "schema": {
+      "score": 91,
+      "pagesWithLd": 6,
+      "totalPages": 6,
+      "types": [
+        "EducationalOrganization",
+        "LocalBusiness",
+        "PostalAddress",
+        "Place",
+        "Offer",
+        "Service",
+        "OfferCatalog",
+        "Course",
+        "ContactPoint",
+        "Person",
+        "CollegeOrUniversity",
+        "WebSite",
+        "FAQPage",
+        "Question",
+        "Answer",
+        "Blog",
+        "BlogPosting",
+        "BreadcrumbList",
+        "ListItem"
+      ],
+      "matched": [
+        "WebSite",
+        "FAQPage",
+        "BreadcrumbList",
+        "LocalBusiness"
+      ],
+      "invalid": 0
+    },
+    "chunk": {
+      "score": 55,
+      "paragraphs": 289,
+      "listItems": 94,
+      "inBand": 149,
+      "bandRate": 51.6,
+      "tooLong": 0,
+      "vagueSubjects": 2
+    },
+    "patterns": {
+      "score": 93,
+      "questionHeadings": 9,
+      "numericFacts": 215,
+      "pagesWithTable": 2,
+      "pagesWithList": 2,
+      "pagesWithMeta": 6
+    }
+  },
+  "pages": [
+    {
+      "url": "https://robotncoding.com",
+      "ok": true,
+      "textLen": 14635,
+      "htmlLen": 161675,
+      "textRatio": 0.09052110715942477,
+      "ldCount": 1,
+      "ldInvalid": 0,
+      "types": [
+        "EducationalOrganization",
+        "LocalBusiness",
+        "PostalAddress",
+        "Place",
+        "Offer",
+        "Service",
+        "OfferCatalog",
+        "Course",
+        "ContactPoint",
+        "Person",
+        "CollegeOrUniversity",
+        "WebSite",
+        "FAQPage",
+        "Question",
+        "Answer"
+      ],
+      "paras": 103,
+      "items": 47,
+      "inBand": 46,
+      "tooLong": 0,
+      "headings": 29,
+      "qHeadings": 3,
+      "vague": 1,
+      "hasNumbers": 29,
+      "hasTable": true,
+      "hasList": true,
+      "lang": "ko",
+      "title": "로봇&amp;코딩학원 — 송파구 석촌동 코딩·로봇·AI 교육 | 초등부터 영재고 준비까지",
+      "desc": "로봇&amp;코딩학원은 서울 송파구 석촌동에 있는 코딩·로봇·AI 교육 전문 학원입니다. 코드 작성법이 아니라 문제를 정의하고 해결하는 사고력을 가르칩니다. 개발자 출신 원장이 초등 1학년 블록코딩부터 정보영재·SW특기자 준비까지 5단계로 지도합니다. 02-422-0525."
+    },
+    {
+      "url": "https://robotncoding.com/",
+      "ok": true,
+      "textLen": 14635,
+      "htmlLen": 161675,
+      "textRatio": 0.09052110715942477,
+      "ldCount": 1,
+      "ldInvalid": 0,
+      "types": [
+        "EducationalOrganization",
+        "LocalBusiness",
+        "PostalAddress",
+        "Place",
+        "Offer",
+        "Service",
+        "OfferCatalog",
+        "Course",
+        "ContactPoint",
+        "Person",
+        "CollegeOrUniversity",
+        "WebSite",
+        "FAQPage",
+        "Question",
+        "Answer"
+      ],
+      "paras": 103,
+      "items": 47,
+      "inBand": 46,
+      "tooLong": 0,
+      "headings": 29,
+      "qHeadings": 3,
+      "vague": 1,
+      "hasNumbers": 29,
+      "hasTable": true,
+      "hasList": true,
+      "lang": "ko",
+      "title": "로봇&amp;코딩학원 — 송파구 석촌동 코딩·로봇·AI 교육 | 초등부터 영재고 준비까지",
+      "desc": "로봇&amp;코딩학원은 서울 송파구 석촌동에 있는 코딩·로봇·AI 교육 전문 학원입니다. 코드 작성법이 아니라 문제를 정의하고 해결하는 사고력을 가르칩니다. 개발자 출신 원장이 초등 1학년 블록코딩부터 정보영재·SW특기자 준비까지 5단계로 지도합니다. 02-422-0525."
+    },
+    {
+      "url": "https://robotncoding.com/blog",
+      "ok": true,
+      "textLen": 6167,
+      "htmlLen": 75147,
+      "textRatio": 0.08206581766404514,
+      "ldCount": 1,
+      "ldInvalid": 0,
+      "types": [
+        "Blog",
+        "BlogPosting"
+      ],
+      "paras": 33,
+      "items": 0,
+      "inBand": 30,
+      "tooLong": 0,
+      "headings": 33,
+      "qHeadings": 3,
+      "vague": 0,
+      "hasNumbers": 109,
+      "hasTable": false,
+      "hasList": false,
+      "lang": "ko",
+      "title": "수업 기록과 학습 이야기 | 로봇&amp;코딩학원",
+      "desc": "로봇&amp;코딩학원의 수업 기록, 학생 작품, 대회 준비 과정, 코딩 교육에 대한 생각을 남깁니다. 서울 송파구 석촌동 코딩·로봇·AI 교육 학원."
+    },
+    {
+      "url": "https://robotncoding.com/blog/kodinghakweonui-seontaek",
+      "ok": true,
+      "textLen": 2636,
+      "htmlLen": 31568,
+      "textRatio": 0.0835022807906741,
+      "ldCount": 1,
+      "ldInvalid": 0,
+      "types": [
+        "BlogPosting",
+        "BreadcrumbList",
+        "ListItem"
+      ],
+      "paras": 21,
+      "items": 0,
+      "inBand": 10,
+      "tooLong": 0,
+      "headings": 19,
+      "qHeadings": 0,
+      "vague": 0,
+      "hasNumbers": 21,
+      "hasTable": false,
+      "hasList": false,
+      "lang": "ko",
+      "title": "코딩학원의 선택 | 로봇&amp;코딩학원",
+      "desc": "2018년 코딩교육 의무화와 함께 우후죽순 생겨나는 코딩 학원들. 그리고 깊어지는 고민과.. . ... 선택의 방황. 조금은 노골적이지만 진솔하고 명료한 선택을 추천해 드립니다. by 로보티즈키즈랩 반포교육원 WHY 01/ 미래들을 위한 미래의 교육산업을 읽다. 로보티…"
+    },
+    {
+      "url": "https://robotncoding.com/blog/jeolchajeoksago",
+      "ok": true,
+      "textLen": 2031,
+      "htmlLen": 25977,
+      "textRatio": 0.07818454786926897,
+      "ldCount": 1,
+      "ldInvalid": 0,
+      "types": [
+        "BlogPosting",
+        "BreadcrumbList",
+        "ListItem"
+      ],
+      "paras": 15,
+      "items": 0,
+      "inBand": 10,
+      "tooLong": 0,
+      "headings": 5,
+      "qHeadings": 0,
+      "vague": 0,
+      "hasNumbers": 14,
+      "hasTable": false,
+      "hasList": false,
+      "lang": "ko",
+      "title": "절차적사고 | 로봇&amp;코딩학원",
+      "desc": "소프트웨어 코딩의 목적은 &quot;보다 효율적인 알고리즘의 정리&quot; 라고 생각합니다. 예를 들어 보겠습니다. 문제. 1부터 100까지 의 합을 구하시오 위와 같은 문제가 주어졌을 때 우리는 여러가지 방법을 생각해 볼 수 있습니다. 첫째, 1부터 100까지 누적하면서 하나씩 더해…"
+    },
+    {
+      "url": "https://robotncoding.com/blog/robotijeuui-deurim-dangyereul-sogaehapnida",
+      "ok": true,
+      "textLen": 1663,
+      "htmlLen": 28473,
+      "textRatio": 0.058406209391353214,
+      "ldCount": 1,
+      "ldInvalid": 0,
+      "types": [
+        "BlogPosting",
+        "BreadcrumbList",
+        "ListItem"
+      ],
+      "paras": 14,
+      "items": 0,
+      "inBand": 7,
+      "tooLong": 0,
+      "headings": 7,
+      "qHeadings": 0,
+      "vague": 0,
+      "hasNumbers": 13,
+      "hasTable": false,
+      "hasList": false,
+      "lang": "ko",
+      "title": "로보티즈의 드림 단계를 소개합니다. | 로봇&amp;코딩학원",
+      "desc": "안녕하세요 로봇앤 코딩의 로보티즈 교육과정을 소개합니다. 유아에서 대학생및 성인까지 로봇을 수준별로 학습할 수 있고 이해하기 쉬운 단계별 커리큘럼을 통해 흥미를 기반으로한 무한한 상상력을 키워줍니다. 오늘은 로보티즈 드림 단계를 소개합니다. 로보티즈 아이디어, 드림 5…"
+    }
+  ],
+  "notes": [
+    {
+      "pri": 3,
+      "msg": "Next.js 감지 — 기술적으로는 전부 가능합니다. 다만 배포 절차를 타므로 콘텐츠 발행 경로(CMS 연동 여부)를 확인하세요."
+    }
+  ]
+}
