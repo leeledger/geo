@@ -5,6 +5,7 @@ export const metadata: Metadata = {
   title: "사이트밴드 — AI 답변 노출 측정",
   description:
     "ChatGPT·Gemini·Claude·Perplexity 답변에 브랜드가 인용되는지 표본과 오차범위까지 붙여 측정합니다. 원인이 사이트인지 남의 문서인지 가려냅니다.",
+  robots: process.env.NEXT_PUBLIC_ALLOW_INDEX === "true" ? undefined : { index: false, follow: false },
   openGraph: {
     title: "사이트밴드 — AI 답변 노출 측정",
     description: "AI 답변 노출을 표본·신뢰구간과 함께 측정합니다. 무료 진단.",
