@@ -13,6 +13,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "./store.js";
+import { detectPlatform, platformAdvice, CAP_LABEL, PUBLISH_LABEL } from "./platform.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, "..");
@@ -33,9 +34,11 @@ async function get(url, timeoutMs = 20000) {
       redirect: "follow",
       signal: AbortSignal.timeout(timeoutMs),
     });
-    return { ok: res.ok, status: res.status, body: res.ok ? await res.text() : "", url: res.url };
+    const headers = {};
+    res.headers.forEach((v, k) => { headers[k.toLowerCase()] = v; });
+    return { ok: res.ok, status: res.status, body: res.ok ? await res.text() : "", url: res.url, headers };
   } catch (e) {
-    return { ok: false, status: 0, body: "", error: e.message };
+    return { ok: false, status: 0, body: "", error: e.message, headers: {} };
   }
 }
 
@@ -197,6 +200,11 @@ let pageUrls = [origin];
   if (!sm.ok) notes.push({ pri: 3, msg: "sitemap.xml 이 없습니다. 색인이 안 되면 검색층에서 탈락합니다" });
 }
 
+// 3b) 운영 형태 감지
+const homeRes = await get(origin);
+const platform = homeRes.ok ? detectPlatform(homeRes.body, homeRes.headers, origin) : null;
+if (platform) notes.push(platformAdvice(platform));
+
 // 4) 페이지별 분석 — SSR / 스키마 / 청크 / AI 친화 패턴
 const pages = [];
 for (const u of pageUrls) {
@@ -346,6 +354,13 @@ say(`${"═".repeat(62)}\n`);
 for (const [k, w, label] of WEIGHTS) {
   const c = checks[k];
   say(`  ${label.padEnd(18)} ${String(c?.score ?? 0).padStart(3)}  ${bar(c?.score ?? 0)}  가중 ${w}%`);
+}
+
+if (platform) {
+  say(`
+── 운영 형태 ${"─".repeat(46)}`);
+  say(`  ${platform.kind} · ${platform.name}   (${platform.evidence})`);
+  say(`  루트파일 ${CAP_LABEL[platform.rootFile]} · 스키마 ${CAP_LABEL[platform.schema]} · 발행 ${PUBLISH_LABEL[platform.publish]} · 작업주체 ${platform.owner}`);
 }
 
 say(`\n── AI 크롤러 ${"─".repeat(46)}`);

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { ScanResult } from "@/lib/scan";
+import { CAP_LABEL, PUBLISH_LABEL } from "@/lib/platform";
 
 type Result = ScanResult & { scanId?: string | null };
 
@@ -101,6 +102,22 @@ export default function ScanForm({ id, placeholder }: { id: string; placeholder?
             <span className="grade">{result.grade}</span>
             <span className="dom">{result.origin.replace(/^https?:\/\//, "")}</span>
           </div>
+
+          {result.platform && (
+            <div className="plat">
+              <div className="plat-hd">
+                <span className="plat-kind">{result.platform.kind}</span>
+                <b>{result.platform.name}</b>
+                <span className="plat-ev">{result.platform.evidence}</span>
+              </div>
+              <div className="plat-caps">
+                <span>루트 파일(robots·llms.txt) <b>{CAP_LABEL[result.platform.rootFile]}</b></span>
+                <span>구조화 데이터 <b>{CAP_LABEL[result.platform.schema]}</b></span>
+                <span>콘텐츠 발행 <b>{PUBLISH_LABEL[result.platform.publish]}</b></span>
+                <span>작업 주체 <b>{result.platform.owner}</b></span>
+              </div>
+            </div>
+          )}
 
           <div className="rows">
             {result.weights.map((w) => (

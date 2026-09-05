@@ -6,6 +6,8 @@
  * 브랜드 권위·E-E-A-T 같은 판단 항목은 점수에 넣지 않는다 — 점수로 위장한 감상은 팔 수 없다.
  */
 
+import { detectPlatform, platformAdvice, type Platform } from "./platform";
+
 const UA = "Mozilla/5.0 (compatible; siteband-scan/0.1; +diagnostics)";
 
 export type Note = { pri: 1 | 2 | 3; msg: string };
@@ -17,6 +19,7 @@ export type ScanResult = {
   grade: "우수" | "보통" | "미흡" | "위험";
   checks: Record<string, any>;
   weights: { key: string; weight: number; label: string; score: number }[];
+  platform: Platform | null;
   pages: { url: string; ok: boolean; textLen?: number; status?: number }[];
   notes: Note[];
   error?: string;
@@ -30,9 +33,11 @@ async function get(url: string, timeoutMs = 15000) {
       signal: AbortSignal.timeout(timeoutMs),
       cache: "no-store",
     });
-    return { ok: res.ok, status: res.status, body: res.ok ? await res.text() : "" };
+    const headers: Record<string, string> = {};
+    res.headers.forEach((v, k) => { headers[k.toLowerCase()] = v; });
+    return { ok: res.ok, status: res.status, body: res.ok ? await res.text() : "", headers };
   } catch {
-    return { ok: false, status: 0, body: "" };
+    return { ok: false, status: 0, body: "", headers: {} as Record<string, string> };
   }
 }
 
@@ -149,12 +154,13 @@ export async function scanSite(rawTarget: string, maxPages = 5): Promise<ScanRes
   if (!origin) {
     return {
       origin: rawTarget, scannedAt: new Date().toISOString(), total: 0, grade: "위험",
-      checks: {}, weights: [], pages: [], notes: [], error: "올바른 주소가 아닙니다",
+      checks: {}, weights: [], platform: null, pages: [], notes: [], error: "올바른 주소가 아닙니다",
     };
   }
 
   const checks: Record<string, any> = {};
   const notes: Note[] = [];
+  let llmsMissing = false;
 
   /* 1) AI 크롤러 접근 */
   const rb = await get(`${origin}/robots.txt`);
@@ -178,7 +184,7 @@ export async function scanSite(rawTarget: string, maxPages = 5): Promise<ScanRes
   const lt = await get(`${origin}/llms.txt`);
   if (!lt.ok) {
     checks.llmstxt = { score: 0, exists: false };
-    notes.push({ pri: 2, msg: "llms.txt 가 없습니다. AI가 그대로 인용할 브랜드 설명문을 길이별로 넣으세요." });
+    llmsMissing = true;   // 플랫폼 감지 후에 지적 여부를 정한다
   } else {
     const bytes = new TextEncoder().encode(lt.body).length;
     const sections = (lt.body.match(/^##\s+/gm) || []).length;
@@ -206,6 +212,15 @@ export async function scanSite(rawTarget: string, maxPages = 5): Promise<ScanRes
   const skip = /\/(privacy|terms|policy|약관|login|signup|cart)\b/i;
   const picked = urls.filter((u) => !skip.test(u) && !u.endsWith(".xml") && u.startsWith(origin)).slice(0, maxPages - 1);
   const pageUrls = [...new Set([origin, ...picked])].slice(0, maxPages);
+
+  /* 3b) 플랫폼 감지 — 홈페이지 한 번만 본다 */
+  const home = await get(origin);
+  const platform = home.ok ? detectPlatform(home.body, home.headers, origin) : null;
+  if (platform) notes.push(platformAdvice(platform));
+  // 루트 파일을 못 올리는 플랫폼에 "llms.txt 를 넣으세요"라고 하면 실행 불가능한 조치가 된다
+  if (llmsMissing && platform?.rootFile !== "no") {
+    notes.push({ pri: 2, msg: "llms.txt 가 없습니다. AI가 그대로 인용할 브랜드 설명문을 길이별로 넣으세요." });
+  }
 
   /* 4) 페이지 분석 (동시) */
   const pages = await Promise.all(pageUrls.map(async (u) => {
@@ -302,7 +317,7 @@ export async function scanSite(rawTarget: string, maxPages = 5): Promise<ScanRes
   const grade = total >= 80 ? "우수" : total >= 60 ? "보통" : total >= 40 ? "미흡" : "위험";
 
   return {
-    origin, scannedAt: new Date().toISOString(), total, grade, checks,
+    origin, scannedAt: new Date().toISOString(), total, grade, checks, platform,
     weights: WEIGHTS.map(([key, weight]) => ({ key, weight, label: SITE_LABELS[key], score: checks[key]?.score ?? 0 })),
     pages: pages.map((p) => ({ url: p.url, ok: p.ok, textLen: (p as any).textLen, status: (p as any).status })),
     notes: notes.sort((a, b) => a.pri - b.pri),
