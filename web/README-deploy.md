@@ -11,3 +11,4 @@ Vercel 프로젝트: **geo** (codeis' projects)
   Hobby 플랜 동시 빌드 한도에 걸려 배포가 BLOCKED 된다.
 - 색인은 막혀 있다. 공개 시 `NEXT_PUBLIC_ALLOW_INDEX=true` 를 환경변수에 추가.
 - CLI 수동 배포: `cd web && npx vercel deploy --prod`
+- 2026-09-05: 중복 프로젝트 `web` 의 Git 연결을 끊어 빌드 충돌을 해소했다.
