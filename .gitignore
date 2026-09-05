@@ -26,3 +26,6 @@ next-env.d.ts
 # 스크래치
 /tmp/
 *.log
+
+# Vercel
+.vercel
