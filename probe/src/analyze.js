@@ -13,6 +13,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { readJsonl, readJson, parseArgs } from "./store.js";
+import { profile, ENTRY } from "./sources.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, "..");
@@ -68,6 +69,18 @@ for (const a of Object.values(ai)) {
   a.aiVisibility = a.mrr;                                       // 위치 가중 노출량
 }
 
+/* ─────────── 1b. 브랜드 지명률 — 이 분야가 GEO 시장인가 ─────────── */
+
+const promptGroups = {};
+for (const m of mentions) (promptGroups[m.prompt_id] ??= []).push(m);
+const promptsNamed = Object.values(promptGroups).filter((runs) =>
+  runs.some((r) => (r.brands ?? []).length > 0)).length;
+const promptsTotal = Object.keys(promptGroups).length;
+const namingRate = promptsTotal ? promptsNamed / promptsTotal : 0;
+const generalOnly = Object.entries(promptGroups)
+  .filter(([, runs]) => !runs.some((r) => (r.brands ?? []).length > 0))
+  .map(([pid]) => pid);
+
 /* ─────────── 2. 재현성 — 같은 질문을 반복하면 같은 답이 나오는가 ─────────── */
 
 const byPrompt = {};
@@ -104,6 +117,9 @@ const totalCites = citedDomains.reduce((s, [, c]) => s + c, 0);
 const ownCiteShare = totalCites
   ? citedDomains.filter(([d]) => ownDomains.has(d)).reduce((s, [, c]) => s + c, 0) / totalCites
   : 0;
+
+const compDomains = new Set(BRANDS.filter((b) => b.id !== args.brand).map((b) => b.domain).filter(Boolean));
+const srcProfile = profile(Object.fromEntries(citedDomains), ownDomains, compDomains);
 
 /* ─────────── 5. 검색 쪽 지표 + 상관 (핵심) ─────────── */
 
@@ -318,6 +334,24 @@ if (searchOnly) {
   process.exit(0);
 }
 
+if (srcProfile.total) {
+  say(`
+── 인용 소스 유형 — 어디를 뚫어야 하는가 `.padEnd(64, "─"));
+  const maxSrc = srcProfile.rows[0]?.count ?? 1;
+  say(`  ${"유형".padEnd(14)} ${"비중".padStart(6)}  진입 방법`);
+  for (const r of srcProfile.rows) {
+    const e = ENTRY[r.type];
+    say(`  ${e.label.padEnd(14)} ${pct(r.share).padStart(6)}  ${e.how}`);
+    say(`  ${"".padEnd(22)} ${bar(r.count, maxSrc, 12)} ${r.domains.slice(0, 3).map((d) => d.domain).join(", ")}`);
+  }
+  say(`
+  우리가 손댈 수 있는 지면 비중  ${pct(srcProfile.reachableShare)}`);
+  say(srcProfile.reachableShare >= 0.5
+    ? "  → 진입 가능한 지면이 충분하다. 위 유형별 방법대로 접촉하면 된다."
+    : "  ⚠ 자사·경쟁사 지면이 대부분이다. 남의 문서로 들어갈 자리가 좁으므로 " +
+      "자사 콘텐츠와 신규 비교 문서 제작에 무게를 둬야 한다.");
+}
+
 say(`\n${"━".repeat(64)}`);
 say("  핵심 질문 — AI 언급은 검색 순위로 설명되는가");
 say(`${"━".repeat(64)}`);
@@ -352,6 +386,8 @@ const report = {
   executions: execs, prompts: promptIds.length, mention_events: totalMentionEvents,
   brands: ranked, zero_mention: zero.map((z) => z.id),
   outsiders: [...outsiders.entries()].sort((a, b) => b[1] - a[1]),
+  naming_rate: namingRate, prompts_named: promptsNamed, prompts_total: promptsTotal, general_only: generalOnly,
+  source_profile: srcProfile,
   stability, fanout_avg: fanoutAvg, unique_queries: queryFreq.size,
   cited_domains: citedDomains, own_citation_share: ownCiteShare,
   search: searchStats, spearman: corr, residual, coverage, inversion,

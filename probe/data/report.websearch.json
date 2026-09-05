@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-01T08:09:03.153Z",
+  "generated_at": "2026-09-05T10:11:23.607Z",
   "vertical": "smb-erp-kr",
   "engine": "websearch",
   "executions": 15,
@@ -266,6 +266,173 @@
     "godo"
   ],
   "outsiders": [],
+  "naming_rate": 0.8333333333333334,
+  "prompts_named": 10,
+  "prompts_total": 12,
+  "general_only": [
+    "p13",
+    "p34"
+  ],
+  "source_profile": {
+    "total": 71,
+    "rows": [
+      {
+        "type": "thirdparty",
+        "count": 32,
+        "domains": [
+          {
+            "domain": "korea-erp.com",
+            "n": 11
+          },
+          {
+            "domain": "waveon.io",
+            "n": 4
+          },
+          {
+            "domain": "reviewinsight.blog",
+            "n": 4
+          },
+          {
+            "domain": "wikidocs.net",
+            "n": 2
+          },
+          {
+            "domain": "xrp.kr",
+            "n": 1
+          },
+          {
+            "domain": "finnest.ai",
+            "n": 1
+          },
+          {
+            "domain": "clobe.ai",
+            "n": 1
+          },
+          {
+            "domain": "tilnote.io",
+            "n": 1
+          },
+          {
+            "domain": "lido.app",
+            "n": 1
+          },
+          {
+            "domain": "chungoose.kr",
+            "n": 1
+          },
+          {
+            "domain": "appmaster.io",
+            "n": 1
+          },
+          {
+            "domain": "systemever.kr",
+            "n": 1
+          },
+          {
+            "domain": "download.ecounterp.com",
+            "n": 1
+          },
+          {
+            "domain": "totb.kr",
+            "n": 1
+          },
+          {
+            "domain": "itnara.co.kr",
+            "n": 1
+          }
+        ],
+        "share": 0.4507042253521127
+      },
+      {
+        "type": "own",
+        "count": 24,
+        "domains": [
+          {
+            "domain": "blog.iquest.co.kr",
+            "n": 9
+          },
+          {
+            "domain": "doto.kr",
+            "n": 6
+          },
+          {
+            "domain": "sap.com",
+            "n": 4
+          },
+          {
+            "domain": "dahaeinc.co.kr",
+            "n": 3
+          },
+          {
+            "domain": "biz-solution.hiworks.com",
+            "n": 1
+          },
+          {
+            "domain": "erpcloud.douzone.com",
+            "n": 1
+          }
+        ],
+        "share": 0.3380281690140845
+      },
+      {
+        "type": "corporate",
+        "count": 9,
+        "domains": [
+          {
+            "domain": "blog.stackcube.io",
+            "n": 5
+          },
+          {
+            "domain": "blog.wishket.com",
+            "n": 2
+          },
+          {
+            "domain": "blog.aspn.co.kr",
+            "n": 1
+          },
+          {
+            "domain": "blog.pluuug.com",
+            "n": 1
+          }
+        ],
+        "share": 0.1267605633802817
+      },
+      {
+        "type": "community",
+        "count": 3,
+        "domains": [
+          {
+            "domain": "clien.net",
+            "n": 3
+          }
+        ],
+        "share": 0.04225352112676056
+      },
+      {
+        "type": "blogplatform",
+        "count": 2,
+        "domains": [
+          {
+            "domain": "brunch.co.kr",
+            "n": 2
+          }
+        ],
+        "share": 0.028169014084507043
+      },
+      {
+        "type": "media",
+        "count": 1,
+        "domains": [
+          {
+            "domain": "bloter.net",
+            "n": 1
+          }
+        ],
+        "share": 0.014084507042253521
+      }
+    ],
+    "reachableShare": 0.6619718309859155
+  },
   "stability": 0.7222222222222222,
   "fanout_avg": 0,
   "unique_queries": 0,
