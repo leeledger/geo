@@ -1,0 +1,128 @@
+{
+  "origin": "https://typed.do",
+  "scanned_at": "2026-09-05T10:23:46.609Z",
+  "total": 19,
+  "grade": "위험",
+  "platform": {
+    "id": "custom",
+    "name": "자체 개발",
+    "kind": "자체개발",
+    "rootFile": "yes",
+    "schema": "yes",
+    "publish": "hard",
+    "owner": "확인 필요",
+    "evidence": "server: UploadServer",
+    "note": "기술적으로는 전부 가능하지만, 실제 작업을 누가 하는지에 따라 리드타임이 크게 달라집니다. 내부 개발팀이면 며칠, 외주 유지보수사를 거치면 몇 주가 걸립니다."
+  },
+  "checks": {
+    "crawler": {
+      "score": 60,
+      "detail": "robots.txt 없음 — 기본적으로 전부 허용이지만 명시적 신호가 없다",
+      "bots": []
+    },
+    "llmstxt": {
+      "score": 0,
+      "exists": false
+    },
+    "sitemap": {
+      "score": 0,
+      "exists": false,
+      "urls": 0
+    },
+    "ssr": {
+      "score": 10,
+      "avgTextLen": 397,
+      "textRatio": 0.1554,
+      "thinPages": 1,
+      "totalPages": 1
+    },
+    "schema": {
+      "score": 0,
+      "pagesWithLd": 0,
+      "totalPages": 1,
+      "types": [],
+      "matched": [],
+      "invalid": 0
+    },
+    "chunk": {
+      "score": 10,
+      "paragraphs": 2,
+      "listItems": 0,
+      "inBand": 1,
+      "bandRate": 50,
+      "tooLong": 0,
+      "vagueSubjects": 0
+    },
+    "patterns": {
+      "score": 0,
+      "questionHeadings": 0,
+      "numericFacts": 0,
+      "pagesWithTable": 0,
+      "pagesWithList": 0,
+      "pagesWithMeta": 0
+    }
+  },
+  "pages": [
+    {
+      "url": "https://typed.do",
+      "ok": true,
+      "textLen": 397,
+      "htmlLen": 2555,
+      "textRatio": 0.1553816046966732,
+      "ldCount": 0,
+      "ldInvalid": 0,
+      "types": [],
+      "paras": 2,
+      "items": 0,
+      "inBand": 1,
+      "tooLong": 0,
+      "headings": 2,
+      "qHeadings": 0,
+      "vague": 0,
+      "hasNumbers": 0,
+      "hasTable": false,
+      "hasList": false,
+      "lang": "en",
+      "title": "Typed.do Shutdown Notice",
+      "desc": null
+    }
+  ],
+  "notes": [
+    {
+      "pri": 1,
+      "msg": "1/1 페이지가 JS 없이는 본문이 거의 없습니다. AI 크롤러도 같은 것을 봅니다 — 서버 렌더링(SSR)이 필요합니다"
+    },
+    {
+      "pri": 1,
+      "msg": "JSON-LD 구조화 데이터가 한 페이지에도 없습니다. Organization·Article·FAQPage 부터 넣으세요"
+    },
+    {
+      "pri": 1,
+      "msg": "산문 문단이 거의 없습니다. AI가 떼어갈 문장 자체가 없다는 뜻입니다"
+    },
+    {
+      "pri": 2,
+      "msg": "robots.txt 를 만들고 AI 크롤러를 User-agent 별로 명시 허용하세요"
+    },
+    {
+      "pri": 2,
+      "msg": "llms.txt 가 없습니다. AI가 그대로 인용할 브랜드 설명문을 길이별로 넣으세요"
+    },
+    {
+      "pri": 2,
+      "msg": "질문형 제목이 하나도 없습니다. 사람이 AI에게 묻는 문장을 그대로 제목으로 쓰세요"
+    },
+    {
+      "pri": 3,
+      "msg": "sitemap.xml 이 없습니다. 색인이 안 되면 검색층에서 탈락합니다"
+    },
+    {
+      "pri": 3,
+      "msg": "자체 개발 사이트로 보입니다 (server: UploadServer). 기술적으로는 전부 가능하지만, 실제 작업을 누가 하는지에 따라 리드타임이 크게 달라집니다. 내부 개발팀이면 며칠, 외주 유지보수사를 거치면 몇 주가 걸립니다. 착수 전에 사이트를 누가 관리하는지부터 확인하세요 — 여기서 일정이 갈립니다."
+    },
+    {
+      "pri": 3,
+      "msg": "수치가 거의 없습니다. AI는 숫자·조건이 붙은 문장을 인용합니다"
+    }
+  ]
+}

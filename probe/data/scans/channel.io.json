@@ -1,0 +1,241 @@
+{
+  "origin": "https://channel.io",
+  "scanned_at": "2026-09-05T10:23:53.074Z",
+  "total": 59,
+  "grade": "미흡",
+  "platform": {
+    "id": "nextjs",
+    "name": "Next.js",
+    "kind": "프레임워크",
+    "rootFile": "yes",
+    "schema": "yes",
+    "publish": "medium",
+    "owner": "개발팀",
+    "note": "기술적으로는 전부 가능합니다. 다만 배포 절차를 타므로 콘텐츠 발행 경로(CMS 연동 여부)를 확인하세요.",
+    "evidence": "__NEXT_DATA__"
+  },
+  "checks": {
+    "crawler": {
+      "score": 85,
+      "bots": [
+        {
+          "id": "OAI-SearchBot",
+          "label": "ChatGPT 검색",
+          "weight": 3,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "ChatGPT-User",
+          "label": "ChatGPT 사용자요청",
+          "weight": 3,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "PerplexityBot",
+          "label": "Perplexity",
+          "weight": 3,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "Perplexity-User",
+          "label": "Perplexity 사용자",
+          "weight": 2,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "ClaudeBot",
+          "label": "Claude",
+          "weight": 3,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "Googlebot",
+          "label": "구글 색인",
+          "weight": 3,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "Bingbot",
+          "label": "Bing/Copilot",
+          "weight": 2,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "Yeti",
+          "label": "네이버",
+          "weight": 2,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "GPTBot",
+          "label": "OpenAI 학습",
+          "weight": 1,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "Google-Extended",
+          "label": "Gemini 학습",
+          "weight": 1,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "CCBot",
+          "label": "Common Crawl",
+          "weight": 1,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        }
+      ],
+      "blocked": []
+    },
+    "llmstxt": {
+      "score": 75,
+      "exists": true,
+      "bytes": 2932,
+      "sections": 5,
+      "hasEntity": false
+    },
+    "sitemap": {
+      "score": 100,
+      "exists": true,
+      "urls": 1120
+    },
+    "ssr": {
+      "score": 30,
+      "avgTextLen": 3965,
+      "textRatio": 0.0086,
+      "thinPages": 0,
+      "totalPages": 2
+    },
+    "schema": {
+      "score": 64,
+      "pagesWithLd": 2,
+      "totalPages": 2,
+      "types": [
+        "Organization",
+        "Corporation",
+        "ContactPoint"
+      ],
+      "matched": [
+        "Organization"
+      ],
+      "invalid": 0
+    },
+    "chunk": {
+      "score": 41,
+      "paragraphs": 74,
+      "listItems": 0,
+      "inBand": 24,
+      "bandRate": 32.4,
+      "tooLong": 0,
+      "vagueSubjects": 1
+    },
+    "patterns": {
+      "score": 45,
+      "questionHeadings": 0,
+      "numericFacts": 55,
+      "pagesWithTable": 0,
+      "pagesWithList": 0,
+      "pagesWithMeta": 2
+    }
+  },
+  "pages": [
+    {
+      "url": "https://channel.io",
+      "ok": true,
+      "textLen": 4467,
+      "htmlLen": 545365,
+      "textRatio": 0.008190844663665618,
+      "ldCount": 3,
+      "ldInvalid": 0,
+      "types": [
+        "Organization",
+        "Corporation",
+        "ContactPoint"
+      ],
+      "paras": 42,
+      "items": 0,
+      "inBand": 16,
+      "tooLong": 0,
+      "headings": 10,
+      "qHeadings": 0,
+      "vague": 1,
+      "hasNumbers": 32,
+      "hasTable": false,
+      "hasList": false,
+      "lang": "ko",
+      "title": "상담은 채널톡, 업무는 채널웍스에서 시작하세요",
+      "desc": "고객 상담부터 데이터 분석, 마케팅, 팀 협업까지 비즈니스의 중심에 고객을 연결하는 AI 비즈니스 OS"
+    },
+    {
+      "url": "https://channel.io/alf-customer",
+      "ok": true,
+      "textLen": 3463,
+      "htmlLen": 387292,
+      "textRatio": 0.008941573799613729,
+      "ldCount": 3,
+      "ldInvalid": 0,
+      "types": [
+        "Organization",
+        "Corporation",
+        "ContactPoint"
+      ],
+      "paras": 32,
+      "items": 0,
+      "inBand": 8,
+      "tooLong": 0,
+      "headings": 2,
+      "qHeadings": 0,
+      "vague": 0,
+      "hasNumbers": 23,
+      "hasTable": false,
+      "hasList": false,
+      "lang": "ko",
+      "title": "대충 이야기해도 찰떡같이 알아서 하는 ALF - 채널톡",
+      "desc": "AI 에이전트 ALF는 상담원을 대신해 고객 문제를 스스로 해결합니다."
+    }
+  ],
+  "notes": [
+    {
+      "pri": 2,
+      "msg": "AI 크롤러가 * 규칙으로만 허용됩니다. User-agent 별로 명시하면 의도가 분명해집니다"
+    },
+    {
+      "pri": 2,
+      "msg": "FAQPage / HowTo 스키마가 없습니다. 질문-답변 형태가 AI 인용에 가장 잘 걸립니다"
+    },
+    {
+      "pri": 2,
+      "msg": "문단의 32%만 인용하기 좋은 길이입니다. 한 문단 = 한 주제, 40~80단어로 쪼개세요"
+    },
+    {
+      "pri": 2,
+      "msg": "질문형 제목이 하나도 없습니다. 사람이 AI에게 묻는 문장을 그대로 제목으로 쓰세요"
+    },
+    {
+      "pri": 3,
+      "msg": "Next.js 감지 — 기술적으로는 전부 가능합니다. 다만 배포 절차를 타므로 콘텐츠 발행 경로(CMS 연동 여부)를 확인하세요."
+    }
+  ]
+}

@@ -1,8 +1,19 @@
 {
   "origin": "https://payzon.co.kr",
-  "scanned_at": "2026-09-02T11:18:08.935Z",
+  "scanned_at": "2026-09-05T10:23:49.853Z",
   "total": 46,
   "grade": "미흡",
+  "platform": {
+    "id": "custom",
+    "name": "자체 개발",
+    "kind": "자체개발",
+    "rootFile": "yes",
+    "schema": "yes",
+    "publish": "hard",
+    "owner": "확인 필요",
+    "evidence": "JSP (Java) · server: YWS",
+    "note": "기술적으로는 전부 가능하지만, 실제 작업을 누가 하는지에 따라 리드타임이 크게 달라집니다. 내부 개발팀이면 며칠, 외주 유지보수사를 거치면 몇 주가 걸립니다."
+  },
   "checks": {
     "crawler": {
       "score": 87,
@@ -99,8 +110,8 @@
     },
     "ssr": {
       "score": 70,
-      "avgTextLen": 1778,
-      "textRatio": 0.0288,
+      "avgTextLen": 1766,
+      "textRatio": 0.0286,
       "thinPages": 1,
       "totalPages": 3
     },
@@ -134,9 +145,9 @@
     {
       "url": "https://payzon.co.kr",
       "ok": true,
-      "textLen": 2159,
-      "htmlLen": 63762,
-      "textRatio": 0.033860292964461594,
+      "textLen": 2140,
+      "htmlLen": 63710,
+      "textRatio": 0.03358970334327421,
       "ldCount": 0,
       "ldInvalid": 0,
       "types": [],
@@ -157,9 +168,9 @@
     {
       "url": "http://www.payzon.co.kr/",
       "ok": true,
-      "textLen": 2159,
-      "htmlLen": 63762,
-      "textRatio": 0.033860292964461594,
+      "textLen": 2140,
+      "htmlLen": 63710,
+      "textRatio": 0.03358970334327421,
       "ldCount": 0,
       "ldInvalid": 0,
       "types": [],
@@ -217,6 +228,10 @@
     {
       "pri": 2,
       "msg": "질문형 제목이 하나도 없습니다. 사람이 AI에게 묻는 문장을 그대로 제목으로 쓰세요"
+    },
+    {
+      "pri": 3,
+      "msg": "자체 개발 사이트로 보입니다 (JSP (Java) · server: YWS). 기술적으로는 전부 가능하지만, 실제 작업을 누가 하는지에 따라 리드타임이 크게 달라집니다. 내부 개발팀이면 며칠, 외주 유지보수사를 거치면 몇 주가 걸립니다. 착수 전에 사이트를 누가 관리하는지부터 확인하세요 — 여기서 일정이 갈립니다."
     },
     {
       "pri": 3,

@@ -1,8 +1,9 @@
 {
   "origin": "https://systemever.kr",
-  "scanned_at": "2026-09-01T11:52:03.631Z",
+  "scanned_at": "2026-09-05T10:18:19.200Z",
   "total": 19,
   "grade": "위험",
+  "platform": null,
   "checks": {
     "crawler": {
       "score": 60,

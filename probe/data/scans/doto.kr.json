@@ -1,8 +1,19 @@
 {
   "origin": "https://doto.kr",
-  "scanned_at": "2026-09-01T11:52:01.885Z",
+  "scanned_at": "2026-09-05T10:23:47.169Z",
   "total": 80,
   "grade": "우수",
+  "platform": {
+    "id": "custom",
+    "name": "자체 개발",
+    "kind": "자체개발",
+    "rootFile": "yes",
+    "schema": "yes",
+    "publish": "hard",
+    "owner": "확인 필요",
+    "evidence": "server: Apache",
+    "note": "기술적으로는 전부 가능하지만, 실제 작업을 누가 하는지에 따라 리드타임이 크게 달라집니다. 내부 개발팀이면 며칠, 외주 유지보수사를 거치면 몇 주가 걸립니다."
+  },
   "checks": {
     "crawler": {
       "score": 85,
@@ -112,15 +123,15 @@
     },
     "ssr": {
       "score": 100,
-      "avgTextLen": 2755,
-      "textRatio": 0.0819,
+      "avgTextLen": 3086,
+      "textRatio": 0.0861,
       "thinPages": 0,
-      "totalPages": 4
+      "totalPages": 3
     },
     "schema": {
       "score": 91,
-      "pagesWithLd": 4,
-      "totalPages": 4,
+      "pagesWithLd": 3,
+      "totalPages": 3,
       "types": [
         "Organization",
         "PostalAddress",
@@ -143,11 +154,11 @@
       "invalid": 0
     },
     "chunk": {
-      "score": 41,
-      "paragraphs": 49,
-      "listItems": 47,
-      "inBand": 15,
-      "bandRate": 30.6,
+      "score": 46,
+      "paragraphs": 39,
+      "listItems": 40,
+      "inBand": 14,
+      "bandRate": 35.9,
       "tooLong": 0,
       "vagueSubjects": 0
     },
@@ -156,8 +167,8 @@
       "questionHeadings": 0,
       "numericFacts": 19,
       "pagesWithTable": 0,
-      "pagesWithList": 4,
-      "pagesWithMeta": 4
+      "pagesWithList": 3,
+      "pagesWithMeta": 3
     }
   },
   "pages": [
@@ -257,37 +268,6 @@
       "lang": "ko",
       "title": "무료 HR·근태·급여 — 도토 | 출퇴근·연차·4대보험·급여명세서",
       "desc": "직원을 한 명 등록하면 출퇴근·연차·급여까지 이어집니다. 웹·NFC 키오스크·GPS 출퇴근, 연차 자동 계산, 4대보험 매년 자동 갱신, 근태 마감 한 번에 급여명세서·이체·회계까지. 중소기업 무료 인사·근태·급여 관리입니다."
-    },
-    {
-      "url": "https://doto.kr/features/approval.html",
-      "ok": true,
-      "textLen": 1761,
-      "htmlLen": 25318,
-      "textRatio": 0.06955525712931511,
-      "ldCount": 3,
-      "ldInvalid": 0,
-      "types": [
-        "BreadcrumbList",
-        "ListItem",
-        "SoftwareApplication",
-        "Offer",
-        "FAQPage",
-        "Question",
-        "Answer"
-      ],
-      "paras": 10,
-      "items": 7,
-      "inBand": 1,
-      "tooLong": 0,
-      "headings": 8,
-      "qHeadings": 0,
-      "vague": 0,
-      "hasNumbers": 0,
-      "hasTable": false,
-      "hasList": true,
-      "lang": "ko",
-      "title": "무료 전자결재 — 도토 | 결재선·전결·전자서명·AI 요약",
-      "desc": "자주 쓰는 결재 양식 18종과 결재라인·전결이 미리 준비되어 있습니다. AI가 문서를 3줄로 요약하고, 전자서명까지. 결재만 끝내면 휴가 차감·급여·회계 등 뒷처리는 도토가 이어주는 무료 전자결재입니다."
     }
   ],
   "notes": [
@@ -297,11 +277,11 @@
     },
     {
       "pri": 2,
-      "msg": "문단의 31%만 인용하기 좋은 길이입니다. 한 문단 = 한 주제, 40~80단어로 쪼개세요"
+      "msg": "질문형 제목이 하나도 없습니다. 사람이 AI에게 묻는 문장을 그대로 제목으로 쓰세요"
     },
     {
-      "pri": 2,
-      "msg": "질문형 제목이 하나도 없습니다. 사람이 AI에게 묻는 문장을 그대로 제목으로 쓰세요"
+      "pri": 3,
+      "msg": "자체 개발 사이트로 보입니다 (server: Apache). 기술적으로는 전부 가능하지만, 실제 작업을 누가 하는지에 따라 리드타임이 크게 달라집니다. 내부 개발팀이면 며칠, 외주 유지보수사를 거치면 몇 주가 걸립니다. 착수 전에 사이트를 누가 관리하는지부터 확인하세요 — 여기서 일정이 갈립니다."
     }
   ]
 }

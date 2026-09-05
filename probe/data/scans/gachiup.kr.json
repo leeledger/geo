@@ -1,8 +1,19 @@
 {
   "origin": "https://gachiup.kr",
-  "scanned_at": "2026-09-02T11:18:10.439Z",
+  "scanned_at": "2026-09-05T10:23:51.528Z",
   "total": 17,
   "grade": "위험",
+  "platform": {
+    "id": "nextjs",
+    "name": "Next.js",
+    "kind": "프레임워크",
+    "rootFile": "yes",
+    "schema": "yes",
+    "publish": "medium",
+    "owner": "개발팀",
+    "note": "기술적으로는 전부 가능합니다. 다만 배포 절차를 타므로 콘텐츠 발행 경로(CMS 연동 여부)를 확인하세요.",
+    "evidence": "/_next/static/"
+  },
   "checks": {
     "crawler": {
       "score": 0,
@@ -201,6 +212,10 @@
     {
       "pri": 3,
       "msg": "sitemap.xml 이 없습니다. 색인이 안 되면 검색층에서 탈락합니다"
+    },
+    {
+      "pri": 3,
+      "msg": "Next.js 감지 — 기술적으로는 전부 가능합니다. 다만 배포 절차를 타므로 콘텐츠 발행 경로(CMS 연동 여부)를 확인하세요."
     },
     {
       "pri": 3,

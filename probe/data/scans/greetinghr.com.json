@@ -1,0 +1,280 @@
+{
+  "origin": "https://greetinghr.com",
+  "scanned_at": "2026-09-05T10:23:48.761Z",
+  "total": 57,
+  "grade": "미흡",
+  "platform": {
+    "id": "custom",
+    "name": "자체 개발",
+    "kind": "자체개발",
+    "rootFile": "yes",
+    "schema": "yes",
+    "publish": "hard",
+    "owner": "확인 필요",
+    "evidence": "server: Framer/feb0bfd",
+    "note": "기술적으로는 전부 가능하지만, 실제 작업을 누가 하는지에 따라 리드타임이 크게 달라집니다. 내부 개발팀이면 며칠, 외주 유지보수사를 거치면 몇 주가 걸립니다."
+  },
+  "checks": {
+    "crawler": {
+      "score": 85,
+      "bots": [
+        {
+          "id": "OAI-SearchBot",
+          "label": "ChatGPT 검색",
+          "weight": 3,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "ChatGPT-User",
+          "label": "ChatGPT 사용자요청",
+          "weight": 3,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "PerplexityBot",
+          "label": "Perplexity",
+          "weight": 3,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "Perplexity-User",
+          "label": "Perplexity 사용자",
+          "weight": 2,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "ClaudeBot",
+          "label": "Claude",
+          "weight": 3,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "Googlebot",
+          "label": "구글 색인",
+          "weight": 3,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "Bingbot",
+          "label": "Bing/Copilot",
+          "weight": 2,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "Yeti",
+          "label": "네이버",
+          "weight": 2,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "GPTBot",
+          "label": "OpenAI 학습",
+          "weight": 1,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "Google-Extended",
+          "label": "Gemini 학습",
+          "weight": 1,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "CCBot",
+          "label": "Common Crawl",
+          "weight": 1,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        }
+      ],
+      "blocked": []
+    },
+    "llmstxt": {
+      "score": 80,
+      "exists": true,
+      "bytes": 11923,
+      "sections": 12,
+      "hasEntity": false
+    },
+    "sitemap": {
+      "score": 100,
+      "exists": true,
+      "urls": 130
+    },
+    "ssr": {
+      "score": 30,
+      "avgTextLen": 9157,
+      "textRatio": 0.0086,
+      "thinPages": 0,
+      "totalPages": 3
+    },
+    "schema": {
+      "score": 64,
+      "pagesWithLd": 3,
+      "totalPages": 3,
+      "types": [
+        "ItemList",
+        "SiteNavigationElement",
+        "Organization",
+        "Person",
+        "PostalAddress",
+        "ContactPoint"
+      ],
+      "matched": [
+        "Organization"
+      ],
+      "invalid": 0
+    },
+    "chunk": {
+      "score": 23,
+      "paragraphs": 333,
+      "listItems": 1,
+      "inBand": 33,
+      "bandRate": 9.9,
+      "tooLong": 3,
+      "vagueSubjects": 0
+    },
+    "patterns": {
+      "score": 48,
+      "questionHeadings": 0,
+      "numericFacts": 21,
+      "pagesWithTable": 0,
+      "pagesWithList": 1,
+      "pagesWithMeta": 3
+    }
+  },
+  "pages": [
+    {
+      "url": "https://greetinghr.com",
+      "ok": true,
+      "textLen": 9244,
+      "htmlLen": 1083318,
+      "textRatio": 0.008533043852312986,
+      "ldCount": 2,
+      "ldInvalid": 0,
+      "types": [
+        "ItemList",
+        "SiteNavigationElement",
+        "Organization",
+        "Person",
+        "PostalAddress",
+        "ContactPoint"
+      ],
+      "paras": 113,
+      "items": 0,
+      "inBand": 11,
+      "tooLong": 1,
+      "headings": 81,
+      "qHeadings": 0,
+      "vague": 0,
+      "hasNumbers": 8,
+      "hasTable": false,
+      "hasList": false,
+      "lang": "ko-KR",
+      "title": "그리팅 |  채용 성공을 위한, 국내 1위 채용 관리 솔루션",
+      "desc": "채용 관리를 넘어 채용 성공으로. 국내 1위 채용 관리 시스템 그리팅 ATS · TRM으로 채용 브랜딩부터 지원자 관리, 채용 데이터 분석까지 한곳에서 해결하세요."
+    },
+    {
+      "url": "https://www.greetinghr.com/",
+      "ok": true,
+      "textLen": 9244,
+      "htmlLen": 1083318,
+      "textRatio": 0.008533043852312986,
+      "ldCount": 2,
+      "ldInvalid": 0,
+      "types": [
+        "ItemList",
+        "SiteNavigationElement",
+        "Organization",
+        "Person",
+        "PostalAddress",
+        "ContactPoint"
+      ],
+      "paras": 113,
+      "items": 0,
+      "inBand": 11,
+      "tooLong": 1,
+      "headings": 81,
+      "qHeadings": 0,
+      "vague": 0,
+      "hasNumbers": 8,
+      "hasTable": false,
+      "hasList": false,
+      "lang": "ko-KR",
+      "title": "그리팅 |  채용 성공을 위한, 국내 1위 채용 관리 솔루션",
+      "desc": "채용 관리를 넘어 채용 성공으로. 국내 1위 채용 관리 시스템 그리팅 ATS · TRM으로 채용 브랜딩부터 지원자 관리, 채용 데이터 분석까지 한곳에서 해결하세요."
+    },
+    {
+      "url": "https://www.greetinghr.com/sa",
+      "ok": true,
+      "textLen": 8982,
+      "htmlLen": 1028277,
+      "textRatio": 0.008735000393862742,
+      "ldCount": 2,
+      "ldInvalid": 0,
+      "types": [
+        "ItemList",
+        "SiteNavigationElement",
+        "Organization",
+        "Person",
+        "PostalAddress",
+        "ContactPoint"
+      ],
+      "paras": 107,
+      "items": 1,
+      "inBand": 11,
+      "tooLong": 1,
+      "headings": 99,
+      "qHeadings": 0,
+      "vague": 0,
+      "hasNumbers": 5,
+      "hasTable": false,
+      "hasList": true,
+      "lang": "ko-KR",
+      "title": "그리팅 |  채용 성공을 위한, 국내 1위 채용 관리 솔루션",
+      "desc": "채용 관리를 넘어 채용 성공으로. 국내 1위 채용 관리 시스템 그리팅 ATS · TRM으로 채용 브랜딩부터 지원자 관리, 채용 데이터 분석까지 한곳에서 해결하세요."
+    }
+  ],
+  "notes": [
+    {
+      "pri": 2,
+      "msg": "AI 크롤러가 * 규칙으로만 허용됩니다. User-agent 별로 명시하면 의도가 분명해집니다"
+    },
+    {
+      "pri": 2,
+      "msg": "FAQPage / HowTo 스키마가 없습니다. 질문-답변 형태가 AI 인용에 가장 잘 걸립니다"
+    },
+    {
+      "pri": 2,
+      "msg": "문단의 10%만 인용하기 좋은 길이입니다. 한 문단 = 한 주제, 40~80단어로 쪼개세요"
+    },
+    {
+      "pri": 2,
+      "msg": "질문형 제목이 하나도 없습니다. 사람이 AI에게 묻는 문장을 그대로 제목으로 쓰세요"
+    },
+    {
+      "pri": 3,
+      "msg": "자체 개발 사이트로 보입니다 (server: Framer/feb0bfd). 기술적으로는 전부 가능하지만, 실제 작업을 누가 하는지에 따라 리드타임이 크게 달라집니다. 내부 개발팀이면 며칠, 외주 유지보수사를 거치면 몇 주가 걸립니다. 착수 전에 사이트를 누가 관리하는지부터 확인하세요 — 여기서 일정이 갈립니다."
+    }
+  ]
+}

@@ -139,6 +139,28 @@ const BOTS = [
 
 /* ───────────────────────── 검사 ───────────────────────── */
 
+// apex 만 시도하면 www 로만 서비스하는 사이트를 "본문 0자"로 오진한다.
+// 국내 사이트 다수가 그렇다. 잘못된 진단을 고객에게 보내면 신뢰가 끝난다.
+async function resolveOrigin(o) {
+  const u = new URL(o);
+  const cands = u.hostname.startsWith("www.")
+    ? [o, `${u.protocol}//${u.hostname.replace(/^www\./, "")}`]
+    : [o, `${u.protocol}//www.${u.hostname}`];
+  for (const c of cands) {
+    const r = await get(c, 12000);
+    if (r.ok && r.body.length > 0) return { origin: c, ok: true };
+  }
+  return { origin: o, ok: false };
+}
+
+const resolved = await resolveOrigin(origin);
+if (!resolved.ok) {
+  console.error(`
+✗ ${origin} 에 접속하지 못했습니다 (apex·www 모두 실패). 진단을 건너뜁니다.`);
+  process.exit(2);
+}
+const base = resolved.origin;
+
 const checks = {};
 const notes = [];
 
@@ -146,7 +168,7 @@ console.error(`대상: ${origin}\n`);
 
 // 1) robots.txt / AI 크롤러 접근성
 {
-  const r = await get(`${origin}/robots.txt`);
+  const r = await get(`${base}/robots.txt`);
   if (!r.ok) {
     checks.crawler = { score: 60, detail: "robots.txt 없음 — 기본적으로 전부 허용이지만 명시적 신호가 없다", bots: [] };
     notes.push({ pri: 2, msg: "robots.txt 를 만들고 AI 크롤러를 User-agent 별로 명시 허용하세요" });
@@ -166,7 +188,7 @@ console.error(`대상: ${origin}\n`);
 
 // 2) llms.txt
 {
-  const r = await get(`${origin}/llms.txt`);
+  const r = await get(`${base}/llms.txt`);
   if (!r.ok) {
     checks.llmstxt = { score: 0, exists: false };
     notes.push({ pri: 2, msg: "llms.txt 가 없습니다. AI가 그대로 인용할 브랜드 설명문을 길이별로 넣으세요" });
@@ -183,7 +205,7 @@ console.error(`대상: ${origin}\n`);
 // 3) 페이지 수집 — sitemap 우선, 없으면 홈 링크
 let pageUrls = [origin];
 {
-  const sm = await get(`${origin}/sitemap.xml`);
+  const sm = await get(`${base}/sitemap.xml`);
   let urls = [];
   if (sm.ok) {
     urls = [...sm.body.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1].trim());
@@ -195,14 +217,14 @@ let pageUrls = [origin];
   }
   const skip = /\/(privacy|terms|policy|약관|login|signup|cart)\b/i;
   const picked = urls.filter((u) => !skip.test(u) && !u.endsWith(".xml")).slice(0, MAX_PAGES - 1);
-  pageUrls = [...new Set([origin, ...picked])].slice(0, MAX_PAGES);
+  pageUrls = [...new Set([base, ...picked])].slice(0, MAX_PAGES);
   checks.sitemap = { score: sm.ok ? 100 : 0, exists: sm.ok, urls: urls.length };
   if (!sm.ok) notes.push({ pri: 3, msg: "sitemap.xml 이 없습니다. 색인이 안 되면 검색층에서 탈락합니다" });
 }
 
 // 3b) 운영 형태 감지
-const homeRes = await get(origin);
-const platform = homeRes.ok ? detectPlatform(homeRes.body, homeRes.headers, origin) : null;
+const homeRes = await get(base);
+const platform = homeRes.ok ? detectPlatform(homeRes.body, homeRes.headers, base) : null;
 if (platform) notes.push(platformAdvice(platform));
 
 // 4) 페이지별 분석 — SSR / 스키마 / 청크 / AI 친화 패턴
@@ -338,7 +360,7 @@ const total = Math.round(WEIGHTS.reduce((s, [k, w]) => s + (checks[k]?.score ?? 
 const grade = total >= 80 ? "우수" : total >= 60 ? "보통" : total >= 40 ? "미흡" : "위험";
 
 if (args.json) {
-  console.log(JSON.stringify({ origin, scanned_at: new Date().toISOString(), total, grade, checks, pages, notes }, null, 2));
+  console.log(JSON.stringify({ origin, scanned_at: new Date().toISOString(), total, grade, platform, checks, pages, notes }, null, 2));
   process.exit(0);
 }
 
@@ -404,6 +426,6 @@ say("");
 const outDir = path.resolve(ROOT, "data/scans");
 fs.mkdirSync(outDir, { recursive: true });
 const slug = origin.replace(/^https?:\/\//, "").replace(/[^a-z0-9.-]/gi, "_");
-fs.writeFileSync(path.join(outDir, `${slug}.json`), JSON.stringify({ origin, scanned_at: new Date().toISOString(), total, grade, checks, pages, notes }, null, 2), "utf8");
+fs.writeFileSync(path.join(outDir, `${slug}.json`), JSON.stringify({ origin, scanned_at: new Date().toISOString(), total, grade, platform, checks, pages, notes }, null, 2), "utf8");
 fs.writeFileSync(path.join(outDir, `${slug}.txt`), L.join("\n"), "utf8");
 console.log(`저장: data/scans/${slug}.json\n`);

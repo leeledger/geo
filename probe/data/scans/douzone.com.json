@@ -1,8 +1,19 @@
 {
   "origin": "https://douzone.com",
-  "scanned_at": "2026-09-01T11:51:53.085Z",
+  "scanned_at": "2026-09-05T10:23:22.071Z",
   "total": 70,
   "grade": "보통",
+  "platform": {
+    "id": "custom",
+    "name": "자체 개발",
+    "kind": "자체개발",
+    "rootFile": "yes",
+    "schema": "yes",
+    "publish": "hard",
+    "owner": "확인 필요",
+    "evidence": "JSP (Java) · server: Apache",
+    "note": "기술적으로는 전부 가능하지만, 실제 작업을 누가 하는지에 따라 리드타임이 크게 달라집니다. 내부 개발팀이면 며칠, 외주 유지보수사를 거치면 몇 주가 걸립니다."
+  },
   "checks": {
     "crawler": {
       "score": 85,
@@ -101,8 +112,8 @@
     },
     "ssr": {
       "score": 100,
-      "avgTextLen": 9136,
-      "textRatio": 0.075,
+      "avgTextLen": 9200,
+      "textRatio": 0.0755,
       "thinPages": 0,
       "totalPages": 1
     },
@@ -130,7 +141,7 @@
     "patterns": {
       "score": 70,
       "questionHeadings": 0,
-      "numericFacts": 24,
+      "numericFacts": 21,
       "pagesWithTable": 1,
       "pagesWithList": 1,
       "pagesWithMeta": 1
@@ -140,9 +151,9 @@
     {
       "url": "https://douzone.com",
       "ok": true,
-      "textLen": 9136,
-      "htmlLen": 121839,
-      "textRatio": 0.07498420046126446,
+      "textLen": 9200,
+      "htmlLen": 121893,
+      "textRatio": 0.07547603225779988,
       "ldCount": 1,
       "ldInvalid": 0,
       "types": [
@@ -155,7 +166,7 @@
       "headings": 11,
       "qHeadings": 0,
       "vague": 0,
-      "hasNumbers": 24,
+      "hasNumbers": 21,
       "hasTable": true,
       "hasList": true,
       "lang": "ko",
@@ -179,6 +190,10 @@
     {
       "pri": 2,
       "msg": "질문형 제목이 하나도 없습니다. 사람이 AI에게 묻는 문장을 그대로 제목으로 쓰세요"
+    },
+    {
+      "pri": 3,
+      "msg": "자체 개발 사이트로 보입니다 (JSP (Java) · server: Apache). 기술적으로는 전부 가능하지만, 실제 작업을 누가 하는지에 따라 리드타임이 크게 달라집니다. 내부 개발팀이면 며칠, 외주 유지보수사를 거치면 몇 주가 걸립니다. 착수 전에 사이트를 누가 관리하는지부터 확인하세요 — 여기서 일정이 갈립니다."
     }
   ]
 }

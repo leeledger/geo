@@ -1,0 +1,217 @@
+{
+  "origin": "https://rememberapp.co.kr",
+  "scanned_at": "2026-09-05T10:23:56.596Z",
+  "total": 27,
+  "grade": "위험",
+  "platform": {
+    "id": "nextjs",
+    "name": "Next.js",
+    "kind": "프레임워크",
+    "rootFile": "yes",
+    "schema": "yes",
+    "publish": "medium",
+    "owner": "개발팀",
+    "note": "기술적으로는 전부 가능합니다. 다만 배포 절차를 타므로 콘텐츠 발행 경로(CMS 연동 여부)를 확인하세요.",
+    "evidence": "__NEXT_DATA__"
+  },
+  "checks": {
+    "crawler": {
+      "score": 85,
+      "bots": [
+        {
+          "id": "OAI-SearchBot",
+          "label": "ChatGPT 검색",
+          "weight": 3,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "ChatGPT-User",
+          "label": "ChatGPT 사용자요청",
+          "weight": 3,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "PerplexityBot",
+          "label": "Perplexity",
+          "weight": 3,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "Perplexity-User",
+          "label": "Perplexity 사용자",
+          "weight": 2,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "ClaudeBot",
+          "label": "Claude",
+          "weight": 3,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "Googlebot",
+          "label": "구글 색인",
+          "weight": 3,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "Bingbot",
+          "label": "Bing/Copilot",
+          "weight": 2,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "Yeti",
+          "label": "네이버",
+          "weight": 2,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "GPTBot",
+          "label": "OpenAI 학습",
+          "weight": 1,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "Google-Extended",
+          "label": "Gemini 학습",
+          "weight": 1,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "CCBot",
+          "label": "Common Crawl",
+          "weight": 1,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        }
+      ],
+      "blocked": []
+    },
+    "llmstxt": {
+      "score": 0,
+      "exists": false
+    },
+    "sitemap": {
+      "score": 0,
+      "exists": false,
+      "urls": 0
+    },
+    "ssr": {
+      "score": 10,
+      "avgTextLen": 560,
+      "textRatio": 0.0037,
+      "thinPages": 1,
+      "totalPages": 1
+    },
+    "schema": {
+      "score": 0,
+      "pagesWithLd": 0,
+      "totalPages": 1,
+      "types": [],
+      "matched": [],
+      "invalid": 0
+    },
+    "chunk": {
+      "score": 10,
+      "paragraphs": 3,
+      "listItems": 1,
+      "inBand": 2,
+      "bandRate": 66.7,
+      "tooLong": 0,
+      "vagueSubjects": 0
+    },
+    "patterns": {
+      "score": 25,
+      "questionHeadings": 0,
+      "numericFacts": 0,
+      "pagesWithTable": 0,
+      "pagesWithList": 1,
+      "pagesWithMeta": 1
+    }
+  },
+  "pages": [
+    {
+      "url": "https://rememberapp.co.kr",
+      "ok": true,
+      "textLen": 560,
+      "htmlLen": 150251,
+      "textRatio": 0.003727096658258514,
+      "ldCount": 0,
+      "ldInvalid": 0,
+      "types": [],
+      "paras": 3,
+      "items": 1,
+      "inBand": 2,
+      "tooLong": 0,
+      "headings": 2,
+      "qHeadings": 0,
+      "vague": 0,
+      "hasNumbers": 0,
+      "hasTable": false,
+      "hasList": true,
+      "lang": null,
+      "title": "리멤버 - 경력직 채용 플랫폼 | 헤드헌팅, 스카우트, 이직",
+      "desc": "리멤버에서 당신의 커리어를 바꿔줄 프리미엄 채용 공고를 만나보세요. 억대 연봉부터 대기업까지 수준 높은 이직 기회를 제공합니다."
+    }
+  ],
+  "notes": [
+    {
+      "pri": 1,
+      "msg": "1/1 페이지가 JS 없이는 본문이 거의 없습니다. AI 크롤러도 같은 것을 봅니다 — 서버 렌더링(SSR)이 필요합니다"
+    },
+    {
+      "pri": 1,
+      "msg": "JSON-LD 구조화 데이터가 한 페이지에도 없습니다. Organization·Article·FAQPage 부터 넣으세요"
+    },
+    {
+      "pri": 1,
+      "msg": "산문 문단이 거의 없습니다. AI가 떼어갈 문장 자체가 없다는 뜻입니다"
+    },
+    {
+      "pri": 2,
+      "msg": "AI 크롤러가 * 규칙으로만 허용됩니다. User-agent 별로 명시하면 의도가 분명해집니다"
+    },
+    {
+      "pri": 2,
+      "msg": "llms.txt 가 없습니다. AI가 그대로 인용할 브랜드 설명문을 길이별로 넣으세요"
+    },
+    {
+      "pri": 2,
+      "msg": "질문형 제목이 하나도 없습니다. 사람이 AI에게 묻는 문장을 그대로 제목으로 쓰세요"
+    },
+    {
+      "pri": 3,
+      "msg": "sitemap.xml 이 없습니다. 색인이 안 되면 검색층에서 탈락합니다"
+    },
+    {
+      "pri": 3,
+      "msg": "Next.js 감지 — 기술적으로는 전부 가능합니다. 다만 배포 절차를 타므로 콘텐츠 발행 경로(CMS 연동 여부)를 확인하세요."
+    },
+    {
+      "pri": 3,
+      "msg": "수치가 거의 없습니다. AI는 숫자·조건이 붙은 문장을 인용합니다"
+    }
+  ]
+}

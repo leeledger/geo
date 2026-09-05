@@ -1,0 +1,92 @@
+{
+  "origin": "https://collabee.co",
+  "scanned_at": "2026-09-05T10:18:34.921Z",
+  "total": 19,
+  "grade": "위험",
+  "platform": null,
+  "checks": {
+    "crawler": {
+      "score": 60,
+      "detail": "robots.txt 없음 — 기본적으로 전부 허용이지만 명시적 신호가 없다",
+      "bots": []
+    },
+    "llmstxt": {
+      "score": 0,
+      "exists": false
+    },
+    "sitemap": {
+      "score": 0,
+      "exists": false,
+      "urls": 0
+    },
+    "ssr": {
+      "score": 10,
+      "avgTextLen": 0,
+      "textRatio": 0,
+      "thinPages": 0,
+      "totalPages": 0
+    },
+    "schema": {
+      "score": 0,
+      "pagesWithLd": 0,
+      "totalPages": 0,
+      "types": [],
+      "matched": [],
+      "invalid": 0
+    },
+    "chunk": {
+      "score": 10,
+      "paragraphs": 0,
+      "listItems": 0,
+      "inBand": 0,
+      "bandRate": 0,
+      "tooLong": 0,
+      "vagueSubjects": 0
+    },
+    "patterns": {
+      "score": 0,
+      "questionHeadings": 0,
+      "numericFacts": 0,
+      "pagesWithTable": 0,
+      "pagesWithList": 0,
+      "pagesWithMeta": 0
+    }
+  },
+  "pages": [
+    {
+      "url": "https://collabee.co",
+      "ok": false,
+      "status": 0
+    }
+  ],
+  "notes": [
+    {
+      "pri": 1,
+      "msg": "JSON-LD 구조화 데이터가 한 페이지에도 없습니다. Organization·Article·FAQPage 부터 넣으세요"
+    },
+    {
+      "pri": 1,
+      "msg": "산문 문단이 거의 없습니다. AI가 떼어갈 문장 자체가 없다는 뜻입니다"
+    },
+    {
+      "pri": 2,
+      "msg": "robots.txt 를 만들고 AI 크롤러를 User-agent 별로 명시 허용하세요"
+    },
+    {
+      "pri": 2,
+      "msg": "llms.txt 가 없습니다. AI가 그대로 인용할 브랜드 설명문을 길이별로 넣으세요"
+    },
+    {
+      "pri": 2,
+      "msg": "질문형 제목이 하나도 없습니다. 사람이 AI에게 묻는 문장을 그대로 제목으로 쓰세요"
+    },
+    {
+      "pri": 3,
+      "msg": "sitemap.xml 이 없습니다. 색인이 안 되면 검색층에서 탈락합니다"
+    },
+    {
+      "pri": 3,
+      "msg": "수치가 거의 없습니다. AI는 숫자·조건이 붙은 문장을 인용합니다"
+    }
+  ]
+}

@@ -149,8 +149,26 @@ export function normalizeTarget(raw: string): string | null {
   } catch { return null; }
 }
 
+/**
+ * 어느 호스트가 실제로 응답하는지 확인한다.
+ * apex(example.com)만 시도하면 www 로만 서비스하는 사이트를 "본문 0자"로 오진한다.
+ * 실제로 국내 사이트 다수가 그렇다. 잘못 진단한 결과를 고객에게 보내면 신뢰가 끝난다.
+ */
+async function resolveOrigin(origin: string): Promise<{ origin: string; ok: boolean }> {
+  const u = new URL(origin);
+  const candidates = u.hostname.startsWith("www.")
+    ? [origin, `${u.protocol}//${u.hostname.replace(/^www\./, "")}`]
+    : [origin, `${u.protocol}//www.${u.hostname}`];
+  for (const c of candidates) {
+    const r = await get(c, 12000);
+    if (r.ok && r.body.length > 0) return { origin: c, ok: true };
+  }
+  return { origin, ok: false };
+}
+
 export async function scanSite(rawTarget: string, maxPages = 5): Promise<ScanResult> {
-  const origin = normalizeTarget(rawTarget);
+  const normalized = normalizeTarget(rawTarget);
+  const origin = normalized;
   if (!origin) {
     return {
       origin: rawTarget, scannedAt: new Date().toISOString(), total: 0, grade: "위험",
@@ -158,12 +176,22 @@ export async function scanSite(rawTarget: string, maxPages = 5): Promise<ScanRes
     };
   }
 
+  const resolved = await resolveOrigin(origin);
+  if (!resolved.ok) {
+    return {
+      origin, scannedAt: new Date().toISOString(), total: 0, grade: "위험",
+      checks: {}, weights: [], platform: null, pages: [], notes: [],
+      error: "사이트에 접속하지 못했습니다. 주소를 확인해 주세요. (www 포함 여부, https 지원 여부)",
+    };
+  }
+  const base = resolved.origin;
+
   const checks: Record<string, any> = {};
   const notes: Note[] = [];
   let llmsMissing = false;
 
   /* 1) AI 크롤러 접근 */
-  const rb = await get(`${origin}/robots.txt`);
+  const rb = await get(`${base}/robots.txt`);
   if (!rb.ok) {
     checks.crawler = { score: 60, bots: [] as BotResult[], noRobots: true };
     notes.push({ pri: 2, msg: "robots.txt 가 없습니다. AI 크롤러를 User-agent 별로 명시 허용하세요." });
@@ -181,7 +209,7 @@ export async function scanSite(rawTarget: string, maxPages = 5): Promise<ScanRes
   }
 
   /* 2) llms.txt */
-  const lt = await get(`${origin}/llms.txt`);
+  const lt = await get(`${base}/llms.txt`);
   if (!lt.ok) {
     checks.llmstxt = { score: 0, exists: false };
     llmsMissing = true;   // 플랫폼 감지 후에 지적 여부를 정한다
@@ -197,7 +225,7 @@ export async function scanSite(rawTarget: string, maxPages = 5): Promise<ScanRes
   }
 
   /* 3) 페이지 수집 */
-  const sm = await get(`${origin}/sitemap.xml`);
+  const sm = await get(`${base}/sitemap.xml`);
   let urls: string[] = [];
   if (sm.ok) {
     urls = [...sm.body.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1].trim());
@@ -210,12 +238,12 @@ export async function scanSite(rawTarget: string, maxPages = 5): Promise<ScanRes
   if (!sm.ok) notes.push({ pri: 3, msg: "sitemap.xml 이 없습니다. 색인이 안 되면 검색층에서 탈락합니다." });
 
   const skip = /\/(privacy|terms|policy|약관|login|signup|cart)\b/i;
-  const picked = urls.filter((u) => !skip.test(u) && !u.endsWith(".xml") && u.startsWith(origin)).slice(0, maxPages - 1);
-  const pageUrls = [...new Set([origin, ...picked])].slice(0, maxPages);
+  const picked = urls.filter((u) => !skip.test(u) && !u.endsWith(".xml") && u.startsWith(base)).slice(0, maxPages - 1);
+  const pageUrls = [...new Set([base, ...picked])].slice(0, maxPages);
 
   /* 3b) 플랫폼 감지 — 홈페이지 한 번만 본다 */
-  const home = await get(origin);
-  const platform = home.ok ? detectPlatform(home.body, home.headers, origin) : null;
+  const home = await get(base);
+  const platform = home.ok ? detectPlatform(home.body, home.headers, base) : null;
   if (platform) notes.push(platformAdvice(platform));
   // 루트 파일을 못 올리는 플랫폼에 "llms.txt 를 넣으세요"라고 하면 실행 불가능한 조치가 된다
   if (llmsMissing && platform?.rootFile !== "no") {
@@ -317,7 +345,7 @@ export async function scanSite(rawTarget: string, maxPages = 5): Promise<ScanRes
   const grade = total >= 80 ? "우수" : total >= 60 ? "보통" : total >= 40 ? "미흡" : "위험";
 
   return {
-    origin, scannedAt: new Date().toISOString(), total, grade, checks, platform,
+    origin: base, scannedAt: new Date().toISOString(), total, grade, checks, platform,
     weights: WEIGHTS.map(([key, weight]) => ({ key, weight, label: SITE_LABELS[key], score: checks[key]?.score ?? 0 })),
     pages: pages.map((p) => ({ url: p.url, ok: p.ok, textLen: (p as any).textLen, status: (p as any).status })),
     notes: notes.sort((a, b) => a.pri - b.pri),

@@ -1,0 +1,258 @@
+{
+  "origin": "https://albam.co.kr",
+  "scanned_at": "2026-09-05T10:23:48.142Z",
+  "total": 33,
+  "grade": "위험",
+  "platform": {
+    "id": "custom",
+    "name": "자체 개발",
+    "kind": "자체개발",
+    "rootFile": "yes",
+    "schema": "yes",
+    "publish": "hard",
+    "owner": "확인 필요",
+    "evidence": "SPA 컨테이너 · server: nginx/1.18.0 (Ubuntu)",
+    "note": "기술적으로는 전부 가능하지만, 실제 작업을 누가 하는지에 따라 리드타임이 크게 달라집니다. 내부 개발팀이면 며칠, 외주 유지보수사를 거치면 몇 주가 걸립니다."
+  },
+  "checks": {
+    "crawler": {
+      "score": 85,
+      "bots": [
+        {
+          "id": "OAI-SearchBot",
+          "label": "ChatGPT 검색",
+          "weight": 3,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "ChatGPT-User",
+          "label": "ChatGPT 사용자요청",
+          "weight": 3,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "PerplexityBot",
+          "label": "Perplexity",
+          "weight": 3,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "Perplexity-User",
+          "label": "Perplexity 사용자",
+          "weight": 2,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "ClaudeBot",
+          "label": "Claude",
+          "weight": 3,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "Googlebot",
+          "label": "구글 색인",
+          "weight": 3,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "Bingbot",
+          "label": "Bing/Copilot",
+          "weight": 2,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "Yeti",
+          "label": "네이버",
+          "weight": 2,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "GPTBot",
+          "label": "OpenAI 학습",
+          "weight": 1,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "Google-Extended",
+          "label": "Gemini 학습",
+          "weight": 1,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "CCBot",
+          "label": "Common Crawl",
+          "weight": 1,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        }
+      ],
+      "blocked": []
+    },
+    "llmstxt": {
+      "score": 50,
+      "exists": true,
+      "bytes": 2018,
+      "sections": 0,
+      "hasEntity": false
+    },
+    "sitemap": {
+      "score": 100,
+      "exists": true,
+      "urls": 3
+    },
+    "ssr": {
+      "score": 10,
+      "avgTextLen": 16,
+      "textRatio": 0.0098,
+      "thinPages": 3,
+      "totalPages": 3
+    },
+    "schema": {
+      "score": 0,
+      "pagesWithLd": 0,
+      "totalPages": 3,
+      "types": [],
+      "matched": [],
+      "invalid": 0
+    },
+    "chunk": {
+      "score": 10,
+      "paragraphs": 0,
+      "listItems": 0,
+      "inBand": 0,
+      "bandRate": 0,
+      "tooLong": 0,
+      "vagueSubjects": 0
+    },
+    "patterns": {
+      "score": 15,
+      "questionHeadings": 0,
+      "numericFacts": 0,
+      "pagesWithTable": 0,
+      "pagesWithList": 0,
+      "pagesWithMeta": 3
+    }
+  },
+  "pages": [
+    {
+      "url": "https://www.albam.co.kr",
+      "ok": true,
+      "textLen": 16,
+      "htmlLen": 1630,
+      "textRatio": 0.0098159509202454,
+      "ldCount": 0,
+      "ldInvalid": 0,
+      "types": [],
+      "paras": 0,
+      "items": 0,
+      "inBand": 0,
+      "tooLong": 0,
+      "headings": 0,
+      "qHeadings": 0,
+      "vague": 0,
+      "hasNumbers": 0,
+      "hasTable": false,
+      "hasList": false,
+      "lang": "en",
+      "title": "신율농장(유기농 밤) 홈페이지",
+      "desc": "신율농장 - 맛있고 영양많은 유기농 밤을 즐기세요."
+    },
+    {
+      "url": "https://www.albam.co.kr/",
+      "ok": true,
+      "textLen": 16,
+      "htmlLen": 1630,
+      "textRatio": 0.0098159509202454,
+      "ldCount": 0,
+      "ldInvalid": 0,
+      "types": [],
+      "paras": 0,
+      "items": 0,
+      "inBand": 0,
+      "tooLong": 0,
+      "headings": 0,
+      "qHeadings": 0,
+      "vague": 0,
+      "hasNumbers": 0,
+      "hasTable": false,
+      "hasList": false,
+      "lang": "en",
+      "title": "신율농장(유기농 밤) 홈페이지",
+      "desc": "신율농장 - 맛있고 영양많은 유기농 밤을 즐기세요."
+    },
+    {
+      "url": "https://www.albam.co.kr/notice/143",
+      "ok": true,
+      "textLen": 16,
+      "htmlLen": 1630,
+      "textRatio": 0.0098159509202454,
+      "ldCount": 0,
+      "ldInvalid": 0,
+      "types": [],
+      "paras": 0,
+      "items": 0,
+      "inBand": 0,
+      "tooLong": 0,
+      "headings": 0,
+      "qHeadings": 0,
+      "vague": 0,
+      "hasNumbers": 0,
+      "hasTable": false,
+      "hasList": false,
+      "lang": "en",
+      "title": "신율농장(유기농 밤) 홈페이지",
+      "desc": "신율농장 - 맛있고 영양많은 유기농 밤을 즐기세요."
+    }
+  ],
+  "notes": [
+    {
+      "pri": 1,
+      "msg": "3/3 페이지가 JS 없이는 본문이 거의 없습니다. AI 크롤러도 같은 것을 봅니다 — 서버 렌더링(SSR)이 필요합니다"
+    },
+    {
+      "pri": 1,
+      "msg": "JSON-LD 구조화 데이터가 한 페이지에도 없습니다. Organization·Article·FAQPage 부터 넣으세요"
+    },
+    {
+      "pri": 1,
+      "msg": "산문 문단이 거의 없습니다. AI가 떼어갈 문장 자체가 없다는 뜻입니다"
+    },
+    {
+      "pri": 2,
+      "msg": "AI 크롤러가 * 규칙으로만 허용됩니다. User-agent 별로 명시하면 의도가 분명해집니다"
+    },
+    {
+      "pri": 2,
+      "msg": "질문형 제목이 하나도 없습니다. 사람이 AI에게 묻는 문장을 그대로 제목으로 쓰세요"
+    },
+    {
+      "pri": 3,
+      "msg": "자체 개발 사이트로 보입니다 (SPA 컨테이너 · server: nginx/1.18.0 (Ubuntu)). 기술적으로는 전부 가능하지만, 실제 작업을 누가 하는지에 따라 리드타임이 크게 달라집니다. 내부 개발팀이면 며칠, 외주 유지보수사를 거치면 몇 주가 걸립니다. 착수 전에 사이트를 누가 관리하는지부터 확인하세요 — 여기서 일정이 갈립니다."
+    },
+    {
+      "pri": 3,
+      "msg": "수치가 거의 없습니다. AI는 숫자·조건이 붙은 문장을 인용합니다"
+    }
+  ]
+}

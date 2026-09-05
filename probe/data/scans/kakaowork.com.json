@@ -1,8 +1,19 @@
 {
   "origin": "https://kakaowork.com",
-  "scanned_at": "2026-09-02T11:17:56.491Z",
+  "scanned_at": "2026-09-05T10:23:37.871Z",
   "total": 34,
   "grade": "위험",
+  "platform": {
+    "id": "tistory",
+    "name": "티스토리",
+    "kind": "블로그",
+    "rootFile": "no",
+    "schema": "limited",
+    "publish": "easy",
+    "owner": "담당자",
+    "note": "블로그 플랫폼입니다. 자체 도메인 사이트가 따로 있는지 확인이 필요합니다.",
+    "evidence": "tistory.com"
+  },
   "checks": {
     "crawler": {
       "score": 0,
@@ -122,7 +133,7 @@
     "ssr": {
       "score": 70,
       "avgTextLen": 2374,
-      "textRatio": 0.0474,
+      "textRatio": 0.047,
       "thinPages": 0,
       "totalPages": 1
     },
@@ -165,8 +176,8 @@
       "url": "https://kakaowork.com",
       "ok": true,
       "textLen": 2374,
-      "htmlLen": 50043,
-      "textRatio": 0.04743920228603401,
+      "htmlLen": 50556,
+      "textRatio": 0.046957828942163146,
       "ldCount": 1,
       "ldInvalid": 0,
       "types": [
@@ -198,6 +209,10 @@
     {
       "pri": 2,
       "msg": "llms.txt 가 없습니다. AI가 그대로 인용할 브랜드 설명문을 길이별로 넣으세요"
+    },
+    {
+      "pri": 2,
+      "msg": "티스토리 감지 — 블로그 플랫폼입니다. 자체 도메인 사이트가 따로 있는지 확인이 필요합니다. llms.txt·robots.txt 항목은 플랫폼 제약이므로 감점으로 보지 마시고, 남이 쓴 비교·추천 문서에 이름을 넣는 쪽에 예산을 쓰는 편이 낫습니다."
     },
     {
       "pri": 2,

@@ -1,0 +1,232 @@
+{
+  "origin": "https://classum.com",
+  "scanned_at": "2026-09-05T10:23:55.233Z",
+  "total": 36,
+  "grade": "위험",
+  "platform": {
+    "id": "webflow",
+    "name": "Webflow",
+    "kind": "빌더",
+    "rootFile": "yes",
+    "schema": "yes",
+    "publish": "easy",
+    "owner": "담당자",
+    "note": "커스텀 코드·robots.txt 모두 지원합니다. 기술 세팅이 수월합니다.",
+    "evidence": "cdn.prod.website-files.com"
+  },
+  "checks": {
+    "crawler": {
+      "score": 0,
+      "bots": [
+        {
+          "id": "OAI-SearchBot",
+          "label": "ChatGPT 검색",
+          "weight": 3,
+          "allowed": false,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "ChatGPT-User",
+          "label": "ChatGPT 사용자요청",
+          "weight": 3,
+          "allowed": false,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "PerplexityBot",
+          "label": "Perplexity",
+          "weight": 3,
+          "allowed": false,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "Perplexity-User",
+          "label": "Perplexity 사용자",
+          "weight": 2,
+          "allowed": false,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "ClaudeBot",
+          "label": "Claude",
+          "weight": 3,
+          "allowed": false,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "Googlebot",
+          "label": "구글 색인",
+          "weight": 3,
+          "allowed": false,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "Bingbot",
+          "label": "Bing/Copilot",
+          "weight": 2,
+          "allowed": false,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "Yeti",
+          "label": "네이버",
+          "weight": 2,
+          "allowed": false,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "GPTBot",
+          "label": "OpenAI 학습",
+          "weight": 1,
+          "allowed": false,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "Google-Extended",
+          "label": "Gemini 학습",
+          "weight": 1,
+          "allowed": false,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "CCBot",
+          "label": "Common Crawl",
+          "weight": 1,
+          "allowed": false,
+          "basis": "* 그룹",
+          "explicit": false
+        }
+      ],
+      "blocked": [
+        "OAI-SearchBot",
+        "ChatGPT-User",
+        "PerplexityBot",
+        "Perplexity-User",
+        "ClaudeBot",
+        "Googlebot",
+        "Bingbot",
+        "Yeti",
+        "GPTBot",
+        "Google-Extended",
+        "CCBot"
+      ]
+    },
+    "llmstxt": {
+      "score": 50,
+      "exists": true,
+      "bytes": 4761,
+      "sections": 0,
+      "hasEntity": false
+    },
+    "sitemap": {
+      "score": 100,
+      "exists": true,
+      "urls": 18
+    },
+    "ssr": {
+      "score": 70,
+      "avgTextLen": 1322,
+      "textRatio": 0.0246,
+      "thinPages": 0,
+      "totalPages": 1
+    },
+    "schema": {
+      "score": 64,
+      "pagesWithLd": 1,
+      "totalPages": 1,
+      "types": [
+        "Organization"
+      ],
+      "matched": [
+        "Organization"
+      ],
+      "invalid": 0
+    },
+    "chunk": {
+      "score": 10,
+      "paragraphs": 0,
+      "listItems": 0,
+      "inBand": 0,
+      "bandRate": 0,
+      "tooLong": 0,
+      "vagueSubjects": 0
+    },
+    "patterns": {
+      "score": 8,
+      "questionHeadings": 1,
+      "numericFacts": 1,
+      "pagesWithTable": 0,
+      "pagesWithList": 0,
+      "pagesWithMeta": 0
+    }
+  },
+  "pages": [
+    {
+      "url": "https://classum.com",
+      "ok": true,
+      "textLen": 1322,
+      "htmlLen": 53769,
+      "textRatio": 0.024586657739589728,
+      "ldCount": 1,
+      "ldInvalid": 0,
+      "types": [
+        "Organization"
+      ],
+      "paras": 0,
+      "items": 0,
+      "inBand": 0,
+      "tooLong": 0,
+      "headings": 4,
+      "qHeadings": 1,
+      "vague": 0,
+      "hasNumbers": 1,
+      "hasTable": false,
+      "hasList": false,
+      "lang": "ko",
+      "title": "클라썸",
+      "desc": null
+    },
+    {
+      "url": "https://dev.classum.com/en/",
+      "ok": false,
+      "status": 403
+    },
+    {
+      "url": "https://dev.classum.com/en/online-sessions",
+      "ok": false,
+      "status": 403
+    }
+  ],
+  "notes": [
+    {
+      "pri": 1,
+      "msg": "robots.txt 가 OAI-SearchBot, ChatGPT-User, PerplexityBot, Perplexity-User, ClaudeBot, Googlebot, Bingbot, Yeti, GPTBot, Google-Extended, CCBot 를 차단합니다. 이게 막히면 나머지 작업이 전부 무의미합니다"
+    },
+    {
+      "pri": 1,
+      "msg": "산문 문단이 거의 없습니다. AI가 떼어갈 문장 자체가 없다는 뜻입니다"
+    },
+    {
+      "pri": 2,
+      "msg": "FAQPage / HowTo 스키마가 없습니다. 질문-답변 형태가 AI 인용에 가장 잘 걸립니다"
+    },
+    {
+      "pri": 3,
+      "msg": "Webflow 감지 — 커스텀 코드·robots.txt 모두 지원합니다. 기술 세팅이 수월합니다."
+    },
+    {
+      "pri": 3,
+      "msg": "수치가 거의 없습니다. AI는 숫자·조건이 붙은 문장을 인용합니다"
+    }
+  ]
+}
