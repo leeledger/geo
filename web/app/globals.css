@@ -441,3 +441,104 @@ section + section.deep > .wrap::before{opacity:.55}
 .term .tv{display:block;margin-top:7px;font-size:17px;color:var(--ink);font-weight:500}
 
 .svcnav{display:flex;gap:11px;flex-wrap:wrap;margin-top:44px}
+
+/* ── 만져보는 신뢰구간 ───────────────────────────────────
+   이 회사의 주장을 문장으로 설명하는 대신 눌러 보게 한다.
+   측정을 파는 회사가 그래프를 눈대중으로 그리면 자기모순이라
+   숫자는 Wilson score interval 로 실제 계산한다. */
+.ivl{margin:16px 0 18px;border:1px solid var(--rule);border-radius:14px;
+  background:var(--surface);overflow:hidden}
+.ivlh{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
+  padding:15px 18px;background:var(--sunken);border-bottom:1px solid var(--rule);
+  font-size:12px;letter-spacing:.08em;color:var(--muted)}
+.ivlbtns{display:flex;gap:6px}
+.ivlb{border:1px solid var(--rule);background:var(--surface);color:var(--muted);
+  border-radius:20px;padding:6px 13px;font-size:12.5px;cursor:pointer;
+  transition:border-color .16s,color .16s,background .16s}
+.ivlb:hover{border-color:var(--accent);color:var(--ink)}
+.ivlb.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+
+.ivlplot{padding:26px 22px 20px}
+.ivlaxis{display:flex;justify-content:space-between;font-size:10.5px;color:var(--faint);
+  margin-bottom:9px;letter-spacing:.06em}
+.ivltrack{position:relative;height:44px;border-radius:8px;background:var(--sunken);
+  border:1px solid var(--rule-soft);overflow:hidden}
+.ivlband{position:absolute;top:0;bottom:0;background:var(--band);
+  border-left:2px solid var(--accent);border-right:2px solid var(--accent);
+  transition:left .55s cubic-bezier(.22,.9,.3,1),width .55s cubic-bezier(.22,.9,.3,1)}
+.ivldot{position:absolute;top:50%;width:11px;height:11px;margin:-5.5px 0 0 -5.5px;
+  border-radius:50%;background:var(--accent);
+  box-shadow:0 0 0 4px color-mix(in oklab,var(--accent) 22%,transparent)}
+.ivltick{position:absolute;top:0;bottom:0;width:1px;background:var(--rule);opacity:.7}
+.ivlread{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-top:16px;
+  font-size:13.5px;color:var(--faint)}
+.ivlread b{font-size:22px;color:var(--ink);font-weight:500;letter-spacing:-.02em}
+.ivlread b.rng{color:var(--accent)}
+.ivlnote{margin:0;padding:16px 22px 18px;border-top:1px solid var(--rule-soft);
+  background:var(--sunken);font-size:15px;line-height:1.8;color:var(--muted);
+  font-family:"IBM Plex Sans KR",sans-serif;letter-spacing:-.006em;min-height:62px}
+.ivlnote b{color:var(--ink)}
+
+/* ── 큰 제목 · 작은 본문 ─────────────────────────────────
+   글씨가 작아 보기 좋으려면 제목이 충분히 커야 한다.
+   본문만 키우면 전체가 뭉툭해지고, 본문만 줄이면 빽빽해진다. 대비가 답이다. */
+h1{font-size:clamp(42px,7vw,80px);line-height:1.08;letter-spacing:-.042em}
+h2{font-size:clamp(32px,5vw,54px);line-height:1.14;letter-spacing:-.035em}
+.lede{font-size:19px;line-height:1.75;max-width:46ch}
+.sub2{font-size:17px;line-height:1.78;max-width:48ch}
+.svc h2,.svc h3{font-size:24px;letter-spacing:-.028em}
+.svc p{font-size:15.5px}
+.wq{font-size:19.5px}
+.wa{font-size:15px}
+.nt b{font-size:17.5px}
+.nt p{font-size:14.8px}
+.cx p{font-size:15.2px}
+.fact .t{font-size:15px}
+@media(max-width:640px){
+  h1{font-size:clamp(34px,9vw,46px)}
+  h2{font-size:clamp(27px,7vw,34px)}
+  .lede{font-size:17.5px}
+}
+
+/* ── 다크 히어로 ────────────────────────────────────────
+   첫 화면에서 대비를 만든다. AI 답변 패널이 어두운 바탕 위에서
+   빛나야 "저 목록에 내 이름이 없다"가 먼저 눈에 들어온다.
+   아래로 내려가면 밝은 지면으로 바뀌어 읽기 편해진다. */
+header.hero{background:var(--deep);color:var(--on-deep);border-bottom:0;position:relative;overflow:hidden}
+header.hero::before{content:"";position:absolute;inset:0;pointer-events:none;
+  background:
+    radial-gradient(720px 420px at 12% -10%, color-mix(in oklab,var(--accent-deep) 13%,transparent), transparent 62%),
+    radial-gradient(560px 380px at 96% 108%, color-mix(in oklab,var(--accent-deep) 8%,transparent), transparent 60%)}
+header.hero .wrap{position:relative;z-index:2}
+header.hero h1{color:var(--on-deep)}
+header.hero .lede{color:var(--on-deep-2)}
+header.hero .lede b{color:var(--on-deep)}
+header.hero .eyebrow{color:var(--accent-deep)}
+header.hero .lab{color:var(--accent-deep)}
+
+/* 히어로 안의 패널은 밝게 띄운다 */
+header.hero .ask{background:var(--surface);border-color:transparent;
+  box-shadow:0 26px 60px rgba(0,0,0,.42)}
+header.hero .again{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.13)}
+header.hero .againh{color:var(--on-deep-2);border-bottom-color:rgba(255,255,255,.10)}
+header.hero .againrow{color:var(--on-deep-2)}
+header.hero .againrow span:not(.rn){background:rgba(255,255,255,.08)}
+header.hero .againrow .sw{background:var(--accent-deep);color:var(--deep)}
+header.hero .againrow .sw.alt{background:var(--warn);color:#fff}
+header.hero .againf{color:var(--on-deep-2);border-top-color:rgba(255,255,255,.10)}
+header.hero .againf b{color:var(--on-deep)}
+
+/* 진단 폼도 어두운 바탕에 맞춘다 */
+header.hero .form input{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.16);
+  color:var(--on-deep)}
+header.hero .form input::placeholder{color:var(--faint)}
+header.hero .formnote{color:var(--on-deep-2)}
+header.hero .btn{background:var(--accent-deep);border-color:var(--accent-deep);color:var(--deep)}
+
+/* 서비스 상세의 단순 히어로는 밝게 유지 */
+header.hero.simple{background:var(--ground);color:var(--ink);
+  border-bottom:1px solid var(--rule)}
+header.hero.simple::before{display:none}
+header.hero.simple h1{color:var(--ink)}
+header.hero.simple .lede{color:var(--ink-2)}
+header.hero.simple .lab{color:var(--accent)}

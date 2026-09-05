@@ -1,6 +1,8 @@
 import ScanForm from "./ScanForm";
 import Reveal from "./Reveal";
 import SiteNav from "./SiteNav";
+import Interval from "./Interval";
+import Count from "./Count";
 import Link from "next/link";
 import { SERVICES } from "@/lib/services";
 
@@ -140,7 +142,7 @@ export default function Home() {
             <div className="fact">
               <div className="stat">
                 <span className="v">
-                  5<small style={{ fontSize: 20, fontWeight: 400 }}> / 26</small>
+                  <Count to={5} /><small style={{ fontSize: 20, fontWeight: 400 }}> / 26</small>
                 </span>
                 <span className="bandbar">
                   <i style={{ left: "19%" }} />
@@ -154,7 +156,7 @@ export default function Home() {
             <div className="fact">
               <div className="stat">
                 <span className="v">
-                  28<small style={{ fontSize: 20, fontWeight: 400 }}>%</small>
+                  <Count to={28} /><small style={{ fontSize: 20, fontWeight: 400 }}>%</small>
                 </span>
                 <span className="bandbar">
                   <i style={{ left: "28%" }} />
@@ -169,7 +171,7 @@ export default function Home() {
             <div className="fact">
               <div className="stat">
                 <span className="v">
-                  20<small style={{ fontSize: 20, fontWeight: 400 }}>%</small>
+                  <Count to={20} /><small style={{ fontSize: 20, fontWeight: 400 }}>%</small>
                 </span>
                 <span className="bandbar">
                   <i style={{ left: "20%" }} />
@@ -223,7 +225,7 @@ export default function Home() {
             <div className="cx">
               <div className="cxh">
                 <span className="lab2">착수 시점 · 09.05</span>
-                <span className="mono cxn">0 / 6</span>
+                <span className="mono cxn"><Count to={0} /> / 6</span>
               </div>
               <p>
                 학부모가 쓸 질문 6개를 검색엔진에 넣었습니다. <b>전부 미노출.</b>
@@ -234,7 +236,7 @@ export default function Home() {
             <div className="cx">
               <div className="cxh">
                 <span className="lab2">사이트 진단</span>
-                <span className="mono cxn">83 → 91</span>
+                <span className="mono cxn">83 → <Count to={91} /></span>
               </div>
               <p>
                 크롤러 허용·llms.txt·구조화 데이터·문단 구조 7개 항목. 전부 코드로 확인 가능한 사실만 셉니다.
@@ -244,7 +246,7 @@ export default function Home() {
             <div className="cx">
               <div className="cxh">
                 <span className="lab2">이관한 문서</span>
-                <span className="mono cxn">0 → 32편</span>
+                <span className="mono cxn">0 → <Count to={32} />편</span>
               </div>
               <p>
                 국내 대형 블로그 플랫폼은 robots.txt 로 GPTBot·ClaudeBot·PerplexityBot 을 전부 막습니다.
@@ -254,7 +256,7 @@ export default function Home() {
             <div className="cx hi">
               <div className="cxh">
                 <span className="lab2">AI가 읽은 비율 · 1일차</span>
-                <span className="mono cxn">91.2%</span>
+                <span className="mono cxn"><Count to={91.2} decimals={1} suffix="%" /></span>
               </div>
               <p>
                 AI가 <b>사이트 34쪽 중 31쪽</b>을 읽어 갔습니다.
@@ -265,7 +267,7 @@ export default function Home() {
             <div className="cx">
               <div className="cxh">
                 <span className="lab2">첫 크롤까지</span>
-                <span className="mono cxn">2시간</span>
+                <span className="mono cxn"><Count to={2} />시간</span>
               </div>
               <p>
                 주소를 연결하고 나서 AI가 처음 찾아오기까지 걸린 시간입니다.
@@ -276,7 +278,7 @@ export default function Home() {
             <div className="cx">
               <div className="cxh">
                 <span className="lab2">읽은 엔진</span>
-                <span className="mono cxn">2 / 6</span>
+                <span className="mono cxn"><Count to={2} /> / 6</span>
               </div>
               <p>
                 주요 AI 6곳 중 2곳이 다녀갔습니다. 나머지 4곳은 아직입니다.
@@ -334,54 +336,7 @@ export default function Home() {
                   <div className="us">62% (95% 신뢰구간 48–74%, 표본 150회)</div>
                 </div>
               </div>
-                {/* 표본이 늘수록 구간이 좁아진다 — 이 사업의 방법론을 한 장으로 보여준다 */}
-                <figure className="conv">
-                  <figcaption className="convh">
-                    <span className="mono">많이 물어볼수록 답이 또렷해집니다</span>
-                    <span className="mono dim">세로 막대 = 값이 흔들리는 범위</span>
-                  </figcaption>
-                  <svg viewBox="0 0 320 118" role="img"
-                       aria-label="표본 수가 5회에서 150회로 늘수록 신뢰구간이 좁아지는 그래프">
-                    {[0, 25, 50, 75, 100].map((v) => (
-                      <g key={v}>
-                        <line x1="34" x2="312" y1={16 + (100 - v) * 0.72} y2={16 + (100 - v) * 0.72}
-                              stroke="currentColor" strokeOpacity=".10" strokeWidth="1" />
-                        <text x="28" y={19 + (100 - v) * 0.72} textAnchor="end"
-                              fontSize="8" fill="currentColor" fillOpacity=".45"
-                              fontFamily="IBM Plex Mono, monospace">{v}</text>
-                      </g>
-                    ))}
-                    {[
-                      { x: 66,  lo: 22, hi: 96, n: "5" },
-                      { x: 132, lo: 38, hi: 84, n: "20" },
-                      { x: 198, lo: 48, hi: 74, n: "50" },
-                      { x: 268, lo: 56, hi: 68, n: "150" },
-                    ].map((d, i) => {
-                      const y = (v: number) => 16 + (100 - v) * 0.72;
-                      const mid = (d.lo + d.hi) / 2;
-                      return (
-                        <g key={d.n} className="ci" data-reveal={i * 220}
-                           style={{ ["--y0" as string]: `${y(mid)}px`, ["--h" as string]: `${y(d.lo) - y(d.hi)}px` }}>
-                          <line x1={d.x} x2={d.x} y1={y(d.hi)} y2={y(d.lo)}
-                                stroke="currentColor" strokeOpacity=".30" strokeWidth="9"
-                                strokeLinecap="round" />
-                          <line x1={d.x - 6} x2={d.x + 6} y1={y(d.hi)} y2={y(d.hi)}
-                                stroke="currentColor" strokeOpacity=".55" strokeWidth="1.5" />
-                          <line x1={d.x - 6} x2={d.x + 6} y1={y(d.lo)} y2={y(d.lo)}
-                                stroke="currentColor" strokeOpacity=".55" strokeWidth="1.5" />
-                          <circle cx={d.x} cy={y(mid)} r="4" fill="currentColor" />
-                          <text x={d.x} y="112" textAnchor="middle" fontSize="8.5"
-                                fill="currentColor" fillOpacity=".55"
-                                fontFamily="IBM Plex Mono, monospace">{d.n}회</text>
-                        </g>
-                      );
-                    })}
-                  </svg>
-                  <div className="convf">
-                    5번 물어보고 낸 60%와 150번 물어보고 낸 60%는 <b>같은 숫자가 아닙니다.</b>
-                    앞의 것은 22%일 수도 96%일 수도 있습니다. <b>몇 번 물어봤는지 안 적힌 숫자는 믿을 게 못 됩니다.</b>
-                  </div>
-                </figure>
+                <Interval />
               <div className="body">
                 생성형 AI는 같은 질문에도 매번 다른 답을 냅니다. 하루 5회 측정한 값의 오차는 ±40%p대입니다.{" "}
                 <b>표본을 밝히지 않은 단일 숫자는 근거가 아닙니다.</b> 표본을 늘리면 구간이 좁아지고, 그 과정을 그대로
