@@ -418,67 +418,58 @@ export default function Home() {
             </div>
           </div>
 
-          {/* ── 매달 ── */}
-          <div className="plans">
+          {/* ── 매달 ──
+              측정만 파는 자리를 비웠다. 셀프서브 도구가 월 4~22만원이라
+              그 자리에서 붙으면 진다. 도구가 못 하는 해석과 실행으로 옮겼다. */}
+          <div className="plans two">
             <div className="plan hi">
-              <div className="pn">측정 · 주력</div>
+              <div className="pn">리포트 · 주력</div>
               <div className="pp">
-                89<small>만원 / 월</small>
+                39<small>만원 / 월</small>
               </div>
-              <div className="for">고치는 건 직접 하시는 팀</div>
+              <div className="for">숫자를 보고 직접 고치실 팀</div>
               <ul>
-                <li>질문 60개 × 주요 AI 4곳 · 매주</li>
+                <li>질문 30개 × 주요 AI 4곳 · 월 2회</li>
                 <li>몇 번에 몇 번 불렸는지 + 흔들리는 범위</li>
+                <li><b>AI 크롤러 방문 기록</b> — 어느 AI가 몇 쪽 읽었는지</li>
                 <li>답변 원문 전량 열람</li>
-                <li>경쟁사 5곳 나란히 비교</li>
-                <li>AI가 참고한 글 분석 · 어디부터 실릴지</li>
-                <li>월간 리포트 · 크게 떨어지면 알림</li>
+                <li>경쟁사 3곳 나란히 비교</li>
+                <li><b>무엇을 고쳐야 하는지</b> 우선순위로</li>
               </ul>
               <div className="cta">
-                <a className="btn" style={{ width: "100%", display: "block", textAlign: "center" }} href={mailto("측정")}>
+                <a className="btn" style={{ width: "100%", display: "block", textAlign: "center" }} href={mailto("리포트")}>
                   상담 신청
                 </a>
               </div>
             </div>
 
             <div className="plan">
-              <div className="pn">측정 + 실행</div>
+              <div className="pn">관리</div>
               <div className="pp">
-                249<small>만원 / 월</small>
+                79<small>만원 / 월</small>
               </div>
               <div className="for">고치는 일까지 맡기실 팀</div>
               <ul>
-                <li>측정 플랜 전체 포함</li>
-                <li>AI가 인용할 만한 글 월 2~3건 작성·발행</li>
-                <li>외부 매체·목록에 싣기 월 1~2건</li>
-                <li>퍼져 있는 틀린 정보 바로잡기</li>
-                <li>월 1회 전략 리뷰</li>
+                <li>리포트 플랜 전체 포함</li>
+                <li>AI가 인용할 만한 글 월 1편 작성·발행</li>
+                <li>업계 목록·디렉터리 등재 관리</li>
+                <li>퍼져 있는 틀린 정보 정정</li>
+                <li>월 1회 통화</li>
               </ul>
               <div className="cta">
-                <a className="btn ghost" style={{ width: "100%", display: "block", textAlign: "center" }} href={mailto("측정+실행")}>
+                <a className="btn ghost" style={{ width: "100%", display: "block", textAlign: "center" }} href={mailto("관리")}>
                   상담 신청
-                </a>
-              </div>
-            </div>
-
-            <div className="plan">
-              <div className="pn">엔터프라이즈</div>
-              <div className="pp">
-                별도<small> 견적</small>
-              </div>
-              <div className="for">다국어 · 다브랜드 · 대행사</div>
-              <ul>
-                <li>질문·엔진·주기 맞춤 설계</li>
-                <li>브랜드별 대시보드</li>
-                <li>사내 보고용 원본 데이터 제공</li>
-              </ul>
-              <div className="cta">
-                <a className="btn ghost" style={{ width: "100%", display: "block", textAlign: "center" }} href={mailto("엔터프라이즈")}>
-                  문의
                 </a>
               </div>
             </div>
           </div>
+
+          <p className="pcompare">
+            <b>월 4만원짜리 측정 도구도 있습니다.</b> 그건 숫자만 보여줍니다 —
+            질문은 직접 짜고, 결과는 직접 해석하고, 고칠 것도 직접 고쳐야 합니다.
+            영어권 기준이라 “○○구 코딩학원” 같은 <b>한국어 지역 질문은 잘 못 잡습니다.</b>
+            직접 하실 수 있으면 그 도구가 낫습니다. 저희는 그 뒤를 맡습니다.
+          </p>
 
           {/* ── 실제 견적 예시 — 케이스와 같은 회사면 얼마인지 ── */}
           <div className="quote">
@@ -491,7 +482,7 @@ export default function Home() {
             </div>
             <div className="qrow">
               <span>이후 매달</span>
-              <span className="qcalc mono">측정 <b>89만원</b> <em>또는</em> 측정+실행 <b>249만원</b></span>
+              <span className="qcalc mono">리포트 <b>39만원</b> <em>또는</em> 관리 <b>79만원</b></span>
             </div>
             <p className="qnote">
               쓸 만한 사이트가 이미 있으면 초기 비용은 <b>80만원</b>이거나 <b>0원</b>입니다.

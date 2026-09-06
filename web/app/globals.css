@@ -675,3 +675,10 @@ header.hero.simple .lab{color:var(--accent)}
 .srcc{font-size:11px;color:var(--muted);background:var(--surface);
   border:1px solid var(--rule);border-radius:20px;padding:3px 10px}
 @media (prefers-reduced-motion:reduce){.spin{animation:none}.aisrc{animation:none}}
+
+/* 요금 · 두 플랜 구성 */
+.plans.two{grid-template-columns:repeat(auto-fit,minmax(280px,1fr));max-width:720px}
+.pcompare{margin-top:24px;padding:20px 24px;border-left:3px solid var(--rule);
+  background:var(--sunken);border-radius:0 12px 12px 0;
+  font-size:15.5px;line-height:1.85;color:var(--muted);max-width:74ch}
+.pcompare b{color:var(--ink)}
