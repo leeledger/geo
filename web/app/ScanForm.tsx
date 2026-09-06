@@ -86,11 +86,11 @@ export default function ScanForm({ id, placeholder }: { id: string; placeholder?
 
       {busy && (
         <p className="formnote loading">
-          robots.txt · llms.txt · sitemap · 본문 페이지를 받아 7개 항목을 점검하고 있습니다. 10~30초 걸립니다.
+          robots.txt, llms.txt, sitemap, 본문 페이지를 받아 7가지를 보고 있습니다. 10~30초 걸립니다.
         </p>
       )}
       {!busy && !result && !error && (
-        <p className="formnote">사이트 7개 항목 자동 점검. 가입도 결제도 없이 바로 결과가 나옵니다.</p>
+        <p className="formnote">7가지를 자동으로 봅니다. 가입도 결제도 없이 바로 결과가 나옵니다.</p>
       )}
       {error && <p className="err">{error}</p>}
 
@@ -144,11 +144,11 @@ export default function ScanForm({ id, placeholder }: { id: string; placeholder?
           )}
 
           <div className="result-ft">
-            검사 항목은 전부 코드로 확인 가능한 사실입니다. 브랜드 권위·E-E-A-T 같은 판단 항목은 점수에 넣지 않았습니다.
+            전부 코드로 확인되는 것만 셉니다. 브랜드 인지도 같은 눈으로 판단하는 항목은 점수에 넣지 않았습니다.
             <br />
-            <b style={{ color: "var(--ink)" }}>다만 이 점수는 사이트 상태일 뿐, AI 답변 노출과는 다릅니다.</b>{" "}
-            자체 측정에서 사이트 점수가 AI 노출을 설명하는 비율은 20% 수준이었습니다 — 실제로 답변에 불리는지는 엔진에
-            직접 물어봐야 알 수 있습니다.
+            <b style={{ color: "var(--ink)" }}>다만 이건 사이트 상태 점수일 뿐, 실제로 AI가 불러주는지와는 다릅니다.</b>{" "}
+            저희가 재본 바로는 사이트 점수가 차지하는 몫이 20% 정도였습니다.
+            정말 불리는지는 AI에 직접 물어봐야 압니다.
           </div>
 
           {/* 결과를 본 직후 = 관심이 가장 높은 지점 */}
@@ -158,15 +158,15 @@ export default function ScanForm({ id, placeholder }: { id: string; placeholder?
                 접수됐습니다. <b>{email}</b> 로 AI 노출 실측 리포트를 보내드리겠습니다.
                 <br />
                 <span style={{ color: "var(--muted)", fontSize: 12.5 }}>
-                  실제 구매자가 쓸 질문으로 4개 엔진에 물어, 경쟁사 대비 노출률을 표본·신뢰구간과 함께 정리해 드립니다.
+                  실제 고객이 쓸 질문으로 AI 4곳에 물어보고, 경쟁사와 나란히 놓아 정리해 드립니다.
                 </span>
               </p>
             ) : (
               <form onSubmit={submitLead}>
-                <h4>AI가 실제로 당신을 추천하는지도 재볼까요?</h4>
+                <h4>AI가 실제로 추천하는지도 재볼까요?</h4>
                 <p className="leadsub">
-                  실제 구매자가 쓸 질문으로 4개 엔진에 물어, 경쟁사 대비 노출률을 <b>표본·신뢰구간과 함께</b> 보내드립니다.
-                  무료입니다.
+                  실제 고객이 쓸 질문으로 AI 4곳에 물어보고, 경쟁사와 나란히 놓은 결과를
+                  <b>몇 번 물어봤는지와 함께</b> 보내드립니다. 무료입니다.
                 </p>
                 <div className="leadrow">
                   <input

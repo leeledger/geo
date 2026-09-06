@@ -22,7 +22,7 @@ export default function Home() {
         <div className="wrap hero-grid">
           <div>
             <div className="eyebrow">AI 답변 노출 측정 · GEO</div>
-            <h1>AI가 추천하는 목록에<br />당신 회사가 있습니까?</h1>
+            <h1>AI는 지금<br />우리 회사를 추천할까요?</h1>
             <p className="lede">
               AI는 다 보여주지 않습니다. <b>몇 곳만 골라서 답합니다.</b><br />
               그 안에 있는지 재고, 없다면 <b>왜 없는지</b> 찾아냅니다.
@@ -42,13 +42,13 @@ export default function Home() {
       <section id="why">
         <div className="wrap">
           <div className="lab">쓰면 달라지는 것</div>
-          <h2>모르던 것 세 가지를<br />알게 됩니다</h2>
+          <h2>이 세 가지를<br />알게 됩니다</h2>
 
           <div className="whys">
             <article className="w" data-reveal="0">
               <div className="wq">“우리가 지금 불리긴 하나?”</div>
               <div className="wa">
-                20번 물어서 3번 불리면 15%. <b>짐작이 아니라 센 값</b>입니다.
+                20번 물어서 3번 나오면 15%. <b>짐작이 아니라 직접 센 숫자</b>입니다.
               </div>
               <div className="wb mono">
                 <span className="wbar" data-reveal="260"><i style={{ ["--w" as string]: "15%" }} /></span>
@@ -59,7 +59,7 @@ export default function Home() {
             <article className="w" data-reveal="110">
               <div className="wq">“홈페이지를 고치면 되나?”</div>
               <div className="wa">
-                아닐 때가 더 많습니다. 효과의 <b>80%는 다른 사람이 쓴 글</b>에서 옵니다.
+                아닐 때가 더 많습니다. <b>열에 여덟은 남이 쓴 글</b>에서 옵니다.
               </div>
               <div className="wb mono">
                 <span className="wsplit" data-reveal="360"><i className="a" style={{ ["--w" as string]: "20%" }} /><i className="b" style={{ ["--w" as string]: "80%" }} /></span>
@@ -70,7 +70,7 @@ export default function Home() {
             <article className="w" data-reveal="220">
               <div className="wq">“고쳤는데 좋아진 게 맞나?”</div>
               <div className="wa">
-                착수 전 값을 남겨 두고, <b>두 달 뒤 같은 방식으로 다시 잽니다.</b>
+                시작할 때 숫자를 남겨 두고, <b>두 달 뒤에 똑같이 다시 잽니다.</b>
               </div>
               <div className="wb mono">
                 <span className="wdelta">
@@ -78,14 +78,14 @@ export default function Home() {
                   <span className="darrow">→</span>
                   <span className="d1">?</span>
                 </span>
-                <span>착수일 기록 · 재측정</span>
+                <span>시작할 때 기록 · 두 달 뒤 다시</span>
               </div>
             </article>
           </div>
 
           <p className="whyfoot">
             <b>순위를 넣어 드릴 수는 없습니다.</b> "몇 달 안에 몇 % 보장"도 하지 않습니다.
-            AI 답변은 매번 달라지기 때문에, 그런 약속을 하는 쪽이 오히려 위험합니다.
+            AI 답변은 물을 때마다 달라집니다. 그런 약속을 하는 곳이 오히려 위험합니다.
           </p>
         </div>
       </section>
@@ -110,7 +110,7 @@ export default function Home() {
                 <span className="c">사이트 점검 26곳</span>
               </div>
               <div className="t">
-                <b>60점을 넘긴 곳이 5곳뿐.</b> 업계 선두를 표방하는 회사가 30점이었습니다.
+                <b>60점을 넘긴 곳이 5곳뿐이었습니다.</b> 업계 1위라는 회사가 30점이었습니다.
               </div>
             </div>
             <div className="fact">
@@ -136,11 +136,11 @@ export default function Home() {
                 <span className="bandbar">
                   <i style={{ left: "20%" }} />
                 </span>
-                <span className="c">설명된 분산 · 브랜드 21곳</span>
+                <span className="c">홈페이지가 차지하는 몫 · 21곳</span>
               </div>
               <div className="t">
-                홈페이지의 기여는 <b>20%</b>. 나머지 80%는 비교 기사·커뮤니티 글·업계 목록
-                같은 <b>남이 쓴 글</b>에서 왔습니다.
+                홈페이지 덕은 <b>20%</b>뿐이었습니다. 나머지는 비교 기사, 커뮤니티 글,
+                업계 목록 같은 <b>남이 쓴 글</b>에서 왔습니다.
               </div>
             </div>
           </div>
@@ -177,7 +177,7 @@ export default function Home() {
           <h2>착수 하루 만에<br />AI가 사이트를 다 읽어갔습니다</h2>
           <p className="sub2">
             수도권의 코딩·로봇 교육 학원입니다. 홈페이지가 없고 블로그만 있었습니다.
-            착수한 날 지금 상태를 먼저 재고, 같은 날 홈페이지를 만들고, 블로그 글 32편을 옮겼습니다.
+            시작한 날 먼저 지금 상태를 재고, 같은 날 홈페이지를 만들고, 블로그 글 32편을 옮겼습니다.
             아래 숫자는 <b>서버에 남은 기록을 그대로 가져온 것</b>입니다.
           </p>
 
@@ -188,9 +188,9 @@ export default function Home() {
                 <span className="mono cxn"><Count to={0} /> / 6</span>
               </div>
               <p>
-                학부모가 쓸 질문 6개를 검색엔진에 넣었습니다. <b>전부 미노출.</b>
-                더 중요한 건 상위 결과에 <b>개별 학원 홈페이지가 하나도 없었다</b>는 점입니다 — 전부 디렉터리였습니다.
-                홈페이지를 아무리 잘 만들어도 이 질의는 못 이깁니다.
+                학부모가 쓸 질문 6개를 검색해 봤습니다. <b>하나도 안 나왔습니다.</b>
+                더 눈에 띈 건 위쪽에 <b>학원 홈페이지가 아예 없었다</b>는 겁니다. 전부 학원 목록 사이트였습니다.
+                홈페이지를 아무리 잘 만들어도 이런 검색은 못 이깁니다.
               </p>
             </div>
             <div className="cx">
@@ -199,8 +199,8 @@ export default function Home() {
                 <span className="mono cxn">83 → <Count to={91} /></span>
               </div>
               <p>
-                크롤러 허용·llms.txt·구조화 데이터·문단 구조 7개 항목. 전부 코드로 확인 가능한 사실만 셉니다.
-                <b>브랜드 권위 같은 판단 항목은 점수에 넣지 않습니다.</b>
+                크롤러 허용, llms.txt, 구조화 데이터, 문단 구조 등 7가지를 봅니다.
+                <b>코드로 확인되는 것만 셉니다.</b> 눈으로 판단하는 항목은 점수에 넣지 않습니다.
               </p>
             </div>
             <div className="cx">
@@ -280,9 +280,9 @@ export default function Home() {
           <div className="lab">다른 점</div>
           <h2>보기 좋은 숫자를<br />만들지 않습니다</h2>
           <p className="sub2">
-            이 시장의 리포트는 대부분 “AI 가시성 97%” 같은 딱 떨어지는 숫자를 내놓습니다.
-            몇 번 물어봤는지, 다시 물으면 얼마나 달라지는지는 적혀 있지 않습니다.
-            <b>한 번 물어본 결과를 점수라고 부르는 것</b>이 지금 이 업계의 표준입니다.
+            이 바닥 리포트는 대부분 “AI 가시성 97%” 같은 딱 떨어지는 숫자를 내놓습니다.
+            몇 번 물어봤는지, 다시 물으면 얼마나 달라지는지는 안 적혀 있습니다.
+            <b>한 번 물어보고 점수라고 부르는 것</b>, 다들 그렇게 합니다.
           </p>
 
           <div className="diff">
@@ -296,9 +296,9 @@ export default function Home() {
               </div>
                 <Interval />
               <div className="body">
-                생성형 AI는 같은 질문에도 매번 다른 답을 냅니다. 하루 5회 측정한 값의 오차는 ±40%p대입니다.{" "}
-                <b>표본을 밝히지 않은 단일 숫자는 근거가 아닙니다.</b> 표본을 늘리면 구간이 좁아지고, 그 과정을 그대로
-                보여드립니다.
+                AI는 같은 질문에도 매번 다른 답을 냅니다. 하루 다섯 번 재면 오차가 ±40%p까지 벌어집니다.{" "}
+                <b>몇 번 물어봤는지 안 적힌 숫자는 근거가 못 됩니다.</b>
+                많이 물어볼수록 범위가 좁아지고, 그 과정을 그대로 보여드립니다.
               </div>
             </div>
             <div className="d">
@@ -324,8 +324,8 @@ export default function Home() {
               </div>
               <div className="body">
                 실제 사례입니다. 사이트 점수 80점(측정 26곳 중 1위)인데 AI 노출은 25%인 브랜드가 있었습니다. 원인은{" "}
-                <b>AI가 읽는 비교 문서 14건 중 0건에만 등장</b>한다는 것이었습니다. 사이트를 100점으로 올려도 오르지
-                않습니다.
+                <b>AI가 읽는 비교 글 14개 중 어디에도 이름이 없었습니다.</b>
+                사이트를 100점으로 올려도 달라지지 않습니다.
               </div>
             </div>
           </div>
@@ -514,10 +514,11 @@ export default function Home() {
             <details>
               <summary>이거 직접 하면 안 되나요?</summary>
               <p>
-                기술 세팅은 직접 하실 수 있습니다. robots.txt에 AI 크롤러 허용 줄을 넣고, llms.txt를 쓰고, 스키마를 붙이는
-                건 하루면 됩니다. 오히려 그렇게 하시길 권합니다. 직접 하기 어려운 건 <b>지속</b>과 <b>판단</b>입니다. 4개
-                엔진에 매주 반복 질의해 집계하는 일, 그리고 “어느 질문에서 지고 있고 어느 문서에 들어가야 하는가”를 아는
-                일입니다. 저희가 파는 건 그 두 가지입니다.
+                기술 세팅은 직접 하실 수 있습니다. robots.txt에 AI 크롤러 허용 줄 넣고, llms.txt 쓰고,
+                스키마 붙이는 건 하루면 됩니다. 오히려 그렇게 하시길 권합니다.
+                직접 하기 어려운 건 <b>꾸준히 하는 것</b>과 <b>판단</b>입니다.
+                매주 AI 4곳에 같은 질문을 던지고 결과를 모으는 일, 그리고 “어느 질문에서 지고 있는지,
+                어느 글에 들어가야 하는지”를 아는 일이요. 저희가 파는 건 그 두 가지입니다.
               </p>
             </details>
             <details>
@@ -542,15 +543,15 @@ export default function Home() {
               <p>
                 AI마다 다릅니다. 질문을 받을 때마다 웹을 찾아보는 쪽은 <b>2~4주</b>면 반영되고,
                 미리 학습한 내용으로 답하는 쪽은 <b>2~3개월</b>쯤 걸립니다.
-                보장하는 기간이 아니라 지금까지 관찰된 대략의 흐름이며, 업종 경쟁이 심하면 더 걸립니다.
+                약속드리는 기간이 아니라 지금까지 봐 온 대략의 흐름이고, 경쟁이 심한 업종은 더 걸립니다.
               </p>
             </details>
             <details>
               <summary>성과를 보장하나요?</summary>
               <p>
                 조건 없는 보장은 하지 않습니다. 할 수 있다고 말하는 곳이 있다면 근거를 확인해보시길 권합니다. 대신 저희는{" "}
-                <b>측정 기준을 계약서에 명시</b>합니다 — 어떤 질문 세트를, 몇 회, 어떤 엔진에서 측정하며, 무엇을 인용으로
-                인정하는지. 착수 전 기준선을 먼저 재고 시작합니다.
+                <b>측정 방법을 계약서에 적습니다.</b> 어떤 질문으로, 몇 번, 어느 AI에서 재는지,
+                무엇까지 “불렸다”고 볼지를 미리 정합니다. 시작하기 전에 지금 숫자부터 재 둡니다.
               </p>
             </details>
             <details>
@@ -597,9 +598,10 @@ export default function Home() {
             </span>
           </div>
           <div className="wm">
-            이 페이지의 수치(국내 B2B 26곳 점검 · 다시 물었을 때 28% 변동 · 홈페이지 기여도 20%)는 저희가 직접 잰 값입니다.
-            표본이 크지 않아 확정된 수치가 아니라 <b>대략의 방향</b>으로 읽어 주십시오 — 표본과 한계를 밝히는 것이
-            저희가 이 시장에서 하려는 일이기도 합니다. 케이스 스터디의 크롤러 방문 기록은 서버 원본입니다.
+            이 페이지의 숫자(국내 B2B 26곳 점검 · 다시 물으면 28% 바뀜 · 홈페이지 몫 20%)는 저희가 직접 잰 값입니다.
+            아직 표본이 크지 않아 확정된 수치라기보다 <b>대략의 방향</b>으로 봐 주세요.
+            몇 개를 쟀고 어디까지가 한계인지 밝히는 것, 그게 저희가 이 시장에서 하려는 일입니다.
+            케이스의 크롤러 방문 기록은 서버에 남은 원본 그대로입니다.
           </div>
         </div>
       </footer>
