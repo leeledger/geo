@@ -1,6 +1,6 @@
 {
   "origin": "https://robotncoding.com",
-  "scanned_at": "2026-09-06T09:23:10.258Z",
+  "scanned_at": "2026-09-06T14:11:21.470Z",
   "total": 93,
   "grade": "우수",
   "platform": {
@@ -112,7 +112,7 @@
     "llmstxt": {
       "score": 100,
       "exists": true,
-      "bytes": 24728,
+      "bytes": 24689,
       "sections": 14,
       "hasEntity": true
     },
@@ -123,8 +123,8 @@
     },
     "ssr": {
       "score": 100,
-      "avgTextLen": 6894,
-      "textRatio": 0.0804,
+      "avgTextLen": 6879,
+      "textRatio": 0.0803,
       "thinPages": 0,
       "totalPages": 6
     },
@@ -164,11 +164,11 @@
       "invalid": 0
     },
     "chunk": {
-      "score": 56,
+      "score": 55,
       "paragraphs": 283,
       "listItems": 94,
-      "inBand": 151,
-      "bandRate": 53.4,
+      "inBand": 147,
+      "bandRate": 51.9,
       "tooLong": 0,
       "vagueSubjects": 2
     },
@@ -185,9 +185,9 @@
     {
       "url": "https://robotncoding.com",
       "ok": true,
-      "textLen": 14432,
-      "htmlLen": 160099,
-      "textRatio": 0.09014422326185673,
+      "textLen": 14389,
+      "htmlLen": 159968,
+      "textRatio": 0.0899492398479696,
       "ldCount": 1,
       "ldInvalid": 0,
       "types": [
@@ -210,7 +210,7 @@
       ],
       "paras": 100,
       "items": 47,
-      "inBand": 47,
+      "inBand": 45,
       "tooLong": 0,
       "headings": 29,
       "qHeadings": 3,
@@ -225,9 +225,9 @@
     {
       "url": "https://robotncoding.com/",
       "ok": true,
-      "textLen": 14432,
-      "htmlLen": 160099,
-      "textRatio": 0.09014422326185673,
+      "textLen": 14389,
+      "htmlLen": 159968,
+      "textRatio": 0.0899492398479696,
       "ldCount": 1,
       "ldInvalid": 0,
       "types": [
@@ -250,7 +250,7 @@
       ],
       "paras": 100,
       "items": 47,
-      "inBand": 47,
+      "inBand": 45,
       "tooLong": 0,
       "headings": 29,
       "qHeadings": 3,
