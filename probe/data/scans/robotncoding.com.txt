@@ -1,12 +1,12 @@
 ══════════════════════════════════════════════════════════════
   GEO 진단  https://robotncoding.com
-  종합 91/100  ·  우수
+  종합 93/100  ·  우수
 ══════════════════════════════════════════════════════════════
 
   AI 크롤러 접근          100  ████████████████████  가중 25%
   본문 추출 가능성          100  ████████████████████  가중 20%
-  구조화 데이터             91  ██████████████████··  가중 20%
-  인용 가능한 문단           55  ███████████·········  가중 15%
+  구조화 데이터            100  ████████████████████  가중 20%
+  인용 가능한 문단           56  ███████████·········  가중 15%
   AI 친화 패턴            93  ███████████████████·  가중 10%
   llms.txt           100  ████████████████████  가중 7%
   sitemap.xml        100  ████████████████████  가중 3%
@@ -29,15 +29,15 @@
   Common Crawl       CCBot              ✓ 명시허용
 
 ── 본문 추출 ──────────────────────────────────────────────
-  검사 페이지 6개 · 평균 본문 6961자 · 본문/HTML 비율 8.1%
+  검사 페이지 6개 · 평균 본문 6894자 · 본문/HTML 비율 8.0%
   JS 없이 본문이 빈약한 페이지 0개
 
 ── 구조화 데이터 ──────────────────────────────────────────
   JSON-LD 있는 페이지 6/6
-  발견 타입: EducationalOrganization, LocalBusiness, PostalAddress, Place, Offer, Service, OfferCatalog, Course, ContactPoint, Person, CollegeOrUniversity, WebSite, FAQPage, Question, Answer, Blog, BlogPosting, BreadcrumbList, ListItem
+  발견 타입: EducationalOrganization, LocalBusiness, PostalAddress, Place, Offer, Service, OfferCatalog, Course, ContactPoint, Organization, Person, CollegeOrUniversity, WebSite, FAQPage, Question, Answer, Blog, BlogPosting, BreadcrumbList, ListItem
 
 ── 문단 구조 ──────────────────────────────────────────────
-  산문 문단 289개 중 인용하기 좋은 길이(80~400자) 149개 (51.6%)
+  산문 문단 283개 중 인용하기 좋은 길이(80~400자) 151개 (53.4%)
   리스트 항목 94개
   너무 긴 문단 0개 · 대명사 주어 2회
 

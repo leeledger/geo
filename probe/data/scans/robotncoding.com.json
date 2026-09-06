@@ -1,7 +1,7 @@
 {
   "origin": "https://robotncoding.com",
-  "scanned_at": "2026-09-05T14:35:06.372Z",
-  "total": 91,
+  "scanned_at": "2026-09-06T09:23:10.258Z",
+  "total": 93,
   "grade": "우수",
   "platform": {
     "id": "nextjs",
@@ -112,7 +112,7 @@
     "llmstxt": {
       "score": 100,
       "exists": true,
-      "bytes": 25145,
+      "bytes": 24728,
       "sections": 14,
       "hasEntity": true
     },
@@ -123,13 +123,13 @@
     },
     "ssr": {
       "score": 100,
-      "avgTextLen": 6961,
-      "textRatio": 0.0805,
+      "avgTextLen": 6894,
+      "textRatio": 0.0804,
       "thinPages": 0,
       "totalPages": 6
     },
     "schema": {
-      "score": 91,
+      "score": 100,
       "pagesWithLd": 6,
       "totalPages": 6,
       "types": [
@@ -142,6 +142,7 @@
         "OfferCatalog",
         "Course",
         "ContactPoint",
+        "Organization",
         "Person",
         "CollegeOrUniversity",
         "WebSite",
@@ -154,6 +155,7 @@
         "ListItem"
       ],
       "matched": [
+        "Organization",
         "WebSite",
         "FAQPage",
         "BreadcrumbList",
@@ -162,11 +164,11 @@
       "invalid": 0
     },
     "chunk": {
-      "score": 55,
-      "paragraphs": 289,
+      "score": 56,
+      "paragraphs": 283,
       "listItems": 94,
-      "inBand": 149,
-      "bandRate": 51.6,
+      "inBand": 151,
+      "bandRate": 53.4,
       "tooLong": 0,
       "vagueSubjects": 2
     },
@@ -183,9 +185,9 @@
     {
       "url": "https://robotncoding.com",
       "ok": true,
-      "textLen": 14635,
-      "htmlLen": 161675,
-      "textRatio": 0.09052110715942477,
+      "textLen": 14432,
+      "htmlLen": 160099,
+      "textRatio": 0.09014422326185673,
       "ldCount": 1,
       "ldInvalid": 0,
       "types": [
@@ -198,6 +200,7 @@
         "OfferCatalog",
         "Course",
         "ContactPoint",
+        "Organization",
         "Person",
         "CollegeOrUniversity",
         "WebSite",
@@ -205,9 +208,9 @@
         "Question",
         "Answer"
       ],
-      "paras": 103,
+      "paras": 100,
       "items": 47,
-      "inBand": 46,
+      "inBand": 47,
       "tooLong": 0,
       "headings": 29,
       "qHeadings": 3,
@@ -222,9 +225,9 @@
     {
       "url": "https://robotncoding.com/",
       "ok": true,
-      "textLen": 14635,
-      "htmlLen": 161675,
-      "textRatio": 0.09052110715942477,
+      "textLen": 14432,
+      "htmlLen": 160099,
+      "textRatio": 0.09014422326185673,
       "ldCount": 1,
       "ldInvalid": 0,
       "types": [
@@ -237,6 +240,7 @@
         "OfferCatalog",
         "Course",
         "ContactPoint",
+        "Organization",
         "Person",
         "CollegeOrUniversity",
         "WebSite",
@@ -244,9 +248,9 @@
         "Question",
         "Answer"
       ],
-      "paras": 103,
+      "paras": 100,
       "items": 47,
-      "inBand": 46,
+      "inBand": 47,
       "tooLong": 0,
       "headings": 29,
       "qHeadings": 3,
