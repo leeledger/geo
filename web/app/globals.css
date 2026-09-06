@@ -633,3 +633,45 @@ header.hero.simple .lab{color:var(--accent)}
 .qcalc b{color:var(--ink);font-size:17px}
 .qnote{margin:0;padding:14px 20px 17px;font-size:14px;line-height:1.75;color:var(--muted)}
 .qnote b{color:var(--ink)}
+
+/* ── 채팅 시연 · 실물감 ──────────────────────────────────
+   특정 회사 화면을 복제하지 않되(트레이드 드레스), 실제 AI 답변 화면의
+   특징을 갖춘다: 엔진 탭, "웹 검색 중", 단어 단위 스트리밍, 출처 칩.
+   루프마다 엔진이 바뀐다 — 한 회사만의 문제가 아니라는 뜻이다. */
+.chathd .tabs{display:flex;gap:4px;overflow:hidden}
+.tab{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:8px;
+  font-size:11.5px;color:var(--faint);letter-spacing:.02em;white-space:nowrap;
+  transition:background .3s,color .3s}
+.tab i{width:7px;height:7px;border-radius:50%;display:block;opacity:.55;transition:opacity .3s}
+.tab.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,.12)}
+.tab.on i{opacity:1}
+@media(max-width:460px){.tab:not(.on){display:none}}
+
+.aistat{display:flex;align-items:center;gap:9px;align-self:flex-start;
+  font-size:12.5px;color:var(--faint);padding:4px 2px}
+.spin{width:13px;height:13px;border-radius:50%;flex-shrink:0;
+  border:2px solid var(--rule);border-top-color:var(--accent);
+  animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.aieng{display:flex;align-items:center;gap:7px;font-size:11px;letter-spacing:.06em;
+  color:var(--faint);margin-bottom:10px}
+.aieng i{width:8px;height:8px;border-radius:50%;display:block}
+.msg.me .caret,.caret{display:inline-block;width:2px;height:1em;background:currentColor;
+  vertical-align:-.12em;margin-left:2px;animation:blinkc 1s steps(2) infinite}
+.caret.dark{background:var(--ink)}
+.ailead{min-height:1.5em}
+
+.ailist li{display:flex;flex-direction:column;align-items:stretch;gap:3px}
+.ailn{display:flex;align-items:center;gap:10px}
+.ailn b{font-size:16px;color:var(--ink);letter-spacing:-.015em}
+.aild{font-size:13.5px;color:var(--muted);line-height:1.6}
+.ailist li.swap .ailn b{color:var(--warn)}
+
+.aisrc{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:14px;
+  padding-top:12px;border-top:1px solid var(--rule-soft);
+  animation:mrise .35s ease-out both}
+.srck{font-size:10px;letter-spacing:.12em;color:var(--faint);text-transform:uppercase;margin-right:2px}
+.srcc{font-size:11px;color:var(--muted);background:var(--surface);
+  border:1px solid var(--rule);border-radius:20px;padding:3px 10px}
+@media (prefers-reduced-motion:reduce){.spin{animation:none}.aisrc{animation:none}}
