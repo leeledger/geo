@@ -154,7 +154,7 @@ export default function ChatDemo() {
 
       <div className="chatft">
         {round === 1 || !showSwap ? (
-          <>고객은 이 세 곳만 봅니다. <b>2페이지는 없습니다.</b></>
+          <>고객은 여기 나온 곳만 봅니다. <b>2페이지는 없습니다.</b></>
         ) : (
           <>같은 질문인데 <b>세 번째가 바뀌었습니다.</b> 그래서 한 번 재고 말하지 않습니다.</>
         )}

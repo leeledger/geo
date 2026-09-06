@@ -24,8 +24,8 @@ export default function Home() {
             <div className="eyebrow">AI 답변 노출 측정 · GEO</div>
             <h1>AI가 추천하는 목록에<br />당신 회사가 있습니까?</h1>
             <p className="lede">
-              AI는 세 곳만 말합니다. 거기 없으면 <b>비교 대상에도 오르지 못합니다.</b><br />
-              지금 몇 번에 한 번 불리는지 재고, <b>왜 안 불리는지</b> 찾아냅니다.
+              AI는 다 보여주지 않습니다. <b>몇 곳만 골라서 답합니다.</b><br />
+              그 안에 있는지 재고, 없다면 <b>왜 없는지</b> 찾아냅니다.
             </p>
             <ScanForm id="dom-hero" />
           </div>
