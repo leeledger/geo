@@ -18,8 +18,12 @@
  * 그림은 SVG 를 PNG 로 구워서 올린다. 네이버 에디터는 SVG 를 안 받는다.
  *   node svg-to-png.mjs ../academy/public/blog/<슬러그> --scale 1
  *
- *   node naver-blog-post.mjs <슬러그>          발행까지
- *   node naver-blog-post.mjs <슬러그> --dry    발행 직전까지
+ *   node naver-blog-post.mjs <슬러그>                  새로 발행
+ *   node naver-blog-post.mjs <슬러그> --dry            발행 직전까지
+ *   node naver-blog-post.mjs <슬러그> --update <logNo> 이미 올린 글을 고쳐 쓰기
+ *
+ * 글을 고쳤으면 새로 올리지 말고 --update 를 쓴다.
+ * 같은 내용이 두 벌 올라가면 네이버 검색에서 서로 갉아먹는다.
  */
 import { chromium } from "playwright";
 import path from "node:path";
@@ -28,7 +32,16 @@ import { Pool } from "pg";
 
 const BLOG_ID = process.env.NAVER_BLOG_ID || "force11";
 const DRY = process.argv.includes("--dry");
-const slug = process.argv.slice(2).find((a) => !a.startsWith("--"));
+
+/**
+ * --update 다음 값은 logNo 다. 슬러그로 오해하면 안 된다.
+ * 앞선 판은 잘린 배열의 인덱스를 원본 배열의 인덱스와 비교해서,
+ * 인자 순서를 바꾸면 logNo 를 슬러그로 읽었다.
+ */
+const ARGS = process.argv.slice(2);
+const ui = ARGS.indexOf("--update");
+const LOG_NO = ui >= 0 ? ARGS[ui + 1] : null;
+const slug = ARGS.find((a, i) => !a.startsWith("--") && i !== ui + 1);
 
 if (!slug) {
   console.log("슬러그를 주세요. 예: node naver-blog-post.mjs ai-ro-jjatneunde-wae-ne-beon");
@@ -112,8 +125,13 @@ const ctx = await chromium.launchPersistentContext(path.join(process.cwd(), ".br
 const page = ctx.pages()[0] ?? (await ctx.newPage());
 page.on("dialog", async (d) => { console.log("  · " + d.message().slice(0, 70)); await d.accept().catch(() => {}); });
 
-await page.goto(`https://blog.naver.com/${BLOG_ID}?Redirect=Write`, { waitUntil: "domcontentloaded" });
-await page.waitForTimeout(11000);
+await page.goto(
+  LOG_NO
+    ? `https://blog.naver.com/PostWriteForm.naver?blogId=${BLOG_ID}&logNo=${LOG_NO}&Redirect=Update`
+    : `https://blog.naver.com/${BLOG_ID}?Redirect=Write`,
+  { waitUntil: "domcontentloaded" },
+);
+await page.waitForTimeout(12000);
 
 if (/nid\.naver\.com/.test(page.url())) {
   console.log("네이버 로그인이 필요합니다. 창에서 로그인해 주세요 (최대 8분).");
@@ -131,6 +149,37 @@ if (await restore.isVisible().catch(() => false)) {
   await restore.click().catch(() => {});
   console.log("이전 임시저장 팝업을 닫았습니다");
   await page.waitForTimeout(1500);
+}
+
+/**
+ * 고쳐 쓰기면 있던 내용을 먼저 비운다.
+ *
+ * 한 번 여기서 틀렸다. .se-component 의 첫 번째를 눌렀는데 그게 제목 칸이라
+ * Ctrl+A 가 제목만 잡았고, 본문은 그대로 남아 옛 글 뒤에 새 글이 붙었다.
+ * 본문 컴포넌트를 눌러야 하고, 스마트에디터는 Ctrl+A 를 한 번 누르면 문단만,
+ * 두 번 누르면 문서 전체를 잡는다.
+ */
+if (LOG_NO) {
+  await F.locator(".se-component.se-text").last().click();
+  await page.waitForTimeout(800);
+  await page.keyboard.press("Control+A");
+  await page.waitForTimeout(400);
+  await page.keyboard.press("Control+A");
+  await page.waitForTimeout(400);
+  await page.keyboard.press("Delete");
+  await page.waitForTimeout(2000);
+
+  // 비웠는지 확인한다. 안 비워졌으면 붙여 쓰지 말고 멈춘다.
+  const left = (await F.locator(".se-main-container, .se-container").first()
+    .innerText().catch(() => "")).replace(/\s/g, "");
+  if (left.length > 80) {
+    console.log(`✗ 본문이 안 비워졌습니다 (${left.length}자 남음). 붙여 쓰면 중복됩니다.`);
+    console.log("  창에서 직접 본문을 지우고 다시 돌리거나, 글을 지우고 새로 올리세요.");
+    await page.waitForTimeout(30000);
+    await ctx.close();
+    process.exit(1);
+  }
+  console.log("기존 내용을 비웠습니다");
 }
 
 await F.locator(".se-documentTitle").first().click();

@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 420" width="960" height="420" role="img"
+     aria-label="AI가 한 일과 사람이 한 일의 구분. 코드 쓰기는 AI가 했고, 무엇을 셀지 정하는 일은 사람이 했다.">
+  <defs>
+    <linearGradient id="wbg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0E131C"/><stop offset="1" stop-color="#0B0F16"/>
+    </linearGradient>
+  </defs>
+  <rect width="960" height="420" fill="url(#wbg)"/>
+  <path d="M480 64 v300" stroke="#232E3D" stroke-width="1.5"/>
+
+  <!-- 왼쪽 : AI -->
+  <g font-family="'Noto Sans KR',system-ui,sans-serif">
+    <text x="48" y="52" font-family="'IBM Plex Mono',ui-monospace,monospace" font-size="11.5"
+          letter-spacing="2" fill="#3DD6C4">AI 가 한 일</text>
+    <text x="48" y="92" font-size="21" font-weight="800" fill="#E8EDF5">코드를 쓰는 일</text>
+    <text x="48" y="118" font-size="13.5" fill="#7C8698">말로 설명하면 거의 바로 나왔습니다</text>
+
+    <g>
+      <rect x="48" y="140" width="386" height="46" rx="9" fill="#131F1E" stroke="#28453F"/>
+      <circle cx="72" cy="163" r="4.5" fill="#3DD6C4"/>
+      <text x="92" y="169" font-size="14.5" fill="#C7D0DC">화면 만들기 · 표 그리기</text>
+    </g>
+    <g>
+      <rect x="48" y="194" width="386" height="46" rx="9" fill="#131F1E" stroke="#28453F"/>
+      <circle cx="72" cy="217" r="4.5" fill="#3DD6C4"/>
+      <text x="92" y="223" font-size="14.5" fill="#C7D0DC">데이터 꺼내 오는 코드</text>
+    </g>
+    <g>
+      <rect x="48" y="248" width="386" height="46" rx="9" fill="#131F1E" stroke="#28453F"/>
+      <circle cx="72" cy="271" r="4.5" fill="#3DD6C4"/>
+      <text x="92" y="277" font-size="14.5" fill="#C7D0DC">권한별로 메뉴 가리기</text>
+    </g>
+    <g>
+      <rect x="48" y="302" width="386" height="46" rx="9" fill="#131F1E" stroke="#28453F"/>
+      <circle cx="72" cy="325" r="4.5" fill="#3DD6C4"/>
+      <text x="92" y="331" font-size="14.5" fill="#C7D0DC">이관 스크립트 자체</text>
+    </g>
+  </g>
+
+  <!-- 오른쪽 : 사람 -->
+  <g font-family="'Noto Sans KR',system-ui,sans-serif">
+    <text x="526" y="52" font-family="'IBM Plex Mono',ui-monospace,monospace" font-size="11.5"
+          letter-spacing="2" fill="#F5A623">사람이 한 일</text>
+    <text x="526" y="92" font-size="21" font-weight="800" fill="#E8EDF5">무엇을 시킬지 정하는 일</text>
+    <text x="526" y="118" font-size="13.5" fill="#7C8698">데이터에 답이 없어서 현장에 물어야 했습니다</text>
+
+    <g>
+      <rect x="526" y="140" width="386" height="46" rx="9" fill="#241B0C" stroke="#5C441A"/>
+      <circle cx="550" cy="163" r="4.5" fill="#F5A623"/>
+      <text x="570" y="169" font-size="14.5" fill="#D9C39A">고객을 무엇으로 셀 것인가</text>
+    </g>
+    <g>
+      <rect x="526" y="194" width="386" height="46" rx="9" fill="#241B0C" stroke="#5C441A"/>
+      <circle cx="550" cy="217" r="4.5" fill="#F5A623"/>
+      <text x="570" y="223" font-size="14.5" fill="#D9C39A">번호 없는 줄은 손님인가 오류인가</text>
+    </g>
+    <g>
+      <rect x="526" y="248" width="386" height="46" rx="9" fill="#241B0C" stroke="#5C441A"/>
+      <circle cx="550" cy="271" r="4.5" fill="#F5A623"/>
+      <text x="570" y="277" font-size="14.5" fill="#D9C39A">두 파일의 코드 중 어느 쪽이 맞는가</text>
+    </g>
+    <g>
+      <rect x="526" y="302" width="386" height="46" rx="9" fill="#241B0C" stroke="#5C441A"/>
+      <circle cx="550" cy="325" r="4.5" fill="#F5A623"/>
+      <text x="570" y="331" font-size="14.5" fill="#D9C39A">틀렸는지 알아보는 일</text>
+    </g>
+  </g>
+
+  <text x="480" y="392" text-anchor="middle" font-family="'Noto Sans KR',system-ui,sans-serif"
+        font-size="15" font-weight="700" fill="#8A94A6">
+    왼쪽은 값이 내려가고, 오른쪽은 값이 그대로입니다
+  </text>
+</svg>
