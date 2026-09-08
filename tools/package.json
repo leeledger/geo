@@ -1,0 +1,13 @@
+{
+  "name": "cited-browser",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "login": "node open-session.mjs",
+    "naver": "node submit-naver.mjs",
+    "gsc": "node submit-gsc.mjs"
+  },
+  "dependencies": {
+    "playwright": "^1.63.0"
+  }
+}
