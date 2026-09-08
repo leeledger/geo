@@ -196,7 +196,7 @@ export default function Home() {
             <div className="cx">
               <div className="cxh">
                 <span className="lab2">사이트 진단</span>
-                <span className="mono cxn">83 → <Count to={91} /></span>
+                <span className="mono cxn">83 → <Count to={93} /></span>
               </div>
               <p>
                 크롤러 허용, llms.txt, 구조화 데이터, 문단 구조 등 7가지를 봅니다.
@@ -237,13 +237,24 @@ export default function Home() {
             </div>
             <div className="cx">
               <div className="cxh">
-                <span className="lab2">읽은 엔진</span>
-                <span className="mono cxn"><Count to={2} /> / 6</span>
+                <span className="lab2">다녀간 크롤러 · 4일차</span>
+                <span className="mono cxn"><Count to={7} />곳 / <Count to={303} />회</span>
               </div>
               <p>
-                주요 AI 6곳 중 2곳이 다녀갔고, 4곳은 아직 안 왔습니다.
-                AI마다 새 사이트를 발견하는 속도가 달라서 그렇습니다.
-                <b>나머지가 언제 오는지도 전부 기록에 남습니다.</b>
+                첫날 2곳이던 것이 나흘 만에 7곳이 됐습니다.
+                AI마다, 검색엔진마다 새 사이트를 발견하는 속도가 다릅니다.
+                <b>어디가 언제 왔는지 전부 기록에 남습니다.</b>
+              </p>
+            </div>
+            <div className="cx hi">
+              <div className="cxh">
+                <span className="lab2">검색 노출 · 09.08</span>
+                <span className="mono cxn">네이버 <Count to={1} />위</span>
+              </div>
+              <p>
+                「석촌동 로봇 코딩학원」으로 검색하면 <b>네이버 웹문서 첫 줄에 나옵니다.</b>
+                착수 사흘 만입니다. 다만 「송파구 코딩학원」 같은 경쟁 검색어는 아직 안 잡혔습니다.
+                <b>브랜드명이 먼저 잡히고 경쟁 검색어가 나중에 붙습니다.</b>
               </p>
             </div>
           </div>
@@ -262,15 +273,18 @@ export default function Home() {
             <div className="cl mono">
               <span>+18h</span><span>Googlebot</span><span>/ · /blog · /sitemap.xml</span>
             </div>
+            <div className="cl mono">
+              <span>+3d</span><span>Yeti</span><span>/sitemap.xml · 네이버 색인</span>
+            </div>
             <div className="cl mono dim">
-              <span>…</span><span>AI 2곳</span><span>34쪽 중 31쪽을 읽어감 · 91.2%</span>
+              <span>…</span><span>크롤러 7곳</span><span>303회 방문 · ClaudeBot 102쪽</span>
             </div>
           </div>
 
           <div className="casenote">
-            여기까지가 확인된 사실이고, <b>AI가 이 학원을 추천하는지는 아직 모릅니다.</b>
-            검색에 올라가는 데 며칠 걸리기 때문에 지금 물어보면 의미가 없습니다.
-            <b> 올라간 뒤에 물어보고, 잘 나왔든 못 나왔든 여기에 그대로 적겠습니다.</b>
+            검색은 올라왔습니다. <b>AI가 이 학원을 추천하는지는 아직 모릅니다.</b>
+            올라온 지 얼마 안 돼서, 지금 재면 AI가 아직 못 본 상태를 재는 셈입니다.
+            <b> 며칠 뒤에 물어보고, 잘 나왔든 못 나왔든 여기에 그대로 적겠습니다.</b>
           </div>
         </div>
       </section>

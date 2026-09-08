@@ -46,6 +46,17 @@ const hitPaths = (await pool.query(
   `select path, count(*)::int n from academy.crawl_hits group by path order by n desc limit 6`,
 )).rows;
 
+// 검색 노출 — 오늘 상태와, 각 질의가 처음 잡힌 날
+const serp = (await pool.query(
+  `select engine, kind, query, hit, rank from academy.serp_checks
+    where day = (select max(day) from academy.serp_checks)
+    order by engine, kind desc, query`,
+)).rows;
+const serpFirst = (await pool.query(
+  `select engine, query, min(day) d from academy.serp_checks
+    where hit group by engine, query order by min(day), engine`,
+)).rows;
+
 // 사이트 점수 (probe 측정 결과)
 let scan = null;
 try {
@@ -227,7 +238,12 @@ ${crawl.length ? `
     ${crawl.some((r) => r.vendor === "anthropic")
       ? "ClaudeBot 이 robots.txt 를 먼저 읽고 이관한 블로그 글을 가져갔습니다."
       : ""}
-    아직 구글·빙 색인 크롤러는 오지 않았습니다 — 색인 요청 직후라 정상입니다.
+    ${(() => {
+      const search = crawl.filter((r) => /Googlebot|Bingbot|Yeti/i.test(r.bot));
+      if (!search.length) return "아직 검색 색인 크롤러는 오지 않았습니다 — 색인 요청 직후라 정상입니다.";
+      return "검색 색인 크롤러도 왔습니다 — "
+        + search.map((r) => `${esc(r.bot)} ${r.hits}회`).join(", ") + ".";
+    })()}
   </p></div>
 ${hitPaths.length ? `
   <div class="tw"><table>
@@ -236,7 +252,38 @@ ${hitPaths.length ? `
   </table></div>` : ""}
 ` : `<div class="box"><p>아직 방문 기록이 없습니다. 색인 요청 직후에는 정상입니다.</p></div>`}
 
-  <h2><span class="n">05</span>아직 모르는 것</h2>
+  <h2><span class="n">05</span>검색 노출</h2>
+  <p class="sub">
+    크롤러가 왔다는 것과 사람이 검색해서 찾을 수 있다는 것은 다른 단계입니다.
+    아래는 <b>매일 실제로 검색해서 남긴 기록</b>입니다.
+    엔진마다 색인 속도가 다르므로 나눠서 잽니다.
+  </p>
+${serp.length ? `
+  <div class="tw"><table>
+    <thead><tr><th>엔진</th><th>구분</th><th>검색어</th><th>결과</th></tr></thead>
+    <tbody>${serp.map((r) => `<tr>
+      <td class="m">${esc(r.engine === "naver" ? "네이버" : "Bing")}</td>
+      <td class="m">${esc(r.kind)}</td>
+      <td>${esc(r.query)}</td>
+      <td class="m">${r.hit ? `<b>${r.rank}위</b>` : `<span class="no">미노출</span>`}</td>
+    </tr>`).join("")}
+    </tbody>
+  </table></div>
+${serpFirst.length ? `
+  <div class="box"><p>
+    <b>처음 검색에 나온 날.</b>
+    ${serpFirst.map((f) =>
+      `${esc(f.engine === "naver" ? "네이버" : "Bing")} &middot; ${esc(f.query)} &mdash; ${day(f.d)}`).join("<br>")}
+  </p></div>` : ""}
+  <div class="box"><p>
+    구글은 결과 페이지를 긁으면 막히기 때문에 여기서 재지 않습니다.
+    대신 Search Console 의 URL 검사로 페이지마다 확인합니다.
+    <b>지역 경쟁 검색어는 아직 잡히지 않았습니다</b> &mdash;
+    브랜드명과 정확한 지역명이 먼저 잡히고 경쟁 검색어가 나중에 붙는 순서입니다.
+  </p></div>
+` : `<div class="box"><p>아직 측정 기록이 없습니다.</p></div>`}
+
+  <h2><span class="n">06</span>아직 모르는 것</h2>
   <p class="sub">케이스 스터디에서 이 항목을 빼면 신뢰를 잃습니다.</p>
   <div class="box">
     <p><b>인용률은 아직 재지 않았습니다.</b> 색인이 잡히기 전에 재면 전 엔진 0% 가 나올 것이 뻔합니다.
@@ -249,13 +296,13 @@ ${hitPaths.length ? `
     다만 그때는 홈페이지 점수가 아니라 <b>제3자 지면 진입이 상품</b>이 됩니다.</p>
   </div>
 
-  <h2><span class="n">06</span>다음에 할 일</h2>
+  <h2><span class="n">07</span>다음에 할 일</h2>
   <div class="todo">${TODO.map(([h, p]) =>
     `<div class="td"><div class="h">${esc(h)}</div><p>${esc(p)}</p></div>`).join("")}
   </div>
 
 ${snaps.length > 1 ? `
-  <h2><span class="n">07</span>일별 기록</h2>
+  <h2><span class="n">08</span>일별 기록</h2>
   <p class="sub">GitHub Actions 가 매일 자동으로 남깁니다.</p>
   <div class="tw"><table>
     <thead><tr><th>날짜</th><th>문서</th><th>누적 크롤러 방문</th><th>엔진</th></tr></thead>
