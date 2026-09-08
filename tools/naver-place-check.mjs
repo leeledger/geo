@@ -92,9 +92,16 @@ for (let i = 0; i < 6 && !detail; i++) {
 console.log("\n── 플레이스 상세 ──");
 if (!detail) {
   console.log("  상세를 못 읽었습니다");
+} else if (detail.includes("robotncoding.com")) {
+  console.log("  홈페이지 연결: ✓ robotncoding.com");
+} else if (!/홈페이지|http/i.test(detail)) {
+  // 읽힌 게 요약 패널(주소·영업시간)뿐이면 링크가 없다고 말할 수 없다.
+  // 이 자리에서 "없음"이라고 적었다가 이미 연결해 둔 것을 못 봤다.
+  console.log("  홈페이지 연결: 확인 못함 — 요약만 읽혔습니다 (정보 탭을 봐야 합니다)");
 } else {
-  const has = detail.includes("robotncoding.com");
-  console.log("  홈페이지 연결:", has ? "✓ robotncoding.com" : "✗ 없음 — 연결하면 유입 경로가 생깁니다");
+  console.log("  홈페이지 연결: ✗ 없음 — 연결하면 유입 경로가 생깁니다");
+}
+if (detail) {
   const bits = detail.split("\n").map((s) => s.trim()).filter(Boolean).slice(0, 14);
   console.log("  " + bits.join(" · ").slice(0, 300));
 }
