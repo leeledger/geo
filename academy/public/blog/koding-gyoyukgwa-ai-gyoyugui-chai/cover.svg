@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 480" width="960" height="480" role="img"
+     aria-label="같은 결과물에서 갈라지는 두 갈래. 위쪽은 문제를 정의하고 시키고 고친 길, 아래쪽은 받아 그대로 낸 길.">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0E131C"/>
+      <stop offset="1" stop-color="#0B0F16"/>
+    </linearGradient>
+    <linearGradient id="warm" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#F5A623" stop-opacity=".25"/>
+      <stop offset="1" stop-color="#F5A623"/>
+    </linearGradient>
+    <linearGradient id="cool" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#3DD6C4" stop-opacity=".22"/>
+      <stop offset="1" stop-color="#3DD6C4" stop-opacity=".55"/>
+    </linearGradient>
+    <linearGradient id="fade" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#5A6473" stop-opacity=".55"/>
+      <stop offset="1" stop-color="#5A6473" stop-opacity=".14"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="960" height="480" fill="url(#bg)"/>
+
+  <!-- 배경 격자. 코딩 화면의 결을 아주 옅게만 깐다 -->
+  <g stroke="#1B2432" stroke-width="1" opacity=".55">
+    <path d="M0 120h960M0 240h960M0 360h960"/>
+    <path d="M160 0v480M320 0v480M480 0v480M640 0v480M800 0v480"/>
+  </g>
+
+  <!-- 공통 출발선 : 같은 결과물 -->
+  <g>
+    <rect x="66" y="206" width="150" height="68" rx="12" fill="#141B26" stroke="#2B3646"/>
+    <text x="141" y="234" text-anchor="middle" font-family="'Noto Sans KR',system-ui,sans-serif"
+          font-size="15" font-weight="700" fill="#E8EDF5">같은 결과물</text>
+    <text x="141" y="256" text-anchor="middle" font-family="'Noto Sans KR',system-ui,sans-serif"
+          font-size="12.5" fill="#8A94A6">“AI로 만들었어요”</text>
+  </g>
+
+  <!-- 갈림 : 위는 스스로 정의한 길, 아래는 받아 적은 길 -->
+  <path d="M216 240 C 300 240, 300 132, 384 132" fill="none" stroke="url(#warm)" stroke-width="2.5"/>
+  <path d="M216 240 C 300 240, 300 348, 384 348" fill="none" stroke="url(#fade)" stroke-width="2.5"
+        stroke-dasharray="7 6"/>
+
+  <!-- 윗길 : 정하고 → 시키고 → 고치고 -->
+  <g font-family="'Noto Sans KR',system-ui,sans-serif">
+    <g>
+      <rect x="384" y="104" width="118" height="56" rx="10" fill="#1A2330" stroke="#F5A623" stroke-opacity=".55"/>
+      <text x="443" y="138" text-anchor="middle" font-size="15" font-weight="700" fill="#F5A623">정하고</text>
+    </g>
+    <path d="M502 132h34" stroke="#F5A623" stroke-opacity=".7" stroke-width="2.5"/>
+    <g>
+      <rect x="536" y="104" width="118" height="56" rx="10" fill="#1A2330" stroke="#F5A623" stroke-opacity=".55"/>
+      <text x="595" y="138" text-anchor="middle" font-size="15" font-weight="700" fill="#F5A623">시키고</text>
+    </g>
+    <path d="M654 132h34" stroke="#F5A623" stroke-opacity=".7" stroke-width="2.5"/>
+    <g>
+      <rect x="688" y="104" width="118" height="56" rx="10" fill="#1A2330" stroke="#F5A623" stroke-opacity=".55"/>
+      <text x="747" y="138" text-anchor="middle" font-size="15" font-weight="700" fill="#F5A623">고치고</text>
+    </g>
+  </g>
+
+  <!-- 아랫길 : 받아서 → 그대로 -->
+  <g font-family="'Noto Sans KR',system-ui,sans-serif">
+    <g>
+      <rect x="384" y="320" width="118" height="56" rx="10" fill="#131924" stroke="#2B3646"/>
+      <text x="443" y="354" text-anchor="middle" font-size="15" font-weight="700" fill="#778296">받아서</text>
+    </g>
+    <path d="M502 348h34" stroke="#5A6473" stroke-opacity=".6" stroke-width="2.5" stroke-dasharray="7 6"/>
+    <g>
+      <rect x="536" y="320" width="118" height="56" rx="10" fill="#131924" stroke="#2B3646"/>
+      <text x="595" y="354" text-anchor="middle" font-size="15" font-weight="700" fill="#778296">그대로</text>
+    </g>
+  </g>
+
+  <!-- 중학교라는 관문. 여기서 두 길의 차이가 처음 드러난다 -->
+  <g>
+    <path d="M846 62v356" stroke="#3DD6C4" stroke-opacity=".45" stroke-width="2" stroke-dasharray="5 7"/>
+    <text x="846" y="50" text-anchor="middle" font-family="'IBM Plex Mono',ui-monospace,monospace"
+          font-size="12.5" letter-spacing="1.5" fill="#3DD6C4" fill-opacity=".85">중학교</text>
+  </g>
+
+  <!-- 관문을 지난 뒤 : 한쪽만 설명이 나온다 -->
+  <path d="M806 132h30" stroke="url(#cool)" stroke-width="2.5"/>
+  <text x="866" y="126" font-family="'Noto Sans KR',system-ui,sans-serif" font-size="14"
+        font-weight="700" fill="#3DD6C4">설명</text>
+  <text x="866" y="146" font-family="'Noto Sans KR',system-ui,sans-serif" font-size="14"
+        font-weight="700" fill="#3DD6C4">된다</text>
+
+  <path d="M654 348h182" stroke="#5A6473" stroke-opacity=".3" stroke-width="2.5" stroke-dasharray="7 6"/>
+  <text x="866" y="342" font-family="'Noto Sans KR',system-ui,sans-serif" font-size="14"
+        fill="#6B7688">막힌다</text>
+
+  <!-- 아래 한 줄 요약 -->
+  <text x="66" y="436" font-family="'Noto Sans KR',system-ui,sans-serif" font-size="14.5" fill="#8A94A6">
+    결과물은 같아 보입니다. 갈리는 건 설명을 요구받는 순간입니다.
+  </text>
+</svg>

@@ -105,12 +105,24 @@ export default async function PostPage({ params }: Props) {
             </p>
           )}
 
+          {/* 글마다 본문에 넣지 않고 여기 한 곳에 둔다.
+              본문에 넣으면 41편을 각각 고쳐야 하고, 나중에 번호가 바뀌면 반드시 어긋난다. */}
           <div className="pcta">
             <p>
               로봇&amp;코딩학원은 서울 송파구 석촌동 274-8 2층에 있습니다.
-              수업 상담은 전화로 받습니다.
+              궁금한 것은 전화나 카카오톡으로 물어보셔도 됩니다.
             </p>
-            <a className="btn primary" href="tel:02-422-0525">상담 전화 02-422-0525</a>
+            <div className="pctab">
+              <a className="btn primary" href="tel:02-422-0525">상담 전화 02-422-0525</a>
+              <a
+                className="btn kakao"
+                href="http://pf.kakao.com/_Bxhxbxjxb/chat"
+                target="_blank"
+                rel="noopener"
+              >
+                카카오톡으로 상담하기
+              </a>
+            </div>
           </div>
         </div>
       </article>
