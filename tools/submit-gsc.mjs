@@ -16,16 +16,30 @@
  */
 import { chromium } from "playwright";
 import path from "node:path";
+import { readFile, writeFile } from "node:fs/promises";
 
 const PROFILE = path.join(process.cwd(), ".browser-profile");
 const SITE = "https://robotncoding.com";
 const PROP = "sc-domain:robotncoding.com";
 const ALL = process.argv.includes("--all");
 
+/**
+ * 이미 넣은 주소는 gsc-done.json 에 쌓아 둔다.
+ * 하루 한도가 있어서 며칠에 걸쳐 나눠 넣어야 하는데,
+ * 기록이 없으면 매번 앞의 6개만 다시 넣게 된다.
+ */
+const DONE_FILE = new URL("./gsc-done.json", import.meta.url);
+const done = new Set(
+  await readFile(DONE_FILE, "utf8").then(JSON.parse).catch(() => []),
+);
+
 async function targets() {
   if (!ALL) return [`${SITE}/`, `${SITE}/blog`];
   const xml = await (await fetch(`${SITE}/sitemap.xml`)).text();
-  return [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]).slice(0, 6);
+  const all = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
+  const left = all.filter((u) => !done.has(u));
+  console.log(`전체 ${all.length}개 · 접수함 ${done.size}개 · 남음 ${left.length}개`);
+  return left.slice(0, 8);
 }
 
 const urls = await targets();
@@ -67,7 +81,7 @@ async function inspectBox() {
   return null;
 }
 
-let done = 0;
+let ok = 0;
 for (const [i, u] of urls.entries()) {
   console.log(`\n[${i + 1}/${urls.length}] ${u}`);
 
@@ -105,7 +119,9 @@ for (const [i, u] of urls.entries()) {
       .first()
       .waitFor({ timeout: 90000 });
     console.log("  ✓ 접수됨");
-    done++;
+    ok++;
+    done.add(u);
+    await writeFile(DONE_FILE, JSON.stringify([...done], null, 2));
 
     // 확인 창 닫기
     await page.keyboard.press("Escape").catch(() => {});
@@ -127,6 +143,6 @@ for (const [i, u] of urls.entries()) {
   }
 }
 
-console.log(`\n접수 ${done}/${urls.length}건. 창을 30초 열어 둡니다.`);
+console.log(`\n접수 ${ok}/${urls.length}건. 창을 30초 열어 둡니다.`);
 await page.waitForTimeout(30000);
 await ctx.close();

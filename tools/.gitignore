@@ -1,3 +1,6 @@
 node_modules
 # 로그인 세션이 들어 있다. 절대 커밋하면 안 된다.
 .browser-profile
+
+# 프로브 스크린샷
+*.png

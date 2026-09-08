@@ -12,7 +12,7 @@ import path from "node:path";
 const PROFILE = path.join(process.cwd(), ".browser-profile");
 
 const ctx = await chromium.launchPersistentContext(PROFILE, {
-  headless: true,
+  headless: false,  // 네이버는 헤드리스를 막는다
   locale: "ko-KR",
   timezoneId: "Asia/Seoul",
 });
