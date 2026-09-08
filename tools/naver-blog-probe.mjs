@@ -1,8 +1,9 @@
 /**
- * 네이버 블로그 글쓰기 화면 구조를 읽는다. 아무것도 쓰지 않는다.
+ * 네이버 블로그 글쓰기 화면의 제목·본문 요소를 읽는다. 아무것도 쓰지 않는다.
  *
- * 스마트에디터는 iframe 안에 들어 있고 버전마다 구조가 다르다.
- * 주소와 선택자를 추측하면 계속 빗나간다. 화면을 먼저 읽는다.
+ * 스마트에디터 ONE 은 iframe(PostWriteForm.naver) 안에 있다.
+ * 바깥 프레임 주소에도 Redirect=Write 가 들어 있어서, 그걸 조건에 넣으면
+ * 바깥이 잡힌다. PostWriteForm 만 봐야 한다.
  *
  *   node naver-blog-probe.mjs
  */
@@ -22,47 +23,51 @@ const page = ctx.pages()[0] ?? (await ctx.newPage());
 page.on("dialog", async (d) => { console.log("DIALOG:", d.message().slice(0, 90)); await d.accept().catch(() => {}); });
 
 await page.goto(`https://blog.naver.com/${BLOG_ID}?Redirect=Write`, { waitUntil: "domcontentloaded" });
-await page.waitForTimeout(10000);
-console.log("주소:", page.url().slice(0, 120));
+await page.waitForTimeout(11000);
 
-if (/nid\.naver\.com/.test(page.url())) {
-  console.log("\n로그인이 필요합니다. 창에서 로그인해 주세요 (최대 8분).");
-  const t = Date.now();
-  while (Date.now() - t < 8 * 60 * 1000 && /nid\.naver\.com/.test(page.url())) await page.waitForTimeout(2500);
-  console.log("→", page.url().slice(0, 120));
-  await page.waitForTimeout(8000);
+const F = page.frames().find((f) => /PostWriteForm/i.test(f.url())) || page.mainFrame();
+console.log("에디터:", F.url().slice(0, 80));
+
+// 작성 중이던 글 복구 팝업이 떠 있으면 걷어낸다
+for (const name of [/취소/, /닫기/]) {
+  const b = F.getByRole("button", { name }).first();
+  if (await b.isVisible().catch(() => false)) {
+    console.log("팝업 버튼 보임:", (await b.innerText().catch(() => "")).trim());
+  }
 }
 
-console.log("\n── 프레임 ──");
-for (const f of page.frames()) {
-  console.log(`  ${f.name() || "(이름없음)"}  ${f.url().slice(0, 90)}`);
-}
-
-/**
- * 에디터 프레임 고르기.
- * 처음에 Redirect=Write 도 조건에 넣었더니 바깥 프레임이 잡혔다.
- * 바깥 주소에도 그 글자가 들어 있어서다. PostWriteForm 만 본다.
- */
-let ed = page.frames().find((f) => /PostWriteForm/i.test(f.url()));
-if (!ed) ed = page.frames().find((f) => f !== page.mainFrame() && !/about:blank|pstatic/.test(f.url()));
-console.log("\n에디터 후보 프레임:", ed ? ed.url().slice(0, 90) : "(없음 · 메인 사용)");
-const F = ed || page.mainFrame();
-
-console.log("\n── 화면 글자 (앞 600자) ──");
-console.log((await F.locator("body").innerText().catch(() => "")).replace(/\n{2,}/g, "\n").slice(0, 600));
-
-console.log("\n── 편집 가능 영역 ──");
-for (const sel of ['[contenteditable="true"]', "textarea", ".se-text-paragraph", ".se-component"]) {
+console.log("\n── se 구성요소 ──");
+for (const sel of [
+  ".se-documentTitle", ".se-title-text", ".se-component.se-text",
+  ".se-section-documentTitle", ".se-placeholder", ".se-text-paragraph",
+  '[contenteditable="true"]',
+]) {
   const n = await F.locator(sel).count().catch(() => 0);
-  if (n) console.log(`  ${sel} → ${n}개`);
+  if (!n) continue;
+  console.log(`  ${sel} → ${n}개`);
+  for (let i = 0; i < Math.min(n, 3); i++) {
+    const el = F.locator(sel).nth(i);
+    const t = (await el.innerText().catch(() => "")).replace(/\s+/g, " ").trim().slice(0, 40);
+    const cls = ((await el.getAttribute("class").catch(() => "")) || "").slice(0, 70);
+    console.log(`      [${i}] "${t}"  class=${cls}`);
+  }
 }
 
-console.log("\n── 버튼 ──");
-for (const b of (await F.getByRole("button").all()).slice(0, 40)) {
+console.log("\n── 파일 입력 ──");
+const fi = await F.locator('input[type="file"]').count().catch(() => 0);
+console.log(`  input[type=file] → ${fi}개`);
+for (let i = 0; i < fi; i++) {
+  const el = F.locator('input[type="file"]').nth(i);
+  console.log(`      [${i}] accept=${await el.getAttribute("accept").catch(() => "")} ` +
+              `multiple=${await el.getAttribute("multiple").catch(() => null) !== null}`);
+}
+
+console.log("\n── 발행 흐름 버튼 ──");
+for (const b of (await F.getByRole("button").all())) {
   const t = (await b.innerText().catch(() => "")).replace(/\s+/g, " ").trim();
-  if (t && t.length < 24) console.log(`  "${t}"`);
+  if (/발행|저장|사진/.test(t) && t.length < 20) console.log(`  "${t}"`);
 }
 
-console.log("\n창을 60초 열어 둡니다. 아무것도 쓰지 않았습니다.");
-await page.waitForTimeout(60000);
+console.log("\n창을 50초 열어 둡니다. 아무것도 쓰지 않았습니다.");
+await page.waitForTimeout(50000);
 await ctx.close();

@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 150" width="150" height="150" role="img"
+     aria-label="동영상 워터마크. 대괄호 사이의 파란 점.">
+  <!-- 영상 오른쪽 아래에 겹쳐 놓이는 표식이라 배경을 깔지 않는다.
+       배경을 깔면 영상 위에 네모가 얹혀 보인다.
+       밝은 장면에서도 보이도록 흰 획에 옅은 그림자를 준다. -->
+  <defs>
+    <filter id="sh" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="0" stdDeviation="3" flood-color="#000000" flood-opacity=".55"/>
+    </filter>
+  </defs>
+  <g filter="url(#sh)">
+    <path d="M52 30 H30 V120 H52" fill="none" stroke="#FFFFFF" stroke-width="11"/>
+    <path d="M98 30 H120 V120 H98" fill="none" stroke="#FFFFFF" stroke-width="11"/>
+    <circle cx="75" cy="75" r="22" fill="#2F6BF6"/>
+  </g>
+</svg>

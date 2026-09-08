@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" width="1280" height="720" role="img"
+     aria-label="1화 섬네일. AI가 코드를 다 짜주는데 코딩을 가르칠 필요가 있나요?">
+  <!--
+    섬네일 본. 다음 편은 가운데 글자만 갈아 끼운다.
+      규격     1280 × 720
+      글자 크기 목록에서 210px 폭까지 줄어든다. 한 줄에 8자 안쪽으로 끊는다.
+      오른쪽 아래는 재생시간이 덮으므로 비워 둔다.
+  -->
+  <defs>
+    <linearGradient id="tg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#111722"/><stop offset="1" stop-color="#0B0F16"/>
+    </linearGradient>
+  </defs>
+  <rect width="1280" height="720" fill="url(#tg)"/>
+
+  <g stroke="#1A2230" stroke-width="2" opacity=".9">
+    <path d="M0 180h1280M0 360h1280M0 540h1280"/>
+    <path d="M320 0v720M640 0v720M960 0v720"/>
+  </g>
+
+  <!-- 왼쪽 위 : 채널 표식. 작아도 이건 알아본다 -->
+  <g transform="translate(64,56)">
+    <path d="M30 6 H8 V92 H30" fill="none" stroke="#FFFFFF" stroke-width="9"/>
+    <path d="M88 6 H110 V92 H88" fill="none" stroke="#FFFFFF" stroke-width="9"/>
+    <circle cx="59" cy="49" r="19" fill="#2F6BF6"/>
+  </g>
+  <text x="196" y="120" font-family="'Noto Sans KR',system-ui,sans-serif" font-weight="900"
+        font-size="34" letter-spacing="-1" fill="#FFFFFF">로봇<tspan fill="#2F6BF6">·</tspan>코딩</text>
+
+  <!-- 회차 -->
+  <g>
+    <rect x="64" y="196" width="96" height="42" rx="7" fill="#F5A623"/>
+    <text x="112" y="226" text-anchor="middle" font-family="'IBM Plex Mono',ui-monospace,monospace"
+          font-size="24" font-weight="500" fill="#12161F">01</text>
+  </g>
+
+  <!-- 제목 : 짧게 끊어 세 줄. 목록에서 줄어들어도 첫 줄은 읽힌다 -->
+  <g font-family="'Noto Sans KR',system-ui,sans-serif" font-weight="900" letter-spacing="-3">
+    <text x="64" y="352" font-size="82" fill="#FFFFFF">AI가 코드를</text>
+    <text x="64" y="446" font-size="82" fill="#FFFFFF">다 짜주는데</text>
+    <text x="64" y="540" font-size="82" fill="#F5A623">코딩을 왜 배우죠?</text>
+  </g>
+
+  <!-- 아래 한 줄. 오른쪽 아래 재생시간 자리는 비워 둔다 -->
+  <text x="64" y="632" font-family="'Noto Sans KR',system-ui,sans-serif" font-size="30"
+        fill="#8A94A6">10년 가르치면서 본 것</text>
+
+  <!-- 오른쪽 결 : 갈라지는 두 길을 아주 작게 -->
+  <g fill="none" stroke-width="5" stroke-linecap="round" opacity=".85">
+    <path d="M1010 360 C 1080 360, 1080 250, 1160 250" stroke="#F5A623" stroke-opacity=".8"/>
+    <path d="M1010 360 C 1080 360, 1080 470, 1160 470" stroke="#5A6473" stroke-opacity=".55"
+          stroke-dasharray="10 9"/>
+    <circle cx="1010" cy="360" r="11" fill="#E8EDF5" stroke="none"/>
+    <circle cx="1176" cy="250" r="13" fill="#F5A623" stroke="none"/>
+    <circle cx="1176" cy="470" r="13" fill="#3A4250" stroke="none"/>
+  </g>
+</svg>

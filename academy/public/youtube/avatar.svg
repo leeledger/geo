@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800" width="800" height="800" role="img"
+     aria-label="로봇&amp;코딩 채널 프로필. 대괄호 사이에 파란 점이 있는 표식.">
+  <!-- 유튜브는 올릴 때 자르기 창을 한 번 거치고, 화면에서는 원으로 잘라 보여준다.
+       처음엔 표식을 가운데 46% 만 차지하게 그렸다가 검은 원만 남았다.
+       자르기가 어디로 잡히든 표식이 남도록 크게 그린다.
+       모서리는 원 밖으로 잘리므로 대괄호 끝은 반지름 400 안에 둔다. -->
+  <rect width="800" height="800" fill="#141414"/>
+
+  <!-- 대괄호 — 로고의 그 장치. 끝점 (150,170) 은 중심에서 328 이라 원 안에 든다 -->
+  <path d="M258 170 H150 V630 H258" fill="none" stroke="#FFFFFF" stroke-width="52"
+        stroke-linecap="butt" stroke-linejoin="miter"/>
+  <path d="M542 170 H650 V630 H542" fill="none" stroke="#FFFFFF" stroke-width="52"
+        stroke-linecap="butt" stroke-linejoin="miter"/>
+
+  <!-- 가운데 파란 점 — 로고에서 '로봇'과 '코딩'을 잇던 점 -->
+  <circle cx="400" cy="400" r="118" fill="#2F6BF6"/>
+</svg>

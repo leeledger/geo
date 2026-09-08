@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2560 1440" width="2560" height="1440" role="img"
+     aria-label="로봇&amp;코딩 채널 배너. 코딩을 가르치지 않습니다. 생각하는 방법을 가르칩니다.">
+  <!--
+    유튜브 배너 규격
+      파일        2560 × 1440
+      전 기기 안전영역  가운데 1546 × 423  (x 507~2053, y 509~932)
+    글자는 반드시 안전영역 안에만 둔다. 밖은 TV 에서만 보이므로 배경만 깐다.
+  -->
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#10141C"/>
+      <stop offset=".55" stop-color="#0B0F16"/>
+      <stop offset="1" stop-color="#0E1620"/>
+    </linearGradient>
+    <radialGradient id="glow" cx=".5" cy=".5" r=".5">
+      <stop offset="0" stop-color="#2F6BF6" stop-opacity=".20"/>
+      <stop offset="1" stop-color="#2F6BF6" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="2560" height="1440" fill="url(#g)"/>
+  <ellipse cx="1280" cy="720" rx="1000" ry="560" fill="url(#glow)"/>
+
+  <!-- 배경 격자 : 바깥까지 이어져 TV 에서도 화면이 비지 않는다 -->
+  <g stroke="#181F2B" stroke-width="2" opacity=".85">
+    <path d="M0 240h2560M0 480h2560M0 720h2560M0 960h2560M0 1200h2560"/>
+    <path d="M320 0v1440M640 0v1440M960 0v1440M1280 0v1440M1600 0v1440M1920 0v1440M2240 0v1440"/>
+  </g>
+
+  <!-- 안전영역 바깥의 결 : 미로 조각. 가운데 글자를 방해하지 않는 자리에만 둔다 -->
+  <g fill="none" stroke="#F5A623" stroke-opacity=".16" stroke-width="6" stroke-linecap="round">
+    <path d="M120 360 h180 v170 h150"/>
+    <path d="M120 900 v160 h240"/>
+    <path d="M2440 380 h-190 v190 h-140"/>
+    <path d="M2440 1050 v-150 h-210"/>
+  </g>
+  <g fill="none" stroke="#3DD6C4" stroke-opacity=".14" stroke-width="6" stroke-linecap="round">
+    <path d="M300 640 h140 v130"/>
+    <path d="M2260 760 h-150 v140"/>
+  </g>
+
+  <!-- ── 여기부터 안전영역 (x 507~2053, y 509~932) ── -->
+
+  <!-- 표식 : 대괄호와 파란 점 -->
+  <g transform="translate(560,590)">
+    <path d="M62 20 H24 V196 H62" fill="none" stroke="#FFFFFF" stroke-width="17"/>
+    <path d="M182 20 H220 V196 H182" fill="none" stroke="#FFFFFF" stroke-width="17"/>
+    <circle cx="122" cy="108" r="38" fill="#2F6BF6"/>
+  </g>
+
+  <!-- 채널 이름 -->
+  <text x="860" y="666" font-family="'Noto Sans KR',system-ui,sans-serif" font-weight="900"
+        font-size="96" letter-spacing="-4" fill="#FFFFFF">로봇<tspan fill="#2F6BF6">·</tspan>코딩</text>
+  <g>
+    <rect x="1300" y="596" width="132" height="80" rx="10" fill="#2F6BF6"/>
+    <text x="1366" y="652" text-anchor="middle" font-family="'Noto Sans KR',system-ui,sans-serif"
+          font-weight="700" font-size="50" fill="#FFFFFF">AI</text>
+  </g>
+
+  <!-- 한 줄 -->
+  <text x="862" y="748" font-family="'Noto Sans KR',system-ui,sans-serif" font-weight="700"
+        font-size="42" letter-spacing="-1" fill="#E8EDF5">코딩을 가르치지 않습니다. 생각하는 방법을 가르칩니다.</text>
+
+  <!-- 부연 -->
+  <text x="862" y="812" font-family="'Noto Sans KR',system-ui,sans-serif" font-size="30"
+        fill="#8A94A6">시스템을 만들던 사람이, 아이들에게 AI로 만드는 법을 가르칩니다</text>
+
+  <!-- 발행 주기와 주소 -->
+  <g font-family="'IBM Plex Mono',ui-monospace,monospace" font-size="27">
+    <rect x="862" y="856" width="196" height="46" rx="8" fill="#1A2230" stroke="#2B3646"/>
+    <text x="960" y="886" text-anchor="middle" fill="#F5A623">매주 수요일</text>
+    <text x="1090" y="886" fill="#6E7887">robotncoding.com</text>
+  </g>
+</svg>

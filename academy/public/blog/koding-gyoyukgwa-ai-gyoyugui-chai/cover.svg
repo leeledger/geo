@@ -76,7 +76,7 @@
   <g>
     <path d="M846 62v356" stroke="#3DD6C4" stroke-opacity=".45" stroke-width="2" stroke-dasharray="5 7"/>
     <text x="846" y="50" text-anchor="middle" font-family="'IBM Plex Mono',ui-monospace,monospace"
-          font-size="12.5" letter-spacing="1.5" fill="#3DD6C4" fill-opacity=".85">중학교</text>
+          font-size="12.5" fill="#3DD6C4" fill-opacity=".85">중학교</text>
   </g>
 
   <!-- 관문을 지난 뒤 : 한쪽만 설명이 나온다 -->
