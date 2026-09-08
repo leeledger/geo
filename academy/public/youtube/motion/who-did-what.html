@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>who-did-what 모션</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  /* 왼쪽(AI가 한 일)이 먼저 다 차고, 오른쪽(사람이 한 일)이 나중에 온다.
+     마지막 한 줄이 이 글의 결론이라 왼쪽을 물러나게 하고 그 줄을 세운다. */
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{width:1920px;height:1080px;overflow:hidden}
+  body{background:#0B0F16;font-family:"Noto Sans KR",system-ui,sans-serif;color:#E8EDF5}
+
+  .split{position:absolute;left:960px;top:130px;bottom:230px;width:2px;background:#232E3D;
+         transform:scaleY(0);transform-origin:top;
+         animation:grow .7s cubic-bezier(.16,1,.3,1) .2s forwards}
+  @keyframes grow{to{transform:scaleY(1)}}
+
+  .col{position:absolute;top:150px;width:790px}
+  .col.l{left:110px} .col.r{right:110px}
+  .eb{font-family:"IBM Plex Mono",monospace;font-size:23px;letter-spacing:.2em}
+  .col.l .eb{color:#3DD6C4} .col.r .eb{color:#F5A623}
+  h2{font-size:50px;font-weight:900;letter-spacing:-.03em;margin:16px 0 10px}
+  .lede{font-size:26px;color:#7C8698;margin-bottom:40px}
+
+  .item{display:flex;align-items:center;gap:24px;padding:28px 34px;border-radius:16px;margin-bottom:22px;
+        font-size:31px}
+  .col.l .item{background:#131F1E;border:2px solid #28453F;color:#C7D0DC}
+  .col.r .item{background:#241B0C;border:2px solid #5C441A;color:#D9C39A}
+  .dot{width:16px;height:16px;border-radius:50%;flex:none}
+  .col.l .dot{background:#3DD6C4} .col.r .dot{background:#F5A623}
+
+  .foot{position:absolute;left:0;right:0;top:900px;text-align:center;
+        font-size:40px;font-weight:900;letter-spacing:-.02em;color:#E8EDF5}
+  .foot .a{color:#3DD6C4} .foot .b{color:#F5A623}
+
+  .in{opacity:0;transform:translateY(26px);filter:blur(6px);
+      animation:in .55s cubic-bezier(.16,1,.3,1) forwards}
+  @keyframes in{to{opacity:1;transform:none;filter:blur(0)}}
+
+  .d1{animation-delay:.35s}
+  .d2{animation-delay:1.0s}.d3{animation-delay:1.4s}.d4{animation-delay:1.8s}.d5{animation-delay:2.2s}
+  .d6{animation-delay:3.1s}
+  .d7{animation-delay:3.8s}.d8{animation-delay:4.3s}.d9{animation-delay:4.8s}.d10{animation-delay:5.3s}
+  .d11{animation-delay:6.3s}
+
+  .col.l{animation:dim .8s ease 6.0s forwards}
+  @keyframes dim{to{opacity:.4}}
+</style>
+</head>
+<body>
+<div class="split"></div>
+
+<div class="col l">
+  <div class="eb in d1">AI 가 한 일</div>
+  <h2 class="in d1">코드를 쓰는 일</h2>
+  <div class="lede in d1">말로 설명하면 거의 바로 나왔습니다</div>
+  <div class="item in d2"><i class="dot"></i>화면 만들기 · 표 그리기</div>
+  <div class="item in d3"><i class="dot"></i>데이터 꺼내 오는 코드</div>
+  <div class="item in d4"><i class="dot"></i>권한별로 메뉴 가리기</div>
+  <div class="item in d5"><i class="dot"></i>이관 스크립트 자체</div>
+</div>
+
+<div class="col r">
+  <div class="eb in d6">사람이 한 일</div>
+  <h2 class="in d6">무엇을 시킬지 정하는 일</h2>
+  <div class="lede in d6">데이터에 답이 없어서 현장에 물어야 했습니다</div>
+  <div class="item in d7"><i class="dot"></i>고객을 무엇으로 셀 것인가</div>
+  <div class="item in d8"><i class="dot"></i>번호 없는 줄은 손님인가 오류인가</div>
+  <div class="item in d9"><i class="dot"></i>두 파일의 코드 중 어느 쪽이 맞는가</div>
+  <div class="item in d10"><i class="dot"></i>틀렸는지 알아보는 일</div>
+</div>
+
+<div class="foot in d11"><span class="a">왼쪽은 값이 내려가고</span>, <span class="b">오른쪽은 값이 그대로입니다</span></div>
+</body>
+</html>

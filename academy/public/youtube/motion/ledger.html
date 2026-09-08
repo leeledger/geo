@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>ledger 모션</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  /* 이 글의 핵심 도해. 장부 줄이 쌓이고 → 고객 목록이 없다는 게 드러나고 →
+     오른쪽에서 사람 하나가 만들어지고 → 주문이 거기 붙는다.
+     "옮기는 게 아니라 만들어 내는 일"이라는 말이 화면으로 보여야 한다. */
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{width:1920px;height:1080px;overflow:hidden}
+  body{background:#0B0F16;font-family:"Noto Sans KR",system-ui,sans-serif;color:#E8EDF5}
+
+  .side{position:absolute;top:110px;width:800px}
+  .L{left:110px} .R{right:110px}
+  .eb{font-family:"IBM Plex Mono",monospace;font-size:22px;letter-spacing:.2em}
+  .L .eb{color:#8A94A6} .R .eb{color:#3DD6C4}
+  h2{font-size:52px;font-weight:900;letter-spacing:-.03em;margin:14px 0 10px}
+  .lede{font-size:26px;color:#7C8698;margin-bottom:34px}
+
+  table{border-collapse:collapse;width:760px;font-family:"IBM Plex Mono",monospace;font-size:25px}
+  th,td{padding:16px 22px;text-align:left}
+  thead tr{background:#161E2A} th{color:#6E7887;font-weight:400;font-size:22px}
+  tbody tr:nth-child(odd){background:#131924} tbody tr:nth-child(even){background:#161E2A}
+  td{color:#C7D0DC}
+  .warnname{color:#F5A623}
+  .dimname{color:#6E7887}
+
+  .total{font-family:"IBM Plex Mono",monospace;font-size:44px;font-weight:500;margin-top:30px}
+  .total span{font-family:"Noto Sans KR",sans-serif;font-size:26px;color:#8A94A6;margin-left:12px}
+
+  .box{margin-top:28px;width:760px;padding:26px 30px;border-radius:16px}
+  .box.bad{background:#1C1719;border:3px solid #3D2C2E}
+  .box.good{background:#131F1E;border:3px solid #28453F}
+  .box .t{font-size:28px;font-weight:700;margin-bottom:8px}
+  .box.bad .t{color:#C97A6E} .box.good .t{color:#3DD6C4}
+  .box .s{font-size:23px} .box.bad .s{color:#9A8A8C} .box.good .s{color:#9FB0AC}
+
+  /* 오른쪽 칸은 x=1010 에서 시작한다. 가운데 블록이 그 선을 넘으면
+     주문 카드에 글자가 가려진다.
+     translateX(-50%) 로 가운데를 잡았다가 두 번 겹쳤다 — 등장 애니메이션이
+     transform 을 통째로 덮어써서 정렬이 날아간다. transform 은 속성 하나다.
+     그래서 left 로만 자리를 잡는다. */
+  .mid{position:absolute;left:800px;top:430px;text-align:center;width:180px}
+  .mid .arrow{width:140px;height:5px;background:linear-gradient(90deg,rgba(61,214,196,.15),#3DD6C4);
+              margin:0 auto;border-radius:3px}
+  .mid .cap{font-size:24px;font-weight:700;color:#3DD6C4;margin-bottom:16px}
+  .mid .sub{font-size:19px;color:#6E7887;margin-top:16px;line-height:1.5}
+
+  .cust{width:760px;padding:28px 32px;border-radius:16px;background:#131F1E;border:3px solid #28453F}
+  .cust .lb{font-family:"IBM Plex Mono",monospace;font-size:20px;letter-spacing:.14em;color:#3DD6C4}
+  .cust .nm{font-size:38px;font-weight:900;margin-top:10px}
+  .cust .ph{font-family:"IBM Plex Mono",monospace;font-size:26px;color:#9FB0AC;margin-top:6px}
+  .ord{width:700px;margin-left:60px;margin-top:14px;padding:18px 24px;border-radius:12px;
+       background:#161E2A;border:2px solid #2B3646;
+       font-family:"IBM Plex Mono",monospace;font-size:24px;color:#C7D0DC}
+
+  .in{opacity:0;transform:translateY(26px);filter:blur(6px);
+      animation:in .55s cubic-bezier(.16,1,.3,1) forwards}
+  @keyframes in{to{opacity:1;transform:none;filter:blur(0)}}
+  .sl{opacity:0;transform:translateX(-24px);animation:sl .5s cubic-bezier(.16,1,.3,1) forwards}
+  @keyframes sl{to{opacity:1;transform:none}}
+
+  .d1{animation-delay:.3s}.d2{animation-delay:.9s}
+  .d3{animation-delay:1.4s}.d4{animation-delay:1.8s}.d5{animation-delay:2.2s}.d6{animation-delay:2.6s}
+  .d7{animation-delay:3.2s}.d8{animation-delay:3.8s}
+  .d9{animation-delay:4.9s}
+  .d10{animation-delay:5.8s}.d11{animation-delay:6.5s}
+  .d12{animation-delay:7.1s}.d13{animation-delay:7.6s}.d14{animation-delay:8.1s}
+  .d15{animation-delay:8.8s}.d16{animation-delay:9.4s}
+
+  /* 왼쪽은 오른쪽이 시작될 때 한 톤 물러난다 */
+  .side.L{animation:dim .8s ease 5.6s forwards}
+  @keyframes dim{to{opacity:.4}}
+</style>
+</head>
+<body>
+
+<div class="side L">
+  <div class="eb in d1">BEFORE</div>
+  <h2 class="in d1">판매 장부만 있었습니다</h2>
+  <div class="lede in d2">한 줄이 거래 하나. 사람을 묶어 주는 번호가 없습니다.</div>
+  <table>
+    <thead class="in d2"><tr><th>날짜</th><th>이름</th><th>품목</th><th>금액</th></tr></thead>
+    <tbody>
+      <tr class="sl d3"><td>03-14</td><td>홍길동</td><td>A</td><td>42,000</td></tr>
+      <tr class="sl d4"><td>05-02</td><td class="warnname">홍길동 상호</td><td>B</td><td>18,000</td></tr>
+      <tr class="sl d5"><td>07-21</td><td class="warnname">홍길동(메모)</td><td>A</td><td>42,000</td></tr>
+      <tr class="sl d6"><td>08-09</td><td class="dimname">(빈칸)</td><td>C</td><td>9,000</td></tr>
+    </tbody>
+  </table>
+  <div class="total in d7">66,094<span>줄</span></div>
+  <div class="box bad in d8">
+    <div class="t">고객 목록이 없습니다</div>
+    <div class="s">같은 사람인지 아닌지 판단할 기준이 데이터에 없습니다</div>
+  </div>
+</div>
+
+<div class="mid in d9">
+  <div class="cap">뽑아내기</div>
+  <div class="arrow"></div>
+  <div class="sub">옮기는 게 아니라<br>만들어 내는 일</div>
+</div>
+
+<div class="side R">
+  <div class="eb in d10">AFTER</div>
+  <h2 class="in d10">고객이 먼저 있어야 합니다</h2>
+  <div class="lede in d10">이 사람이 뭘 샀는지 보려면 사람이 먼저 있어야 합니다.</div>
+
+  <div class="cust in d11">
+    <div class="lb">고객</div>
+    <div class="nm">홍길동</div>
+    <div class="ph">010-1234-5678</div>
+  </div>
+
+  <div class="ord sl d12">03-14 &nbsp;·&nbsp; A &nbsp;·&nbsp; 42,000</div>
+  <div class="ord sl d13">05-02 &nbsp;·&nbsp; B &nbsp;·&nbsp; 18,000</div>
+  <div class="ord sl d14">07-21 &nbsp;·&nbsp; A &nbsp;·&nbsp; 42,000</div>
+
+  <div class="total in d15">12,393<span>명</span></div>
+  <div class="box good in d16">
+    <div class="t">기준을 사람이 정해야 합니다</div>
+    <div class="s">무엇을 같은 사람으로 볼 것인가 — 데이터에 답이 없습니다</div>
+  </div>
+</div>
+
+</body>
+</html>
