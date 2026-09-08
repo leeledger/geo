@@ -1,0 +1,35 @@
+# 색인·노출 확인 — 레퍼런스가 언제 완성됐는지 날짜로 남긴다
+#
+# 크롤러 방문은 서버가 기록하지만, 검색에 나오는지는 밖에서 검색해 봐야 안다.
+# "언제부터 나왔는지"를 기억으로 말하면 영업에서 못 쓴다.
+#
+# 필요한 시크릿: DATABASE_URL (Neon 연결 문자열)
+
+name: serp
+
+on:
+  schedule:
+    - cron: "41 22 * * *"   # 07:41 KST
+  workflow_dispatch: {}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: pg 설치
+        run: npm install pg --no-save --silent
+        working-directory: academy
+      - name: 색인·노출 확인
+        working-directory: academy
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          set -euo pipefail
+          # 스크립트가 .env.local 을 먼저 읽으므로 러너에도 만들어 준다
+          printf 'DATABASE_URL=%s\n' "$DATABASE_URL" > .env.local
+          node scripts/check-index.mjs
