@@ -1,6 +1,6 @@
 {
   "origin": "https://robotncoding.com",
-  "scanned_at": "2026-09-06T14:11:21.470Z",
+  "scanned_at": "2026-09-08T09:10:35.221Z",
   "total": 93,
   "grade": "우수",
   "platform": {
@@ -123,8 +123,8 @@
     },
     "ssr": {
       "score": 100,
-      "avgTextLen": 6879,
-      "textRatio": 0.0803,
+      "avgTextLen": 7257,
+      "textRatio": 0.0812,
       "thinPages": 0,
       "totalPages": 6
     },
@@ -164,18 +164,18 @@
       "invalid": 0
     },
     "chunk": {
-      "score": 55,
-      "paragraphs": 283,
+      "score": 56,
+      "paragraphs": 295,
       "listItems": 94,
-      "inBand": 147,
-      "bandRate": 51.9,
+      "inBand": 157,
+      "bandRate": 53.2,
       "tooLong": 0,
       "vagueSubjects": 2
     },
     "patterns": {
       "score": 93,
       "questionHeadings": 9,
-      "numericFacts": 215,
+      "numericFacts": 253,
       "pagesWithTable": 2,
       "pagesWithList": 2,
       "pagesWithMeta": 6
@@ -185,9 +185,9 @@
     {
       "url": "https://robotncoding.com",
       "ok": true,
-      "textLen": 14389,
-      "htmlLen": 159968,
-      "textRatio": 0.0899492398479696,
+      "textLen": 15523,
+      "htmlLen": 167856,
+      "textRatio": 0.09247807644647793,
       "ldCount": 1,
       "ldInvalid": 0,
       "types": [
@@ -208,14 +208,14 @@
         "Question",
         "Answer"
       ],
-      "paras": 100,
+      "paras": 106,
       "items": 47,
-      "inBand": 45,
+      "inBand": 50,
       "tooLong": 0,
-      "headings": 29,
+      "headings": 36,
       "qHeadings": 3,
       "vague": 1,
-      "hasNumbers": 29,
+      "hasNumbers": 48,
       "hasTable": true,
       "hasList": true,
       "lang": "ko",
@@ -225,9 +225,9 @@
     {
       "url": "https://robotncoding.com/",
       "ok": true,
-      "textLen": 14389,
-      "htmlLen": 159968,
-      "textRatio": 0.0899492398479696,
+      "textLen": 15523,
+      "htmlLen": 167856,
+      "textRatio": 0.09247807644647793,
       "ldCount": 1,
       "ldInvalid": 0,
       "types": [
@@ -248,14 +248,14 @@
         "Question",
         "Answer"
       ],
-      "paras": 100,
+      "paras": 106,
       "items": 47,
-      "inBand": 45,
+      "inBand": 50,
       "tooLong": 0,
-      "headings": 29,
+      "headings": 36,
       "qHeadings": 3,
       "vague": 1,
-      "hasNumbers": 29,
+      "hasNumbers": 48,
       "hasTable": true,
       "hasList": true,
       "lang": "ko",

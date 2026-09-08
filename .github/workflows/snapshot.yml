@@ -21,6 +21,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
+      - name: 색인 알림 (IndexNow)
+        continue-on-error: true
+        run: |
+          curl -sS -X POST https://api.indexnow.org/indexnow             -H "content-type: application/json"             -d '{"host":"robotncoding.com","key":"f8685efbae8d5fbdb8722bba5f93cb65","keyLocation":"https://robotncoding.com/f8685efbae8d5fbdb8722bba5f93cb65.txt","urlList":["https://robotncoding.com/","https://robotncoding.com/blog"]}'             -w " · HTTP %{http_code}
+"
+
       - name: 스냅샷 기록
         env:
           URL: ${{ secrets.SNAPSHOT_URL }}
