@@ -244,6 +244,15 @@ footer .row{display:flex;gap:26px;flex-wrap:wrap;align-items:baseline}
   font-size:16px;line-height:1.88;color:var(--on-deep-2)}
 .casenote b{color:var(--on-deep)}
 
+/* 케이스 전체 기록으로 가는 링크. 랜딩에 다 넣으면 읽는 부담이 커진다. */
+.caselink{display:inline-flex;flex-direction:column;gap:3px;margin-top:18px;
+  padding:14px 20px;border:1px solid rgba(255,255,255,.10);border-radius:12px;
+  background:rgba(255,255,255,.03);color:var(--on-deep);text-decoration:none;
+  font-size:15.5px;font-weight:700;letter-spacing:-.01em;
+  transition:border-color .18s,background .18s}
+.caselink:hover{border-color:var(--accent-deep);background:rgba(255,255,255,.06)}
+.caselink span{font-size:13px;font-weight:400;color:var(--on-deep-2);letter-spacing:0}
+
 /* ── 신뢰구간 수렴 그래프 ────────────────────────────────
    이 회사가 파는 것은 "측정"이라 방법론이 한 장으로 보여야 한다.
    숫자를 크게 쓰는 대신 오차막대를 그린다. 그게 이 업계에서 드문 일이다. */

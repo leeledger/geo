@@ -286,8 +286,11 @@ ${serpFirst.length ? `
   <h2><span class="n">06</span>아직 모르는 것</h2>
   <p class="sub">케이스 스터디에서 이 항목을 빼면 신뢰를 잃습니다.</p>
   <div class="box">
-    <p><b>인용률은 아직 재지 않았습니다.</b> 색인이 잡히기 전에 재면 전 엔진 0% 가 나올 것이 뻔합니다.
-    실제 측정은 검색 색인이 확인된 뒤에 합니다.</p>
+    <p><b>인용률은 아직 재지 않았습니다.</b>
+    ${serp.some((r) => r.hit)
+      ? `검색에는 올라왔지만 올라온 지 며칠 안 됐습니다. 지금 재면 AI 가 아직 못 본 상태를 재는 셈입니다.
+         측정 도구(33개 질문 &times; 5회 반복)는 준비돼 있고, 며칠 뒤에 돌립니다.`
+      : `색인이 잡히기 전에 재면 전 엔진 0% 가 나올 것이 뻔합니다. 색인이 확인된 뒤에 잽니다.`}</p>
     <p><b>이 케이스에는 약점이 있습니다.</b> 학원 대표가 곧 이 프로젝트의 의뢰인이라
     사이트를 즉시 고칠 수 있었습니다. 실제 고객사는 도메인 권한·개발팀·결재 라인이 있어
     같은 작업에 몇 주가 걸립니다. <b>다음 고객사에서 시험할 것은 기술이 아니라 리드타임입니다.</b></p>
@@ -318,5 +321,30 @@ ${snaps.length > 1 ? `
   robotncoding.com · 초안 ${drafts.n}편 대기 · 이 문서는 scripts/case-report.mjs 가 DB 에서 생성합니다
 </div></footer>`;
 
-process.stdout.write(out);
+/**
+ * 기본은 조각(fragment)을 표준출력으로 보낸다 — 아티팩트로 올릴 때 쓰던 방식이다.
+ * --out 을 주면 그대로 브라우저에 띄울 수 있는 완결된 문서로 감싸서 파일에 쓴다.
+ * 영업에서 링크로 보내려면 URL 이 있어야 하고, URL 로 열리려면 문서여야 한다.
+ */
+const outArg = process.argv.indexOf("--out");
+if (outArg > 0 && process.argv[outArg + 1]) {
+  const file = path.resolve(process.cwd(), process.argv[outArg + 1]);
+  const doc = `<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+${out.slice(0, out.indexOf("</style>") + 8)}
+</head>
+<body>
+${out.slice(out.indexOf("</style>") + 8)}
+</body>
+</html>`;
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, doc, "utf8");
+  console.log(`${path.relative(process.cwd(), file)} · ${doc.length.toLocaleString("ko-KR")}자`);
+} else {
+  process.stdout.write(out);
+}
 await pool.end();

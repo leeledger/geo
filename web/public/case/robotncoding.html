@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>로봇&코딩학원 · AI 노출 리포트</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+KR:wght@400;500;700;800;900&display=swap">
+<style>
+:root{--bg:#F8F7F4;--card:#FFF;--sunken:#F1EFE9;--line:#E3E0D8;--line-2:#EDEBE4;
+  --ink:#15171A;--ink-2:#4A4E54;--ink-3:#8A8375;--accent:#B5760A;--ok:#2F7D5B;--wait:#9A7B2E}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0F1319;--card:#161C25;--sunken:#1A212B;--line:#252E3B;--line-2:#1E2631;
+  --ink:#E9EDF3;--ink-2:#A9B3C1;--ink-3:#6F7A8A;--accent:#F5A623;--ok:#3DD6A0;--wait:#E0B85C}}
+:root[data-theme="dark"]{--bg:#0F1319;--card:#161C25;--sunken:#1A212B;--line:#252E3B;--line-2:#1E2631;
+  --ink:#E9EDF3;--ink-2:#A9B3C1;--ink-3:#6F7A8A;--accent:#F5A623;--ok:#3DD6A0;--wait:#E0B85C}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:"Noto Sans KR",system-ui,sans-serif;font-size:15px;line-height:1.75;-webkit-font-smoothing:antialiased}
+.mono{font-family:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace}
+.wrap{max-width:880px;margin:0 auto;padding:0 24px}
+header{padding:62px 0 30px;border-bottom:1px solid var(--line)}
+.eb{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent)}
+h1{font-size:clamp(26px,4vw,36px);font-weight:900;letter-spacing:-.035em;line-height:1.24;margin:12px 0 14px}
+.dek{font-size:15.5px;color:var(--ink-2);max-width:70ch;margin:0}
+.dek b{color:var(--ink)}
+h2{font-size:19px;font-weight:800;letter-spacing:-.025em;margin:48px 0 5px}
+h2 .n{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--ink-3);letter-spacing:.1em;margin-right:9px;font-weight:400}
+.sub{color:var(--ink-2);font-size:14.5px;margin:0 0 16px;max-width:70ch}
+.sub b{color:var(--ink)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:18px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 17px}
+.kpi .v{font-family:"IBM Plex Mono",monospace;font-size:26px;font-weight:500;color:var(--ink);letter-spacing:-.02em}
+.kpi .v small{font-size:13px;color:var(--ink-3);margin-left:3px}
+.kpi .k{font-size:12.5px;color:var(--ink-3);margin-top:5px}
+.kpi.hi .v{color:var(--accent)}
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--card);margin-top:14px}
+table{border-collapse:collapse;width:100%;font-size:14.2px;min-width:520px}
+th,td{text-align:left;padding:11px 15px;border-bottom:1px solid var(--line-2);vertical-align:top}
+thead th{background:var(--sunken);font-size:11.5px;letter-spacing:.07em;color:var(--ink-3);font-weight:600;white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+td.m{font-family:"IBM Plex Mono",monospace;font-size:13px;color:var(--ink-3);white-space:nowrap}
+td b{color:var(--ink)}
+.no{color:var(--ink-3)}
+.bar{display:inline-block;width:78px;height:5px;border-radius:4px;background:var(--sunken);
+  overflow:hidden;vertical-align:middle;margin-right:9px}
+.bar i{display:block;height:100%;background:var(--accent)}
+.tl{border-left:2px solid var(--line);padding-left:20px;margin-top:16px}
+.tl .e{position:relative;padding-bottom:19px}
+.tl .e::before{content:"";position:absolute;left:-25px;top:9px;width:8px;height:8px;border-radius:50%;
+  background:var(--accent);border:2px solid var(--bg)}
+.tl .e .d{font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--ink-3)}
+.tl .e .t{font-size:15.5px;font-weight:700;margin:2px 0 4px}
+.tl .e p{margin:0;font-size:14.2px;color:var(--ink-2);line-height:1.75}
+.box{border-left:3px solid var(--accent);background:color-mix(in oklab,var(--accent) 7%,var(--bg));
+  border-radius:0 12px 12px 0;padding:17px 20px;margin-top:20px}
+.box p{margin:0 0 9px;font-size:14.5px;color:var(--ink-2);line-height:1.85}
+.box p:last-child{margin-bottom:0}
+.box b{color:var(--ink)}
+.todo{display:flex;flex-direction:column;gap:9px;margin-top:14px}
+.td{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:14px 16px}
+.td .h{font-size:14.8px;font-weight:700;color:var(--ink);margin-bottom:4px}
+.td p{margin:0;font-size:13.8px;color:var(--ink-2);line-height:1.7}
+footer{padding:40px 0 68px;margin-top:42px;border-top:1px solid var(--line);color:var(--ink-3);font-size:12.5px}
+</style>
+</head>
+<body>
+
+
+<header><div class="wrap">
+  <div class="eb">Case Study · 진행중</div>
+  <h1>로봇&amp;코딩학원 · AI 노출 리포트</h1>
+  <p class="dek">
+    서울 송파구 석촌동 코딩·로봇·AI 학원. 착수 <b>2026년 9월 5일</b>.
+    이 문서는 <b>DB 에서 자동 생성</b>되며, 아직 확인되지 않은 것은 확인되지 않았다고 적습니다.
+    생성 시각 2026. 9. 8. 오후 8:11.
+  </p>
+</div></header>
+
+<div class="wrap">
+
+  <h2><span class="n">01</span>착수 시점의 상태</h2>
+  <p class="sub">
+    학부모가 실제로 쓸 질문 6개를 검색엔진에 넣어 <b>무엇이 나오는지</b> 기록했습니다.
+    이 기준선이 없으면 나중에 "좋아졌다"는 말은 느낌일 뿐입니다.
+  </p>
+  <div class="tw"><table>
+    <thead><tr><th>질의</th><th>이 학원</th><th>실제로 나온 문서</th></tr></thead>
+    <tbody><tr><td>송파구 석촌동 코딩학원 추천</td><td class="no">미노출</td><td class="m">오늘학교 · 순위닷</td></tr><tr><td>서울 송파구 초등학생 코딩학원 추천</td><td class="no">미노출</td><td class="m">오늘학교 · 순위닷 · 모하지</td></tr><tr><td>석촌동 로봇 코딩 배우는 학원</td><td class="no">미노출</td><td class="m">로보티즈 · 디랩 · 글로벌리더센터</td></tr><tr><td>송파 로봇코딩학원 초등학생</td><td class="no">미노출</td><td class="m">송파런 · 로보티즈 · 디랩</td></tr><tr><td>로봇앤코딩학원 (브랜드)</td><td class="no">미노출</td><td class="m">강남점 카카오채널 · learns.academy 대치동</td></tr><tr><td>site:robotncoding.com</td><td class="no">미노출</td><td class="m">색인 0건</td></tr>
+    </tbody>
+  </table></div>
+  <div class="box"><p>
+    <b>6개 질의 전부 미노출.</b> 그리고 더 중요한 사실 —
+    상위 결과에 <b>개별 학원 홈페이지가 하나도 없었습니다.</b> 전부 디렉터리와 플랫폼이었습니다.
+    홈페이지를 아무리 잘 만들어도 이 질의에서는 디렉터리를 이길 수 없다는 뜻입니다.
+  </p></div>
+
+  <h2><span class="n">02</span>지금까지 한 일</h2>
+  <div class="tl"><div class="e"><div class="d">09.05</div><div class="t">착수 · 검색 계층 기준선 측정</div><p>6개 질의 전부 미노출. 상위에 개별 학원 홈페이지가 하나도 없고 전부 디렉터리였다.</p></div><div class="e"><div class="d">09.05</div><div class="t">사이트 구축 · 도메인 연결</div><p>robotncoding.com. AI 크롤러 17종 명시 허용, llms.txt, 스키마 19종.</p></div><div class="e"><div class="d">09.05</div><div class="t">네이버 블로그 32편 이관</div><p>네이버는 robots.txt 로 AI 크롤러를 전부 막는다. 그 글들은 AI 에게 존재하지 않는 문서였다. 사진 69장 자체 호스팅.</p></div><div class="e"><div class="d">09.05</div><div class="t">검색엔진 등록</div><p>구글·빙·네이버 소유확인. 사이트맵 34 URL, RSS 32편 제출.</p></div><div class="e"><div class="d">09.05</div><div class="t">크롤러 감지 설치</div><p>AI·검색 크롤러 24종을 판별해 방문을 기록. 결과 지표보다 먼저 움직이는 유일한 선행지표.</p></div><div class="e"><div class="d">09.05</div><div class="t">일별 스냅샷 자동화</div><p>GitHub Actions 가 매일 기록을 남긴다.</p></div><div class="e"><div class="d">09.06</div><div class="t">구글 비즈니스 프로필 등록</div><p>구글 AI 개요와 Gemini 가 지역 질의에 이 데이터를 직접 쓴다. 대표자 본인인증이 필요해 대행이 불가능한 항목이다.</p></div><div class="e"><div class="d">09.06</div><div class="t">오늘학교 아카데미 등재 신청</div><p>「송파구 코딩학원」 목록에 없던 것을 채웠다. 심사 대기중.</p></div>
+  </div>
+
+  <h2><span class="n">03</span>측정 가능한 변화</h2>
+  <div class="kpis">
+    <div class="kpi hi"><div class="v">93<small>/100</small></div><div class="k">사이트 진단 (착수 시 83)</div></div>
+    <div class="kpi"><div class="v">40<small>편</small></div><div class="k">공개 문서 (착수 시 0)</div></div>
+    <div class="kpi"><div class="v">42,528<small>자</small></div><div class="k">본문 합계</div></div>
+    <div class="kpi"><div class="v">310<small>회</small></div><div class="k">AI 크롤러 방문</div></div>
+  </div>
+
+  <div class="tw"><table>
+    <thead><tr><th>진단 항목</th><th>점수</th><th>근거</th></tr></thead>
+    <tbody><tr>
+      <td>AI 크롤러 허용</td>
+      <td class="m"><span class="bar"><i style="width:100%"></i></span>100</td>
+      <td class="m">11종 명시 허용</td></tr><tr>
+      <td>llms.txt</td>
+      <td class="m"><span class="bar"><i style="width:100%"></i></span>100</td>
+      <td class="m">24689B · 14절</td></tr><tr>
+      <td>사이트맵</td>
+      <td class="m"><span class="bar"><i style="width:100%"></i></span>100</td>
+      <td class="m">34 URL</td></tr><tr>
+      <td>JS 없이 본문</td>
+      <td class="m"><span class="bar"><i style="width:100%"></i></span>100</td>
+      <td class="m">평균 본문 7257자 · 빈약 0쪽</td></tr><tr>
+      <td>구조화 데이터</td>
+      <td class="m"><span class="bar"><i style="width:100%"></i></span>100</td>
+      <td class="m">20종 · 오류 0</td></tr><tr>
+      <td>문단 구조</td>
+      <td class="m"><span class="bar"><i style="width:56%"></i></span>56</td>
+      <td class="m">문단 295 중 인용가능 157</td></tr><tr>
+      <td>콘텐츠 패턴</td>
+      <td class="m"><span class="bar"><i style="width:93%"></i></span>93</td>
+      <td class="m">질문형 제목 9 · 수치 253</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2><span class="n">04</span>AI 크롤러 방문</h2>
+  <p class="sub">
+    "AI 답변에 불리는가"는 몇 주가 걸리는 결과 지표입니다.
+    그 전에 움직이는 유일한 선행지표가 <b>크롤러가 실제로 왔는가</b>이고,
+    이건 서버가 직접 기록하지 않으면 알 수 없습니다.
+  </p>
+
+  <div class="tw"><table>
+    <thead><tr><th>크롤러</th><th>소속</th><th>방문</th><th>페이지</th><th>최초</th><th>최근</th></tr></thead>
+    <tbody><tr>
+      <td><b>Googlebot</b></td><td class="m">google</td>
+      <td class="m">118</td><td class="m">56</td>
+      <td class="m">09. 06.</td><td class="m">09. 08.</td></tr><tr>
+      <td><b>ClaudeBot</b></td><td class="m">anthropic</td>
+      <td class="m">170</td><td class="m">102</td>
+      <td class="m">09. 06.</td><td class="m">09. 08.</td></tr><tr>
+      <td><b>Yeti</b></td><td class="m">naver</td>
+      <td class="m">10</td><td class="m">6</td>
+      <td class="m">09. 07.</td><td class="m">09. 08.</td></tr><tr>
+      <td><b>Bingbot</b></td><td class="m">microsoft</td>
+      <td class="m">6</td><td class="m">5</td>
+      <td class="m">09. 07.</td><td class="m">09. 08.</td></tr><tr>
+      <td><b>DuckDuckBot</b></td><td class="m">duckduckgo</td>
+      <td class="m">1</td><td class="m">1</td>
+      <td class="m">09. 08.</td><td class="m">09. 08.</td></tr><tr>
+      <td><b>OAI-SearchBot</b></td><td class="m">openai</td>
+      <td class="m">2</td><td class="m">1</td>
+      <td class="m">09. 06.</td><td class="m">09. 07.</td></tr><tr>
+      <td><b>GPTBot</b></td><td class="m">openai</td>
+      <td class="m">2</td><td class="m">1</td>
+      <td class="m">09. 06.</td><td class="m">09. 07.</td></tr><tr>
+      <td><b>Applebot</b></td><td class="m">apple</td>
+      <td class="m">1</td><td class="m">1</td>
+      <td class="m">09. 06.</td><td class="m">09. 06.</td></tr>
+    </tbody>
+  </table></div>
+  <div class="box"><p>
+    <b>첫 방문 2026. 9. 6. 오전 12:49.</b> 도메인 연결 당일입니다.
+    ClaudeBot 이 robots.txt 를 먼저 읽고 이관한 블로그 글을 가져갔습니다.
+    검색 색인 크롤러도 왔습니다 — Googlebot 118회, Yeti 10회, Bingbot 6회.
+  </p></div>
+
+  <div class="tw"><table>
+    <thead><tr><th>많이 읽힌 경로</th><th>횟수</th></tr></thead>
+    <tbody><tr><td class="m">/robots.txt</td><td class="m">84</td></tr><tr><td class="m">/sitemap.xml</td><td class="m">39</td></tr><tr><td class="m">/</td><td class="m">12</td></tr><tr><td class="m">/blog/seoulteukbyeolsigyoyukcheonggwahakjeonramhoe/1.png</td><td class="m">3</td></tr><tr><td class="m">/blog/hangwayeong-hapgyeok-sosik</td><td class="m">3</td></tr><tr><td class="m">/blog/robotijeuui-deurim-dangyereul-sogaehapnida</td><td class="m">3</td></tr></tbody>
+  </table></div>
+
+
+  <h2><span class="n">05</span>검색 노출</h2>
+  <p class="sub">
+    크롤러가 왔다는 것과 사람이 검색해서 찾을 수 있다는 것은 다른 단계입니다.
+    아래는 <b>매일 실제로 검색해서 남긴 기록</b>입니다.
+    엔진마다 색인 속도가 다르므로 나눠서 잽니다.
+  </p>
+
+  <div class="tw"><table>
+    <thead><tr><th>엔진</th><th>구분</th><th>검색어</th><th>결과</th></tr></thead>
+    <tbody><tr>
+      <td class="m">Bing</td>
+      <td class="m">지역</td>
+      <td>석촌동 로봇 코딩학원</td>
+      <td class="m"><span class="no">미노출</span></td>
+    </tr><tr>
+      <td class="m">Bing</td>
+      <td class="m">지역</td>
+      <td>송파 초등 코딩학원 추천</td>
+      <td class="m"><span class="no">미노출</span></td>
+    </tr><tr>
+      <td class="m">Bing</td>
+      <td class="m">지역</td>
+      <td>송파구 석촌동 코딩학원</td>
+      <td class="m"><span class="no">미노출</span></td>
+    </tr><tr>
+      <td class="m">Bing</td>
+      <td class="m">색인</td>
+      <td>site:robotncoding.com</td>
+      <td class="m"><span class="no">미노출</span></td>
+    </tr><tr>
+      <td class="m">Bing</td>
+      <td class="m">브랜드</td>
+      <td>로봇앤코딩학원 석촌동</td>
+      <td class="m"><span class="no">미노출</span></td>
+    </tr><tr>
+      <td class="m">네이버</td>
+      <td class="m">지역</td>
+      <td>석촌동 로봇 코딩학원</td>
+      <td class="m"><b>1위</b></td>
+    </tr><tr>
+      <td class="m">네이버</td>
+      <td class="m">지역</td>
+      <td>송파 초등 코딩학원 추천</td>
+      <td class="m"><span class="no">미노출</span></td>
+    </tr><tr>
+      <td class="m">네이버</td>
+      <td class="m">지역</td>
+      <td>송파구 석촌동 코딩학원</td>
+      <td class="m"><span class="no">미노출</span></td>
+    </tr><tr>
+      <td class="m">네이버</td>
+      <td class="m">색인</td>
+      <td>site:robotncoding.com</td>
+      <td class="m"><b>1위</b></td>
+    </tr><tr>
+      <td class="m">네이버</td>
+      <td class="m">브랜드</td>
+      <td>로봇앤코딩학원 석촌동</td>
+      <td class="m"><span class="no">미노출</span></td>
+    </tr>
+    </tbody>
+  </table></div>
+
+  <div class="box"><p>
+    <b>처음 검색에 나온 날.</b>
+    네이버 &middot; 석촌동 로봇 코딩학원 &mdash; 09. 08.<br>네이버 &middot; site:robotncoding.com &mdash; 09. 08.
+  </p></div>
+  <div class="box"><p>
+    구글은 결과 페이지를 긁으면 막히기 때문에 여기서 재지 않습니다.
+    대신 Search Console 의 URL 검사로 페이지마다 확인합니다.
+    <b>지역 경쟁 검색어는 아직 잡히지 않았습니다</b> &mdash;
+    브랜드명과 정확한 지역명이 먼저 잡히고 경쟁 검색어가 나중에 붙는 순서입니다.
+  </p></div>
+
+
+  <h2><span class="n">06</span>아직 모르는 것</h2>
+  <p class="sub">케이스 스터디에서 이 항목을 빼면 신뢰를 잃습니다.</p>
+  <div class="box">
+    <p><b>인용률은 아직 재지 않았습니다.</b>
+    검색에는 올라왔지만 올라온 지 며칠 안 됐습니다. 지금 재면 AI 가 아직 못 본 상태를 재는 셈입니다.
+         측정 도구(33개 질문 &times; 5회 반복)는 준비돼 있고, 며칠 뒤에 돌립니다.</p>
+    <p><b>이 케이스에는 약점이 있습니다.</b> 학원 대표가 곧 이 프로젝트의 의뢰인이라
+    사이트를 즉시 고칠 수 있었습니다. 실제 고객사는 도메인 권한·개발팀·결재 라인이 있어
+    같은 작업에 몇 주가 걸립니다. <b>다음 고객사에서 시험할 것은 기술이 아니라 리드타임입니다.</b></p>
+    <p>측정에서 드러난 대로 AI 가 인용하는 문서의 대부분이 제3자 지면이므로,
+    사이트를 못 건드리는 고객사에서도 성립할 가능성이 높습니다.
+    다만 그때는 홈페이지 점수가 아니라 <b>제3자 지면 진입이 상품</b>이 됩니다.</p>
+  </div>
+
+  <h2><span class="n">07</span>다음에 할 일</h2>
+  <div class="todo"><div class="td"><div class="h">오늘학교 등재 확인</div><p>심사 대기중. 통과되면 「송파구 코딩학원」 목록에 들어간다.</p></div><div class="td"><div class="h">런즈 · 순위닷 등재</div><p>같은 문안을 재사용한다. 표현이 갈리면 AI 가 다른 학원으로 볼 수 있다.</p></div><div class="td"><div class="h">엔진별 인용률 측정</div><p>색인이 잡힌 뒤에 잰다. 지금 재면 전 엔진 0% 가 나올 것이 뻔하다.</p></div>
+  </div>
+
+
+  <h2><span class="n">08</span>일별 기록</h2>
+  <p class="sub">GitHub Actions 가 매일 자동으로 남깁니다.</p>
+  <div class="tw"><table>
+    <thead><tr><th>날짜</th><th>문서</th><th>누적 크롤러 방문</th><th>엔진</th></tr></thead>
+    <tbody><tr>
+      <td class="m">09. 05.</td>
+      <td class="m">32</td><td class="m">115</td>
+      <td class="m">google, anthropic</td></tr><tr>
+      <td class="m">09. 06.</td>
+      <td class="m">32</td><td class="m">199</td>
+      <td class="m">openai, google, apple, naver, anthropic</td></tr><tr>
+      <td class="m">09. 07.</td>
+      <td class="m">32</td><td class="m">232</td>
+      <td class="m">naver, openai, google, apple, anthropic, microsoft</td></tr>
+    </tbody>
+  </table></div>
+
+</div>
+<footer><div class="wrap mono">
+  robotncoding.com · 초안 0편 대기 · 이 문서는 scripts/case-report.mjs 가 DB 에서 생성합니다
+</div></footer>
+</body>
+</html>

@@ -3,6 +3,9 @@
 # 크롤러 방문은 서버가 기록하지만, 검색에 나오는지는 밖에서 검색해 봐야 안다.
 # "언제부터 나왔는지"를 기억으로 말하면 영업에서 못 쓴다.
 #
+# 확인이 끝나면 케이스 리포트를 다시 만들어 커밋한다.
+# 영업에서 링크로 보내는 문서라 손으로 갱신하면 반드시 낡는다.
+#
 # 필요한 시크릿: DATABASE_URL (Neon 연결 문자열)
 
 name: serp
@@ -11,6 +14,9 @@ on:
   schedule:
     - cron: "41 22 * * *"   # 07:41 KST
   workflow_dispatch: {}
+
+permissions:
+  contents: write
 
 jobs:
   check:
@@ -33,3 +39,21 @@ jobs:
           # 스크립트가 .env.local 을 먼저 읽으므로 러너에도 만들어 준다
           printf 'DATABASE_URL=%s\n' "$DATABASE_URL" > .env.local
           node scripts/check-index.mjs
+
+      - name: 케이스 리포트 갱신
+        working-directory: academy
+        run: node scripts/case-report.mjs --out ../web/public/case/robotncoding.html
+
+      - name: 바뀐 게 있으면 커밋
+        run: |
+          set -euo pipefail
+          rm -f academy/.env.local
+          if git diff --quiet -- web/public/case/robotncoding.html; then
+            echo "리포트에 바뀐 내용 없음"
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add web/public/case/robotncoding.html
+          git commit -m "케이스 리포트 갱신 ($(date -u +%Y-%m-%d))"
+          git push

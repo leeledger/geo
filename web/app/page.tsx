@@ -286,6 +286,10 @@ export default function Home() {
             올라온 지 얼마 안 돼서, 지금 재면 AI가 아직 못 본 상태를 재는 셈입니다.
             <b> 며칠 뒤에 물어보고, 잘 나왔든 못 나왔든 여기에 그대로 적겠습니다.</b>
           </div>
+          <a className="caselink" href="/case/robotncoding.html">
+            전체 기록 보기
+            <span>날짜·수치 전부. DB에서 매일 다시 만듭니다</span>
+          </a>
         </div>
       </section>
 
