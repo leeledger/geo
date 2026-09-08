@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 400" width="960" height="400" role="img"
+     aria-label="집에서 아이에게 물어볼 세 가지 질문. 이거 왜 만들었어, 처음에 뭐부터 했어, 안 될 때 뭘 바꿨어. 셋 다 답이 나오면 아이가 한 것이고 첫 번째부터 막히면 AI가 한 것이다.">
+  <defs>
+    <linearGradient id="bg3" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0E131C"/><stop offset="1" stop-color="#0B0F16"/>
+    </linearGradient>
+  </defs>
+  <rect width="960" height="400" fill="url(#bg3)"/>
+
+  <text x="64" y="62" font-family="'IBM Plex Mono',ui-monospace,monospace" font-size="12"
+        letter-spacing="2" fill="#3DD6C4" fill-opacity=".9">AT HOME</text>
+  <text x="64" y="98" font-family="'Noto Sans KR',system-ui,sans-serif" font-size="23" font-weight="800"
+        fill="#E8EDF5" letter-spacing="-.5">잘 만들었는지 보지 마시고, 이렇게 물어보십시오</text>
+
+  <!-- 질문 세 개 -->
+  <g font-family="'Noto Sans KR',system-ui,sans-serif">
+    <g>
+      <rect x="64" y="132" width="272" height="112" rx="14" fill="#161E2A" stroke="#2B3646"/>
+      <text x="88" y="168" font-family="'IBM Plex Mono',ui-monospace,monospace" font-size="13"
+            fill="#F5A623" fill-opacity=".8">01</text>
+      <text x="88" y="204" font-size="18.5" font-weight="700" fill="#E8EDF5">“이거 왜 만들었어?”</text>
+      <text x="88" y="228" font-size="13" fill="#7C8698">무엇을 만들지 자기가 정했는가</text>
+    </g>
+    <g>
+      <rect x="344" y="132" width="272" height="112" rx="14" fill="#161E2A" stroke="#2B3646"/>
+      <text x="368" y="168" font-family="'IBM Plex Mono',ui-monospace,monospace" font-size="13"
+            fill="#F5A623" fill-opacity=".8">02</text>
+      <text x="368" y="204" font-size="18.5" font-weight="700" fill="#E8EDF5">“처음에 뭐부터 했어?”</text>
+      <text x="368" y="228" font-size="13" fill="#7C8698">순서를 세워 본 적이 있는가</text>
+    </g>
+    <g>
+      <rect x="624" y="132" width="272" height="112" rx="14" fill="#161E2A" stroke="#2B3646"/>
+      <text x="648" y="168" font-family="'IBM Plex Mono',ui-monospace,monospace" font-size="13"
+            fill="#F5A623" fill-opacity=".8">03</text>
+      <text x="648" y="204" font-size="18.5" font-weight="700" fill="#E8EDF5">“안 될 때 뭘 바꿨어?”</text>
+      <text x="648" y="228" font-size="13" fill="#7C8698">틀린 것을 고쳐 본 적이 있는가</text>
+    </g>
+  </g>
+
+  <!-- 판단 -->
+  <g font-family="'Noto Sans KR',system-ui,sans-serif">
+    <g>
+      <rect x="64" y="278" width="416" height="72" rx="12" fill="#131F1E" stroke="#28453F"/>
+      <circle cx="96" cy="314" r="7" fill="none" stroke="#3DD6C4" stroke-width="2"/>
+      <path d="M92.5 314l2.6 2.8 5.4-5.8" fill="none" stroke="#3DD6C4" stroke-width="2" stroke-linecap="round"/>
+      <text x="120" y="308" font-size="15.5" font-weight="700" fill="#3DD6C4">셋 다 답이 나오면</text>
+      <text x="120" y="331" font-size="14.5" fill="#9FB0AC">아이가 한 것입니다</text>
+    </g>
+    <g>
+      <rect x="504" y="278" width="392" height="72" rx="12" fill="#1C1719" stroke="#3D2C2E"/>
+      <circle cx="536" cy="314" r="7" fill="none" stroke="#C97A6E" stroke-width="2"/>
+      <path d="M533 311l6 6M539 311l-6 6" stroke="#C97A6E" stroke-width="2" stroke-linecap="round"/>
+      <text x="560" y="308" font-size="15.5" font-weight="700" fill="#C97A6E">첫 번째부터 막히면</text>
+      <text x="560" y="331" font-size="14.5" fill="#9A8A8C">AI가 한 것입니다</text>
+    </g>
+  </g>
+
+  <text x="64" y="382" font-family="'Noto Sans KR',system-ui,sans-serif" font-size="13.5" fill="#7C8698">
+    혼낼 일은 아닙니다. 지금 어디쯤 와 있는지 아는 데 쓰시면 됩니다.
+  </text>
+</svg>
