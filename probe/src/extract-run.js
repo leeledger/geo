@@ -5,6 +5,7 @@
  *   node src/extract-run.js --engine anthropic
  *   node src/extract-run.js --engine anthropic --force   # 전부 다시 추출
  */
+import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { extractMentions, buildResolver } from "./extract.js";
@@ -15,9 +16,30 @@ const ROOT = path.resolve(HERE, "..");
 
 const args = parseArgs(process.argv.slice(2));
 const engineName = args.engine || "anthropic";
-const spec = readJson(path.resolve(ROOT, args.prompts || "prompts/erp-kr.json"));
-const inFile = path.resolve(ROOT, args.in || `data/responses.${engineName}.jsonl`);
-const outFile = path.resolve(ROOT, args.out || `data/mentions.${engineName}.jsonl`);
+const promptFile = path.resolve(ROOT, args.prompts || "prompts/erp-kr.json");
+const spec = readJson(promptFile);
+
+/**
+ * 파일 이름에 프롬프트 세트를 넣는다. 엔진 이름만 쓰면 버티컬이 달라도
+ * 같은 파일에 쌓여서 인용률이 엉킨다. run.js 와 같은 규칙을 쓴다.
+ */
+const setName = path.basename(promptFile, ".json");
+
+/** 이름 규칙을 바꾸기 전에 돌린 파일이 남아 있다. 새 이름이 없으면 옛 이름을 쓴다. */
+function pick(kind) {
+  const now = path.resolve(ROOT, `data/${kind}.${setName}.${engineName}.jsonl`);
+  const was = path.resolve(ROOT, `data/${kind}.${engineName}.jsonl`);
+  if (!fs.existsSync(now) && fs.existsSync(was)) {
+    console.error(`  (옛 이름 파일을 씁니다: ${path.relative(ROOT, was)})`);
+    return was;
+  }
+  return now;
+}
+
+const inFile = args.in ? path.resolve(ROOT, args.in) : pick("responses");
+const outFile = args.out
+  ? path.resolve(ROOT, args.out)
+  : path.resolve(ROOT, `data/mentions.${setName}.${engineName}.jsonl`);
 const concurrency = Number(args.concurrency ?? 4);
 
 const resolve = buildResolver(spec.brand_universe);

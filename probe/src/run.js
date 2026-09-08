@@ -21,7 +21,15 @@ const promptFile = path.resolve(ROOT, args.prompts || "prompts/erp-kr.json");
 const engineName = args.engine || "anthropic";
 const repeats = Number(args.repeats ?? 3);
 const concurrency = Number(args.concurrency ?? 4);
-const outFile = path.resolve(ROOT, args.out || `data/responses.${engineName}.jsonl`);
+/**
+ * 출력 파일에 프롬프트 세트 이름을 넣는다.
+ *
+ * 엔진 이름만 쓰면 버티컬이 달라도 같은 파일에 쌓인다. ERP 측정과 학원 측정이
+ * 한 파일에 섞이면 인용률이 엉킨다. 이어받기 판정도 이 파일을 보고 하므로
+ * 섞인 채로 두면 조용히 틀린다.
+ */
+const setName = path.basename(promptFile, ".json");
+const outFile = path.resolve(ROOT, args.out || `data/responses.${setName}.${engineName}.jsonl`);
 
 const spec = readJson(promptFile);
 let prompts = spec.prompts;

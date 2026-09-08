@@ -21,7 +21,27 @@ const args = parseArgs(process.argv.slice(2));
 const engineName = args.engine || "anthropic";
 
 const spec = readJson(path.resolve(ROOT, args.prompts || "prompts/erp-kr.json"));
-const mentions = await readJsonl(path.resolve(ROOT, args.in || `data/mentions.${engineName}.jsonl`));
+/** run.js·extract-run.js 와 같은 이름 규칙. 버티컬이 섞이면 조용히 틀린다. */
+const setName = path.basename(path.resolve(ROOT, args.prompts || "prompts/erp-kr.json"), ".json");
+
+/**
+ * 이름 규칙을 바꾸기 전에 돌린 측정이 data/ 에 남아 있다.
+ * 새 이름이 없고 옛 이름이 있으면 그걸 쓴다 — 예전 명령이 갑자기 빈손으로
+ * 끝나면 "측정 결과가 0건"으로 잘못 읽게 된다.
+ */
+function pick(kind, ext) {
+  const now = path.resolve(ROOT, `data/${kind}.${setName}.${engineName}.${ext}`);
+  const was = path.resolve(ROOT, `data/${kind}.${engineName}.${ext}`);
+  if (!fs.existsSync(now) && fs.existsSync(was)) {
+    console.error(`  (옛 이름 파일을 씁니다: ${path.relative(ROOT, was)})`);
+    return was;
+  }
+  return now;
+}
+
+const mentions = await readJsonl(
+  args.in ? path.resolve(ROOT, args.in) : pick("mentions", "jsonl"),
+);
 const rankingsPath = path.resolve(ROOT, args.rankings || "data/rankings.json");
 const rankings = fs.existsSync(rankingsPath) ? readJson(rankingsPath) : null;
 
@@ -392,7 +412,7 @@ const report = {
   cited_domains: citedDomains, own_citation_share: ownCiteShare,
   search: searchStats, spearman: corr, residual, coverage, inversion,
 };
-const out = path.resolve(ROOT, `data/report.${engineName}.json`);
+const out = path.resolve(ROOT, `data/report.${setName}.${engineName}.json`);
 fs.writeFileSync(out, JSON.stringify(report, null, 2), "utf8");
-fs.writeFileSync(path.resolve(ROOT, `data/report.${engineName}.txt`), L.join("\n"), "utf8");
+fs.writeFileSync(path.resolve(ROOT, `data/report.${setName}.${engineName}.txt`), L.join("\n"), "utf8");
 console.log(`리포트 저장: ${path.relative(ROOT, out)}\n`);
