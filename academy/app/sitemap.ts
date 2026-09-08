@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 import { listSlugs } from "@/lib/posts";
 
-export const revalidate = 3600;
+export const revalidate = 900;   // 글을 올리면 사이트맵에 빨리 들어가야 색인 요청이 이어진다
 const BASE = "https://robotncoding.com";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {

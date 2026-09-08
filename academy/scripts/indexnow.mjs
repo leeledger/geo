@@ -8,8 +8,12 @@
  * 키 파일이 사이트 루트에 있어야 소유자로 인정한다.
  *   https://robotncoding.com/<key>.txt  안에 <key> 가 그대로 들어 있어야 한다.
  *
- *   node scripts/indexnow.mjs            사이트맵의 전 페이지 알림
- *   node scripts/indexnow.mjs --list     보낼 목록만 확인
+ *   node scripts/indexnow.mjs                    사이트맵의 전 페이지 알림
+ *   node scripts/indexnow.mjs --list             보낼 목록만 확인
+ *   node scripts/indexnow.mjs /blog/새글-slug     주소를 직접 지정
+ *
+ * 마지막 형태가 필요한 이유: 사이트맵은 한 시간마다 다시 만들어진다.
+ * 글을 올린 직후에는 사이트맵에 아직 없어서, 사이트맵만 보면 새 글을 빼먹는다.
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -34,6 +38,23 @@ if (fs.existsSync(KEY_FILE)) {
 
 /** 사이트맵에서 URL 을 읽는다 — 목록을 따로 관리하면 반드시 어긋난다 */
 async function urls() {
+  // 인자로 경로를 주면 그것만 보낸다. 갓 올린 글은 사이트맵에 아직 없다.
+  const given = process.argv.slice(2).filter((a) => !a.startsWith("--"));
+  if (given.length) {
+    return given.map((p) => {
+      // Git Bash 는 /blog/... 를 C:/Program Files/Git/blog/... 로 바꿔 버린다.
+      // 그대로 보내면 두 엔진 다 200 을 주는데 실제로는 없는 주소를 넣게 된다.
+      // 한 번 그렇게 보내 놓고 로그만 보고 성공한 줄 알았다.
+      const m = /^[A-Za-z]:[\\/].*?[\\/](blog[\\/].*)$/.exec(p);
+      if (m) {
+        console.warn(`  (셸이 경로를 바꿨습니다. /${m[1].replace(/\\/g, "/")} 로 고쳐 보냅니다)`);
+        p = "/" + m[1].replace(/\\/g, "/");
+      } else if (/^[A-Za-z]:[\\/]/.test(p)) {
+        throw new Error(`주소가 아니라 파일 경로입니다: ${p}\n  전체 URL 로 주세요: https://${HOST}/blog/...`);
+      }
+      return p.startsWith("http") ? p : `https://${HOST}${p.startsWith("/") ? "" : "/"}${p}`;
+    });
+  }
   const r = await fetch(`https://${HOST}/sitemap.xml`);
   if (!r.ok) throw new Error("사이트맵을 못 읽었습니다: " + r.status);
   const xml = await r.text();
@@ -41,7 +62,10 @@ async function urls() {
 }
 
 const list = await urls();
-console.log(`사이트맵에서 ${list.length}개 주소를 읽었습니다.`);
+const given = process.argv.slice(2).some((a) => !a.startsWith("--"));
+console.log(given
+  ? `지정한 주소 ${list.length}개를 보냅니다.`
+  : `사이트맵에서 ${list.length}개 주소를 읽었습니다.`);
 
 if (process.argv.includes("--list")) {
   list.forEach((u) => console.log("  " + u));
