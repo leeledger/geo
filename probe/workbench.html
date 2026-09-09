@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>수집 워크벤치</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  /*
+    API 키 없이 인용률을 재기 위한 수집 도구.
+    질문을 복사해 챗 화면에 넣고, 답변과 출처를 여기 붙여넣는다.
+    다 되면 JSON 을 내려받아 manual-import.js 에 넣는다.
+
+    한 시간쯤 앉아서 쓰는 화면이라 두 가지가 중요하다.
+      · 손이 멈추지 않아야 한다  → Ctrl+Enter 로 저장하고 다음으로
+      · 중간에 닫아도 남아야 한다 → 입력할 때마다 localStorage 에 넣는다
+  */
+  :root{
+    --bg:#0E1319; --card:#161C25; --sunken:#111720; --line:#242E3B; --line-2:#1C2530;
+    --ink:#E9EDF3; --ink-2:#A9B3C1; --muted:#7C8698; --faint:#5C6676;
+    --accent:#F5A623; --accent-soft:#241B0C; --ok:#3DD6A0; --ok-soft:#0F211C;
+    color-scheme: dark;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:"Noto Sans KR",system-ui,sans-serif;font-size:15px;line-height:1.7}
+  .wrap{max-width:940px;margin:0 auto;padding:0 22px 80px}
+  .mono{font-family:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace}
+
+  header{padding:34px 0 20px;border-bottom:1px solid var(--line);
+         position:sticky;top:0;background:var(--bg);z-index:5}
+  h1{font-size:22px;font-weight:900;letter-spacing:-.03em;margin:0 0 4px}
+  .sub{color:var(--muted);font-size:13.5px;margin:0}
+
+  .bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:14px}
+  select,input[type=number]{background:var(--sunken);color:var(--ink);border:1px solid var(--line);
+    border-radius:8px;padding:8px 11px;font-family:inherit;font-size:13.5px}
+  button{background:var(--sunken);color:var(--ink);border:1px solid var(--line);
+    border-radius:8px;padding:8px 14px;font-family:inherit;font-size:13.5px;cursor:pointer}
+  button:hover{border-color:var(--faint)}
+  button.p{background:var(--accent);color:#12161F;border-color:var(--accent);font-weight:700}
+  button.p:hover{filter:brightness(1.08)}
+  button:disabled{opacity:.4;cursor:not-allowed}
+
+  .prog{height:5px;background:var(--sunken);border-radius:3px;overflow:hidden;margin-top:14px}
+  .prog i{display:block;height:100%;background:var(--accent);width:0;transition:width .3s}
+  .cnt{font-family:"IBM Plex Mono",monospace;font-size:12.5px;color:var(--muted);margin-top:7px}
+
+  .q{background:var(--card);border:1px solid var(--line);border-radius:14px;
+     padding:20px 22px;margin-top:22px}
+  .qh{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px}
+  .tag{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.1em;
+       background:var(--accent-soft);color:var(--accent);padding:4px 9px;border-radius:5px}
+  .qt{font-size:19px;font-weight:700;letter-spacing:-.02em;line-height:1.5}
+
+  label{display:block;font-size:12.5px;color:var(--muted);margin:18px 0 6px}
+  textarea{width:100%;background:var(--sunken);color:var(--ink);border:1px solid var(--line);
+    border-radius:10px;padding:13px 15px;font-family:inherit;font-size:14.5px;line-height:1.7;
+    resize:vertical}
+  textarea:focus{outline:none;border-color:var(--accent)}
+  textarea.src{font-family:"IBM Plex Mono",monospace;font-size:13px;min-height:96px}
+
+  .foot{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:18px}
+  .hint{font-size:12.5px;color:var(--faint)}
+  kbd{font-family:"IBM Plex Mono",monospace;background:var(--sunken);border:1px solid var(--line);
+      border-radius:4px;padding:1px 6px;font-size:11.5px;color:var(--ink-2)}
+
+  .note{border-left:3px solid var(--accent);background:var(--sunken);border-radius:0 10px 10px 0;
+        padding:14px 18px;margin-top:20px;font-size:13.5px;color:var(--ink-2)}
+  .note b{color:var(--ink)}
+  .note.ok{border-left-color:var(--ok);background:var(--ok-soft)}
+
+  .done{text-align:center;padding:50px 20px}
+  .done h2{font-size:26px;font-weight:900;margin:0 0 10px}
+  .done p{color:var(--ink-2);margin:0 0 22px}
+  .hide{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>수집 워크벤치</h1>
+  <p class="sub">질문을 복사해 챗 화면에 넣고, 답변과 출처를 여기에 붙여넣습니다. API 키가 필요 없습니다.</p>
+  <div class="bar">
+    <input type="file" id="file" accept=".json" style="display:none">
+    <button id="load">질문 파일 열기</button>
+    <select id="engine">
+      <option value="chatgpt">ChatGPT</option>
+      <option value="claude">Claude</option>
+      <option value="gemini">Gemini</option>
+      <option value="perplexity">Perplexity</option>
+    </select>
+    <span class="mono" style="color:var(--muted);font-size:13px">회차</span>
+    <input type="number" id="repeats" value="2" min="1" max="5" style="width:64px">
+    <button id="export">JSON 내려받기</button>
+    <button id="reset">기록 지우기</button>
+  </div>
+  <div class="prog"><i id="bar"></i></div>
+  <div class="cnt" id="cnt">질문 파일을 열어 주세요</div>
+</header>
+
+<div id="stage"></div>
+
+<div class="note" id="howto">
+  <b>쓰는 순서</b><br>
+  1. <span class="mono">prompts/academy-songpa.json</span> 을 엽니다<br>
+  2. 질문을 복사해 챗 화면에 넣습니다. <b>새 대화로 시작하십시오</b> — 앞 대화가 남아 있으면 답이 섞입니다<br>
+  3. 답변 전문과 출처 링크를 붙여넣고 <kbd>Ctrl</kbd>+<kbd>Enter</kbd><br>
+  4. 다 끝나면 JSON 을 내려받아 <span class="mono">probe/data/manual.&lt;엔진&gt;.json</span> 으로 저장합니다<br>
+  <br>
+  회차는 <b>2 이상</b>으로 두십시오. 한 번만 물어본 숫자는 근거가 못 됩니다.
+</div>
+
+</div>
+
+<script>
+const S = { prompts: [], answers: {}, i: 0 };
+const KEY = "workbench.v1";
+
+const $ = (id) => document.getElementById(id);
+const save = () => localStorage.setItem(KEY, JSON.stringify({ answers: S.answers, i: S.i }));
+
+try {
+  const r = JSON.parse(localStorage.getItem(KEY) || "{}");
+  S.answers = r.answers || {};
+  S.i = r.i || 0;
+} catch { /* 저장된 게 깨졌으면 그냥 새로 시작한다 */ }
+
+/** 질문 × 회차를 한 줄로 펼친다. 같은 질문을 연달아 묻지 않도록 회차를 바깥으로 돌린다. */
+function plan() {
+  const n = Number($("repeats").value) || 2;
+  const out = [];
+  for (let a = 1; a <= n; a++) for (const p of S.prompts) out.push({ ...p, attempt: a });
+  return out;
+}
+
+let PLAN = [];
+
+function render() {
+  if (!S.prompts.length) return;
+  PLAN = plan();
+  const total = PLAN.length;
+  const filled = Object.keys(S.answers).length;
+  $("bar").style.width = (filled / total * 100) + "%";
+  $("cnt").textContent = `${filled} / ${total} 건 · ${S.i + 1}번째`;
+  $("howto").classList.add("hide");
+
+  if (S.i >= total) {
+    $("stage").innerHTML = `<div class="done">
+      <h2>다 모았습니다</h2>
+      <p>${filled}건. JSON 을 내려받아 probe/data/ 에 저장하세요.</p>
+      <button class="p" onclick="document.getElementById('export').click()">JSON 내려받기</button>
+    </div>`;
+    return;
+  }
+
+  const cur = PLAN[S.i];
+  const k = cur.id + "|" + cur.attempt;
+  const got = S.answers[k] || { text: "", sources: "" };
+
+  $("stage").innerHTML = `
+    <div class="q">
+      <div class="qh">
+        <span class="tag">${cur.id} · ${cur.attempt}회차 · ${cur.stage || ""}</span>
+        <button id="copy">질문 복사</button>
+      </div>
+      <div class="qt" id="qtext"></div>
+
+      <label>답변 전문 — 화면에 보이는 그대로 붙여넣으세요</label>
+      <textarea id="ans" rows="9" placeholder="AI 답변을 그대로 붙여넣습니다"></textarea>
+
+      <label>출처 링크 — 한 줄에 하나. 없으면 비워 두세요</label>
+      <textarea id="src" class="src" placeholder="https://..."></textarea>
+
+      <div class="foot">
+        <span class="hint"><kbd>Ctrl</kbd>+<kbd>Enter</kbd> 저장하고 다음</span>
+        <span>
+          <button id="prev" ${S.i === 0 ? "disabled" : ""}>이전</button>
+          <button class="p" id="next">저장하고 다음</button>
+        </span>
+      </div>
+    </div>`;
+
+  $("qtext").textContent = cur.text;
+  $("ans").value = got.text;
+  $("src").value = got.sources;
+  $("ans").focus();
+
+  $("copy").onclick = () => {
+    navigator.clipboard.writeText(cur.text);
+    $("copy").textContent = "복사됨";
+    setTimeout(() => ($("copy").textContent = "질문 복사"), 1200);
+  };
+  $("prev").onclick = () => { keep(); S.i--; save(); render(); };
+  $("next").onclick = () => { keep(); S.i++; save(); render(); };
+
+  // 입력할 때마다 저장한다. 창을 닫아도 남아야 한다.
+  for (const el of [$("ans"), $("src")]) {
+    el.oninput = () => { keep(); save(); };
+    el.onkeydown = (e) => {
+      if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        keep(); S.i++; save(); render();
+      }
+    };
+  }
+}
+
+function keep() {
+  const cur = PLAN[S.i];
+  if (!cur) return;
+  const t = $("ans")?.value ?? "";
+  const s = $("src")?.value ?? "";
+  const k = cur.id + "|" + cur.attempt;
+  if (t.trim() || s.trim()) S.answers[k] = { text: t, sources: s };
+  else delete S.answers[k];
+}
+
+$("load").onclick = () => $("file").click();
+$("file").onchange = async (e) => {
+  const f = e.target.files[0];
+  if (!f) return;
+  try {
+    const j = JSON.parse(await f.text());
+    if (!Array.isArray(j.prompts)) throw new Error("prompts 배열이 없습니다");
+    S.prompts = j.prompts;
+    render();
+  } catch (err) {
+    alert("질문 파일을 못 읽었습니다: " + err.message);
+  }
+};
+
+$("repeats").onchange = () => { S.i = 0; save(); render(); };
+
+$("export").onclick = () => {
+  keep();
+  const entries = [];
+  for (const [k, v] of Object.entries(S.answers)) {
+    const [prompt_id, attempt] = k.split("|");
+    if (!v.text.trim()) continue;         // 답이 빈 건은 넣지 않는다
+    entries.push({
+      prompt_id,
+      attempt: Number(attempt),
+      text: v.text.trim(),
+      sources: v.sources.split("\n").map((x) => x.trim()).filter((x) => /^https?:\/\//.test(x)),
+    });
+  }
+  if (!entries.length) { alert("모은 게 없습니다."); return; }
+  const out = {
+    engine: $("engine").value,
+    collection_method: "manual",
+    collected_at: new Date().toISOString(),
+    entries,
+  };
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(out, null, 2)], { type: "application/json" }));
+  a.download = `manual.${out.engine}.json`;
+  a.click();
+};
+
+$("reset").onclick = () => {
+  if (!confirm("모은 답변을 전부 지웁니다. 계속할까요?")) return;
+  S.answers = {}; S.i = 0; save(); render();
+};
+</script>
+</body>
+</html>
