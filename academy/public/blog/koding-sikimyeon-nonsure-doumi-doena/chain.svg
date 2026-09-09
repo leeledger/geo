@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 420" width="960" height="420" role="img"
+     aria-label="논리적 사고는 눈에 보이지 않는다. 코딩은 그것을 눈에 보이게 만든다. 그 위에 AI 리터러시가 얹힌다.">
+  <defs>
+    <linearGradient id="cbg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0E131C"/><stop offset="1" stop-color="#0B0F16"/>
+    </linearGradient>
+  </defs>
+  <rect width="960" height="420" fill="url(#cbg)"/>
+  <g stroke="#1A2230" stroke-width="1" opacity=".7">
+    <path d="M0 300h960"/>
+  </g>
+
+  <text x="56" y="48" font-family="'IBM Plex Mono',ui-monospace,monospace" font-size="12"
+        letter-spacing="2.5" fill="#8A94A6">쌓이는 순서</text>
+
+  <g font-family="'Noto Sans KR',system-ui,sans-serif">
+    <!-- 1 논리적 사고 -->
+    <g>
+      <rect x="56" y="84" width="262" height="176" rx="14" fill="#141B26" stroke="#2B3646"/>
+      <text x="80" y="118" font-family="'IBM Plex Mono',monospace" font-size="12"
+            letter-spacing="1.6" fill="#6E7887">01</text>
+      <text x="80" y="152" font-size="21" font-weight="800" fill="#E8EDF5">논리적 사고</text>
+      <text x="80" y="184" font-size="14" fill="#8A94A6">나누고 · 순서 세우고</text>
+      <text x="80" y="206" font-size="14" fill="#8A94A6">조건 가르고 · 버리기</text>
+      <text x="80" y="238" font-size="13.5" fill="#6E7887">눈에 보이지 않습니다</text>
+    </g>
+
+    <path d="M330 172 h32" stroke="#3A4553" stroke-width="2.5"/>
+    <path d="M354 165 l9 7 -9 7" fill="none" stroke="#3A4553" stroke-width="2.5"
+          stroke-linecap="round" stroke-linejoin="round"/>
+
+    <!-- 2 소프트웨어 사고력 -->
+    <g>
+      <rect x="374" y="84" width="262" height="176" rx="14" fill="#1A1610" stroke="#5C441A"/>
+      <text x="398" y="118" font-family="'IBM Plex Mono',monospace" font-size="12"
+            letter-spacing="1.6" fill="#F5A623" fill-opacity=".8">02</text>
+      <text x="398" y="152" font-size="21" font-weight="800" fill="#F5A623">소프트웨어 사고력</text>
+      <text x="398" y="184" font-size="14" fill="#D9C39A">같은 생각을 손으로</text>
+      <text x="398" y="206" font-size="14" fill="#D9C39A">해 보게 만듭니다</text>
+      <text x="398" y="238" font-size="13.5" fill="#A98F5F">틀리면 3초 만에 압니다</text>
+    </g>
+
+    <path d="M648 172 h32" stroke="#3A4553" stroke-width="2.5"/>
+    <path d="M672 165 l9 7 -9 7" fill="none" stroke="#3A4553" stroke-width="2.5"
+          stroke-linecap="round" stroke-linejoin="round"/>
+
+    <!-- 3 AI 리터러시 -->
+    <g>
+      <rect x="692" y="84" width="212" height="176" rx="14" fill="#111C1B" stroke="#28453F"/>
+      <text x="716" y="118" font-family="'IBM Plex Mono',monospace" font-size="12"
+            letter-spacing="1.6" fill="#3DD6C4" fill-opacity=".8">03</text>
+      <text x="716" y="152" font-size="21" font-weight="800" fill="#3DD6C4">AI 리터러시</text>
+      <text x="716" y="184" font-size="14" fill="#9FB0AC">뭘 시킬지 정하고</text>
+      <text x="716" y="206" font-size="14" fill="#9FB0AC">나온 걸 의심하기</text>
+      <text x="716" y="238" font-size="13.5" fill="#6F918B">앞의 둘이 있어야 됩니다</text>
+    </g>
+  </g>
+
+  <!-- 아래 : 논술과의 관계 -->
+  <g font-family="'Noto Sans KR',system-ui,sans-serif">
+    <text x="56" y="342" font-size="15" font-weight="700" fill="#E8EDF5">논술은 01 을 글로 씁니다</text>
+    <text x="56" y="370" font-size="14" fill="#8A94A6">
+      그래서 코딩이 논술을 대신하지는 않습니다. 다만 같은 뿌리를 건드립니다.
+    </text>
+    <text x="56" y="396" font-size="14" fill="#8A94A6">
+      논술은 애매해도 통할 때가 있고, 코드는 애매하면 바로 안 돕니다.
+    </text>
+  </g>
+</svg>

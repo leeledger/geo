@@ -35,13 +35,19 @@ const DRY = process.argv.includes("--dry");
 
 /**
  * --update 다음 값은 logNo 다. 슬러그로 오해하면 안 된다.
- * 앞선 판은 잘린 배열의 인덱스를 원본 배열의 인덱스와 비교해서,
- * 인자 순서를 바꾸면 logNo 를 슬러그로 읽었다.
+ *
+ * 여기서 두 번 틀렸다.
+ *  1) 잘린 배열의 인덱스를 원본 배열 인덱스와 비교해서, 인자 순서를 바꾸면
+ *     logNo 를 슬러그로 읽었다.
+ *  2) 그걸 고치면서 ui+1 을 무조건 걸렀는데, --update 가 없으면 ui 가 -1 이라
+ *     ui+1 이 0 이 된다. 0 번은 슬러그 자리다. 그래서 슬러그를 못 찾았다.
+ * -1 일 때를 따로 두는 게 맞다.
  */
 const ARGS = process.argv.slice(2);
 const ui = ARGS.indexOf("--update");
 const LOG_NO = ui >= 0 ? ARGS[ui + 1] : null;
-const slug = ARGS.find((a, i) => !a.startsWith("--") && i !== ui + 1);
+const skip = ui >= 0 ? ui + 1 : -1;
+const slug = ARGS.find((a, i) => !a.startsWith("--") && i !== skip);
 
 if (!slug) {
   console.log("슬러그를 주세요. 예: node naver-blog-post.mjs ai-ro-jjatneunde-wae-ne-beon");
