@@ -530,15 +530,42 @@ footer .mono{color:var(--fg-2)}
 .post h1{font-size:clamp(27px,4vw,40px);line-height:1.3;letter-spacing:-.02em;margin:0 0 18px}
 .psum{font-size:17px;color:var(--fg-2);line-height:1.85;padding-bottom:26px;
   border-bottom:1px solid var(--line);margin:0 0 34px}
-.pbody{font-size:16.5px;line-height:1.95;color:var(--fg-2)}
-.pbody h2{font-size:23px;color:var(--fg);margin:44px 0 16px;letter-spacing:-.015em}
-.pbody h3{font-size:19px;color:var(--fg);margin:34px 0 13px}
-.pbody h4{font-size:17px;color:var(--fg);margin:28px 0 11px}
-.pbody p{margin:0 0 20px}
-.pbody b{color:var(--fg)}
-.pbody a{color:var(--cyan)}
-.pbody ul,.pbody ol{margin:0 0 20px;padding-left:22px}
-.pbody li{margin-bottom:9px}
+/* 본문 읽기
+   폭 720px 에 16.5px 은 조금 작았다. 글이 길어서 눈이 먼저 지친다.
+   크기를 올리고, 소제목을 확실히 띄우고, 첫 문단으로 들어가는 리듬을 준다. */
+/* 한글은 단어 중간에서 끊으면 안 된다. keep-all 이 없으면
+   "다른 게" 가 "다 / 른 게" 로 쪼개진다. 글자가 클수록 더 티가 난다. */
+.pbody,.pbody h2,.pbody h3,.pbody h4,.pbody li,.post h1,.psum{word-break:keep-all;overflow-wrap:break-word}
+.pbody{font-size:17.5px;line-height:1.92;color:var(--fg-2);letter-spacing:-.003em}
+
+/* 소제목 — 본문의 1.5배는 돼야 넘길 때 눈에 걸린다.
+   왼쪽 막대는 브랜드 색이고, 훑어볼 때 여기가 마디라는 표시다. */
+.pbody h2{position:relative;font-size:26px;font-weight:800;color:var(--fg);
+  margin:56px 0 18px;letter-spacing:-.03em;line-height:1.4;padding-left:18px}
+.pbody h2::before{content:"";position:absolute;left:0;top:.28em;bottom:.28em;
+  width:4px;border-radius:2px;background:var(--amber)}
+.pbody h3{font-size:20.5px;font-weight:700;color:var(--fg);margin:38px 0 14px;letter-spacing:-.02em}
+.pbody h4{font-size:18px;font-weight:700;color:var(--fg);margin:30px 0 12px}
+
+.pbody p{margin:0 0 22px}
+
+/* 첫 문단은 조금 크게. 글로 들어가는 문턱을 낮춘다. */
+.pbody > p:first-of-type{font-size:19px;line-height:1.85;color:var(--fg);margin-bottom:26px}
+
+/* 굵게 — 색만 바꾸면 어두운 배경에서 잘 안 보인다. 무게도 같이 준다. */
+.pbody b{color:var(--fg);font-weight:700}
+
+.pbody a{color:var(--cyan);text-underline-offset:3px}
+
+/* 목록 — 기본 점은 너무 작아서 묻힌다. 직접 그린다. */
+.pbody ul,.pbody ol{margin:0 0 22px;padding-left:4px;list-style:none}
+.pbody ol{counter-reset:pl}
+.pbody li{position:relative;margin-bottom:11px;padding-left:24px}
+.pbody ul>li::before{content:"";position:absolute;left:4px;top:.72em;
+  width:7px;height:7px;border-radius:50%;background:var(--amber);opacity:.85}
+.pbody ol>li{counter-increment:pl}
+.pbody ol>li::before{content:counter(pl);position:absolute;left:0;top:0;
+  font-family:"IBM Plex Mono",monospace;font-size:13.5px;color:var(--amber);opacity:.9}
 .pbody blockquote{margin:26px 0;padding:16px 20px;border-left:3px solid var(--amber);
   background:rgba(245,166,35,.06);border-radius:0 10px 10px 0}
 .pbody blockquote p{margin:0;color:var(--fg)}
