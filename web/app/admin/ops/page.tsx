@@ -55,8 +55,8 @@ type Agent = {
 
 const AGENTS: Agent[] = [
   {
-    key: "운영", glyph: "\u25CE", cadence: "하루 4회 · 쉬지 않음",
-    role: "고리가 끊기지 않게 지킨다. 사이트가 죽었는지, 크롤러가 끊겼는지 6시간마다 본다.",
+    key: "운영", glyph: "\u25CE", cadence: "하루 8회 · 쉬지 않음",
+    role: "고리가 끊기지 않게 지킨다. 사이트가 죽었는지, 크롤러가 끊겼는지 3시간마다 본다.",
     jobs: ["상태 점검", "브리핑", "케이스 리포트 갱신", "커밋·푸시"],
     tools: ["health.mjs", "briefing.mjs", "case-report.mjs"],
     perf: (d) => [
@@ -305,7 +305,7 @@ export default async function OpsPage({
     },
     {
       id: "ops", label: "운영", state: "run",
-      sub: "6시간마다 점검",
+      sub: "3시간마다 점검",
     },
     {
       id: "human", label: "사람", state: "wait",
