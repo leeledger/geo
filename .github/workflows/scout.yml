@@ -1,0 +1,118 @@
+# 정찰 — 문제를 스스로 찾아 이슈로 연다
+#
+# 왜 필요하냐면:
+#   지금까지 문제를 찾은 건 전부 사람이 화면을 보고 「이건 뭐지?」 물었을 때였다.
+#   OpenAI 15.6%, 브랜드 검색 미노출, 리드 큐의 가짜 2건 — 물어보지 않았으면
+#   며칠이고 그대로 있었다.
+#
+#   watch.yml 은 「죽었나」를 보고 죽었으면 실패시킨다.
+#   여기는 「살아 있는데 잘못 가고 있는가」를 본다. 실패시키지 않고 이슈를 연다 —
+#   메일로 실패가 오면 무뎌지고, 무뎌지면 진짜 사고도 놓친다.
+#
+# 같은 문제로 이슈를 두 번 열지 않는다. 고쳐지면 스스로 닫는다.
+#
+# 필요한 시크릿: DATABASE_URL
+
+name: scout
+
+on:
+  schedule:
+    - cron: "37 21 * * *"   # 06:37 KST — 하루 한 번, 아침에 본다
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  scout:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: pg 설치
+        run: npm install pg --no-save --silent
+        working-directory: academy
+
+      - name: 환경 준비
+        working-directory: academy
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: printf 'DATABASE_URL=%s\n' "$DATABASE_URL" > .env.local
+
+      - name: 정찰
+        id: scout
+        working-directory: academy
+        run: |
+          set -euo pipefail
+          node scripts/scout.mjs            # 로그에 사람이 읽을 형태로 남긴다
+          node scripts/scout.mjs --json > /tmp/scout.json
+          echo "count=$(node -e "console.log(require('/tmp/scout.json').length)")" >> "$GITHUB_OUTPUT"
+
+      - name: 이슈로 열기
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const found = JSON.parse(fs.readFileSync('/tmp/scout.json', 'utf8'));
+            const TAG = '<!-- scout -->';
+
+            // 지금 열려 있는 정찰 이슈
+            const open = await github.paginate(github.rest.issues.listForRepo, {
+              owner: context.repo.owner, repo: context.repo.repo,
+              state: 'open', labels: 'scout', per_page: 100,
+            });
+            const byKey = new Map();
+            for (const i of open) {
+              const m = i.body?.match(/<!-- key:([^ ]+) -->/);
+              if (m) byKey.set(m[1], i);
+            }
+
+            const seen = new Set();
+            for (const f of found) {
+              seen.add(f.key);
+              const title = `[${f.level}] ${f.what}`;
+              const body = [
+                TAG, `<!-- key:${f.key} -->`, '',
+                `**왜**  ${f.why}`, '',
+                `**할 일**  ${f.todo}`, '',
+                '---', '',
+                '이 이슈는 정찰(scout.yml)이 자동으로 열었습니다.',
+                '문제가 사라지면 스스로 닫힙니다. 손으로 닫아도 다시 걸리면 새로 엽니다.',
+              ].join('\n');
+
+              const cur = byKey.get(f.key);
+              if (!cur) {
+                await github.rest.issues.create({
+                  owner: context.repo.owner, repo: context.repo.repo,
+                  title, body, labels: ['scout', f.level],
+                });
+                core.info(`열었습니다: ${title}`);
+              } else if (cur.title !== title) {
+                // 숫자가 바뀌면 제목만 갱신한다. 새로 열면 같은 문제가 쌓인다.
+                await github.rest.issues.update({
+                  owner: context.repo.owner, repo: context.repo.repo,
+                  issue_number: cur.number, title, body,
+                });
+                core.info(`갱신했습니다: ${title}`);
+              }
+            }
+
+            // 더 이상 안 걸리는 건 닫는다. 고쳐졌는데 이슈가 남아 있으면 신뢰를 잃는다.
+            for (const [key, i] of byKey) {
+              if (seen.has(key)) continue;
+              await github.rest.issues.createComment({
+                owner: context.repo.owner, repo: context.repo.repo,
+                issue_number: i.number,
+                body: '정찰에서 더 이상 안 걸립니다. 닫습니다.',
+              });
+              await github.rest.issues.update({
+                owner: context.repo.owner, repo: context.repo.repo,
+                issue_number: i.number, state: 'closed',
+              });
+              core.info(`닫았습니다: ${i.title}`);
+            }
