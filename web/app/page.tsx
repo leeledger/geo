@@ -6,6 +6,7 @@ import Count from "./Count";
 import ChatDemo from "./ChatDemo";
 import Link from "next/link";
 import { SERVICES } from "@/lib/services";
+import { readOps } from "@/lib/ops";
 
 const MAIL = "hello@cited.kr";
 const mailto = (kind: string) =>
@@ -69,7 +70,20 @@ const SCHEMA = {
   ],
 };
 
-export default function Home() {
+export const revalidate = 3600;
+
+/** 착수일. 「N일차」를 여기서 센다. */
+const START = Date.parse("2026-09-05T00:00:00+09:00");
+
+export default async function Home() {
+  const ops = await readOps();
+  // DB 가 막혀도 랜딩이 0 을 띄우면 안 된다. 마지막으로 확인한 값을 바닥으로 쓴다.
+  const vendors = ops.ok && ops.vendorCount ? ops.vendorCount : 8;
+  const hits = ops.ok && ops.totalHits ? ops.totalHits : 460;
+  const claudePages = ops.crawl.vendors.find((v) => /claude/i.test(v.vendor))?.pages ?? 102;
+  const caseDay = Math.max(1, Math.floor((Date.now() - START) / 86400000) + 1);
+  const serpDay = ops.serp.day ? ops.serp.day.slice(5).replace("-", ".") : "09.08";
+
   return (
     <>
       <script
@@ -154,9 +168,9 @@ export default function Home() {
       <section className="deep" id="data">
         <div className="wrap">
           <div className="lab">우리가 직접 잰 것</div>
-          <h2>직접 재봤습니다.<br />결과는 예상과 달랐습니다.</h2>
+          <h2>26곳을 재봤습니다.<br />60점을 넘긴 곳은 다섯이었습니다.</h2>
           <p className="sub2">
-            국내 B2B 26곳을 점검하고, 실제 구매자가 쓸 질문을 AI에 던져봤습니다.
+            국내 B2B 사이트를 점검하고, 실제 구매자가 쓸 질문을 AI에 던져봤습니다.
           </p>
 
           <div className="facts">
@@ -235,7 +249,7 @@ export default function Home() {
       <section className="deep" id="case">
         <div className="wrap">
           <div className="lab">첫 고객사 · 진행중</div>
-          <h2>착수 하루 만에<br />AI가 사이트를 다 읽어갔습니다</h2>
+          <h2>착수 하루 만에<br />AI가 34쪽 중 31쪽을 읽어갔습니다</h2>
           <p className="sub2">
             수도권의 코딩·로봇 교육 학원입니다. 홈페이지가 없고 블로그만 있었습니다.
             시작한 날 먼저 지금 상태를 재고, 같은 날 홈페이지를 만들고, 블로그 글 32편을 옮겼습니다.
@@ -298,18 +312,18 @@ export default function Home() {
             </div>
             <div className="cx">
               <div className="cxh">
-                <span className="lab2">다녀간 크롤러 · 4일차</span>
-                <span className="mono cxn"><Count to={7} />곳 / <Count to={303} />회</span>
+                <span className="lab2">다녀간 크롤러 · {caseDay}일차</span>
+                <span className="mono cxn"><Count to={vendors} />곳 / <Count to={hits} />회</span>
               </div>
               <p>
-                첫날 2곳이던 것이 나흘 만에 7곳이 됐습니다.
+                첫날은 2곳이었습니다.
                 AI마다, 검색엔진마다 새 사이트를 발견하는 속도가 다릅니다.
                 <b>어디가 언제 왔는지 전부 기록에 남습니다.</b>
               </p>
             </div>
             <div className="cx hi">
               <div className="cxh">
-                <span className="lab2">검색 노출 · 09.08</span>
+                <span className="lab2">검색 노출 · {serpDay}</span>
                 <span className="mono cxn">네이버 <Count to={1} />위</span>
               </div>
               <p>
@@ -338,14 +352,14 @@ export default function Home() {
               <span>+3d</span><span>Yeti</span><span>/sitemap.xml · 네이버 색인</span>
             </div>
             <div className="cl mono dim">
-              <span>…</span><span>크롤러 7곳</span><span>303회 방문 · ClaudeBot 102쪽</span>
+              <span>…</span><span>크롤러 {vendors}곳</span><span>{hits}회 방문 · ClaudeBot {claudePages}쪽</span>
             </div>
           </div>
 
           <div className="casenote">
             검색은 올라왔습니다. <b>AI가 이 학원을 추천하는지는 아직 모릅니다.</b>
             올라온 지 얼마 안 돼서, 지금 재면 AI가 아직 못 본 상태를 재는 셈입니다.
-            <b> 며칠 뒤에 물어보고, 잘 나왔든 못 나왔든 여기에 그대로 적겠습니다.</b>
+            <b> 다 읽어간 뒤에 재고, 잘 나왔든 못 나왔든 여기에 그대로 적겠습니다.</b>
           </div>
           <a className="caselink" href="/case/robotncoding.html">
             전체 기록 보기

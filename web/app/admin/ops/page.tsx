@@ -24,20 +24,20 @@ export const runtime = "nodejs";
  * 세션   로그인한 브라우저나 글 쓰는 일이 필요하다. 사람이 켜 줘야 한다
  */
 const SLOTS = [
-  { at: "02:11", name: "파수꾼 — 브리핑·상태 점검", team: "운영", need: "무관" },
+  { at: "02:11", name: "점검 · 브리핑", team: "운영", need: "무관" },
   { at: "03:23", name: "색인 알림 · 스냅샷", team: "운영", need: "무관" },
-  { at: "05:11", name: "파수꾼", team: "운영", need: "무관" },
+  { at: "05:11", name: "점검", team: "운영", need: "무관" },
   { at: "07:41", name: "노출 측정 · 리포트 갱신", team: "측정", need: "무관" },
-  { at: "08:11", name: "파수꾼", team: "운영", need: "무관" },
+  { at: "08:11", name: "점검", team: "운영", need: "무관" },
   { at: "10:23", name: "주간 정리", team: "운영", need: "세션", dow: 1 },
-  { at: "11:11", name: "파수꾼", team: "운영", need: "무관" },
+  { at: "11:11", name: "점검", team: "운영", need: "무관" },
   { at: "11:41", name: "색인 밀기 — 구글 로그인", team: "유통", need: "세션" },
-  { at: "14:11", name: "파수꾼", team: "운영", need: "무관" },
+  { at: "14:11", name: "점검", team: "운영", need: "무관" },
   { at: "14:23", name: "글 작업", team: "콘텐츠", need: "세션" },
-  { at: "17:11", name: "파수꾼", team: "운영", need: "무관" },
+  { at: "17:11", name: "점검", team: "운영", need: "무관" },
   { at: "18:53", name: "네이버 이관 · 정리", team: "유통", need: "세션" },
-  { at: "20:11", name: "파수꾼", team: "운영", need: "무관" },
-  { at: "23:11", name: "파수꾼", team: "운영", need: "무관" },
+  { at: "20:11", name: "점검", team: "운영", need: "무관" },
+  { at: "23:11", name: "점검", team: "운영", need: "무관" },
 ];
 
 /**
@@ -378,7 +378,7 @@ export default async function OpsPage({
           <div>
             <span className="n mono">{SLOTS.filter((x) => x.need === "무관").length}</span>
             <span className="t">칸이 사람 없이 돕니다</span>
-            <span className="d">3시간마다 파수꾼 · 색인 알림 · 노출 측정</span>
+            <span className="d">3시간마다 점검 · 색인 알림 · 노출 측정</span>
           </div>
           <div className="w2">
             <span className="n mono">{SLOTS.filter((x) => x.need === "세션").length}</span>
