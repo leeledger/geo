@@ -89,6 +89,13 @@ export default async function ServicePage({ params }: Props) {
         </div>
       </header>
 
+      {/* 잘라서 인용할 수 있는 설명. 짧은 조각만 있으면 AI 가 가져갈 덩어리가 없다. */}
+      <section className="svc-prose">
+        <div className="wrap">
+          {s.prose.map((t) => <p key={t.slice(0, 12)}>{t}</p>)}
+        </div>
+      </section>
+
       <section>
         <div className="wrap narrow">
           <div className="lab">하는 일</div>

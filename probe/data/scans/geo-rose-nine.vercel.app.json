@@ -1,8 +1,8 @@
 {
   "origin": "https://geo-rose-nine.vercel.app",
-  "scanned_at": "2026-09-10T02:04:11.501Z",
-  "total": 75,
-  "grade": "보통",
+  "scanned_at": "2026-09-10T03:17:35.525Z",
+  "total": 80,
+  "grade": "우수",
   "platform": {
     "id": "nextjs",
     "name": "Next.js",
@@ -16,95 +16,95 @@
   },
   "checks": {
     "crawler": {
-      "score": 85,
+      "score": 100,
       "bots": [
         {
           "id": "OAI-SearchBot",
           "label": "ChatGPT 검색",
           "weight": 3,
           "allowed": true,
-          "basis": "* 그룹",
-          "explicit": false
+          "basis": "명시 그룹",
+          "explicit": true
         },
         {
           "id": "ChatGPT-User",
           "label": "ChatGPT 사용자요청",
           "weight": 3,
           "allowed": true,
-          "basis": "* 그룹",
-          "explicit": false
+          "basis": "명시 그룹",
+          "explicit": true
         },
         {
           "id": "PerplexityBot",
           "label": "Perplexity",
           "weight": 3,
           "allowed": true,
-          "basis": "* 그룹",
-          "explicit": false
+          "basis": "명시 그룹",
+          "explicit": true
         },
         {
           "id": "Perplexity-User",
           "label": "Perplexity 사용자",
           "weight": 2,
           "allowed": true,
-          "basis": "* 그룹",
-          "explicit": false
+          "basis": "명시 그룹",
+          "explicit": true
         },
         {
           "id": "ClaudeBot",
           "label": "Claude",
           "weight": 3,
           "allowed": true,
-          "basis": "* 그룹",
-          "explicit": false
+          "basis": "명시 그룹",
+          "explicit": true
         },
         {
           "id": "Googlebot",
           "label": "구글 색인",
           "weight": 3,
           "allowed": true,
-          "basis": "* 그룹",
-          "explicit": false
+          "basis": "명시 그룹",
+          "explicit": true
         },
         {
           "id": "Bingbot",
           "label": "Bing/Copilot",
           "weight": 2,
           "allowed": true,
-          "basis": "* 그룹",
-          "explicit": false
+          "basis": "명시 그룹",
+          "explicit": true
         },
         {
           "id": "Yeti",
           "label": "네이버",
           "weight": 2,
           "allowed": true,
-          "basis": "* 그룹",
-          "explicit": false
+          "basis": "명시 그룹",
+          "explicit": true
         },
         {
           "id": "GPTBot",
           "label": "OpenAI 학습",
           "weight": 1,
           "allowed": true,
-          "basis": "* 그룹",
-          "explicit": false
+          "basis": "명시 그룹",
+          "explicit": true
         },
         {
           "id": "Google-Extended",
           "label": "Gemini 학습",
           "weight": 1,
           "allowed": true,
-          "basis": "* 그룹",
-          "explicit": false
+          "basis": "명시 그룹",
+          "explicit": true
         },
         {
           "id": "CCBot",
           "label": "Common Crawl",
           "weight": 1,
           "allowed": true,
-          "basis": "* 그룹",
-          "explicit": false
+          "basis": "명시 그룹",
+          "explicit": true
         }
       ],
       "blocked": []
@@ -123,9 +123,9 @@
     },
     "ssr": {
       "score": 100,
-      "avgTextLen": 2741,
-      "textRatio": 0.0631,
-      "thinPages": 4,
+      "avgTextLen": 2963,
+      "textRatio": 0.0722,
+      "thinPages": 1,
       "totalPages": 6
     },
     "schema": {
@@ -151,18 +151,18 @@
       "invalid": 0
     },
     "chunk": {
-      "score": 30,
-      "paragraphs": 106,
+      "score": 36,
+      "paragraphs": 115,
       "listItems": 50,
-      "inBand": 39,
-      "bandRate": 36.8,
+      "inBand": 48,
+      "bandRate": 41.7,
       "tooLong": 0,
-      "vagueSubjects": 8
+      "vagueSubjects": 7
     },
     "patterns": {
       "score": 65,
       "questionHeadings": 2,
-      "numericFacts": 135,
+      "numericFacts": 136,
       "pagesWithTable": 0,
       "pagesWithList": 5,
       "pagesWithMeta": 6
@@ -173,8 +173,8 @@
       "url": "https://geo-rose-nine.vercel.app",
       "ok": true,
       "textLen": 6761,
-      "htmlLen": 60707,
-      "textRatio": 0.11137101158021316,
+      "htmlLen": 60711,
+      "textRatio": 0.11136367379881734,
       "ldCount": 1,
       "ldInvalid": 0,
       "types": [
@@ -204,8 +204,8 @@
       "url": "https://geo-rose-nine.vercel.app/",
       "ok": true,
       "textLen": 6761,
-      "htmlLen": 60707,
-      "textRatio": 0.11137101158021316,
+      "htmlLen": 60711,
+      "textRatio": 0.11136367379881734,
       "ldCount": 1,
       "ldInvalid": 0,
       "types": [
@@ -257,9 +257,9 @@
     {
       "url": "https://geo-rose-nine.vercel.app/services/measure",
       "ok": true,
-      "textLen": 817,
-      "htmlLen": 19703,
-      "textRatio": 0.041465766634522665,
+      "textLen": 1288,
+      "htmlLen": 21059,
+      "textRatio": 0.06116149864665939,
       "ldCount": 1,
       "ldInvalid": 0,
       "types": [
@@ -271,14 +271,14 @@
         "Question",
         "Answer"
       ],
-      "paras": 5,
+      "paras": 8,
       "items": 8,
-      "inBand": 0,
+      "inBand": 3,
       "tooLong": 0,
       "headings": 2,
       "qHeadings": 0,
-      "vague": 1,
-      "hasNumbers": 3,
+      "vague": 0,
+      "hasNumbers": 4,
       "hasTable": false,
       "hasList": true,
       "lang": "ko",
@@ -288,9 +288,9 @@
     {
       "url": "https://geo-rose-nine.vercel.app/services/technical",
       "ok": true,
-      "textLen": 900,
-      "htmlLen": 20602,
-      "textRatio": 0.04368507911853218,
+      "textLen": 1333,
+      "htmlLen": 21865,
+      "textRatio": 0.06096501257717814,
       "ldCount": 1,
       "ldInvalid": 0,
       "types": [
@@ -302,9 +302,9 @@
         "Question",
         "Answer"
       ],
-      "paras": 6,
+      "paras": 9,
       "items": 8,
-      "inBand": 1,
+      "inBand": 4,
       "tooLong": 0,
       "headings": 2,
       "qHeadings": 0,
@@ -319,9 +319,9 @@
     {
       "url": "https://geo-rose-nine.vercel.app/services/placement",
       "ok": true,
-      "textLen": 808,
-      "htmlLen": 19666,
-      "textRatio": 0.04108613851316994,
+      "textLen": 1238,
+      "htmlLen": 20923,
+      "textRatio": 0.059169335181379346,
       "ldCount": 1,
       "ldInvalid": 0,
       "types": [
@@ -333,9 +333,9 @@
         "Question",
         "Answer"
       ],
-      "paras": 5,
+      "paras": 8,
       "items": 8,
-      "inBand": 0,
+      "inBand": 3,
       "tooLong": 0,
       "headings": 2,
       "qHeadings": 0,
@@ -350,16 +350,8 @@
   ],
   "notes": [
     {
-      "pri": 1,
-      "msg": "4/6 페이지가 JS 없이는 본문이 거의 없습니다. AI 크롤러도 같은 것을 봅니다 — 서버 렌더링(SSR)이 필요합니다"
-    },
-    {
       "pri": 2,
-      "msg": "AI 크롤러가 * 규칙으로만 허용됩니다. User-agent 별로 명시하면 의도가 분명해집니다"
-    },
-    {
-      "pri": 2,
-      "msg": "\"우리는·저희는\" 같은 대명사 주어가 8회 나옵니다. AI가 문장만 떼어가면 주어가 사라집니다 — 브랜드명을 문장 안에 넣으세요"
+      "msg": "\"우리는·저희는\" 같은 대명사 주어가 7회 나옵니다. AI가 문장만 떼어가면 주어가 사라집니다 — 브랜드명을 문장 안에 넣으세요"
     },
     {
       "pri": 3,

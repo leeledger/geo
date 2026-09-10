@@ -691,3 +691,13 @@ header.hero.simple .lab{color:var(--accent)}
   background:var(--sunken);border-radius:0 12px 12px 0;
   font-size:15.5px;line-height:1.85;color:var(--muted);max-width:74ch}
 .pcompare b{color:var(--ink)}
+
+
+/* 서비스 상세의 설명 문단.
+   한 문단 80~400자로 쓴다 — 그래야 AI 가 잘라서 인용한다.
+   조각 문장만 있으면 가져갈 덩어리가 없다. */
+.svc-prose{padding:8px 0 42px}
+.svc-prose .wrap{max-width:760px}
+.svc-prose p{font-size:17px;line-height:1.95;color:var(--ink-2);margin:0 0 22px;
+  word-break:keep-all}
+.svc-prose p:last-child{margin-bottom:0}
