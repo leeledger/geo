@@ -272,7 +272,13 @@ export default async function OpsPage({
 
   const [d, inq] = await Promise.all([readOps(), inquirySummary()]);
   const im = inq[0];
-  const covLead = d.crawl.vendors[0];
+  // 「최고 커버리지」는 듣기 좋은 숫자였다. 실제로 손봐야 하는 건 제일 낮은 쪽이다 —
+  // google 95% 옆에 openai 15% 가 있으면 문제는 openai 다.
+  // 좋은 숫자를 만들지 않는 게 우리가 파는 것인데 대시보드가 그러고 있었다.
+  const MAJOR = ["openai", "anthropic", "google", "naver"];
+  const covLow = d.crawl.vendors
+    .filter((v) => MAJOR.includes(v.vendor))
+    .sort((a, b) => a.pct - b.pct)[0];
 
   /* 노드 상태는 실제 숫자에서 나온다. 색만 예쁘게 칠하면 대시보드가 아니라 그림이다. */
   const since = d.posts.sinceDays;
@@ -341,9 +347,9 @@ export default async function OpsPage({
             <div className="v">{d.crawl.last24h}<small>회</small></div>
             <div className="k">24시간 크롤러</div>
           </div>
-          <div className={`ops-kpi ${covLead && covLead.pct >= 80 ? "ok" : "warn"}`}>
-            <div className="v">{covLead ? covLead.pct.toFixed(0) : "—"}<small>%</small></div>
-            <div className="k">최고 커버리지 · {covLead?.vendor ?? "—"}</div>
+          <div className={`ops-kpi ${covLow && covLow.pct >= 60 ? "ok" : "warn"}`}>
+            <div className="v">{covLow ? covLow.pct.toFixed(0) : "—"}<small>%</small></div>
+            <div className="k">제일 낮은 커버리지 · {covLow?.vendor ?? "—"}</div>
           </div>
           <div className={`ops-kpi ${d.serp.hits.length > 0 ? "ok" : "warn"}`}>
             <div className="v">{d.serp.hits.length}<small> / {d.serp.total}</small></div>
@@ -434,6 +440,12 @@ export default async function OpsPage({
         <h2>사람만 할 수 있는 일</h2>
         <p className="sub">
           이건 자동화하지 않습니다. 자동화하면 안 되는 것도 있습니다.
+          {covLow && covLow.vendor === "openai" && covLow.pct < 60 && (
+            <b style={{ color: "var(--warn)" }}>
+              {" "}OpenAI 가 {covLow.pct.toFixed(0)}% 만 읽었습니다 — 빙 색인이 없어서입니다.
+              빙 웹마스터 등록은 마이크로소프트 로그인이 필요합니다.
+            </b>
+          )}
           {(!im || im.total === 0) && (
             <b style={{ color: "var(--warn)" }}>
               {" "}상담 기록이 아직 0건입니다 — 노출이 문의로 이어지는지 못 재고 있습니다.
