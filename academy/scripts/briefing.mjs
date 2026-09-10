@@ -95,11 +95,12 @@ const hits = serp.filter((r) => r.hit);
 const rival = serp.filter((r) => r.kind === "경쟁");
 const brand = serp.filter((r) => r.kind === "브랜드");
 const rHit = rival.filter((r) => r.hit);
+const ENG = { bing: "Bing", naver: "네이버웹", naver_all: "네이버통합" };
 const bHit = brand.filter((r) => r.hit);
 
 line(`  마지막 측정 ${serpAge}일 전`);
 line(`  경쟁 검색어  ${rHit.length}/${rival.length}   ← 이겨서 얻는 자리`);
-for (const h of rHit) line(`    ★ ${h.engine === "naver" ? "네이버" : "Bing"} ${h.rank}위 — ${h.query}`);
+for (const h of rHit) line(`    ★ ${(ENG[h.engine] ?? h.engine).padEnd(6)} ${h.rank ? h.rank + "위" : "노출"} — ${h.query}`);
 if (brand.length) {
   line(`  브랜드 검색  ${bHit.length}/${brand.length}   (방어 확인. 성과 아님)`);
   const lost = brand.filter((r) => !r.hit).map((r) => r.query);
