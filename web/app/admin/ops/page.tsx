@@ -246,7 +246,7 @@ const CSS = `
 .ops-clients .chip.on i{color:var(--cool)}
 .ops-clients .meta{margin-left:auto;font-size:11.5px;color:var(--faint);
   font-family:"IBM Plex Mono",monospace}
-.ops-clients .warn2{width:100%;font-size:12.5px;color:var(--warn);font-weight:700;
+.ops-clients .note2{width:100%;font-size:12px;color:var(--mut);
   word-break:keep-all;margin-top:2px}
 @media(max-width:640px){.ops-clients .meta{margin-left:0;width:100%}}
 
@@ -434,12 +434,13 @@ export default async function OpsPage({
               {client.baselineScore !== null && ` · 착수 진단 ${client.baselineScore}점`}
             </span>
             {/*
-              자사만 있으면 그건 자가 실험이다. 화면이 「고객사 2곳」처럼
-              보이면 안 된다 — 영업에서 쓸 수 있는 건 남의 회사 사례뿐이다.
+              자사 레퍼런스는 정해진 순서다 — 레퍼런스 증명 → 도메인 → 영업.
+              그러니 경고로 띄우지 않는다. 다만 사실은 적어 둔다.
+              밖에 내놓을 때 「직접 운영하는 학원」이라고 밝혀야 하기 때문이다.
             */}
             {clients.every((x) => x.relation === "자사") && (
-              <span className="warn2">
-                전부 자사입니다. 외부 고객 0곳 — 지금 숫자는 자가 실험 기록입니다.
+              <span className="note2">
+                직접 운영하는 곳으로 재고 있습니다. 밖에 낼 때 그 사실을 함께 밝힙니다.
               </span>
             )}
           </div>
