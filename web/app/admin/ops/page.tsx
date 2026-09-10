@@ -14,17 +14,30 @@ export const runtime = "nodejs";
  * 사이티드는 이 숫자를 파는 회사라, 여기에 지어낸 값이 들어가면 사업이 무너진다.
  */
 
-/** 하루 시간표. 예약 실행(cron)과 GitHub Actions 를 갈라서 적는다. */
+/**
+ * 하루 시간표.
+ *
+ * 「자동」과 「세션 필요」를 갈라 적는다. 이게 섞여 있으면 화면이 거짓말을 한다.
+ * 앞선 판은 아홉 칸 중 일곱이 세션 필요였는데 그걸 「24시간 운영」처럼 보여 줬다.
+ *
+ * 자동   GitHub 이 돌린다. 클로드가 꺼져 있어도 돈다
+ * 세션   로그인한 브라우저나 글 쓰는 일이 필요하다. 사람이 켜 줘야 한다
+ */
 const SLOTS = [
-  { at: "02:13", name: "심야 점검", team: "운영", need: "세션" },
-  { at: "03:23", name: "스냅샷 · 색인 알림", team: "운영", need: "무관" },
+  { at: "02:11", name: "파수꾼 — 브리핑·상태 점검", team: "운영", need: "무관" },
+  { at: "03:23", name: "색인 알림 · 스냅샷", team: "운영", need: "무관" },
+  { at: "05:11", name: "파수꾼", team: "운영", need: "무관" },
   { at: "07:41", name: "노출 측정 · 리포트 갱신", team: "측정", need: "무관" },
-  { at: "08:47", name: "아침 브리핑", team: "측정", need: "세션" },
+  { at: "08:11", name: "파수꾼", team: "운영", need: "무관" },
   { at: "10:23", name: "주간 정리", team: "운영", need: "세션", dow: 1 },
-  { at: "11:41", name: "색인 밀기", team: "유통", need: "세션" },
+  { at: "11:11", name: "파수꾼", team: "운영", need: "무관" },
+  { at: "11:41", name: "색인 밀기 — 구글 로그인", team: "유통", need: "세션" },
+  { at: "14:11", name: "파수꾼", team: "운영", need: "무관" },
   { at: "14:23", name: "글 작업", team: "콘텐츠", need: "세션" },
-  { at: "18:53", name: "저녁 정리", team: "유통", need: "세션" },
-  { at: "21:37", name: "하루 마감", team: "운영", need: "세션" },
+  { at: "17:11", name: "파수꾼", team: "운영", need: "무관" },
+  { at: "18:53", name: "네이버 이관 · 정리", team: "유통", need: "세션" },
+  { at: "20:11", name: "파수꾼", team: "운영", need: "무관" },
+  { at: "23:11", name: "파수꾼", team: "운영", need: "무관" },
 ];
 
 /**
@@ -149,6 +162,17 @@ const CSS = `
 .ops-team li{position:relative;font-size:13.3px;color:var(--ink2);margin-bottom:6px;padding-left:11px}
 .ops-team li::before{content:"";position:absolute;left:0;top:.62em;width:5px;height:5px;
   border-radius:50%;background:var(--acc);opacity:.8}
+.ops-splitnote{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-top:14px}
+.ops-splitnote > div{background:var(--card);border:1px solid var(--line);border-radius:13px;
+  padding:15px 18px;border-left:3px solid var(--ok)}
+.ops-splitnote > div.w2{border-left-color:var(--warn)}
+.ops-splitnote .n{font-family:"IBM Plex Mono",monospace;font-size:27px;font-weight:500;
+  color:var(--ok);margin-right:8px}
+.ops-splitnote .w2 .n{color:var(--warn)}
+.ops-splitnote .t{font-size:14px;font-weight:700}
+.ops-splitnote .d{display:block;font-size:12.5px;color:var(--mut);margin-top:5px}
+.ops-slot .need.man{color:var(--warn)}
+@media(max-width:560px){.ops-splitnote{grid-template-columns:1fr}}
 .ops-team-h{display:flex;align-items:baseline;gap:9px;margin-bottom:8px}
 .ops-team-g{font-size:16px;color:var(--acc);line-height:1}
 .ops-cad{margin-left:auto;font-family:"IBM Plex Mono",monospace;font-size:10.5px;
@@ -345,19 +369,35 @@ export default async function OpsPage({
 
         <h2>하루 시간표</h2>
         <p className="sub">
-          「세션」은 클로드가 켜져 있어야 도는 일, 「자동」은 GitHub 이 돌려서 그것과 상관없는 일입니다.
+          <b style={{ color: "var(--ok)" }}>자동</b>은 GitHub 이 돌립니다 — 클로드가 꺼져 있어도 돕니다.
+          {" "}<b style={{ color: "var(--warn)" }}>세션 필요</b>는 로그인한 브라우저나 글 쓰는 일이라
+          사람이 켜 줘야 합니다.
         </p>
+
+        <div className="ops-splitnote">
+          <div>
+            <span className="n mono">{SLOTS.filter((x) => x.need === "무관").length}</span>
+            <span className="t">칸이 사람 없이 돕니다</span>
+            <span className="d">3시간마다 파수꾼 · 색인 알림 · 노출 측정</span>
+          </div>
+          <div className="w2">
+            <span className="n mono">{SLOTS.filter((x) => x.need === "세션").length}</span>
+            <span className="t">칸은 사람이 필요합니다</span>
+            <span className="d">구글·네이버 로그인 · 글쓰기</span>
+          </div>
+        </div>
+
         <div className="ops-tl">
-          {SLOTS.map((s) => (
-            <div className="ops-slot" key={s.at + s.name}>
-              <span className="t">{s.at}</span>
-              <span className="badge">{s.team}</span>
+          {SLOTS.map((sl) => (
+            <div className="ops-slot" key={sl.at + sl.name}>
+              <span className="t">{sl.at}</span>
+              <span className="badge">{sl.team}</span>
               <span className="n">
-                {s.name}
-                {s.dow !== undefined && <span className="ops-gap">월요일만</span>}
+                {sl.name}
+                {sl.dow !== undefined && <span className="ops-gap">월요일만</span>}
               </span>
-              <span className={`need ${s.need === "무관" ? "auto" : ""}`}>
-                {s.need === "무관" ? "자동" : "세션 필요"}
+              <span className={`need ${sl.need === "무관" ? "auto" : "man"}`}>
+                {sl.need === "무관" ? "자동" : "세션 필요"}
               </span>
             </div>
           ))}
