@@ -1,4 +1,9 @@
+import { isAdmin } from "@/lib/admin-auth";
+import { redirect } from "next/navigation";
+
 import { listLeads, dbEnabled } from "@/lib/leads";
+/** 로그인 뒤 돌아올 자리 */
+const HERE = "/admin";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -11,17 +16,7 @@ function fmt(d: string) {
 
 export default async function Admin({ searchParams }: { searchParams: Promise<{ key?: string }> }) {
   const { key } = await searchParams;
-  const token = process.env.ADMIN_TOKEN;
-
-  // 토큰이 설정돼 있으면 반드시 일치해야 한다. 미설정이면 로컬 개발로 간주.
-  if (token && key !== token) {
-    return (
-      <div className="wrap" style={{ paddingTop: 80, maxWidth: 520 }}>
-        <h1 style={{ fontSize: 24 }}>접근 권한이 없습니다</h1>
-        <p className="formnote">/admin?key=... 형식으로 토큰을 붙여 주세요.</p>
-      </div>
-    );
-  }
+  if (!(await isAdmin(key))) redirect("/admin/login?to=" + encodeURIComponent(HERE));
 
   const leads = await listLeads(200);
 

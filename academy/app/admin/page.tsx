@@ -14,6 +14,7 @@ const BLANK = {
 };
 
 export default function Admin() {
+  const [id, setId] = useState("");
   const [pw, setPw] = useState("");
   const [ok, setOk] = useState(false);
   const [rows, setRows] = useState<Row[]>([]);
@@ -21,23 +22,26 @@ export default function Admin() {
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  useEffect(() => { setPw(sessionStorage.getItem("apw") ?? ""); }, []);
+  useEffect(() => { setId(localStorage.getItem("aid") ?? ""); }, []);
 
-  const load = useCallback(async (p = pw) => {
-    const r = await fetch("/api/posts", { headers: { "x-admin-pw": p } });
-    if (r.status === 401) { setOk(false); setMsg("비밀번호가 맞지 않습니다."); return; }
+  /** 모든 요청에 같은 헤더가 붙어야 한다. 한 군데라도 빠지면 거기서만 401 이 난다. */
+  const hdr = useCallback(() => ({ "x-admin-pw": pw, "x-admin-id": id }), [pw, id]);
+
+  const load = useCallback(async (p = pw, i = id) => {
+    const r = await fetch("/api/posts", { headers: { "x-admin-pw": p, "x-admin-id": i } });
+    if (r.status === 401) { setOk(false); setMsg("아이디나 비밀번호가 맞지 않습니다."); return; }
     const d = await r.json();
     if (d.error) { setMsg(d.error); return; }
     setOk(true); setMsg(null); setRows(d.posts ?? []);
-    sessionStorage.setItem("apw", p);
-  }, [pw]);
+    localStorage.setItem("aid", i);   // 아이디만 기억한다
+  }, [pw, id]);
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true); setMsg(null);
     const r = await fetch("/api/posts", {
       method: "POST",
-      headers: { "content-type": "application/json", "x-admin-pw": pw },
+      headers: { "content-type": "application/json", ...hdr() },
       body: JSON.stringify(f),
     });
     const d = await r.json();
@@ -55,7 +59,7 @@ export default function Admin() {
     if (!row) return;
     // 본문은 목록에 없으므로 공개 페이지에서 받아온다
     const full = await fetch(`/api/posts?slug=${encodeURIComponent(slug)}`, {
-      headers: { "x-admin-pw": pw },
+      headers: hdr(),
     }).then((x) => x.json()).catch(() => null);
     setF({
       ...BLANK, ...row,
@@ -70,7 +74,7 @@ export default function Admin() {
   async function del(slug: string) {
     if (!confirm(`"${slug}" 글을 지웁니다. 되돌릴 수 없습니다.`)) return;
     await fetch(`/api/posts?slug=${encodeURIComponent(slug)}`, {
-      method: "DELETE", headers: { "x-admin-pw": pw },
+      method: "DELETE", headers: hdr(),
     });
     load();
   }
@@ -81,9 +85,14 @@ export default function Admin() {
         <div className="wrap narrow">
           <h1>글 관리</h1>
           <p className="lead">로봇&amp;코딩학원 수업 기록을 쓰고 고치는 곳입니다.</p>
-          <form onSubmit={(e) => { e.preventDefault(); load(); }} className="admrow">
+          <form onSubmit={(e) => { e.preventDefault(); load(); }} className="admlogin">
+            {/* autoComplete 를 정확히 줘야 브라우저 비밀번호 관리자가 알아본다 */}
+            <input value={id} onChange={(e) => setId(e.target.value)}
+                   placeholder="아이디" autoComplete="username"
+                   name="username" autoFocus={!id} />
             <input type="password" value={pw} onChange={(e) => setPw(e.target.value)}
-                   placeholder="관리자 비밀번호" autoFocus />
+                   placeholder="비밀번호" autoComplete="current-password"
+                   name="password" autoFocus={!!id} />
             <button className="btn primary" type="submit">들어가기</button>
           </form>
           {msg && <p className="admmsg err">{msg}</p>}
@@ -95,7 +104,13 @@ export default function Admin() {
   return (
     <main className="adm">
       <div className="wrap narrow">
-        <h1>글 관리</h1>
+        <div className="admhead">
+          <h1>글 관리</h1>
+          {/* 에이전트 망·노출·크롤러 현황은 사이티드 쪽에 있다.
+              학원은 사이티드의 첫 레퍼런스라 측정 기록이 그쪽에 쌓인다. */}
+          <a className="admlink" href="https://geo-rose-nine.vercel.app/admin/ops"
+             target="_blank" rel="noopener">운영 현황 · 에이전트 망 ↗</a>
+        </div>
         {msg && <p className="admmsg">{msg}</p>}
 
         <form onSubmit={save} className="admform">

@@ -155,6 +155,8 @@ export default async function PostPage({ params }: Props) {
           <p className="mono">
             로봇&amp;코딩학원 · 서울특별시 송파구 석촌동 274-8 2층 ·{" "}
             <a href="tel:02-422-0525">02-422-0525</a>
+            {" · "}
+            <a className="fadmin" href="/admin" rel="nofollow">관리자</a>
           </p>
         </div>
       </footer>

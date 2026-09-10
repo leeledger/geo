@@ -1,8 +1,13 @@
+import { isAdmin } from "@/lib/admin-auth";
+import { redirect } from "next/navigation";
+
 import { readOps } from "@/lib/ops";
 import Live from "./Live";
 import Flow, { type NodeState } from "./Flow";
 import Link from "next/link";
 import { inquirySummary } from "@/lib/inquiries";
+/** 로그인 뒤 돌아올 자리 */
+const HERE = "/admin/ops";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -260,15 +265,7 @@ export default async function OpsPage({
   searchParams,
 }: { searchParams: Promise<{ key?: string }> }) {
   const { key } = await searchParams;
-  const token = process.env.ADMIN_TOKEN;
-  if (token && key !== token) {
-    return (
-      <div className="wrap" style={{ paddingTop: 80, maxWidth: 520 }}>
-        <h1 style={{ fontSize: 24 }}>접근 권한이 없습니다</h1>
-        <p className="formnote">/admin/ops?key=... 형식으로 토큰을 붙여 주세요.</p>
-      </div>
-    );
-  }
+  if (!(await isAdmin(key))) redirect("/admin/login?to=" + encodeURIComponent(HERE));
 
   const [d, inq] = await Promise.all([readOps(), inquirySummary()]);
   const im = inq[0];
@@ -453,7 +450,11 @@ export default async function OpsPage({
           )}
         </p>
         <p className="sub">
-          <Link href={`/admin/inquiry?key=${key ?? ""}`}
+          <a href="https://robotncoding.com/admin" target="_blank" rel="noopener"
+             style={{ color: "var(--mut)", fontWeight: 600, marginRight: 18 }}>
+            학원 글 관리 ↗
+          </a>
+          <Link href="/admin/inquiry"
                 style={{ color: "var(--cool)", fontWeight: 700 }}>
             문의 기록하기 →
           </Link>

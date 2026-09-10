@@ -1,6 +1,11 @@
+import { isAdmin } from "@/lib/admin-auth";
+import { redirect } from "next/navigation";
+
 import { listInquiries, inquirySummary, SOURCES } from "@/lib/inquiries";
 import { addInquiry } from "@/lib/inquiry-actions";
 import Link from "next/link";
+/** 로그인 뒤 돌아올 자리 */
+const HERE = "/admin/inquiry";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -86,15 +91,7 @@ export default async function InquiryPage({
   searchParams,
 }: { searchParams: Promise<{ key?: string }> }) {
   const { key } = await searchParams;
-  const token = process.env.ADMIN_TOKEN;
-  if (token && key !== token) {
-    return (
-      <div className="wrap" style={{ paddingTop: 80, maxWidth: 520 }}>
-        <h1 style={{ fontSize: 24 }}>접근 권한이 없습니다</h1>
-        <p className="formnote">/admin/inquiry?key=... 형식으로 토큰을 붙여 주세요.</p>
-      </div>
-    );
-  }
+  if (!(await isAdmin(key))) redirect("/admin/login?to=" + encodeURIComponent(HERE));
 
   const [rows, sum] = await Promise.all([listInquiries(), inquirySummary()]);
   const m = sum[0];
@@ -109,7 +106,7 @@ export default async function InquiryPage({
         <p className="lead">
           상담 첫 마디에 이걸 묻고 한 줄 남깁니다. 30초면 됩니다.
         </p>
-        <Link className="back" href={`/admin/ops?key=${key ?? ""}`}>← 운영 현황</Link>
+        <Link className="back" href="/admin/ops">← 운영 현황</Link>
 
         <div className="inq-sum">
           <div className="inq-s">

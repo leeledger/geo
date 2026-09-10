@@ -5,12 +5,28 @@ import { q, dbEnabled } from "@/lib/db";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-/** 관리자 확인. 비밀번호는 ADMIN_PASSWORD 환경변수 하나로 끝낸다 — 1인 운영이다. */
+/**
+ * 관리자 확인.
+ *
+ * 아이디와 비밀번호를 같이 본다. ADMIN_ID 를 안 정해 두면 비밀번호만 본다 —
+ * 스크립트(naver-blog-post.mjs 등)가 헤더 하나로 부르고 있어서, 아이디를 필수로
+ * 만들면 그것들이 전부 401 을 맞는다.
+ */
 function authed(req: Request) {
   const pw = process.env.ADMIN_PASSWORD;
   if (!pw) return false;                        // 설정 전에는 아무도 못 쓴다
-  return req.headers.get("x-admin-pw") === pw;
+  if (req.headers.get("x-admin-pw") !== pw) return false;
+
+  const id = process.env.ADMIN_ID;
+  if (!id) return true;                         // 아이디를 안 쓰면 비번만으로 통과
+  return req.headers.get("x-admin-id") === id;
 }
+
+/** 틀렸을 때 잠깐 멈춘다. 초당 수천 번 두드리는 걸 막는 최소한이다. */
+const deny = async () => {
+  await new Promise((r) => setTimeout(r, 700));
+  return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+};
 
 const slugify = (s: string) =>
   s.trim().toLowerCase()
@@ -20,7 +36,7 @@ const slugify = (s: string) =>
     .slice(0, 80) || `post-${Date.now()}`;
 
 export async function GET(req: Request) {
-  if (!authed(req)) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  if (!authed(req)) return deny();
   if (!dbEnabled) return NextResponse.json({ error: "DATABASE_URL 이 설정되지 않았습니다." }, { status: 500 });
 
   // ?slug= 이면 본문까지 한 건만 — 수정 화면이 쓴다
@@ -38,7 +54,7 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  if (!authed(req)) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  if (!authed(req)) return deny();
   if (!dbEnabled) return NextResponse.json({ error: "DATABASE_URL 이 설정되지 않았습니다." }, { status: 500 });
 
   const b = await req.json().catch(() => null);
@@ -81,7 +97,7 @@ export async function POST(req: Request) {
 }
 
 export async function DELETE(req: Request) {
-  if (!authed(req)) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  if (!authed(req)) return deny();
   const slug = new URL(req.url).searchParams.get("slug");
   if (!slug) return NextResponse.json({ error: "slug 가 필요합니다." }, { status: 400 });
   await q(`delete from academy.posts where slug = $1`, [slug]);

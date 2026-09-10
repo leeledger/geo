@@ -605,6 +605,18 @@ footer .mono{color:var(--fg-2)}
 .admrow{display:flex;gap:10px;align-items:center;margin-top:6px}
 .admrow input{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:9px;
   padding:11px 13px;color:var(--fg);font-size:15px}
+/* 로그인 — 아이디·비밀번호를 세로로 쌓는다. 가로로 붙이면 좁은 화면에서 찌그러진다 */
+.admlogin{display:flex;flex-direction:column;gap:9px;margin-top:8px;max-width:330px}
+.admlogin input{background:var(--panel);border:1px solid var(--line);border-radius:9px;
+  padding:11px 13px;color:var(--fg);font-size:15px;width:100%}
+.admlogin input:focus{outline:none;border-color:var(--cyan)}
+.admlogin .btn{margin-top:3px}
+/* 푸터의 관리자 링크. 눈에 띄면 안 되지만 찾을 수는 있어야 한다 */
+.fadmin{opacity:.4;font-size:12px}
+.fadmin:hover{opacity:.85}
+.admhead{display:flex;justify-content:space-between;align-items:baseline;gap:16px;flex-wrap:wrap}
+.admhead h1{margin:0}
+.admlink{font-size:13px;color:var(--cyan);white-space:nowrap}
 .admmsg{margin-top:14px;font-size:14px;color:var(--cyan)}
 .admmsg.err{color:#F5766B}
 .admlist{display:flex;flex-direction:column;gap:8px}
