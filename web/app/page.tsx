@@ -680,6 +680,9 @@ export default async function Home() {
             <span className="mono" style={{ marginLeft: "auto" }}>
               2026
             </span>
+            {/* 관리자로 들어가는 문. 학원 사이트에는 달아 두고 여기는 빠뜨렸다.
+                주소를 외워야만 들어갈 수 있는 건 문이 없는 것과 같다. */}
+            <a className="fadmin" href="/admin/login" rel="nofollow">관리자</a>
           </div>
           <div className="wm">
             이 페이지의 숫자(국내 B2B 26곳 점검 · 다시 물으면 28% 바뀜 · 홈페이지 몫 20%)는 저희가 직접 잰 값입니다.
