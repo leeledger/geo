@@ -34,8 +34,10 @@ type Props = {
   nodes: NodeState[];
   slots: Slot[];
   cycleOk: boolean;
-  /** 고리가 막힌 자리와 이유. 없으면 돌고 있는 것으로 본다. */
-  blocked?: { at: string; why: string } | null;
+  /** 고리가 실제로 멈춘 자리. 오늘 손대야 하는 것만 들어온다. */
+  stopped?: { at: string; why: string } | null;
+  /** 5번 자리가 내놓은 답 — 무엇을 할 차례인가. 멈춤이 아니다. */
+  decision?: { do: string; why: string } | null;
 };
 
 const COLOR = { run: "#3DD6A0", idle: "#4B5666", wait: "#E0A93C", stop: "#D2705F" };
@@ -93,7 +95,7 @@ function Glyph({ id, c }: { id: string; c: string }) {
   return <g {...s}><circle cx="0" cy="0" r="7" /><path d="M0,-7 V7 M-7,0 H7" /></g>;
 }
 
-export default function Flow({ nodes, slots, cycleOk, blocked }: Props) {
+export default function Flow({ nodes, slots, cycleOk, stopped, decision }: Props) {
   const [now, setNow] = useState<Date | null>(null);
   const [still, setStill] = useState(false);
 
@@ -120,7 +122,7 @@ export default function Flow({ nodes, slots, cycleOk, blocked }: Props) {
   })();
   const nextSlot = today.find((s) => mins(s.at) > nowM) ?? today[0];
 
-  const blockIdx = blocked ? RING.findIndex((r) => r.id === blocked.at) : -1;
+  const stopIdx = stopped ? RING.findIndex((r) => r.id === stopped.at) : -1;
 
   const isLive = (id: string, team: string) =>
     (team && activeTeam === team) || (id === "crawler" && by.crawler?.state === "run");
@@ -155,7 +157,7 @@ export default function Flow({ nodes, slots, cycleOk, blocked }: Props) {
       </div>
 
       <svg viewBox={`0 0 ${W} ${H}`} role="img"
-           aria-label={`업무 고리. 쓴다 → 내보낸다 → 읽혀진다 → 잰다 → 다음을 정한다 순서로 돌고, 가운데 조율자가 지켜본다.${blocked ? ` 지금 ${blocked.why} 때문에 막혀 있다.` : ""}`}>
+           aria-label={`업무 고리. 쓴다 → 내보낸다 → 읽혀진다 → 잰다 → 다음을 정한다 순서로 돌고, 가운데 조율자가 지켜본다.${stopped ? ` 지금 ${stopped.why} 때문에 멈춰 있다.` : ` 5번이 내놓은 답은 ${decision?.do ?? ""}.`}`}>
         <defs>
           <radialGradient id="bgg" cx="50%" cy="46%">
             <stop offset="0" stopColor="#16233A" />
@@ -185,7 +187,7 @@ export default function Flow({ nodes, slots, cycleOk, blocked }: Props) {
         {RING.map((r, i) => {
           const j = (i + 1) % RING.length;
           // 막힌 자리로 들어가는 구간이 끊긴 구간이다
-          const dead = blockIdx >= 0 && j === blockIdx;
+          const dead = stopIdx >= 0 && j === stopIdx;
           return (
             <g key={`arc${i}`}>
               <path d={arc(i, j)} fill="none"
@@ -209,9 +211,9 @@ export default function Flow({ nodes, slots, cycleOk, blocked }: Props) {
         })}
 
         {/* ── 막힌 자리 앞에 쌓인 일감 ── */}
-        {blockIdx >= 0 && (() => {
-          const prev = (blockIdx - 1 + RING.length) % RING.length;
-          const a = posOf(prev), b = posOf(blockIdx);
+        {stopIdx >= 0 && (() => {
+          const prev = (stopIdx - 1 + RING.length) % RING.length;
+          const a = posOf(prev), b = posOf(stopIdx);
           const t = 0.72;                             // 도착 직전에 멈춰 선다
           const x = a.x + (b.x - a.x) * t, y = a.y + (b.y - a.y) * t;
           return (
@@ -250,7 +252,7 @@ export default function Flow({ nodes, slots, cycleOk, blocked }: Props) {
           const p = posOf(i);
           const n = by[r.id] ?? by.ops;
           const live = isLive(r.id, r.team);
-          const isBlock = i === blockIdx;
+          const isBlock = i === stopIdx;
           const c = isBlock ? COLOR.wait
             : live ? COLOR.run
             : n?.state === "stop" ? COLOR.stop
@@ -279,7 +281,12 @@ export default function Flow({ nodes, slots, cycleOk, blocked }: Props) {
               <text x={p.x} y={p.y + size + 22} textAnchor="middle" className="fl-verb">{r.verb}</text>
               <text x={p.x} y={p.y + size + 40} textAnchor="middle" className="fl-sub">{n?.sub}</text>
               {live && <text x={p.x} y={p.y + size + 57} textAnchor="middle" className="fl-live">작업 중</text>}
-              {isBlock && <text x={p.x} y={p.y + size + 57} textAnchor="middle" className="fl-block">여기서 막혔습니다</text>}
+              {isBlock && <text x={p.x} y={p.y + size + 57} textAnchor="middle" className="fl-block">여기서 멈췄습니다</text>}
+              {r.id === "next" && !isBlock && decision && (
+                <text x={p.x} y={p.y + size + 57} textAnchor="middle" className="fl-do">
+                  → {decision.do}
+                </text>
+              )}
             </g>
           );
         })}
@@ -302,7 +309,7 @@ export default function Flow({ nodes, slots, cycleOk, blocked }: Props) {
         <span><i style={{ background: COLOR.stop }} />멈춤</span>
         <span className="ops-note">점 = 일감 · 번호 = 순서</span>
         <span className={cycleOk ? "ops-cy ok" : "ops-cy bad"}>
-          {cycleOk ? "고리가 돌고 있습니다" : blocked ? blocked.why : "고리가 끊겼습니다"}
+          {stopped ? stopped.why : decision ? `다음: ${decision.do}` : "고리가 돌고 있습니다"}
         </span>
       </div>
     </div>

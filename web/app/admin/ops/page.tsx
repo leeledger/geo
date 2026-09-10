@@ -147,6 +147,8 @@ const CSS = `
   position:relative;overflow:hidden}
 .ops-kpi::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--faint)}
 .ops-kpi.ok::before{background:var(--ok)} .ops-kpi.warn::before{background:var(--warn)}
+.ops-kpi .k em{display:block;font-style:normal;font-size:11px;color:var(--faint);
+  margin-top:3px;line-height:1.45;word-break:keep-all}
 .ops-kpi.crit::before{background:var(--crit)}
 .ops-kpi .v{font-family:"IBM Plex Mono",monospace;font-size:27px;font-weight:500;
   letter-spacing:-.02em;font-variant-numeric:tabular-nums}
@@ -254,6 +256,7 @@ const CSS = `
 .fl-step{fill:var(--faint);font-size:10.5px;font-weight:700;font-family:"IBM Plex Mono",monospace}
 .fl-live{fill:var(--ok);font-size:11.5px;font-weight:700;font-family:"IBM Plex Mono",monospace}
 .fl-block{fill:var(--warn);font-size:11.5px;font-weight:700;font-family:"IBM Plex Mono",monospace}
+.fl-do{fill:var(--cool);font-size:12px;font-weight:700;font-family:"IBM Plex Mono",monospace}
 
 /* 24시간 띠 — 빈 시간이 있는지 눈으로 보이게 한다 */
 .ops-band{padding:2px 4px 30px}
@@ -324,22 +327,38 @@ export default async function OpsPage({
     ? new Date(d.serp.day).toDateString() === new Date().toDateString()
     : false;
   /**
-   * 고리가 어디서 막혔나.
+   * 고리가 어디서 「멈췄나」.
    *
-   * 앞 단계가 막히면 뒤는 볼 것도 없으므로 순서대로 본다.
-   * 「고리가 끊겼습니다」만 적어 두면 어디를 손봐야 하는지 알 수 없다.
+   * 멈춘 것과 결과가 아직 안 나온 것은 다르다.
+   * 앞선 판은 「경쟁 검색어 0」을 멈춤으로 쳤다. 그래서 5번 자리에 빨간
+   * 「여기서 막혔습니다」가 계속 붙어 있었다 — 손쓸 데가 없는데 경고만 남는다.
+   * 0/6 은 멈춤이 아니라 아직 안 이긴 상태다. 이건 「할 일」로 적어야 한다.
+   *
+   * 멈춤은 셋뿐이다. 전부 사람이 오늘 손대야 하는 것들이다.
    */
-  const blocked: { at: string; why: string } | null =
+  const stopped: { at: string; why: string } | null =
     since === null || since > 10
       ? { at: "content", why: `발행이 ${since ?? "?"}일째 끊겼습니다` }
       : !crawling
       ? { at: "crawler", why: "36시간 동안 크롤러가 안 왔습니다" }
       : !measuredToday
       ? { at: "measure", why: "오늘 노출을 아직 안 쟀습니다" }
-      : d.serp.rivalWon === 0
-      ? { at: "next", why: `경쟁 검색어에서 아직 0/${d.serp.rivalTotal}입니다` }
       : null;
-  const cycleOk = !blocked;
+
+  /**
+   * 5번 자리가 내놓는 답. 「무엇을 할 차례인가」다.
+   *
+   * 잰 결과를 보고 정한다. 급한 순서대로 —
+   *   이름 방어가 안 되면 그게 먼저다. 내 이름으로 못 찾으면 그 앞은 다 의미 없다
+   *   경쟁 검색어에서 0이면, 재 보니 이기는 건 목록 지면이었다. 글이 아니라 등재다
+   */
+  const decision = d.serp.brandLost.length > 0
+    ? { do: "브랜드 방어", why: `우리 이름인데 안 나옵니다 — ${d.serp.brandLost.join(" · ")}` }
+    : d.serp.rivalWon === 0
+    ? { do: "목록 지면 등재", why: `경쟁 검색어 0/${d.serp.rivalTotal}. 재 보니 이 자리는 목록 사이트가 이깁니다` }
+    : { do: "다음 주제 쓰기", why: `경쟁 검색어 ${d.serp.rivalWon}/${d.serp.rivalTotal}` };
+
+  const cycleOk = !stopped;
 
   const FLOW_NODES: NodeState[] = [
     {
@@ -433,7 +452,10 @@ export default async function OpsPage({
           </div>
           <div className={`ops-kpi ${d.serp.rivalWon > 0 ? "ok" : "warn"}`}>
             <div className="v">{d.serp.rivalWon}<small> / {d.serp.rivalTotal}</small></div>
-            <div className="k">경쟁 검색어 · {fmtDay(d.serp.day)} 측정</div>
+            <div className="k">
+              경쟁 검색어 · {fmtDay(d.serp.day)} 측정
+              <em>학원 이름 빼고 「지역+업종」으로 친 검색</em>
+            </div>
           </div>
           <div className={`ops-kpi ${d.place.length ? "ok" : ""}`}>
             <div className="v">{d.place.length ? `${d.place[0].rank}위` : "—"}</div>
@@ -451,13 +473,17 @@ export default async function OpsPage({
           이 일은 한 바퀴 돌아 제자리로 옵니다. <b>쓰고 → 내보내고 → 크롤러가 읽어 가고 →
           그걸 재고 → 잰 결과로 다음에 뭘 쓸지 정합니다.</b> 그래서 고리입니다.
           {" "}한 자리가 막히면 뒤가 전부 멈추므로, 막힌 자리에 일감이 쌓이게 그렸습니다.
-          {blocked && (
+          {stopped ? (
             <b style={{ color: "var(--warn)" }}>
-              {" "}지금은 「{RING_LABEL[blocked.at] ?? blocked.at}」에서 막혀 있습니다 — {blocked.why}.
+              {" "}지금은 「{RING_LABEL[stopped.at] ?? stopped.at}」에서 멈춰 있습니다 — {stopped.why}.
+            </b>
+          ) : (
+            <b style={{ color: "var(--cool)" }}>
+              {" "}지금 고리는 돌고 있습니다. 5번이 내놓은 답은 「{decision.do}」입니다 — {decision.why}.
             </b>
           )}
         </p>
-        <Flow nodes={FLOW_NODES} slots={SLOTS} cycleOk={cycleOk} blocked={blocked} />
+        <Flow nodes={FLOW_NODES} slots={SLOTS} cycleOk={cycleOk} stopped={stopped} decision={decision} />
 
         <h2>하루 시간표</h2>
         <p className="sub">

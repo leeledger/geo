@@ -141,9 +141,45 @@ async function naver(q) {
   };
 }
 
+/**
+ * 네이버 통합검색 — 학부모가 실제로 보는 화면.
+ *
+ * 이걸 안 재고 웹문서 탭만 쟀다가 「경쟁 검색어 0/6」이라고 적어 놨는데,
+ * 실제로 「송파구 코딩학원」을 치면 플레이스 블록에 2번째로 나오고 있었다.
+ * 사람이 안 보는 탭을 재고 「안 나온다」고 한 것이다.
+ *
+ * 통합검색은 플레이스·블로그·웹문서·카페를 한 화면에 섞어 준다.
+ * 어느 블록이든 첫 화면에 이름이 있으면 「나온 것」이다 —
+ * 학부모는 탭 이름을 신경 쓰지 않는다.
+ *
+ * 순위는 안 센다. 블록마다 기준이 달라서 한 숫자로 뭉치면 거짓말이 된다.
+ * 나왔는지 안 나왔는지만 본다.
+ */
+const BRAND_RE = /로봇앤코딩|로봇&amp;코딩|robotncoding/i;
+
+async function naverAll(q) {
+  const { html, err } = await grab(
+    "https://search.naver.com/search.naver?where=nexearch&sm=tab_hty.top&query=" + encodeURIComponent(q),
+  );
+  if (err) return { ok: false, hit: false, rank: null, note: err };
+  const hit = BRAND_RE.test(html);
+  // 어느 블록에서 잡혔는지 적어 두면 나중에 무엇이 일했는지 안다
+  let where = "";
+  if (hit) {
+    const i = html.search(BRAND_RE);
+    const before = html.slice(Math.max(0, i - 4000), i);
+    where = /place|플레이스|api\/siteinfo/i.test(before) ? "플레이스"
+      : /blog/i.test(before) ? "블로그"
+      : /cafe/i.test(before) ? "카페"
+      : "웹문서";
+  }
+  return { ok: true, hit, rank: null, note: where };
+}
+
 const ENGINES = [
   { id: "bing", name: "Bing", run: bing },
-  { id: "naver", name: "네이버", run: naver },
+  { id: "naver", name: "네이버 웹문서", run: naver },
+  { id: "naver_all", name: "네이버 통합검색", run: naverAll },
 ];
 
 const rows = [];
@@ -153,7 +189,7 @@ for (const e of ENGINES) {
     if (i) await sleep(2600); // 연달아 때리면 막힌다
     const r = await e.run(q);
     rows.push({ engine: e.id, id, q, kind, ...r });
-    const mark = !r.ok ? "?" : r.hit ? `노출 ${r.rank}위` : "미노출";
+    const mark = !r.ok ? "?" : r.hit ? (r.rank ? `노출 ${r.rank}위` : "노출") : "미노출";
     console.log(`    ${kind.padEnd(5)} ${q.slice(0, 24).padEnd(26)} ${mark}${r.note ? "  (" + r.note + ")" : ""}`);
   }
 }
