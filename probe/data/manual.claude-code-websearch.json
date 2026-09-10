@@ -1,0 +1,80 @@
+{
+  "engine": "claude-code-websearch",
+  "set": "academy-songpa",
+  "day": "2026-09-10",
+  "note": "Claude Code 의 WebSearch 로 잰 것. 소비자가 보는 ChatGPT·claude.ai 화면과 다르다. 검색을 켜고 답하는 구조는 같지만 엔진 하나, 회차 1회다. 기준선으로만 쓴다.",
+  "measure": "답변이 인용한 출처에 robotncoding.com 이 들어갔는가",
+  "runs": [
+    {
+      "i": 0, "stage": "local",
+      "prompt": "서울 송파구에서 초등학생 코딩학원 좀 추천해줘",
+      "cited_us": false,
+      "mentioned_us": false,
+      "sources": ["academy.prompie.com", "mohazi.net", "soonwidot.co.kr", "conol.co.kr", "jamcoding.co.kr"],
+      "rivals_named": ["창의로열림보습학원", "로보로보코딩랩 위례", "디랩코딩학원", "넥스탑코딩정보보안학원", "크레버스씨큐브코딩", "원더코드코딩학원"]
+    },
+    {
+      "i": 1, "stage": "local",
+      "prompt": "석촌동 근처에 로봇이랑 코딩 같이 배울 수 있는 학원 있어?",
+      "cited_us": false,
+      "mentioned_us": true,
+      "note": "답변에 「석촌동 로봇앤코딩학원 · 헬리오시티 가락초 후문」이 나왔다. 그런데 링크 어디에도 robotncoding.com 이 없다. 우리 사이트가 아닌 데서 온 정보다.",
+      "sources": ["fastcampus.co.kr", "robotis.com", "glcedu.co.kr", "dlabcampus.com", "canbot.co.kr"]
+    },
+    {
+      "i": 17, "stage": "consider",
+      "prompt": "AI 리터러시 교육하는 코딩학원 있어?",
+      "cited_us": false, "mentioned_us": false,
+      "sources": ["sw.inje.ac.kr", "spri.kr", "kihoilbo.co.kr", "dadoc.or.kr", "nabi.school"]
+    },
+    {
+      "i": 29, "stage": "brand",
+      "prompt": "로봇앤코딩학원 어디 있어?",
+      "cited_us": false, "mentioned_us": false,
+      "note": "브랜드명 직격인데 글로벌리더센터의 「똑똑한 로봇&코딩학원」을 대신 안내하고 glcedu.co.kr 로 보냈다. 이름 충돌 경쟁사가 자리를 차지했다.",
+      "sources": ["glcedu.co.kr", "robotis.com", "robotamischool.com", "fastcampus.co.kr"],
+      "name_collision": "글로벌리더센터 똑똑한 로봇&코딩학원 (glcedu.co.kr)"
+    },
+    {
+      "i": 30, "stage": "brand",
+      "prompt": "송파 로봇&코딩학원 어떤 곳이야?",
+      "cited_us": false, "mentioned_us": false,
+      "note": "「구체적인 정보를 찾기가 어렵습니다」",
+      "sources": ["songpa.go.kr", "robotis.com", "roboco.de", "canbot.co.kr"]
+    },
+    {
+      "i": 31, "stage": "brand",
+      "prompt": "robotncoding.com 이 사이트 무슨 학원이야?",
+      "cited_us": false, "mentioned_us": false,
+      "note": "도메인을 그대로 줬는데도 못 찾았다. 위키피디아 로봇 일반 문서만 나왔다. 가장 나쁜 결과다.",
+      "sources": ["en.wikipedia.org", "amazon.com"]
+    },
+    {
+      "i": 2, "stage": "local",
+      "prompt": "헬리오시티 사는데 애 코딩학원 어디 보내면 좋을까",
+      "cited_us": false,
+      "mentioned_us": true,
+      "note": "「석촌동에서 로봇앤코딩학원을 운영하는 원장, 프로그램 개발자 출신 2019년 창업」— 정확한 사실인데 출처는 오늘학교·순위닷이다. 정보는 도는데 우리가 출처로 안 잡힌다.",
+      "sources": ["academy.prompie.com", "soonwidot.co.kr", "edufindkorea.com", "koreaisacademy.com"]
+    },
+    {
+      "i": 13, "stage": "consider",
+      "prompt": "AI가 코드를 다 짜주는데 아이한테 코딩 가르칠 필요가 있어?",
+      "cited_us": false, "mentioned_us": false,
+      "note": "우리가 글을 쓴 주제인데 전부 영문 매체가 인용됐다.",
+      "sources": ["psychologytoday.com", "medium.com", "fielding.edu", "codemonkey.com", "thecoderschool.com"]
+    }
+  ],
+  "summary": {
+    "n": 8,
+    "cited_us": 0,
+    "mentioned_without_citation": 2,
+    "citation_rate": 0.0,
+    "third_party_surfaces_that_did_get_cited": [
+      "academy.prompie.com (오늘학교 아카데미)",
+      "soonwidot.co.kr (순위닷)",
+      "mohazi.net (모하지)",
+      "edufindkorea.com (학교/학원찾기)"
+    ]
+  }
+}
