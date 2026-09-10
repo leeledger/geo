@@ -1,6 +1,8 @@
 import { readOps } from "@/lib/ops";
 import Live from "./Live";
 import Flow, { type NodeState } from "./Flow";
+import Link from "next/link";
+import { inquirySummary } from "@/lib/inquiries";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -244,7 +246,8 @@ export default async function OpsPage({
     );
   }
 
-  const d = await readOps();
+  const [d, inq] = await Promise.all([readOps(), inquirySummary()]);
+  const im = inq[0];
   const covLead = d.crawl.vendors[0];
 
   /* 노드 상태는 실제 숫자에서 나온다. 색만 예쁘게 칠하면 대시보드가 아니라 그림이다. */
@@ -326,6 +329,11 @@ export default async function OpsPage({
             <div className="v">{d.place.length ? `${d.place[0].rank}위` : "—"}</div>
             <div className="k">플레이스 최고 · {d.place[0]?.query ?? "미측정"}</div>
           </div>
+          {/* 노출이 문의로 이어지는지 — 이 숫자만 사람이 넣어 준다 */}
+          <div className={`ops-kpi ${im && im.total > 0 ? "ok" : "warn"}`}>
+            <div className="v">{im?.fromSearch ?? 0}<small> / {im?.total ?? 0}</small></div>
+            <div className="k">이번 달 검색 유입 · 문의</div>
+          </div>
         </div>
 
         <h2>업무가 흐르는 길</h2>
@@ -384,7 +392,20 @@ export default async function OpsPage({
         </div>
 
         <h2>사람만 할 수 있는 일</h2>
-        <p className="sub">이건 자동화하지 않습니다. 자동화하면 안 되는 것도 있습니다.</p>
+        <p className="sub">
+          이건 자동화하지 않습니다. 자동화하면 안 되는 것도 있습니다.
+          {(!im || im.total === 0) && (
+            <b style={{ color: "var(--warn)" }}>
+              {" "}상담 기록이 아직 0건입니다 — 노출이 문의로 이어지는지 못 재고 있습니다.
+            </b>
+          )}
+        </p>
+        <p className="sub">
+          <Link href={`/admin/inquiry?key=${key ?? ""}`}
+                style={{ color: "var(--cool)", fontWeight: 700 }}>
+            문의 기록하기 →
+          </Link>
+        </p>
         <div className="ops-human">
           {HUMAN.map((h) => (
             <div className="row" key={h.t}><b>{h.t}</b><span>{h.d}</span></div>
