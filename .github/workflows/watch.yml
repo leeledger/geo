@@ -1,0 +1,51 @@
+# 3시간마다 도는 파수꾼 — 세션이 죽어 있어도 돈다
+#
+# 예약 실행(cron)은 클로드 세션이 켜져 있어야 돈다. 세션이 없으면 아무도 안 본다.
+# 이 파일이 "사람도 세션도 없을 때 무엇이 도는가" 에 답한다.
+#
+# 하는 일은 둘뿐이다. 겹치는 건 넣지 않았다 —
+# 노출 측정과 리포트 갱신은 serp.yml 이 하루 한 번 하고 있고 잘 돌고 있다.
+#   브리핑     지금 무엇이 밀렸는지 기록에 남긴다
+#   상태 점검   주소·robots·크롤러·발행 간격. 문제가 있으면 일부러 실패시킨다
+#
+# 실패하면 저장소 주인에게 메일이 간다. 그래서 잡는 것은 진짜 문제만이다.
+#
+# 로그인이 필요한 일은 여기서 못 한다 —
+# 구글 색인 요청, 네이버 이관, 플레이스 확인은 사람이 로그인한 창이 있어야 한다.
+#
+# 필요한 시크릿: DATABASE_URL
+
+name: watch
+
+on:
+  schedule:
+    - cron: "11 */3 * * *"   # 3시간마다. :00 을 피한다
+  workflow_dispatch: {}
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: pg 설치
+        run: npm install pg --no-save --silent
+        working-directory: academy
+
+      - name: 환경 준비
+        working-directory: academy
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: printf 'DATABASE_URL=%s\n' "$DATABASE_URL" > .env.local
+
+      - name: 브리핑
+        working-directory: academy
+        run: node scripts/briefing.mjs
+
+      # 맨 뒤에 둔다. 여기서 실패해야 앞의 브리핑 기록이 로그에 남는다.
+      - name: 상태 점검
+        working-directory: academy
+        run: node scripts/health.mjs
