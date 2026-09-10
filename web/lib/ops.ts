@@ -30,7 +30,21 @@ export type Ops = {
   err?: string;
   posts: { published: number; draft: number; lastAt: string | null; sinceDays: number | null };
   crawl: { last24h: number; vendors: { vendor: string; hits: number; pages: number; pct: number }[]; totalPages: number };
-  serp: { day: string | null; hits: { engine: string; query: string; rank: number }[]; total: number };
+  serp: {
+    day: string | null;
+    hits: { engine: string; query: string; rank: number }[];
+    total: number;
+    /**
+     * 경쟁 검색어 — 학원 이름 없이 「지역 + 업종」으로 친 검색.
+     * 브랜드 검색에서 1위인 건 이겨서 얻은 자리가 아니라 원래 우리 자리다.
+     * 그걸 성과로 세면 좋아 보이는 숫자를 만드는 것이고, 그건 우리가 파는 것의 반대다.
+     * 질의 단위로 센다 — 엔진별 행을 세면 하루에 두 번 돌린 날 분모가 두 배가 된다.
+     */
+    rivalWon: number;
+    rivalTotal: number;
+    /** 브랜드 검색 방어 — 우리 이름인데 안 나오는 게 있으면 문제다 */
+    brandLost: string[];
+  };
   place: { query: string; rank: number }[];
   recent: { title: string; slug: string; at: string }[];
   firstSeen: { engine: string; query: string; day: string }[];
@@ -43,12 +57,42 @@ export type Ops = {
 
 const days = (d: string | Date) => Math.floor((Date.now() - new Date(d).getTime()) / 86400000);
 
+
+/** 학원 이름 조각. 하나라도 들어가면 브랜드 검색이다. */
+const BRAND = ["로봇앤코딩", "로봇&코딩", "로봇코딩", "robotncoding"];
+const isBrandQuery = (q: string) => {
+  const t = q.replace(/\s+/g, "").toLowerCase();
+  return /^site:/i.test(q) || BRAND.some((b) => t.includes(b.replace(/\s+/g, "").toLowerCase()));
+};
+
+/**
+ * 경쟁 검색어를 질의 단위로 센다.
+ *
+ * 엔진별 행을 그냥 세면 안 된다 — 하루에 두 번 돌리면 같은 질의가 네 번 들어가고
+ * 분모가 26 같은 이상한 수가 된다. 실제로 랜딩에 「0/26」이 찍혔다.
+ * 한 질의는 어느 엔진에서든 한 번 걸리면 이긴 것으로 본다.
+ */
+function rivalTally(rows: { engine: string; query: string; hit: boolean }[]) {
+  const rival = new Map<string, boolean>();
+  const brand = new Map<string, boolean>();
+  for (const r of rows) {
+    const m = isBrandQuery(r.query) ? brand : rival;
+    if (/^site:/i.test(r.query)) continue;         // 색인 확인은 순위가 아니다
+    m.set(r.query, (m.get(r.query) ?? false) || r.hit);
+  }
+  return {
+    rivalWon: [...rival.values()].filter(Boolean).length,
+    rivalTotal: rival.size,
+    brandLost: [...brand.entries()].filter(([, hit]) => !hit).map(([q]) => q),
+  };
+}
+
 export async function readOps(): Promise<Ops> {
   const empty: Ops = {
     ok: false,
     posts: { published: 0, draft: 0, lastAt: null, sinceDays: null },
     crawl: { last24h: 0, vendors: [], totalPages: 0 },
-    serp: { day: null, hits: [], total: 0 },
+    serp: { day: null, hits: [], total: 0, rivalWon: 0, rivalTotal: 0, brandLost: [] },
     place: [],
     recent: [],
     firstSeen: [],
@@ -136,6 +180,7 @@ export async function readOps(): Promise<Ops> {
         day: serpDay[0]?.d ?? null,
         total: serp.length,
         hits: serp.filter((r) => r.hit).map((r) => ({ engine: r.engine, query: r.query, rank: r.rank })),
+        ...rivalTally(serp),
       },
       place: place.map((r) => ({ query: r.query, rank: r.rank })),
       recent: recent.map((r) => ({ title: r.title, slug: r.slug, at: r.at })),

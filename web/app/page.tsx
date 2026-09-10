@@ -84,18 +84,10 @@ export default async function Home() {
   const caseDay = Math.max(1, Math.floor((Date.now() - START) / 86400000) + 1);
   const serpDay = ops.serp.day ? ops.serp.day.slice(5).replace("-", ".") : "09.08";
 
-  // 「이겨서 얻은 자리」만 센다.
-  // 학원 이름이 들어간 검색에서 1위인 건 성과가 아니다 — 이름이 로봇&코딩이고
-  // 석촌동에 있으니 「석촌동 로봇 코딩학원」에 나오는 건 당연하다.
-  // 그걸 성과로 세면 좋아 보이는 숫자를 만드는 것이고, 그건 우리가 하지 말라는 짓이다.
-  const BRAND = ["로봇앤코딩", "로봇&코딩", "로봇코딩", "robotncoding"];
-  const isBrand = (q: string) => {
-    const t = q.replace(/\s+/g, "");
-    return /^site:/i.test(q) || BRAND.some((b) => t.includes(b.replace(/\s+/g, "")));
-  };
-  const webRival = ops.serp.hits.filter((h) => !isBrand(h.query));
-  const webWins = webRival.length;
-  const webTotal = ops.serp.total || 4;
+  // 경쟁 검색어 집계는 lib/ops.ts 한 곳에 둔다.
+  // 여기서 또 세면 대시보드와 숫자가 갈라진다.
+  const webWins = ops.serp.rivalWon;
+  const webTotal = ops.serp.rivalTotal || 6;
   const songpaRank = ops.place.find((p) => /송파구/.test(p.query))?.rank ?? 2;
 
   return (

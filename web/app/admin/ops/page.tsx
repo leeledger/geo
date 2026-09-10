@@ -76,7 +76,7 @@ const AGENTS: Agent[] = [
     jobs: ["검색 노출 (Bing·네이버)", "크롤러 커버리지", "플레이스 순위", "사이트 진단 점수"],
     tools: ["check-index.mjs", "naver-place-check.mjs", "probe/src/scan.js"],
     perf: (d) => [
-      ["노출 잡은 검색어", `${d.serp.hits.length}건`],
+      ["경쟁 검색어에서 잡힘", `${d.serp.rivalWon}/${d.serp.rivalTotal}`],
       ["플레이스 최고", d.place[0] ? `${d.place[0].rank}위` : "—"],
       ["측정한 날", d.daysMeasured ? `${d.daysMeasured}일` : "—"],
     ],
@@ -283,7 +283,7 @@ export default async function OpsPage({
   const measuredToday = d.serp.day
     ? new Date(d.serp.day).toDateString() === new Date().toDateString()
     : false;
-  const cycleOk = crawling && d.serp.hits.length > 0;
+  const cycleOk = crawling && d.serp.rivalWon > 0;
 
   const FLOW_NODES: NodeState[] = [
     {
@@ -316,7 +316,7 @@ export default async function OpsPage({
     },
     {
       id: "db", label: "기록", state: "run",
-      sub: `노출 ${d.serp.hits.length}건`,
+      sub: `경쟁 ${d.serp.rivalWon}/${d.serp.rivalTotal}`,
     },
   ];
 
@@ -348,9 +348,9 @@ export default async function OpsPage({
             <div className="v">{covLow ? covLow.pct.toFixed(0) : "—"}<small>%</small></div>
             <div className="k">제일 낮은 커버리지 · {covLow?.vendor ?? "—"}</div>
           </div>
-          <div className={`ops-kpi ${d.serp.hits.length > 0 ? "ok" : "warn"}`}>
-            <div className="v">{d.serp.hits.length}<small> / {d.serp.total}</small></div>
-            <div className="k">검색 노출 · {fmtDay(d.serp.day)} 측정</div>
+          <div className={`ops-kpi ${d.serp.rivalWon > 0 ? "ok" : "warn"}`}>
+            <div className="v">{d.serp.rivalWon}<small> / {d.serp.rivalTotal}</small></div>
+            <div className="k">경쟁 검색어 · {fmtDay(d.serp.day)} 측정</div>
           </div>
           <div className={`ops-kpi ${d.place.length ? "ok" : ""}`}>
             <div className="v">{d.place.length ? `${d.place[0].rank}위` : "—"}</div>
@@ -437,6 +437,11 @@ export default async function OpsPage({
         <h2>사람만 할 수 있는 일</h2>
         <p className="sub">
           이건 자동화하지 않습니다. 자동화하면 안 되는 것도 있습니다.
+          {d.serp.brandLost.length > 0 && (
+            <b style={{ color: "var(--warn)" }}>
+              {" "}우리 이름인데 안 나오는 검색이 있습니다 — {d.serp.brandLost.join(" · ")}.
+            </b>
+          )}
           {covLow && covLow.vendor === "openai" && covLow.pct < 60 && (
             <b style={{ color: "var(--warn)" }}>
               {" "}OpenAI 가 {covLow.pct.toFixed(0)}% 만 읽었습니다 — 빙 색인이 없어서입니다.
