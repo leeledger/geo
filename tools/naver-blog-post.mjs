@@ -182,25 +182,58 @@ if (await restore.isVisible().catch(() => false)) {
  * 두 번 누르면 문서 전체를 잡는다.
  */
 if (LOG_NO) {
-  await F.locator(".se-component.se-text").last().click();
-  await page.waitForTimeout(800);
-  await page.keyboard.press("Control+A");
-  await page.waitForTimeout(400);
-  await page.keyboard.press("Control+A");
-  await page.waitForTimeout(400);
-  await page.keyboard.press("Delete");
-  await page.waitForTimeout(2000);
+  /**
+   * 남은 글자를 셀 때 제목과 안내문을 빼야 한다.
+   *
+   * 처음엔 .se-main-container 의 innerText 를 통째로 셌는데, 거기엔
+   * 제목 컴포넌트와 빈 문단의 안내문("글감과 함께 나의 일상을 기록해보세요!")이
+   * 같이 들어간다. 본문이 멀쩡히 비워졌는데도 103자가 남았다고 나와서
+   * 두 번 헛돌았다. 비운 걸 안 비웠다고 읽으면 고칠 수가 없다.
+   */
+  const rest = async () =>
+    F.evaluate(() => {
+      const c = document.querySelector(".se-main-container") || document.querySelector(".se-container");
+      if (!c) return 0;
+      let n = 0;
+      for (const el of c.querySelectorAll(".se-component")) {
+        if (el.classList.contains("se-documentTitle")) continue;
+        const t = (el.innerText || "").replace(/\s/g, "").length;
+        const ph = el.querySelector(".se-placeholder");
+        const p = ph ? (ph.innerText || "").replace(/\s/g, "").length : 0;
+        n += Math.max(0, t - p);
+      }
+      return n;
+    });
 
-  const left = (await F.locator(".se-main-container, .se-container").first()
-    .innerText().catch(() => "")).replace(/\s/g, "");
-  if (left.length > 80) {
-    console.log(`✗ 본문이 안 비워졌습니다 (${left.length}자 남음). 붙여 쓰면 중복됩니다.`);
+  let left = await rest();
+  for (let i = 0; i < 4 && left > 20; i++) {
+    await F.locator(".se-component.se-text").last().click().catch(() => {});
+    await page.waitForTimeout(600);
+    await page.keyboard.press("Control+A");
+    await page.waitForTimeout(350);
+    await page.keyboard.press("Control+A");
+    await page.waitForTimeout(350);
+    await page.keyboard.press("Delete");
+    await page.waitForTimeout(1600);
+    left = await rest();
+  }
+
+  if (left > 20) {
+    console.log(`✗ 본문이 안 비워졌습니다 (${left}자 남음). 붙여 쓰면 중복됩니다.`);
     await page.waitForTimeout(30000);
     await ctx.close();
     process.exit(1);
   }
-  console.log("기존 내용을 비웠습니다");
+  console.log(`기존 내용을 비웠습니다 (본문 남은 글자 ${left})`);
 }
+
+// 제목도 비우고 쓴다. 안 비우면 옛 제목 뒤에 새 제목이 붙는다.
+await F.locator(".se-documentTitle").first().click();
+await page.waitForTimeout(600);
+await page.keyboard.press("Control+A");
+await page.waitForTimeout(300);
+await page.keyboard.press("Delete");
+await page.waitForTimeout(700);
 
 await F.locator(".se-documentTitle").first().click();
 await page.waitForTimeout(700);
