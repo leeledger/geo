@@ -259,6 +259,9 @@ const CSS = `
 .fl-live{fill:var(--ok);font-size:11.5px;font-weight:700;font-family:"IBM Plex Mono",monospace}
 .fl-block{fill:var(--warn);font-size:11.5px;font-weight:700;font-family:"IBM Plex Mono",monospace}
 .fl-do{fill:var(--cool);font-size:12px;font-weight:700;font-family:"IBM Plex Mono",monospace}
+/* 맥박 — 마지막 · 다음. 눈에 세게 띄면 안 된다. 찾으면 보이는 정도 */
+.fl-beat{fill:var(--faint);font-size:11px;font-family:"IBM Plex Mono",monospace}
+.fl-next{fill:var(--mut)}
 
 /* 24시간 띠 — 빈 시간이 있는지 눈으로 보이게 한다 */
 .ops-band{padding:2px 4px 30px}
@@ -384,6 +387,56 @@ export default async function OpsPage({
     : { do: "다음 주제 쓰기", why: `경쟁 검색어 ${d.serp.rivalWon}/${d.serp.rivalTotal}` };
 
   const cycleOk = !stopped;
+
+  /**
+   * 자리마다 「마지막으로 언제 · 다음은 언제 · 안 돌면 왜」.
+   *
+   * 누적값만 보여주면 지금 살아 있는지 알 수 없다.
+   * 「이게 실제로 돌아가고 있는 건지 판단이 안 된다」는 말이 나왔고 그게 맞다.
+   *
+   * 다음 시각은 시간표(SLOTS)에서 팀으로 찾는다.
+   * 사람이 켜 줘야 하는 자리는 「예정」이 아니라 「사람 필요」라고 적어야 한다 —
+   * 시간만 적어 두면 저절로 도는 것처럼 보인다.
+   */
+  const ago = (iso: string | null) => {
+    if (!iso) return null;
+    const m = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
+    if (m < 1) return "방금";
+    if (m < 60) return `${m}분 전`;
+    if (m < 1440) return `${Math.floor(m / 60)}시간 전`;
+    return `${Math.floor(m / 1440)}일 전`;
+  };
+
+  const nowMin = new Date().getHours() * 60 + new Date().getMinutes();
+  const toMin = (t: string) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5));
+  const dowNow = new Date().getDay();
+  const todaySlots = SLOTS.filter((x) => x.dow === undefined || x.dow === dowNow);
+
+  /** 이 팀이 다음에 도는 시각. 오늘 안 남았으면 내일 첫 차례. */
+  const nextFor = (team: string) => {
+    const mine = todaySlots.filter((x) => x.team === team);
+    if (!mine.length) return null;
+    const ahead = mine.filter((x) => toMin(x.at) > nowMin).sort((a, b) => toMin(a.at) - toMin(b.at));
+    const pick = ahead[0] ?? mine.sort((a, b) => toMin(a.at) - toMin(b.at))[0];
+    return { at: pick.at, name: pick.name, auto: pick.need === "무관", tomorrow: !ahead.length };
+  };
+
+  const RING_TEAM: Record<string, string> = {
+    content: "콘텐츠", deliver: "유통", crawler: "", measure: "측정", next: "운영",
+  };
+
+  const beat = (id: keyof typeof d.lastAt) => {
+    const team = RING_TEAM[id];
+    const nx = team ? nextFor(team) : null;
+    return {
+      last: ago(d.lastAt[id]),
+      next: id === "crawler"
+        ? "쉬지 않음"
+        : nx
+        ? `${nx.tomorrow ? "내일 " : ""}${nx.at} ${nx.auto ? "자동" : "사람 필요"}`
+        : "예정 없음",
+    };
+  };
 
   const FLOW_NODES: NodeState[] = [
     {
@@ -518,7 +571,12 @@ export default async function OpsPage({
             </b>
           )}
         </p>
-        <Flow nodes={FLOW_NODES} slots={SLOTS} cycleOk={cycleOk} stopped={stopped} decision={decision} />
+        <Flow nodes={FLOW_NODES} slots={SLOTS} cycleOk={cycleOk}
+              stopped={stopped} decision={decision}
+              beats={{
+                content: beat("content"), deliver: beat("deliver"),
+                crawler: beat("crawler"), measure: beat("measure"), next: beat("next"),
+              }} />
 
         <h2>하루 시간표</h2>
         <p className="sub">

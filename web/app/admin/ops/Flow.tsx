@@ -38,6 +38,11 @@ type Props = {
   stopped?: { at: string; why: string } | null;
   /** 5번 자리가 내놓은 답 — 무엇을 할 차례인가. 멈춤이 아니다. */
   decision?: { do: string; why: string } | null;
+  /**
+   * 자리마다 맥박 — 마지막으로 언제 뛰었고 다음은 언제인가.
+   * 누적값만 있으면 살아 있는지 알 수 없다.
+   */
+  beats?: Record<string, { last: string | null; next: string }>;
 };
 
 const COLOR = { run: "#3DD6A0", idle: "#4B5666", wait: "#E0A93C", stop: "#D2705F" };
@@ -45,9 +50,9 @@ const TEAM_HUE: Record<string, string> = {
   운영: "#8B7BE8", 측정: "#3DD6C4", 유통: "#F5A623", 콘텐츠: "#E86FA0",
 };
 
-const W = 1040, H = 680;
-const CX = 520, CY = 318;
-const R = 214;
+const W = 1080, H = 780;
+const CX = 540, CY = 348;
+const R = 246;
 
 /**
  * 고리 위의 다섯 자리 — 일하는 순서 그대로 시계방향.
@@ -66,7 +71,7 @@ const RING = [
 const angleOf = (i: number) => (-90 + (360 / RING.length) * i) * (Math.PI / 180);
 const posOf = (i: number) => ({
   x: CX + Math.cos(angleOf(i)) * R,
-  y: CY + Math.sin(angleOf(i)) * R * 0.86,   // 살짝 눌러 화면에 맞춘다
+  y: CY + Math.sin(angleOf(i)) * R * 0.82,   // 살짝 눌러 화면에 맞춘다
 });
 
 /** 고리 위 두 자리를 잇는 호. 바깥으로 볼록하게 — 안쪽은 조율자가 쓴다. */
@@ -95,7 +100,7 @@ function Glyph({ id, c }: { id: string; c: string }) {
   return <g {...s}><circle cx="0" cy="0" r="7" /><path d="M0,-7 V7 M-7,0 H7" /></g>;
 }
 
-export default function Flow({ nodes, slots, cycleOk, stopped, decision }: Props) {
+export default function Flow({ nodes, slots, cycleOk, stopped, decision, beats }: Props) {
   const [now, setNow] = useState<Date | null>(null);
   const [still, setStill] = useState(false);
 
@@ -314,6 +319,14 @@ export default function Flow({ nodes, slots, cycleOk, stopped, decision }: Props
 
               <text x={p.x} y={p.y + size + 22} textAnchor="middle" className="fl-verb">{r.verb}</text>
               <text x={p.x} y={p.y + size + 40} textAnchor="middle" className="fl-sub">{n?.sub}</text>
+              {/* 맥박 — 마지막으로 언제 뛰었나. 이게 있어야 살아 있는지 안다 */}
+              {beats?.[r.id] && (
+                <text x={p.x} y={p.y + size + 74} textAnchor="middle" className="fl-beat">
+                  {beats[r.id].last ? `마지막 ${beats[r.id].last}` : "기록 없음"}
+                  {"  ·  "}
+                  <tspan className="fl-next">{beats[r.id].next}</tspan>
+                </text>
+              )}
               {/*
                 한 줄만 쓴다. 앞선 판은 「작업 중」과 「→ 할 일」을 같은 높이에 그려서
                 5번 자리에서 글씨가 겹쳤다. 할 일이 있으면 그게 더 중요한 정보고,
@@ -334,12 +347,12 @@ export default function Flow({ nodes, slots, cycleOk, stopped, decision }: Props
 
         {/* ── 사람. 고리 밖에 둔다 — 자동으로 안 돌아가는 일이라 ── */}
         <g>
-          <line x1={CX} y1={CY} x2={128} y2={112} stroke={COLOR.wait} strokeWidth="1" opacity=".3" strokeDasharray="3 6" />
-          <circle cx={128} cy={112} r="27" fill="#0C1420" stroke={COLOR.wait} strokeWidth="1.2" opacity=".8" />
-          <g transform="translate(128,108)"><Glyph id="human" c={COLOR.wait} /></g>
-          <text x={128} y={149} textAnchor="middle" className="fl-verb">사람</text>
-          <text x={128} y={166} textAnchor="middle" className="fl-sub">{by.human?.sub ?? "로그인·촬영·상담"}</text>
-          <text x={128} y={183} textAnchor="middle" className="fl-sub dim">고리 밖 · 자동 안 됨</text>
+          <line x1={CX} y1={CY} x2={112} y2={104} stroke={COLOR.wait} strokeWidth="1" opacity=".3" strokeDasharray="3 6" />
+          <circle cx={112} cy={104} r="27" fill="#0C1420" stroke={COLOR.wait} strokeWidth="1.2" opacity=".8" />
+          <g transform="translate(112,100)"><Glyph id="human" c={COLOR.wait} /></g>
+          <text x={112} y={141} textAnchor="middle" className="fl-verb">사람</text>
+          <text x={112} y={158} textAnchor="middle" className="fl-sub">{by.human?.sub ?? "로그인·촬영·상담"}</text>
+          <text x={112} y={175} textAnchor="middle" className="fl-sub dim">고리 밖 · 자동 안 됨</text>
         </g>
       </svg>
 

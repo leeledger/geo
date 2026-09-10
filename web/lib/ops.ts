@@ -48,6 +48,20 @@ export type Ops = {
   place: { query: string; rank: number }[];
   recent: { title: string; slug: string; at: string }[];
   firstSeen: { engine: string; query: string; day: string }[];
+  /**
+   * 자리마다 마지막으로 실제로 뭔가 일어난 시각.
+   *
+   * 누적값만 보여주면 지금 돌고 있는지 알 수 없다.
+   * 「이게 실제로 돌아가고 있는 건지 판단이 안 된다」 — 그래서 붙였다.
+   */
+  lastAt: {
+    content: string | null;   // 마지막 발행
+    deliver: string | null;   // 마지막 네이버 이관
+    crawler: string | null;   // 마지막 크롤러 방문
+    measure: string | null;   // 마지막 노출 측정
+    next: string | null;      // 마지막으로 손을 댄 날
+  };
+
   /* 자리별 성과에 쓰는 값들 */
   daysMeasured: number;      // 며칠째 재고 있는가
   withImages: number;        // 도해가 붙은 글
@@ -168,6 +182,7 @@ export async function readOps(client?: Client): Promise<Ops> {
     place: [],
     recent: [],
     firstSeen: [],
+    lastAt: { content: null, deliver: null, crawler: null, measure: null, next: null },
     daysMeasured: 0,
     withImages: 0,
     totalHits: 0,
@@ -225,6 +240,15 @@ export async function readOps(client?: Client): Promise<Ops> {
       select engine, query, min(day)::text as first_day from ${S}.serp_checks
        where ${ME} and hit group by engine, query order by min(day) limit 6`);
 
+    // 자리마다 마지막 활동 시각. 하나라도 없으면 null 로 두고 화면에서 「기록 없음」이라 적는다.
+    const [seen] = await q(`
+      select
+        (select max(published_at) from ${S}.posts where ${ME}) as content,
+        (select max(naver_at) from ${S}.posts where ${ME}) as deliver,
+        (select max(seen_at) from ${S}.crawl_hits where ${ME}) as crawler,
+        (select max(checked_at) from ${S}.serp_checks where ${ME}) as measure,
+        (select max(created) from ${S}.interventions) as next`);
+
     const [more] = await q(`
       select
         (select count(distinct day)::int from ${S}.serp_checks where ${ME}) as days_measured,
@@ -260,6 +284,13 @@ export async function readOps(client?: Client): Promise<Ops> {
         total: serp.length,
         hits: serp.filter((r) => r.hit).map((r) => ({ engine: r.engine, query: r.query, rank: r.rank })),
         ...rivalTally(serp),
+      },
+      lastAt: {
+        content: seen?.content ? new Date(seen.content).toISOString() : null,
+        deliver: seen?.deliver ? new Date(seen.deliver).toISOString() : null,
+        crawler: seen?.crawler ? new Date(seen.crawler).toISOString() : null,
+        measure: seen?.measure ? new Date(seen.measure).toISOString() : null,
+        next: seen?.next ? new Date(seen.next).toISOString() : null,
       },
       place: place.map((r) => ({ query: r.query, rank: r.rank })),
       recent: recent.map((r) => ({ title: r.title, slug: r.slug, at: r.at })),
