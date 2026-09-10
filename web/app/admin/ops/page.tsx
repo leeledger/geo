@@ -25,30 +25,63 @@ const SLOTS = [
   { at: "21:37", name: "하루 마감", team: "운영", need: "세션" },
 ];
 
-const TEAMS = [
+/**
+ * 자리마다 무슨 일을 하고, 그래서 무엇이 나왔는가.
+ *
+ * 앞선 판은 "하는 일" 목록만 있었다. 목록은 계획이지 성과가 아니다.
+ * 자리마다 실제로 나온 숫자를 옆에 붙여야 일하고 있는지 알 수 있다.
+ * perf 는 DB 에서 읽은 값으로 채운다 — 못 읽으면 "—" 로 둔다.
+ */
+type Agent = {
+  key: string; glyph: string; role: string; cadence: string;
+  jobs: string[]; tools: string[];
+  perf: (d: Awaited<ReturnType<typeof readOps>>) => [string, string][];
+};
+
+const AGENTS: Agent[] = [
   {
-    key: "측정",
-    what: "지금 어디까지 왔는지 잰다",
-    jobs: ["검색 노출 (Bing·네이버)", "크롤러 방문·커버리지", "플레이스 순위", "사이트 진단 점수"],
+    key: "운영", glyph: "\u25CE", cadence: "하루 4회 · 쉬지 않음",
+    role: "고리가 끊기지 않게 지킨다. 사이트가 죽었는지, 크롤러가 끊겼는지 6시간마다 본다.",
+    jobs: ["상태 점검", "브리핑", "케이스 리포트 갱신", "커밋·푸시"],
+    tools: ["health.mjs", "briefing.mjs", "case-report.mjs"],
+    perf: (d) => [
+      ["다녀간 크롤러", d.vendorCount ? `${d.vendorCount}종` : "—"],
+      ["쌓인 방문 기록", d.totalHits ? `${d.totalHits.toLocaleString("ko-KR")}회` : "—"],
+      ["점검 주기", "6시간"],
+    ],
+  },
+  {
+    key: "측정", glyph: "\u25A4", cadence: "하루 3회",
+    role: "지금 어디까지 왔는지 잰다. 재지 않으면 좋아졌다고 말할 수 없다.",
+    jobs: ["검색 노출 (Bing·네이버)", "크롤러 커버리지", "플레이스 순위", "사이트 진단 점수"],
     tools: ["check-index.mjs", "naver-place-check.mjs", "probe/src/scan.js"],
+    perf: (d) => [
+      ["노출 잡은 검색어", `${d.serp.hits.length}건`],
+      ["플레이스 최고", d.place[0] ? `${d.place[0].rank}위` : "—"],
+      ["측정한 날", d.daysMeasured ? `${d.daysMeasured}일` : "—"],
+    ],
   },
   {
-    key: "콘텐츠",
-    what: "인용될 문장을 만든다",
-    jobs: ["주제 선정 (topics.json)", "집필", "도해 SVG → PNG", "AI 티 검사"],
-    tools: ["seed-post-*.mjs", "svg-to-png.mjs", "slop-check.mjs"],
-  },
-  {
-    key: "유통",
-    what: "만든 것을 밖으로 내보낸다",
+    key: "유통", glyph: "\u2192", cadence: "하루 2회",
+    role: "만든 것을 밖으로 내보낸다. 사이트에만 두면 아무도 못 본다.",
     jobs: ["네이버 블로그 이관", "구글 색인 요청", "IndexNow 알림", "서식·태그"],
     tools: ["naver-blog-post.mjs", "submit-gsc.mjs", "indexnow.mjs"],
+    perf: (d) => [
+      ["내보낸 글", `${d.posts.published}편`],
+      ["읽힌 페이지", d.crawl.vendors[0] ? `${d.crawl.vendors[0].pages}/${d.crawl.totalPages}쪽` : "—"],
+      ["최고 커버리지", d.crawl.vendors[0] ? `${d.crawl.vendors[0].pct.toFixed(0)}%` : "—"],
+    ],
   },
   {
-    key: "운영",
-    what: "끊기지 않게 지킨다",
-    jobs: ["상태 점검 (6시간마다)", "브리핑", "케이스 리포트", "커밋·푸시"],
-    tools: ["health.mjs", "briefing.mjs", "case-report.mjs"],
+    key: "콘텐츠", glyph: "\u2261", cadence: "하루 1회 · 무겁다",
+    role: "인용될 문장을 만든다. 광고로 읽히면 AI 도 인용하지 않는다.",
+    jobs: ["주제 선정", "집필", "도해 SVG → PNG", "AI 티 검사"],
+    tools: ["seed-post-*.mjs", "svg-to-png.mjs", "slop-check.mjs"],
+    perf: (d) => [
+      ["발행", `${d.posts.published}편`],
+      ["도해 붙은 글", d.withImages ? `${d.withImages}편` : "—"],
+      ["마지막 발행", d.posts.sinceDays === null ? "—" : `${d.posts.sinceDays}일 전`],
+    ],
   },
 ];
 
@@ -114,6 +147,17 @@ const CSS = `
 .ops-team li{position:relative;font-size:13.3px;color:var(--ink2);margin-bottom:6px;padding-left:11px}
 .ops-team li::before{content:"";position:absolute;left:0;top:.62em;width:5px;height:5px;
   border-radius:50%;background:var(--acc);opacity:.8}
+.ops-team-h{display:flex;align-items:baseline;gap:9px;margin-bottom:8px}
+.ops-team-g{font-size:16px;color:var(--acc);line-height:1}
+.ops-cad{margin-left:auto;font-family:"IBM Plex Mono",monospace;font-size:10.5px;
+  color:var(--faint);letter-spacing:.06em}
+.ops-role{font-size:13px;color:var(--ink2);line-height:1.7;margin:0 0 14px;word-break:keep-all}
+.ops-perf{background:var(--sunk);border:1px solid var(--soft);border-radius:10px;
+  padding:9px 13px;margin-bottom:14px}
+.ops-perf-r{display:flex;justify-content:space-between;align-items:baseline;
+  padding:5px 0;font-size:12.5px;color:var(--mut)}
+.ops-perf-r + .ops-perf-r{border-top:1px solid var(--soft)}
+.ops-perf-r b{color:var(--cool);font-size:13.5px;font-variant-numeric:tabular-nums}
 .ops-team .tools{margin-top:13px;padding-top:11px;border-top:1px solid var(--soft);
   font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--faint);line-height:1.85}
 
@@ -180,6 +224,8 @@ const CSS = `
   .ops-slot .badge,.ops-slot .need{justify-self:start}
 }
 `;
+
+const SEP = String.fromCharCode(10);
 
 const fmtDay = (s: string | null) =>
   s ? new Date(s).toLocaleDateString("ko-KR", { month: "2-digit", day: "2-digit" }) : "—";
@@ -309,15 +355,30 @@ export default async function OpsPage({
           ))}
         </div>
 
-        <h2>조직도</h2>
-        <p className="sub">한 사람이 하는 일을 네 자리로 나눠 두었습니다. 자리마다 도구가 다릅니다.</p>
+        <h2>자리마다 무슨 일을 하고, 무엇이 나왔나</h2>
+        <p className="sub">
+          하는 일 목록은 계획입니다. 그 옆의 숫자가 실제로 나온 것입니다.
+        </p>
         <div className="ops-org">
-          {TEAMS.map((t) => (
-            <div className="ops-team" key={t.key}>
-              <h3>{t.key}</h3>
-              <div className="what">{t.what}</div>
-              <ul>{t.jobs.map((j) => <li key={j}>{j}</li>)}</ul>
-              <div className="tools">{t.tools.join("\n")}</div>
+          {AGENTS.map((a) => (
+            <div className="ops-team" key={a.key}>
+              <div className="ops-team-h">
+                <span className="ops-team-g">{a.glyph}</span>
+                <h3>{a.key}</h3>
+                <span className="ops-cad">{a.cadence}</span>
+              </div>
+              <p className="ops-role">{a.role}</p>
+
+              <div className="ops-perf">
+                {a.perf(d).map(([k, v]) => (
+                  <div className="ops-perf-r" key={k}>
+                    <span>{k}</span><b className="mono">{v}</b>
+                  </div>
+                ))}
+              </div>
+
+              <ul>{a.jobs.map((j) => <li key={j}>{j}</li>)}</ul>
+              <div className="tools">{a.tools.join(SEP)}</div>
             </div>
           ))}
         </div>

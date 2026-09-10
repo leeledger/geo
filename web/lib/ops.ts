@@ -34,6 +34,11 @@ export type Ops = {
   place: { query: string; rank: number }[];
   recent: { title: string; slug: string; at: string }[];
   firstSeen: { engine: string; query: string; day: string }[];
+  /* 자리별 성과에 쓰는 값들 */
+  daysMeasured: number;      // 며칠째 재고 있는가
+  withImages: number;        // 도해가 붙은 글
+  totalHits: number;         // 크롤러 총 방문
+  vendorCount: number;       // 다녀간 크롤러 종류
 };
 
 const days = (d: string | Date) => Math.floor((Date.now() - new Date(d).getTime()) / 86400000);
@@ -47,6 +52,10 @@ export async function readOps(): Promise<Ops> {
     place: [],
     recent: [],
     firstSeen: [],
+    daysMeasured: 0,
+    withImages: 0,
+    totalHits: 0,
+    vendorCount: 0,
   };
 
   try {
@@ -93,8 +102,20 @@ export async function readOps(): Promise<Ops> {
       select engine, query, min(day)::text as first_day from academy.serp_checks
        where hit group by engine, query order by min(day) limit 6`);
 
+    const [more] = await q(`
+      select
+        (select count(distinct day)::int from academy.serp_checks) as days_measured,
+        (select count(*)::int from academy.posts
+          where published and body like '%![%') as with_images,
+        (select count(*)::int from academy.crawl_hits) as total_hits,
+        (select count(distinct vendor)::int from academy.crawl_hits) as vendor_count`);
+
     return {
       ok: true,
+      daysMeasured: more.days_measured,
+      withImages: more.with_images,
+      totalHits: more.total_hits,
+      vendorCount: more.vendor_count,
       posts: {
         published: post.pub,
         draft: post.draft,
