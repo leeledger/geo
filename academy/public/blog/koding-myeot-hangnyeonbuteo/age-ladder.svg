@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 470" width="960" height="470" role="img"
+     aria-label="나이별 코딩 학습 단계. 7세부터 초등 3학년은 글자를 몰라도 버튼과 블록으로 시작한다. 초등 1학년에서 4학년은 코드를 쓰지 않고 순서와 반복, 조건으로 사고의 뼈대를 만든다. 초등 5학년 이상부터 파이썬으로 넘어간다. 넘어가는 기준은 나이가 아니라 자기가 만든 것을 설명할 수 있는가이다.">
+  <defs>
+    <linearGradient id="abg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0E131C"/><stop offset="1" stop-color="#0B0F16"/>
+    </linearGradient>
+  </defs>
+  <rect width="960" height="470" fill="url(#abg)"/>
+
+  <text x="480" y="44" text-anchor="middle" font-family="'IBM Plex Mono',ui-monospace,monospace"
+        font-size="12" letter-spacing="2.5" fill="#8A94A6">언제 무엇을 하는가</text>
+
+  <g font-family="'Noto Sans KR',system-ui,sans-serif">
+    <!-- 1단 -->
+    <rect x="56" y="80" width="272" height="196" rx="12" fill="#101820" stroke="#233240"/>
+    <text x="80" y="116" font-family="'IBM Plex Mono',ui-monospace,monospace"
+          font-size="13" fill="#6FA8C7">7세 ~ 초3</text>
+    <text x="80" y="152" font-size="20" font-weight="800" fill="#BFD6E4">글자를 몰라도</text>
+    <text x="80" y="180" font-size="20" font-weight="800" fill="#BFD6E4">시작합니다</text>
+    <text x="80" y="216" font-size="14" fill="#7C8C99">큰 버튼을 눌러 로봇을 움직이는</text>
+    <text x="80" y="238" font-size="14" fill="#7C8C99">단계에서 블록 조립까지</text>
+    <text x="80" y="262" font-size="13" fill="#55636E">타이핑도 드래그도 없음</text>
+
+    <!-- 2단 -->
+    <rect x="344" y="80" width="272" height="196" rx="12" fill="#111C1B" stroke="#24413C"/>
+    <text x="368" y="116" font-family="'IBM Plex Mono',ui-monospace,monospace"
+          font-size="13" fill="#3DD6C4">초1 ~ 초4</text>
+    <text x="368" y="152" font-size="20" font-weight="800" fill="#C9D6D3">코드를 쓰지</text>
+    <text x="368" y="180" font-size="20" font-weight="800" fill="#C9D6D3">않습니다</text>
+    <text x="368" y="216" font-size="14" fill="#7E9089">순서, 반복, 조건으로</text>
+    <text x="368" y="238" font-size="14" fill="#7E9089">사고의 뼈대를 만듭니다</text>
+    <text x="368" y="262" font-size="13" fill="#566761">문법은 이때 안 가르침</text>
+
+    <!-- 3단 -->
+    <rect x="632" y="80" width="272" height="196" rx="12" fill="#1A1610" stroke="#4A3A18"/>
+    <text x="656" y="116" font-family="'IBM Plex Mono',ui-monospace,monospace"
+          font-size="13" fill="#F5A623">초5 이상</text>
+    <text x="656" y="152" font-size="20" font-weight="800" fill="#F0D9A8">파이썬으로</text>
+    <text x="656" y="180" font-size="20" font-weight="800" fill="#F0D9A8">넘어갑니다</text>
+    <text x="656" y="216" font-size="14" fill="#A8916A">문법과 자료구조를</text>
+    <text x="656" y="238" font-size="14" fill="#A8916A">실습으로 익힙니다</text>
+    <text x="656" y="262" font-size="13" fill="#7A6B4E">글자로 직접 씁니다</text>
+
+    <!-- 잇는 화살표 -->
+    <path d="M328 178 h16" stroke="#2B3646" stroke-width="1.6"/>
+    <path d="M338 172 l6 6 l-6 6" fill="none" stroke="#2B3646" stroke-width="1.6"/>
+    <path d="M616 178 h16" stroke="#2B3646" stroke-width="1.6"/>
+    <path d="M626 172 l6 6 l-6 6" fill="none" stroke="#2B3646" stroke-width="1.6"/>
+  </g>
+
+  <!-- 기준 -->
+  <g font-family="'Noto Sans KR',system-ui,sans-serif">
+    <rect x="176" y="322" width="608" height="94" rx="12" fill="#12181F" stroke="#2B3646"/>
+    <text x="480" y="356" text-anchor="middle" font-size="17" font-weight="800" fill="#E8EDF2">
+      넘어가는 기준은 나이가 아닙니다
+    </text>
+    <text x="480" y="386" text-anchor="middle" font-size="15" fill="#9AA7B5">
+      &quot;이 블록은 왜 여기 있어?&quot; 에 자기 말로 답하면 넘어갈 때입니다.
+    </text>
+    <text x="480" y="406" text-anchor="middle" font-size="14" fill="#6B7688">
+      늦게 시작해도 됩니다. 문법부터 가르치는 곳만 피하시면 됩니다.
+    </text>
+  </g>
+
+  <text x="480" y="452" text-anchor="middle" font-family="'IBM Plex Mono',ui-monospace,monospace"
+        font-size="11.5" letter-spacing="1.5" fill="#4E5867">robotncoding.com</text>
+</svg>

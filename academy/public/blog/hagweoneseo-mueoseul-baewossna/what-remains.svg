@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 450" width="960" height="450" role="img"
+     aria-label="코딩학원에서 무엇을 배웠는지 집에서 확인하는 법. 아이가 만든 그 순간의 화면이 자동 저장되고, 아이가 남긴 소감과 함께 학부모에게 링크로 간다. 여기에 담당 선생님이 지켜본 모습을 더해 학습 성장 리포트가 나간다. 태도, 집중력, 학습 의지, 이해력, 표현력, 창의성 여섯 영역으로 기록하고 점수는 매기지 않는다. 쌓이면 포트폴리오가 된다.">
+  <defs>
+    <linearGradient id="wrbg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0E131C"/><stop offset="1" stop-color="#0B0F16"/>
+    </linearGradient>
+  </defs>
+  <rect width="960" height="450" fill="url(#wrbg)"/>
+
+  <text x="480" y="44" text-anchor="middle" font-family="'IBM Plex Mono',ui-monospace,monospace"
+        font-size="12" letter-spacing="2.5" fill="#8A94A6">수업이 끝나면 무엇이 남는가</text>
+
+  <g font-family="'Noto Sans KR',system-ui,sans-serif">
+    <rect x="40" y="80" width="196" height="96" rx="11" fill="#101820" stroke="#233240"/>
+    <text x="138" y="118" text-anchor="middle" font-size="15.5" font-weight="700" fill="#BFD6E4">만든 화면</text>
+    <text x="138" y="146" text-anchor="middle" font-size="13" fill="#7C8C99">그 순간 그대로</text>
+    <text x="138" y="164" text-anchor="middle" font-size="13" fill="#7C8C99">자동 저장</text>
+
+    <rect x="262" y="80" width="196" height="96" rx="11" fill="#101820" stroke="#233240"/>
+    <text x="360" y="118" text-anchor="middle" font-size="15.5" font-weight="700" fill="#BFD6E4">아이의 소감</text>
+    <text x="360" y="146" text-anchor="middle" font-size="13" fill="#7C8C99">직접 남긴 말이</text>
+    <text x="360" y="164" text-anchor="middle" font-size="13" fill="#7C8C99">같이 붙습니다</text>
+
+    <rect x="484" y="80" width="196" height="96" rx="11" fill="#101820" stroke="#233240"/>
+    <text x="582" y="118" text-anchor="middle" font-size="15.5" font-weight="700" fill="#BFD6E4">선생님 코멘트</text>
+    <text x="582" y="146" text-anchor="middle" font-size="13" fill="#7C8C99">수업 중 지켜본</text>
+    <text x="582" y="164" text-anchor="middle" font-size="13" fill="#7C8C99">모습을 더합니다</text>
+
+    <rect x="706" y="80" width="214" height="96" rx="11" fill="#111C1B" stroke="#24413C" stroke-width="1.6"/>
+    <text x="813" y="118" text-anchor="middle" font-size="15.5" font-weight="800" fill="#3DD6C4">성장 리포트</text>
+    <text x="813" y="146" text-anchor="middle" font-size="13" fill="#9FB0AC">학부모에게</text>
+    <text x="813" y="164" text-anchor="middle" font-size="13" fill="#9FB0AC">링크로 갑니다</text>
+
+    <path d="M240 128 h18" stroke="#2B3646" stroke-width="1.5"/>
+    <path d="M462 128 h18" stroke="#2B3646" stroke-width="1.5"/>
+    <path d="M684 128 h18" stroke="#2B3646" stroke-width="1.5"/>
+  </g>
+
+  <!-- 여섯 영역 -->
+  <text x="480" y="222" text-anchor="middle" font-family="'IBM Plex Mono',ui-monospace,monospace"
+        font-size="12" letter-spacing="2" fill="#6B7688">리포트가 기록하는 여섯 가지</text>
+
+  <g font-family="'Noto Sans KR',system-ui,sans-serif" font-size="14.5">
+    <rect x="56" y="240" width="132" height="44" rx="8" fill="#12181F" stroke="#2B3646"/>
+    <text x="122" y="268" text-anchor="middle" fill="#C6D2DE">태도</text>
+    <rect x="200" y="240" width="132" height="44" rx="8" fill="#12181F" stroke="#2B3646"/>
+    <text x="266" y="268" text-anchor="middle" fill="#C6D2DE">집중력</text>
+    <rect x="344" y="240" width="132" height="44" rx="8" fill="#12181F" stroke="#2B3646"/>
+    <text x="410" y="268" text-anchor="middle" fill="#C6D2DE">학습 의지</text>
+    <rect x="488" y="240" width="132" height="44" rx="8" fill="#12181F" stroke="#2B3646"/>
+    <text x="554" y="268" text-anchor="middle" fill="#C6D2DE">이해력</text>
+    <rect x="632" y="240" width="132" height="44" rx="8" fill="#12181F" stroke="#2B3646"/>
+    <text x="698" y="268" text-anchor="middle" fill="#C6D2DE">표현력</text>
+    <rect x="776" y="240" width="128" height="44" rx="8" fill="#12181F" stroke="#2B3646"/>
+    <text x="840" y="268" text-anchor="middle" fill="#C6D2DE">창의성</text>
+  </g>
+
+  <g font-family="'Noto Sans KR',system-ui,sans-serif">
+    <rect x="176" y="320" width="608" height="86" rx="12" fill="#1A1610" stroke="#4A3A18"/>
+    <text x="480" y="354" text-anchor="middle" font-size="16.5" font-weight="800" fill="#F0D9A8">
+      점수는 매기지 않습니다
+    </text>
+    <text x="480" y="384" text-anchor="middle" font-size="14.5" fill="#B79A62">
+      자라는 방향을 적습니다. 쌓이면 진학 상담에 낼 포트폴리오가 됩니다.
+    </text>
+  </g>
+</svg>

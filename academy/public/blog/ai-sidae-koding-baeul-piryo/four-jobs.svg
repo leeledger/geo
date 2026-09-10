@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 520" width="960" height="520" role="img"
+     aria-label="AI가 코드를 쓰는 시대에 사람에게 남는 일 네 가지. 무엇을 만들지 정한다, 정확히 시킨다, 맞는지 판단한다, 내놓은 것을 책임진다. 세 번째인 판단하는 일은 코드를 읽을 줄 알아야만 할 수 있다.">
+  <defs>
+    <linearGradient id="fbg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0E131C"/><stop offset="1" stop-color="#0B0F16"/>
+    </linearGradient>
+  </defs>
+  <rect width="960" height="520" fill="url(#fbg)"/>
+
+  <text x="480" y="44" text-anchor="middle" font-family="'IBM Plex Mono',ui-monospace,monospace"
+        font-size="12" letter-spacing="2.5" fill="#8A94A6">AI 가 코드를 쓰면 사람에게 남는 일</text>
+
+  <!-- 왼쪽: AI 가 하는 일 -->
+  <g font-family="'Noto Sans KR',system-ui,sans-serif">
+    <rect x="56" y="86" width="216" height="106" rx="12" fill="#12181F" stroke="#232C38"/>
+    <text x="164" y="122" text-anchor="middle" font-size="13" fill="#6B7688">AI 가 한다</text>
+    <text x="164" y="152" text-anchor="middle" font-size="19" font-weight="800" fill="#5D6878">코드 타이핑</text>
+    <text x="164" y="176" text-anchor="middle" font-size="13" fill="#4E5867">문법 외우기</text>
+  </g>
+
+  <path d="M286 139 h44" stroke="#2B3646" stroke-width="1.6" stroke-dasharray="4 5"/>
+
+  <!-- 오른쪽: 사람이 하는 네 가지 -->
+  <g font-family="'Noto Sans KR',system-ui,sans-serif" font-size="15">
+    <text x="348" y="76" font-family="'IBM Plex Mono',ui-monospace,monospace"
+          font-size="12" letter-spacing="2" fill="#3DD6C4">사람이 한다</text>
+
+    <g>
+      <rect x="348" y="88" width="556" height="52" rx="9" fill="#111C1B" stroke="#24413C"/>
+      <text x="372" y="120" font-family="'IBM Plex Mono',ui-monospace,monospace"
+            font-size="14" fill="#3DD6C4">1</text>
+      <text x="398" y="120" fill="#C9D6D3" font-weight="700">무엇을 만들지 정한다</text>
+      <text x="884" y="120" text-anchor="end" font-size="13" fill="#68796F">정해지지 않으면 시킬 말이 없다</text>
+    </g>
+
+    <g>
+      <rect x="348" y="150" width="556" height="52" rx="9" fill="#111C1B" stroke="#24413C"/>
+      <text x="372" y="182" font-family="'IBM Plex Mono',ui-monospace,monospace"
+            font-size="14" fill="#3DD6C4">2</text>
+      <text x="398" y="182" fill="#C9D6D3" font-weight="700">정확히 시킨다</text>
+      <text x="884" y="182" text-anchor="end" font-size="13" fill="#68796F">애매하게 시키면 애매한 게 나온다</text>
+    </g>
+
+    <!-- 3번만 강조 — 여기가 글의 핵심이다 -->
+    <g>
+      <rect x="348" y="212" width="556" height="62" rx="9" fill="#1A1610" stroke="#8A6A22" stroke-width="1.6"/>
+      <text x="372" y="250" font-family="'IBM Plex Mono',ui-monospace,monospace"
+            font-size="14" fill="#F5A623">3</text>
+      <text x="398" y="250" fill="#F0D9A8" font-weight="800">맞는지 판단한다</text>
+      <text x="884" y="250" text-anchor="end" font-size="13" fill="#B79A62">AI 는 그럴듯하게 틀린다</text>
+    </g>
+
+    <g>
+      <rect x="348" y="284" width="556" height="52" rx="9" fill="#111C1B" stroke="#24413C"/>
+      <text x="372" y="316" font-family="'IBM Plex Mono',ui-monospace,monospace"
+            font-size="14" fill="#3DD6C4">4</text>
+      <text x="398" y="316" fill="#C9D6D3" font-weight="700">내놓은 것을 책임진다</text>
+      <text x="884" y="316" text-anchor="end" font-size="13" fill="#68796F">이름이 남는 건 사람이다</text>
+    </g>
+  </g>
+
+  <!-- 아래: 3번이 왜 문제인가 -->
+  <!-- 3번에서 아래 설명으로. 목록 바깥으로 돌린다 — 가운데로 내리면 4번 상자를 뚫는다 -->
+  <path d="M904 243 h26 v122 h-146" fill="none" stroke="#8A6A22" stroke-width="1.6"/>
+  <path d="M792 359 l-8 6 l8 6" fill="none" stroke="#8A6A22" stroke-width="1.6"/>
+
+  <g font-family="'Noto Sans KR',system-ui,sans-serif">
+    <rect x="176" y="376" width="608" height="96" rx="12" fill="#160F0F" stroke="#5A2E2A"/>
+    <text x="480" y="410" text-anchor="middle" font-size="17" font-weight="800" fill="#E88C7D">
+      3번을 하려면 코드를 읽을 줄 알아야 한다
+    </text>
+    <text x="480" y="438" text-anchor="middle" font-size="14" fill="#B08A84">
+      문법은 맞는데 조건 하나가 빠진 코드는 돌아간다.
+    </text>
+    <text x="480" y="458" text-anchor="middle" font-size="14" fill="#B08A84">
+      읽을 줄 모르면 틀린 것을 그대로 쓴다.
+    </text>
+  </g>
+
+  <text x="480" y="500" text-anchor="middle" font-family="'IBM Plex Mono',ui-monospace,monospace"
+        font-size="11.5" letter-spacing="1.5" fill="#4E5867">robotncoding.com</text>
+</svg>

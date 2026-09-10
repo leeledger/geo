@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 460" width="960" height="460" role="img"
+     aria-label="블록코딩에서 파이썬으로 넘어갈 때를 아는 법. 아이에게 이 블록은 왜 여기 있어, 이거 빼면 어떻게 될 것 같아, 여기서 숫자를 바꾸면 어떻게 되냐고 묻는다. 자기 말로 답하면 넘어갈 때이고, 모르겠다고 하면 블록에서 더 해야 한다. 기간이 아니라 설명할 수 있는가가 기준이다.">
+  <defs>
+    <linearGradient id="rbg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0E131C"/><stop offset="1" stop-color="#0B0F16"/>
+    </linearGradient>
+  </defs>
+  <rect width="960" height="460" fill="url(#rbg)"/>
+
+  <text x="480" y="44" text-anchor="middle" font-family="'IBM Plex Mono',ui-monospace,monospace"
+        font-size="12" letter-spacing="2.5" fill="#8A94A6">넘어갈 때인지 집에서 확인하는 법</text>
+
+  <g font-family="'Noto Sans KR',system-ui,sans-serif">
+    <!-- 질문 세 개 -->
+    <text x="56" y="86" font-family="'IBM Plex Mono',ui-monospace,monospace"
+          font-size="12" letter-spacing="2" fill="#6B7688">아이가 만든 작품을 열어놓고 묻는다</text>
+
+    <rect x="56" y="100" width="848" height="46" rx="9" fill="#12181F" stroke="#2B3646"/>
+    <text x="80" y="130" font-size="16" fill="#C6D2DE">&quot;이 블록은 왜 여기 있어?&quot;</text>
+
+    <rect x="56" y="156" width="848" height="46" rx="9" fill="#12181F" stroke="#2B3646"/>
+    <text x="80" y="186" font-size="16" fill="#C6D2DE">&quot;이거 빼면 어떻게 될 것 같아?&quot;</text>
+
+    <rect x="56" y="212" width="848" height="46" rx="9" fill="#12181F" stroke="#2B3646"/>
+    <text x="80" y="242" font-size="16" fill="#C6D2DE">&quot;숫자를 10에서 20으로 바꾸면?&quot;</text>
+
+    <!-- 갈림 -->
+    <path d="M300 264 v22 h-52 v20" fill="none" stroke="#24413C" stroke-width="1.6"/>
+    <path d="M242 300 l6 8 l6 -8" fill="none" stroke="#24413C" stroke-width="1.6"/>
+    <path d="M660 264 v22 h52 v20" fill="none" stroke="#4A3A18" stroke-width="1.6"/>
+    <path d="M706 300 l6 8 l6 -8" fill="none" stroke="#4A3A18" stroke-width="1.6"/>
+
+    <rect x="56" y="308" width="392" height="98" rx="12" fill="#111C1B" stroke="#24413C"/>
+    <text x="80" y="344" font-size="18" font-weight="800" fill="#3DD6C4">자기 말로 답한다</text>
+    <text x="80" y="374" font-size="15" fill="#9FB0AC">넘어갈 때입니다.</text>
+    <text x="80" y="396" font-size="14" fill="#68796F">블록으로 하던 것을 글자로 다시 씁니다</text>
+
+    <rect x="512" y="308" width="392" height="98" rx="12" fill="#1A1610" stroke="#4A3A18"/>
+    <text x="536" y="344" font-size="18" font-weight="800" fill="#F5A623">&quot;몰라요&quot; 라고 한다</text>
+    <text x="536" y="374" font-size="15" fill="#C0A87C">아직입니다.</text>
+    <text x="536" y="396" font-size="14" fill="#7A6B4E">블록에서 조건과 예외를 더 다룹니다</text>
+  </g>
+
+  <text x="480" y="440" text-anchor="middle" font-family="'Noto Sans KR',system-ui,sans-serif"
+        font-size="13.5" fill="#6B7688">기준은 몇 년 했는가가 아니라 설명할 수 있는가입니다</text>
+</svg>

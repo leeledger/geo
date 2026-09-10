@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 480" width="960" height="480" role="img"
+     aria-label="생기부에 쓸 수 있는 코딩 프로젝트는 완성된 작품만으로는 부족하다. 면접에서 왜 이렇게 만들었는지, 막혔을 때 어떻게 해결했는지, 다시 만든다면 무엇을 바꾸겠는지를 묻기 때문이다. 그래서 주제를 고른 이유, 무엇을 입력받고 내놓기로 정했는지, 어디서 막혔고 무엇을 의심했고 어떻게 확인했는지, 처음 계획에서 무엇이 왜 바뀌었는지를 기록으로 남긴다.">
+  <defs>
+    <linearGradient id="rcbg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0E131C"/><stop offset="1" stop-color="#0B0F16"/>
+    </linearGradient>
+  </defs>
+  <rect width="960" height="480" fill="url(#rcbg)"/>
+
+  <text x="480" y="44" text-anchor="middle" font-family="'IBM Plex Mono',ui-monospace,monospace"
+        font-size="12" letter-spacing="2.5" fill="#8A94A6">면접에서 묻는 것과, 그래서 남겨야 하는 것</text>
+
+  <g font-family="'Noto Sans KR',system-ui,sans-serif">
+    <!-- 왼쪽: 완성작만 있으면 -->
+    <text x="56" y="88" font-family="'IBM Plex Mono',ui-monospace,monospace"
+          font-size="12" letter-spacing="2" fill="#B0625A">완성작만 있으면 여기서 막힌다</text>
+
+    <rect x="56" y="102" width="392" height="52" rx="9" fill="#160F0F" stroke="#4A2622"/>
+    <text x="78" y="134" font-size="15" fill="#DCA9A1">이건 왜 이렇게 만들었나요?</text>
+
+    <rect x="56" y="164" width="392" height="52" rx="9" fill="#160F0F" stroke="#4A2622"/>
+    <text x="78" y="196" font-size="15" fill="#DCA9A1">여기서 막혔을 때 어떻게 했나요?</text>
+
+    <rect x="56" y="226" width="392" height="52" rx="9" fill="#160F0F" stroke="#4A2622"/>
+    <text x="78" y="258" font-size="15" fill="#DCA9A1">다시 만들면 무엇을 바꾸겠어요?</text>
+
+    <!-- 오른쪽: 그래서 남기는 것 -->
+    <text x="512" y="88" font-family="'IBM Plex Mono',ui-monospace,monospace"
+          font-size="12" letter-spacing="2" fill="#3DD6C4">그래서 만드는 동안 남긴다</text>
+
+    <rect x="512" y="102" width="392" height="44" rx="9" fill="#111C1B" stroke="#24413C"/>
+    <text x="534" y="130" font-size="14.5" fill="#C9D6D3">왜 이 주제를 골랐는지</text>
+
+    <rect x="512" y="154" width="392" height="44" rx="9" fill="#111C1B" stroke="#24413C"/>
+    <text x="534" y="182" font-size="14.5" fill="#C9D6D3">무엇을 입력받고 무엇을 내놓기로 정했는지</text>
+
+    <rect x="512" y="206" width="392" height="44" rx="9" fill="#111C1B" stroke="#24413C"/>
+    <text x="534" y="234" font-size="14.5" fill="#C9D6D3">어디서 막혔고 어떻게 확인했는지</text>
+
+    <rect x="512" y="258" width="392" height="44" rx="9" fill="#111C1B" stroke="#24413C"/>
+    <text x="534" y="286" font-size="14.5" fill="#C9D6D3">계획에서 무엇이 왜 바뀌었는지</text>
+
+    <path d="M460 190 h40" stroke="#2B3646" stroke-width="1.6" stroke-dasharray="4 5"/>
+    <path d="M492 184 l6 6 l-6 6" fill="none" stroke="#2B3646" stroke-width="1.6"/>
+  </g>
+
+  <g font-family="'Noto Sans KR',system-ui,sans-serif">
+    <rect x="176" y="340" width="608" height="88" rx="12" fill="#12181F" stroke="#2B3646"/>
+    <text x="480" y="374" text-anchor="middle" font-size="17" font-weight="800" fill="#E8EDF2">
+      생기부에 남는 것은 결과가 아니라 과정입니다
+    </text>
+    <text x="480" y="404" text-anchor="middle" font-size="14.5" fill="#8C99A8">
+      막힌 자리를 지운 기록은 잘 만든 작품처럼 보이지만 할 말이 없습니다.
+    </text>
+  </g>
+
+  <text x="480" y="462" text-anchor="middle" font-family="'IBM Plex Mono',ui-monospace,monospace"
+        font-size="11.5" letter-spacing="1.5" fill="#4E5867">robotncoding.com</text>
+</svg>
