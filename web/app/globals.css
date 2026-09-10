@@ -705,3 +705,26 @@ header.hero.simple .lab{color:var(--accent)}
 .svc-prose p{font-size:17px;line-height:1.95;color:var(--ink-2);margin:0 0 22px;
   word-break:keep-all}
 .svc-prose p:last-child{margin-bottom:0}
+
+/* ── 해당하는 곳 / 안 맞는 곳 ── */
+.fit{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px;margin-top:44px}
+.fitc{background:var(--surface);border:1px solid var(--rule);border-radius:14px;padding:22px 24px 20px}
+.fitc.no{background:var(--sunken)}
+.fith{font-family:"Noto Serif KR",serif;font-weight:700;font-size:17.5px;color:var(--ink);letter-spacing:-.02em}
+.fitc.no .fith{color:var(--muted)}
+.fitc ul{list-style:none;padding:0;margin:16px 0 0;display:flex;flex-direction:column;gap:11px}
+.fitc li{position:relative;padding-left:18px;font-size:15px;line-height:1.75;color:var(--ink-2);word-break:keep-all}
+.fitc li::before{content:"";position:absolute;left:0;top:13px;width:8px;height:1.5px;background:var(--accent)}
+.fitc.no li{color:var(--muted)}
+.fitc.no li::before{background:var(--faint)}
+
+/* ── 상담 신청 폼 (mailto 대신 리드 API 로) ── */
+.askrow{display:flex;gap:8px;flex-wrap:wrap;position:relative}
+.askrow input{flex:1;min-width:150px;padding:12px 14px;border:1px solid var(--rule);border-radius:3px;
+  background:var(--surface);color:var(--ink);font-size:14.5px}
+.askrow input:focus{border-color:var(--accent);outline:none}
+.plan .askrow{flex-direction:column}
+.plan .askrow input{min-width:0;width:100%;font-size:13.5px;padding:10px 12px}
+.plan .askrow .btn{width:100%;text-align:center}
+.plan:not(.hi) .askrow .btn{background:transparent;color:var(--accent)}
+.plan:not(.hi) .askrow .btn:hover{background:var(--accent-soft);opacity:1}
