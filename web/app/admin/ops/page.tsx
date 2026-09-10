@@ -269,16 +269,39 @@ const CSS = `
 .ops-band-note .live{color:var(--ok);font-weight:700}
 .ops-band-note .idle{color:var(--faint)}
 .ops-band-note .nx{color:var(--mut)}
-.ops-band-track{position:relative;height:34px;background:var(--sunk);
-  border:1px solid var(--line);border-radius:9px}
+.ops-band-h .cnt{color:var(--ink2);font-weight:700;letter-spacing:0}
+.ops-band-track{position:relative;height:46px;background:var(--sunk);
+  border:1px solid var(--line);border-radius:10px;overflow:hidden}
+/* 지난 시간을 바탕색으로 칠한다. 지금이 어디쯤인지 한눈에 보인다 */
+.ops-band-track .past{position:absolute;top:0;bottom:0;left:0;
+  background:linear-gradient(90deg,rgba(61,214,196,.04),rgba(61,214,196,.09));
+  border-right:1px solid rgba(61,214,196,.18)}
 .ops-band-track .tick{position:absolute;top:0;bottom:0;width:1px;background:var(--line)}
-.ops-band-track .tick span{position:absolute;top:38px;left:-5px;font-size:10px;
-  color:var(--faint);font-family:"IBM Plex Mono",monospace}
-.ops-band-track .mk{position:absolute;top:7px;width:7px;height:20px;border-radius:3px;
-  transform:translateX(-3.5px);opacity:.9}
-.ops-band-track .mk.auto{outline:1.5px solid rgba(61,214,160,.55);outline-offset:1px}
-.ops-band-track .nowline{position:absolute;top:-4px;bottom:-4px;width:2px;background:#fff;
-  box-shadow:0 0 10px rgba(255,255,255,.6);border-radius:1px}
+.ops-band-track .tick span{position:absolute;bottom:5px;left:6px;font-size:10px;
+  color:var(--faint);font-family:"IBM Plex Mono",monospace;letter-spacing:.06em}
+/* 지난 일은 채우고, 남은 일은 테두리만. 모양이 다르면 세지 않아도 보인다 */
+.ops-band-track .mk{position:absolute;top:9px;width:9px;height:18px;border-radius:3px;
+  border:1.5px solid;transform:translateX(-4.5px)}
+.ops-band-track .mk.done{opacity:.55}
+.ops-band-track .mk.todo{opacity:1}
+/* 사람이 켜 줘야 하는 일에는 위에 점을 찍는다 */
+.ops-band-track .mk.man::after{content:"";position:absolute;top:-6px;left:2.5px;
+  width:4px;height:4px;border-radius:50%;background:var(--warn)}
+.ops-band-track .nowline{position:absolute;top:0;bottom:0;width:2px;background:#E8EDF2;
+  box-shadow:0 0 12px rgba(232,237,242,.55)}
+.ops-band-track .nowline b{position:absolute;top:3px;left:5px;font-size:10px;
+  font-family:"IBM Plex Mono",monospace;font-weight:600;color:#0B0F16;
+  background:#E8EDF2;padding:1px 4px;border-radius:3px;white-space:nowrap}
+/* 오른쪽 끝에 붙으면 시각 표시가 잘린다. 그때는 왼쪽으로 넘긴다 */
+@media(min-width:1px){.ops-band-track .nowline b{transform:translateX(0)}}
+.ops-band-key{display:flex;flex-wrap:wrap;gap:13px;align-items:center;margin-top:10px;
+  font-size:11.5px;color:var(--mut)}
+.ops-band-key i{display:inline-block;width:9px;height:9px;border-radius:2px;
+  margin-right:5px;vertical-align:-1px}
+.ops-band-key .k-done{background:var(--mut);opacity:.55}
+.ops-band-key .k-todo{background:transparent;border:1.5px solid var(--mut)}
+.ops-band-key .k-man{background:var(--warn);border-radius:50%;width:6px;height:6px}
+.ops-band-key .sep{width:1px;height:12px;background:var(--line);margin:0 3px}
 .ops-legend{display:flex;flex-wrap:wrap;gap:16px;align-items:center;padding:12px 12px 10px;
   font-size:12px;color:var(--mut);border-top:1px solid var(--soft);margin-top:6px}
 .ops-legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;

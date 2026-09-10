@@ -132,7 +132,10 @@ export default function Flow({ nodes, slots, cycleOk, stopped, decision }: Props
       {/* 24시간 띠 — 퇴근이 없다는 걸 눈으로 보이게 */}
       <div className="ops-band">
         <div className="ops-band-h">
-          <span>24시간</span>
+          <span>
+            오늘 <b className="cnt">{today.length}</b>번 돕니다
+            {nowM >= 0 && <> · 지난 <b className="cnt">{today.filter((s) => mins(s.at) <= nowM).length}</b> · 남은 <b className="cnt">{today.filter((s) => mins(s.at) > nowM).length}</b></>}
+          </span>
           <span className="ops-band-note">
             {activeTeam
               ? <b className="live">● {activeTeam} 작업 중</b>
@@ -140,19 +143,50 @@ export default function Flow({ nodes, slots, cycleOk, stopped, decision }: Props
             {nextSlot && <span className="nx">다음 {nextSlot.at} {nextSlot.name}</span>}
           </span>
         </div>
+        {/*
+          시간띠. 앞선 판은 같은 모양 막대가 늘어서 있어서 무엇이 지났고
+          무엇이 남았는지 안 보였다. 지금은 셋을 눈으로 가른다 —
+            지난 일   흐리게, 채워짐
+            남은 일   또렷하게, 테두리만
+            세션 필요 위쪽에 점을 찍는다 (사람이 켜 줘야 도는 일)
+        */}
         <div className="ops-band-track">
-          {Array.from({ length: 25 }, (_, h) => (
+          <div className="past" style={{ width: `${nowM >= 0 ? (nowM / 1440) * 100 : 0}%` }} />
+          {Array.from({ length: 5 }, (_, i) => i * 6).map((h) => (
             <i key={h} className="tick" style={{ left: `${(h / 24) * 100}%` }}>
-              {h % 6 === 0 && <span>{h}</span>}
+              <span>{String(h).padStart(2, "0")}</span>
             </i>
           ))}
-          {today.map((s) => (
-            <span key={s.at + s.name}
-                  className={`mk ${s.need === "무관" ? "auto" : ""}`}
-                  style={{ left: `${(mins(s.at) / 1440) * 100}%`, background: TEAM_HUE[s.team] ?? "#5A6474" }}
-                  title={`${s.at} ${s.name}`} />
+          {today.map((s) => {
+            const m = mins(s.at);
+            const done = nowM >= 0 && m <= nowM;
+            const hue = TEAM_HUE[s.team] ?? "#5A6474";
+            return (
+              <span key={s.at + s.name}
+                    className={`mk ${done ? "done" : "todo"} ${s.need === "세션" ? "man" : ""}`}
+                    style={{
+                      left: `${(m / 1440) * 100}%`,
+                      background: done ? hue : "transparent",
+                      borderColor: hue,
+                    }}
+                    title={`${s.at} ${s.name} · ${s.need === "무관" ? "자동" : "사람이 켜 줘야 함"}`} />
+            );
+          })}
+          {nowM >= 0 && (
+            <i className="nowline" style={{ left: `${(nowM / 1440) * 100}%` }}>
+              <b>{String(now!.getHours()).padStart(2, "0")}:{String(now!.getMinutes()).padStart(2, "0")}</b>
+            </i>
+          )}
+        </div>
+
+        <div className="ops-band-key">
+          {Object.entries(TEAM_HUE).map(([k, v]) => (
+            <span key={k}><i style={{ background: v }} />{k}</span>
           ))}
-          {nowM >= 0 && <i className="nowline" style={{ left: `${(nowM / 1440) * 100}%` }} />}
+          <span className="sep" />
+          <span><i className="k-done" />지난 일</span>
+          <span><i className="k-todo" />남은 일</span>
+          <span><i className="k-man" />사람이 켜 줘야 함</span>
         </div>
       </div>
 
@@ -280,13 +314,20 @@ export default function Flow({ nodes, slots, cycleOk, stopped, decision }: Props
 
               <text x={p.x} y={p.y + size + 22} textAnchor="middle" className="fl-verb">{r.verb}</text>
               <text x={p.x} y={p.y + size + 40} textAnchor="middle" className="fl-sub">{n?.sub}</text>
-              {live && <text x={p.x} y={p.y + size + 57} textAnchor="middle" className="fl-live">작업 중</text>}
-              {isBlock && <text x={p.x} y={p.y + size + 57} textAnchor="middle" className="fl-block">여기서 멈췄습니다</text>}
-              {r.id === "next" && !isBlock && decision && (
+              {/*
+                한 줄만 쓴다. 앞선 판은 「작업 중」과 「→ 할 일」을 같은 높이에 그려서
+                5번 자리에서 글씨가 겹쳤다. 할 일이 있으면 그게 더 중요한 정보고,
+                작업 중인지는 원 테두리 빛으로 이미 보인다.
+              */}
+              {isBlock ? (
+                <text x={p.x} y={p.y + size + 57} textAnchor="middle" className="fl-block">여기서 멈췄습니다</text>
+              ) : r.id === "next" && decision ? (
                 <text x={p.x} y={p.y + size + 57} textAnchor="middle" className="fl-do">
                   → {decision.do}
                 </text>
-              )}
+              ) : live ? (
+                <text x={p.x} y={p.y + size + 57} textAnchor="middle" className="fl-live">작업 중</text>
+              ) : null}
             </g>
           );
         })}
