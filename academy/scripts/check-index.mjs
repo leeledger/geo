@@ -62,6 +62,15 @@ const QUERIES = [
   { id: "b2", q: "석촌동 로봇 코딩학원", kind: "브랜드" },
 ];
 
+/**
+ * 어느 고객사를 재는가.
+ *
+ * 지금은 로봇&코딩학원 한 곳이라 1 이다. 고객사가 늘면 CLIENT_ID 로 넘긴다 —
+ * 안 넣으면 남의 데이터가 첫 고객사 것으로 섞인다.
+ * 유니크 제약도 (client_id, day, engine, query_id) 로 바꿔 뒀다.
+ */
+const CLIENT_ID = Number(process.env.CLIENT_ID ?? 1);
+
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function grab(url) {
@@ -207,19 +216,24 @@ await pool.query(`
 
 // 엔진을 나누기 전 기록은 전부 Bing 이었다.
 await pool.query(`alter table academy.serp_checks add column if not exists engine text not null default 'bing'`);
+await pool.query(`alter table academy.serp_checks add column if not exists client_id int not null default 1`);
 await pool.query(`alter table academy.serp_checks drop constraint if exists serp_checks_pkey`);
+
+// 고객사가 빠진 옛 인덱스는 걷어낸다. 남겨 두면 두 고객사가 같은 날 같은
+// 검색어를 잴 때 뒤에 잰 쪽이 앞 결과를 덮어쓴다.
+await pool.query(`drop index if exists academy.serp_checks_key`);
 await pool.query(`
-  create unique index if not exists serp_checks_key
-    on academy.serp_checks (day, engine, query_id)`);
+  create unique index if not exists serp_checks_client_key
+    on academy.serp_checks (client_id, day, engine, query_id)`);
 
 for (const r of rows) {
   if (!r.ok) continue;
   await pool.query(
-    `insert into academy.serp_checks (day, engine, query_id, query, kind, hit, rank)
-     values (current_date, $1, $2, $3, $4, $5, $6)
-     on conflict (day, engine, query_id) do update set
+    `insert into academy.serp_checks (client_id, day, engine, query_id, query, kind, hit, rank)
+     values ($1, current_date, $2, $3, $4, $5, $6, $7)
+     on conflict (client_id, day, engine, query_id) do update set
        hit = excluded.hit, rank = excluded.rank, checked_at = now()`,
-    [r.engine, r.id, r.q, r.kind, r.hit, r.rank],
+    [CLIENT_ID, r.engine, r.id, r.q, r.kind, r.hit, r.rank],
   );
 }
 

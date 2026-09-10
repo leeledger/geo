@@ -64,9 +64,11 @@ if (!APPLY) {
 if (!test.length) { await pool.end(); process.exit(0); }
 
 // 지우기 전에 원본을 파일로 남긴다. 되돌릴 수 없는 일은 흔적을 남긴다.
-const backup = new URL("../../scratch-leads-backup.json", import.meta.url);
+// 저장소 안에 쓰면 커밋에 딸려 간다 — 한 번 그랬다. 사람 연락처가 들어갈 수 있는 파일이다.
+const dir = (process.env.TEMP || process.env.TMPDIR || "/tmp").split("\\").join("/");
+const backup = `${dir}/leads-backup-${Date.now()}.json`;
 fs.writeFileSync(backup, JSON.stringify(test.map((t) => t.r), null, 1), "utf8");
-console.log(`\n원본을 남겼습니다: ${backup.pathname}`);
+console.log(`\n원본을 남겼습니다: ${backup}`);
 
 const ids = test.map((t) => t.r.id);
 await pool.query(`delete from geo.leads where id = any($1::uuid[])`, [ids]);

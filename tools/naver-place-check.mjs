@@ -39,6 +39,9 @@ const MINE = (s) => /^로봇\s*(앤|&)\s*코딩/.test(s.trim());
  * 이겨서 얻은 자리인지 보려면 이름 없이 「지역 + 업종」으로 쳐야 한다.
  * 그래서 경쟁 검색어를 늘렸다.
  */
+/** 어느 고객사를 재는가. 안 넣으면 첫 고객사 것으로 들어간다. */
+const CLIENT_ID = Number(process.env.CLIENT_ID ?? 1);
+
 const QUERIES = [
   "송파구 코딩학원",
   "석촌동 코딩학원",
@@ -144,11 +147,11 @@ await pool.query(`
   )`);
 for (const f of found) {
   await pool.query(
-    `insert into academy.place_checks (day, query, rank, top)
-     values (current_date, $1, $2, $3)
-     on conflict (day, query) do update set
+    `insert into academy.place_checks (client_id, day, query, rank, top)
+     values ($1, current_date, $2, $3, $4)
+     on conflict (client_id, day, query) do update set
        rank = excluded.rank, top = excluded.top, checked_at = now()`,
-    [f.q, f.rank, f.top.join(" / ")],
+    [CLIENT_ID, f.q, f.rank, f.top.join(" / ")],
   );
 }
 const { rows } = await pool.query(

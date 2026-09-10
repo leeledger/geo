@@ -1,7 +1,7 @@
 import { isAdmin } from "@/lib/admin-auth";
 import { redirect } from "next/navigation";
 
-import { readOps } from "@/lib/ops";
+import { readOps, listClients } from "@/lib/ops";
 import Live from "./Live";
 import Flow, { type NodeState } from "./Flow";
 import Link from "next/link";
@@ -230,6 +230,22 @@ const CSS = `
 .ops-orch-t{fill:#7BE8D6;font-size:12px;font-weight:700;font-family:"IBM Plex Mono",monospace}
 .ops-note{color:var(--faint);font-size:11.5px}
 
+/* 고객사 줄 — 한 곳이면 이름표, 여러 곳이면 탭 */
+.ops-clients{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin:16px 0 4px;
+  padding-bottom:13px;border-bottom:1px solid var(--line)}
+.ops-clients .lbl{font-size:11px;letter-spacing:.14em;color:var(--faint);
+  text-transform:uppercase;margin-right:2px}
+.ops-clients .chip{display:inline-flex;align-items:baseline;gap:7px;
+  background:var(--sunk);border:1px solid var(--line);border-radius:999px;
+  padding:6px 14px;font-size:13.5px;font-weight:700;color:var(--mut);
+  text-decoration:none;word-break:keep-all}
+.ops-clients .chip.on{border-color:var(--cool);color:var(--ink);background:rgba(61,214,196,.08)}
+.ops-clients .chip i{font-style:normal;font-size:10.5px;font-weight:600;color:var(--faint)}
+.ops-clients .chip.on i{color:var(--cool)}
+.ops-clients .meta{margin-left:auto;font-size:11.5px;color:var(--faint);
+  font-family:"IBM Plex Mono",monospace}
+@media(max-width:640px){.ops-clients .meta{margin-left:0;width:100%}}
+
 /* 고리 위 글자. 동사를 크게 — 부서 이름이 아니라 「무엇을 하는 자리」로 읽혀야 한다 */
 .fl-verb{fill:var(--ink);font-size:15.5px;font-weight:800;letter-spacing:-.02em}
 .fl-sub{fill:var(--mut);font-size:12px;font-family:"IBM Plex Mono",monospace}
@@ -278,11 +294,20 @@ const fmtDay = (s: string | null) =>
 
 export default async function OpsPage({
   searchParams,
-}: { searchParams: Promise<{ key?: string }> }) {
-  const { key } = await searchParams;
+}: { searchParams: Promise<{ key?: string; c?: string }> }) {
+  const { key, c: want } = await searchParams;
   if (!(await isAdmin(key))) redirect("/admin/login?to=" + encodeURIComponent(HERE));
 
-  const [d, inq] = await Promise.all([readOps(), inquirySummary()]);
+  /**
+   * 고객사를 고른다.
+   *
+   * 지금은 한 곳이라 선택기가 안 보이지만, 두 곳이 되는 날 코드를 고칠 일이 없다.
+   * 주소에 ?c=슬러그 를 붙이면 그 고객사를 본다.
+   */
+  const clients = await listClients();
+  const client = clients.find((x) => x.slug === want) ?? clients[0] ?? null;
+
+  const [d, inq] = await Promise.all([readOps(client ?? undefined), inquirySummary()]);
   const im = inq[0];
   // 「최고 커버리지」는 듣기 좋은 숫자였다. 실제로 손봐야 하는 건 제일 낮은 쪽이다 —
   // google 95% 옆에 openai 15% 가 있으면 문제는 openai 다.
@@ -367,6 +392,28 @@ export default async function OpsPage({
           </div>
           <Live slots={SLOTS} />
         </div>
+
+        {/*
+          고객사 줄. 지금은 한 곳이라 이름만 보이고, 늘어나면 탭이 된다.
+          한 곳일 때 「고객사」라는 자리를 만들어 두는 게 싸다 —
+          두 곳이 되고 나서 만들면 화면 전체를 다시 짜야 한다.
+        */}
+        {client && (
+          <div className="ops-clients">
+            <span className="lbl">고객사</span>
+            {clients.map((x) => (
+              <Link key={x.slug} href={`/admin/ops?c=${x.slug}`}
+                    className={`chip ${x.slug === client.slug ? "on" : ""}`}>
+                {x.name}
+                <i>{x.status === "active" ? "진행중" : x.status}</i>
+              </Link>
+            ))}
+            <span className="meta">
+              {client.domain} · 착수 {client.startedOn.slice(5).replace("-", ".")}
+              {client.baselineScore !== null && ` · 착수 진단 ${client.baselineScore}점`}
+            </span>
+          </div>
+        )}
 
         {!d.ok && <div className="err">데이터를 못 읽었습니다 — {d.err}</div>}
 

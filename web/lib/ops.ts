@@ -87,7 +87,70 @@ function rivalTally(rows: { engine: string; query: string; hit: boolean }[]) {
   };
 }
 
-export async function readOps(): Promise<Ops> {
+
+/**
+ * 고객사.
+ *
+ * 지금은 로봇&코딩학원 한 곳이다. 대시보드가 여러 곳을 볼 수 있어야 하므로
+ * 「어느 고객사」를 명시적으로 들고 다닌다.
+ *
+ * alias 는 대외 공개용 가림 이름이다. 사례로 쓸 때 회사명 대신 이걸 쓴다 —
+ * 지점명·업종·규모가 조합되면 특정되므로 alias 도 뭉뚱그린 말이어야 한다.
+ */
+export type Client = {
+  id: number;
+  slug: string;
+  name: string;
+  alias: string | null;
+  domain: string | null;
+  status: string;
+  startedOn: string;
+  schema: string;
+  /** 착수 시점 사이트 진단 점수. 「고치기 전이 몇 점이었나」를 기억으로 말하지 않는다. */
+  baselineScore: number | null;
+  baselineOn: string | null;
+};
+
+export async function listClients(): Promise<Client[]> {
+  if (!process.env.DATABASE_URL) return [];
+  try {
+    const { rows } = await pool().query(
+      `select id, slug, name, alias, domain, status,
+              started_on::text as started_on, schema_name,
+              baseline_score, baseline_on::text as baseline_on
+         from geo.clients
+        where status <> 'ended'
+        order by started_on, id`,
+    );
+    return rows.map((r) => ({
+      id: r.id, slug: r.slug, name: r.name, alias: r.alias,
+      domain: r.domain, status: r.status,
+      startedOn: r.started_on, schema: r.schema_name,
+      baselineScore: r.baseline_score ?? null,
+      baselineOn: r.baseline_on ?? null,
+    }));
+  } catch {
+    // 표가 아직 없으면 첫 고객사 하나로 친다. 화면이 빈 채로 뜨는 것보다 낫다.
+    return [{
+      id: 1, slug: "robotncoding", name: "로봇&코딩학원",
+      alias: "수도권의 코딩·로봇 교육 학원", domain: "robotncoding.com",
+      status: "active", startedOn: "2026-09-05", schema: "academy",
+      baselineScore: 83, baselineOn: "2026-09-05",
+    }];
+  }
+}
+
+/**
+ * 고객사 하나의 운영 현황.
+ *
+ * 지금은 고객사가 한 곳이지만 두 곳이 되는 순간을 대비해 client 를 받는다.
+ * 한 곳일 때 갈라 두는 게 싸다 — 두 곳이 되고 나서 가르려면 「어느 줄이 누구
+ * 것인지」부터 알아내야 한다.
+ *
+ * 측정 데이터가 어느 스키마에 있는지는 geo.clients.schema_name 이 안다.
+ * 첫 고객사는 academy 에 있고, 새 고객사는 각자 스키마를 갖거나 같이 써도 된다.
+ */
+export async function readOps(client?: Client): Promise<Ops> {
   const empty: Ops = {
     ok: false,
     posts: { published: 0, draft: 0, lastAt: null, sinceDays: null },
@@ -106,53 +169,60 @@ export async function readOps(): Promise<Ops> {
     const p = pool();
     const q = async (s: string) => (await p.query(s)).rows;
 
+    // 고객사를 안 넘기면 첫 고객사를 쓴다. 화면 하나짜리 호출을 안 깨뜨린다.
+    const c = client ?? (await listClients())[0];
+    if (!c) return { ...empty, err: "고객사가 없습니다. scripts/setup-clients.mjs 를 돌리세요." };
+    const S = c.schema;              // 측정 데이터가 있는 스키마
+    const ME = `client_id = ${c.id}`; // 이 고객사 줄만
+
     const [post] = await q(`
       select count(*) filter (where published)::int pub,
              count(*) filter (where not published)::int draft,
              max(published_at) last
-        from academy.posts`);
+        from ${S}.posts where ${ME}`);
 
     const [c24] = await q(`
-      select count(*)::int n from academy.crawl_hits
-       where seen_at > now() - interval '24 hours'`);
+      select count(*)::int n from ${S}.crawl_hits
+       where ${ME} and seen_at > now() - interval '24 hours'`);
 
     const vendors = await q(`
       select vendor, pages_crawled::int pages, pages_total::int total,
              coverage_pct::float pct
-        from academy.coverage_by_vendor order by pages_crawled desc limit 8`);
+        from ${S}.coverage_by_vendor order by pages_crawled desc limit 8`);
 
     const vhits = await q(`
-      select vendor, count(*)::int hits from academy.crawl_hits group by vendor`);
+      select vendor, count(*)::int hits from ${S}.crawl_hits where ${ME} group by vendor`);
     const hitBy = new Map(vhits.map((r) => [r.vendor, r.hits]));
 
-    const serpDay = await q(`select max(day)::text d from academy.serp_checks`);
+    const serpDay = await q(`select max(day)::text d from ${S}.serp_checks where ${ME}`);
     const serp = serpDay[0]?.d
-      ? await q(`select engine, query, rank, hit from academy.serp_checks
-                  where day = '${serpDay[0].d}'`)
+      ? await q(`select engine, query, rank, hit from ${S}.serp_checks
+                  where ${ME} and day = '${serpDay[0].d}'`)
       : [];
 
     const place = await q(`
-      select query, rank::int from academy.place_checks
-       where day = (select max(day) from academy.place_checks) and rank is not null
+      select query, rank::int from ${S}.place_checks
+       where ${ME} and rank is not null
+         and day = (select max(day) from ${S}.place_checks where ${ME})
        order by rank`);
 
     const recent = await q(`
-      select title, slug, published_at::text at from academy.posts
-       where published order by published_at desc limit 5`);
+      select title, slug, published_at::text at from ${S}.posts
+       where ${ME} and published order by published_at desc limit 5`);
 
     // day 를 그냥 별칭으로 쓰면 "syntax error at or near day" 가 난다.
     // 예약어라 AS 를 붙이거나 다른 이름을 써야 한다.
     const firstSeen = await q(`
-      select engine, query, min(day)::text as first_day from academy.serp_checks
-       where hit group by engine, query order by min(day) limit 6`);
+      select engine, query, min(day)::text as first_day from ${S}.serp_checks
+       where ${ME} and hit group by engine, query order by min(day) limit 6`);
 
     const [more] = await q(`
       select
-        (select count(distinct day)::int from academy.serp_checks) as days_measured,
-        (select count(*)::int from academy.posts
-          where published and body like '%![%') as with_images,
-        (select count(*)::int from academy.crawl_hits) as total_hits,
-        (select count(distinct vendor)::int from academy.crawl_hits) as vendor_count`);
+        (select count(distinct day)::int from ${S}.serp_checks where ${ME}) as days_measured,
+        (select count(*)::int from ${S}.posts
+          where ${ME} and published and body like '%![%') as with_images,
+        (select count(*)::int from ${S}.crawl_hits where ${ME}) as total_hits,
+        (select count(distinct vendor)::int from ${S}.crawl_hits where ${ME}) as vendor_count`);
 
     return {
       ok: true,

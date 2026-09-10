@@ -29,3 +29,6 @@ next-env.d.ts
 
 # Vercel
 .vercel
+
+# 리드 백업 — 사람 연락처가 들어갈 수 있다. 저장소에 두지 않는다
+scratch-leads-backup.json
