@@ -94,6 +94,10 @@ probe/
 - **CSS `transform` 은 속성 하나.** 애니메이션이 `translateX(-50%)` 를 덮어쓴다
 - **한글은 `word-break: keep-all`** 이 없으면 단어 중간에서 끊긴다
 - **파일을 넘긴 것과 저장된 것은 다르다.** 업로드 후 화면을 다시 읽어 확인한다
+- **PowerShell 파이프가 BOM 과 줄바꿈을 값에 붙인다.** `"admin" | vercel env add` 하면
+  `﻿admin
+` 이 저장된다. `vercel env add` 는 그래도 "Added" 라고 답한다.
+  값은 파일로 넘기고(`vercel env add X production < file`), 넣은 뒤 `env pull` 로 길이를 확인한다
 - **gh 계정이 `codeis8520-ctrl` 로 되돌아간다.** 푸시 전 `gh auth switch --user leeledger`
 - 네이버 에디터에서 고쳐 쓸 때 본문 컴포넌트를 누르고 `Ctrl+A` **두 번**
 
