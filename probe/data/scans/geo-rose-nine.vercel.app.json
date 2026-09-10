@@ -1,0 +1,369 @@
+{
+  "origin": "https://geo-rose-nine.vercel.app",
+  "scanned_at": "2026-09-10T02:04:11.501Z",
+  "total": 75,
+  "grade": "보통",
+  "platform": {
+    "id": "nextjs",
+    "name": "Next.js",
+    "kind": "프레임워크",
+    "rootFile": "yes",
+    "schema": "yes",
+    "publish": "medium",
+    "owner": "개발팀",
+    "note": "기술적으로는 전부 가능합니다. 다만 배포 절차를 타므로 콘텐츠 발행 경로(CMS 연동 여부)를 확인하세요.",
+    "evidence": "/_next/static/"
+  },
+  "checks": {
+    "crawler": {
+      "score": 85,
+      "bots": [
+        {
+          "id": "OAI-SearchBot",
+          "label": "ChatGPT 검색",
+          "weight": 3,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "ChatGPT-User",
+          "label": "ChatGPT 사용자요청",
+          "weight": 3,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "PerplexityBot",
+          "label": "Perplexity",
+          "weight": 3,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "Perplexity-User",
+          "label": "Perplexity 사용자",
+          "weight": 2,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "ClaudeBot",
+          "label": "Claude",
+          "weight": 3,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "Googlebot",
+          "label": "구글 색인",
+          "weight": 3,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "Bingbot",
+          "label": "Bing/Copilot",
+          "weight": 2,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "Yeti",
+          "label": "네이버",
+          "weight": 2,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "GPTBot",
+          "label": "OpenAI 학습",
+          "weight": 1,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "Google-Extended",
+          "label": "Gemini 학습",
+          "weight": 1,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "CCBot",
+          "label": "Common Crawl",
+          "weight": 1,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        }
+      ],
+      "blocked": []
+    },
+    "llmstxt": {
+      "score": 75,
+      "exists": true,
+      "bytes": 1992,
+      "sections": 5,
+      "hasEntity": false
+    },
+    "sitemap": {
+      "score": 100,
+      "exists": true,
+      "urls": 7
+    },
+    "ssr": {
+      "score": 100,
+      "avgTextLen": 2741,
+      "textRatio": 0.0631,
+      "thinPages": 4,
+      "totalPages": 6
+    },
+    "schema": {
+      "score": 73,
+      "pagesWithLd": 5,
+      "totalPages": 6,
+      "types": [
+        "Organization",
+        "Service",
+        "OfferCatalog",
+        "Offer",
+        "FAQPage",
+        "Question",
+        "Answer",
+        "BreadcrumbList",
+        "ListItem"
+      ],
+      "matched": [
+        "Organization",
+        "FAQPage",
+        "BreadcrumbList"
+      ],
+      "invalid": 0
+    },
+    "chunk": {
+      "score": 30,
+      "paragraphs": 106,
+      "listItems": 50,
+      "inBand": 39,
+      "bandRate": 36.8,
+      "tooLong": 0,
+      "vagueSubjects": 8
+    },
+    "patterns": {
+      "score": 65,
+      "questionHeadings": 2,
+      "numericFacts": 135,
+      "pagesWithTable": 0,
+      "pagesWithList": 5,
+      "pagesWithMeta": 6
+    }
+  },
+  "pages": [
+    {
+      "url": "https://geo-rose-nine.vercel.app",
+      "ok": true,
+      "textLen": 6761,
+      "htmlLen": 60707,
+      "textRatio": 0.11137101158021316,
+      "ldCount": 1,
+      "ldInvalid": 0,
+      "types": [
+        "Organization",
+        "Service",
+        "OfferCatalog",
+        "Offer",
+        "FAQPage",
+        "Question",
+        "Answer"
+      ],
+      "paras": 43,
+      "items": 13,
+      "inBand": 19,
+      "tooLong": 0,
+      "headings": 16,
+      "qHeadings": 1,
+      "vague": 3,
+      "hasNumbers": 63,
+      "hasTable": false,
+      "hasList": true,
+      "lang": "ko",
+      "title": "Cited 사이티드 — AI 답변 인용 측정",
+      "desc": "AI 답변에 브랜드가 인용되는지 표본과 오차범위까지 붙여 측정합니다."
+    },
+    {
+      "url": "https://geo-rose-nine.vercel.app/",
+      "ok": true,
+      "textLen": 6761,
+      "htmlLen": 60707,
+      "textRatio": 0.11137101158021316,
+      "ldCount": 1,
+      "ldInvalid": 0,
+      "types": [
+        "Organization",
+        "Service",
+        "OfferCatalog",
+        "Offer",
+        "FAQPage",
+        "Question",
+        "Answer"
+      ],
+      "paras": 43,
+      "items": 13,
+      "inBand": 19,
+      "tooLong": 0,
+      "headings": 16,
+      "qHeadings": 1,
+      "vague": 3,
+      "hasNumbers": 63,
+      "hasTable": false,
+      "hasList": true,
+      "lang": "ko",
+      "title": "Cited 사이티드 — AI 답변 인용 측정",
+      "desc": "AI 답변에 브랜드가 인용되는지 표본과 오차범위까지 붙여 측정합니다."
+    },
+    {
+      "url": "https://geo-rose-nine.vercel.app/services",
+      "ok": true,
+      "textLen": 398,
+      "htmlLen": 13551,
+      "textRatio": 0.029370526160430965,
+      "ldCount": 0,
+      "ldInvalid": 0,
+      "types": [],
+      "paras": 4,
+      "items": 0,
+      "inBand": 0,
+      "tooLong": 0,
+      "headings": 5,
+      "qHeadings": 0,
+      "vague": 0,
+      "hasNumbers": 0,
+      "hasTable": false,
+      "hasList": false,
+      "lang": "ko",
+      "title": "서비스 — Cited 사이티드",
+      "desc": "AI 답변 인용 측정, 기술 세팅, 외부 문서 진입, 사이트 구축. 하는 일과 하지 않는 일을 나눠 적었습니다."
+    },
+    {
+      "url": "https://geo-rose-nine.vercel.app/services/measure",
+      "ok": true,
+      "textLen": 817,
+      "htmlLen": 19703,
+      "textRatio": 0.041465766634522665,
+      "ldCount": 1,
+      "ldInvalid": 0,
+      "types": [
+        "Service",
+        "Organization",
+        "BreadcrumbList",
+        "ListItem",
+        "FAQPage",
+        "Question",
+        "Answer"
+      ],
+      "paras": 5,
+      "items": 8,
+      "inBand": 0,
+      "tooLong": 0,
+      "headings": 2,
+      "qHeadings": 0,
+      "vague": 1,
+      "hasNumbers": 3,
+      "hasTable": false,
+      "hasList": true,
+      "lang": "ko",
+      "title": "측정 — Cited 사이티드",
+      "desc": "지금 몇 번에 한 번 불리는지 셉니다."
+    },
+    {
+      "url": "https://geo-rose-nine.vercel.app/services/technical",
+      "ok": true,
+      "textLen": 900,
+      "htmlLen": 20602,
+      "textRatio": 0.04368507911853218,
+      "ldCount": 1,
+      "ldInvalid": 0,
+      "types": [
+        "Service",
+        "Organization",
+        "BreadcrumbList",
+        "ListItem",
+        "FAQPage",
+        "Question",
+        "Answer"
+      ],
+      "paras": 6,
+      "items": 8,
+      "inBand": 1,
+      "tooLong": 0,
+      "headings": 2,
+      "qHeadings": 0,
+      "vague": 0,
+      "hasNumbers": 4,
+      "hasTable": false,
+      "hasList": true,
+      "lang": "ko",
+      "title": "기술 세팅 — Cited 사이티드",
+      "desc": "AI가 읽을 수 있는 상태로 만듭니다."
+    },
+    {
+      "url": "https://geo-rose-nine.vercel.app/services/placement",
+      "ok": true,
+      "textLen": 808,
+      "htmlLen": 19666,
+      "textRatio": 0.04108613851316994,
+      "ldCount": 1,
+      "ldInvalid": 0,
+      "types": [
+        "Service",
+        "Organization",
+        "BreadcrumbList",
+        "ListItem",
+        "FAQPage",
+        "Question",
+        "Answer"
+      ],
+      "paras": 5,
+      "items": 8,
+      "inBand": 0,
+      "tooLong": 0,
+      "headings": 2,
+      "qHeadings": 0,
+      "vague": 1,
+      "hasNumbers": 2,
+      "hasTable": false,
+      "hasList": true,
+      "lang": "ko",
+      "title": "외부 문서 — Cited 사이티드",
+      "desc": "AI가 참고하는 남의 글에 들어갑니다."
+    }
+  ],
+  "notes": [
+    {
+      "pri": 1,
+      "msg": "4/6 페이지가 JS 없이는 본문이 거의 없습니다. AI 크롤러도 같은 것을 봅니다 — 서버 렌더링(SSR)이 필요합니다"
+    },
+    {
+      "pri": 2,
+      "msg": "AI 크롤러가 * 규칙으로만 허용됩니다. User-agent 별로 명시하면 의도가 분명해집니다"
+    },
+    {
+      "pri": 2,
+      "msg": "\"우리는·저희는\" 같은 대명사 주어가 8회 나옵니다. AI가 문장만 떼어가면 주어가 사라집니다 — 브랜드명을 문장 안에 넣으세요"
+    },
+    {
+      "pri": 3,
+      "msg": "Next.js 감지 — 기술적으로는 전부 가능합니다. 다만 배포 절차를 타므로 콘텐츠 발행 경로(CMS 연동 여부)를 확인하세요."
+    }
+  ]
+}

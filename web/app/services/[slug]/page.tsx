@@ -24,8 +24,59 @@ export default async function ServicePage({ params }: Props) {
   const i = SERVICES.findIndex((x) => x.slug === slug);
   const next = SERVICES[(i + 1) % SERVICES.length];
 
+  /* 스키마가 홈에만 있어서 진단 점수가 36 이었다. 서비스 페이지에도 붙인다.
+     이 서비스가 답하는 고객 질문을 Question 으로 넣는다 — 그게 AI 가 잡는 자리다. */
+  const base = process.env.NEXT_PUBLIC_SITE_URL || "https://geo-rose-nine.vercel.app";
+  const schema = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Service",
+        "@id": `${base}/services/${s.slug}#service`,
+        name: s.name,
+        description: s.short,
+        url: `${base}/services/${s.slug}`,
+        areaServed: "KR",
+        provider: {
+          "@type": "Organization",
+          "@id": `${base}/#org`,
+          name: "Cited 사이티드",
+          url: base,
+        },
+      },
+      {
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          { "@type": "ListItem", position: 1, name: "Cited 사이티드", item: base },
+          { "@type": "ListItem", position: 2, name: "서비스", item: `${base}/services` },
+          { "@type": "ListItem", position: 3, name: s.name },
+        ],
+      },
+      {
+        "@type": "FAQPage",
+        "@id": `${base}/services/${s.slug}#faq`,
+        mainEntity: [
+          {
+            "@type": "Question",
+            name: s.question,
+            acceptedAnswer: { "@type": "Answer", text: s.lede },
+          },
+          ...s.does.map((d) => ({
+            "@type": "Question" as const,
+            name: d.t,
+            acceptedAnswer: { "@type": "Answer" as const, text: d.d },
+          })),
+        ],
+      },
+    ],
+  };
+
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+      />
       <SiteNav />
       <header className="hero simple">
         <div className="wrap">

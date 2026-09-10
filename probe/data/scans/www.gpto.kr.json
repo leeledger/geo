@@ -1,0 +1,384 @@
+{
+  "origin": "https://www.gpto.kr",
+  "scanned_at": "2026-09-10T01:56:00.769Z",
+  "total": 87,
+  "grade": "우수",
+  "platform": {
+    "id": "nextjs",
+    "name": "Next.js",
+    "kind": "프레임워크",
+    "rootFile": "yes",
+    "schema": "yes",
+    "publish": "medium",
+    "owner": "개발팀",
+    "note": "기술적으로는 전부 가능합니다. 다만 배포 절차를 타므로 콘텐츠 발행 경로(CMS 연동 여부)를 확인하세요.",
+    "evidence": "/_next/static/"
+  },
+  "checks": {
+    "crawler": {
+      "score": 98,
+      "bots": [
+        {
+          "id": "OAI-SearchBot",
+          "label": "ChatGPT 검색",
+          "weight": 3,
+          "allowed": true,
+          "basis": "명시 그룹",
+          "explicit": true
+        },
+        {
+          "id": "ChatGPT-User",
+          "label": "ChatGPT 사용자요청",
+          "weight": 3,
+          "allowed": true,
+          "basis": "명시 그룹",
+          "explicit": true
+        },
+        {
+          "id": "PerplexityBot",
+          "label": "Perplexity",
+          "weight": 3,
+          "allowed": true,
+          "basis": "명시 그룹",
+          "explicit": true
+        },
+        {
+          "id": "Perplexity-User",
+          "label": "Perplexity 사용자",
+          "weight": 2,
+          "allowed": true,
+          "basis": "명시 그룹",
+          "explicit": true
+        },
+        {
+          "id": "ClaudeBot",
+          "label": "Claude",
+          "weight": 3,
+          "allowed": true,
+          "basis": "명시 그룹",
+          "explicit": true
+        },
+        {
+          "id": "Googlebot",
+          "label": "구글 색인",
+          "weight": 3,
+          "allowed": true,
+          "basis": "명시 그룹",
+          "explicit": true
+        },
+        {
+          "id": "Bingbot",
+          "label": "Bing/Copilot",
+          "weight": 2,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "Yeti",
+          "label": "네이버",
+          "weight": 2,
+          "allowed": true,
+          "basis": "명시 그룹",
+          "explicit": true
+        },
+        {
+          "id": "GPTBot",
+          "label": "OpenAI 학습",
+          "weight": 1,
+          "allowed": true,
+          "basis": "명시 그룹",
+          "explicit": true
+        },
+        {
+          "id": "Google-Extended",
+          "label": "Gemini 학습",
+          "weight": 1,
+          "allowed": true,
+          "basis": "명시 그룹",
+          "explicit": true
+        },
+        {
+          "id": "CCBot",
+          "label": "Common Crawl",
+          "weight": 1,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        }
+      ],
+      "blocked": []
+    },
+    "llmstxt": {
+      "score": 80,
+      "exists": true,
+      "bytes": 10260,
+      "sections": 9,
+      "hasEntity": false
+    },
+    "sitemap": {
+      "score": 100,
+      "exists": true,
+      "urls": 68
+    },
+    "ssr": {
+      "score": 100,
+      "avgTextLen": 3638,
+      "textRatio": 0.0294,
+      "thinPages": 1,
+      "totalPages": 5
+    },
+    "schema": {
+      "score": 91,
+      "pagesWithLd": 5,
+      "totalPages": 5,
+      "types": [
+        "Organization",
+        "Country",
+        "Place",
+        "PostalAddress",
+        "ContactPoint",
+        "Person",
+        "EducationalOrganization",
+        "NewsArticle",
+        "WebSite",
+        "Service",
+        "BusinessAudience",
+        "Offer",
+        "UnitPriceSpecification",
+        "FAQPage",
+        "Question",
+        "Answer",
+        "BreadcrumbList",
+        "ListItem",
+        "Dataset",
+        "Book"
+      ],
+      "matched": [
+        "Organization",
+        "WebSite",
+        "FAQPage",
+        "BreadcrumbList"
+      ],
+      "invalid": 0
+    },
+    "chunk": {
+      "score": 44,
+      "paragraphs": 122,
+      "listItems": 78,
+      "inBand": 41,
+      "bandRate": 33.6,
+      "tooLong": 0,
+      "vagueSubjects": 0
+    },
+    "patterns": {
+      "score": 88,
+      "questionHeadings": 3,
+      "numericFacts": 266,
+      "pagesWithTable": 1,
+      "pagesWithList": 5,
+      "pagesWithMeta": 5
+    }
+  },
+  "pages": [
+    {
+      "url": "https://www.gpto.kr",
+      "ok": true,
+      "textLen": 10218,
+      "htmlLen": 261907,
+      "textRatio": 0.03901384842711344,
+      "ldCount": 4,
+      "ldInvalid": 0,
+      "types": [
+        "Organization",
+        "Country",
+        "Place",
+        "PostalAddress",
+        "ContactPoint",
+        "Person",
+        "EducationalOrganization",
+        "NewsArticle",
+        "WebSite",
+        "Service",
+        "BusinessAudience",
+        "Offer",
+        "UnitPriceSpecification",
+        "FAQPage",
+        "Question",
+        "Answer"
+      ],
+      "paras": 77,
+      "items": 43,
+      "inBand": 22,
+      "tooLong": 0,
+      "headings": 20,
+      "qHeadings": 1,
+      "vague": 0,
+      "hasNumbers": 155,
+      "hasTable": true,
+      "hasList": true,
+      "lang": "ko",
+      "title": "GPTO | AEO·GEO AI 답변 최적화 기술 엔진",
+      "desc": "GPTO는 ChatGPT, Claude, Gemini, Perplexity 등 주요 생성형 AI 답변에서 브랜드가 더 자주 언급되고 추천되도록 돕는 AEO/GEO 최적화 서비스입니다. 12개 AI 채널(글로벌 LLM 5 · 중국 LLM 5 · 검색 AI 요약 2)을 매주 모니터링하고, 미디어·리뷰·디렉토리 등 500+ 외부 채널에 브랜드를 설명하는 콘텐츠를 제작해 게재합니다."
+    },
+    {
+      "url": "https://www.gpto.kr/services/aeo-geo-optimization",
+      "ok": true,
+      "textLen": 3040,
+      "htmlLen": 93694,
+      "textRatio": 0.03244604777253613,
+      "ldCount": 5,
+      "ldInvalid": 0,
+      "types": [
+        "Organization",
+        "Country",
+        "Place",
+        "PostalAddress",
+        "ContactPoint",
+        "Person",
+        "EducationalOrganization",
+        "NewsArticle",
+        "WebSite",
+        "Service",
+        "BusinessAudience",
+        "Offer",
+        "UnitPriceSpecification",
+        "FAQPage",
+        "Question",
+        "Answer",
+        "BreadcrumbList",
+        "ListItem"
+      ],
+      "paras": 20,
+      "items": 24,
+      "inBand": 10,
+      "tooLong": 0,
+      "headings": 18,
+      "qHeadings": 0,
+      "vague": 0,
+      "hasNumbers": 32,
+      "hasTable": false,
+      "hasList": true,
+      "lang": "ko",
+      "title": "AEO/GEO 최적화 서비스 | GPTO",
+      "desc": "AEO/GEO 최적화 서비스는 사용자가 ChatGPT, Claude, Gemini, Perplexity 등 생성형 AI에 질문했을 때 브랜드가 답변에 언급되고 추천될 가능성을 높이는 작업입니다. GPTO는 목표 질문 설계, AI 답변 모니터링, 학습 콘텐츠 구축, 근거 데이터 최적화를 통해 브랜드의 AI 검색 가시성을 관리합니다."
+    },
+    {
+      "url": "https://www.gpto.kr/performance",
+      "ok": true,
+      "textLen": 1804,
+      "htmlLen": 74083,
+      "textRatio": 0.024351065696583563,
+      "ldCount": 4,
+      "ldInvalid": 0,
+      "types": [
+        "Organization",
+        "Country",
+        "Place",
+        "PostalAddress",
+        "ContactPoint",
+        "Person",
+        "EducationalOrganization",
+        "NewsArticle",
+        "WebSite",
+        "BreadcrumbList",
+        "ListItem",
+        "Dataset"
+      ],
+      "paras": 9,
+      "items": 4,
+      "inBand": 3,
+      "tooLong": 0,
+      "headings": 11,
+      "qHeadings": 1,
+      "vague": 0,
+      "hasNumbers": 63,
+      "hasTable": false,
+      "hasList": true,
+      "lang": "ko",
+      "title": "GPTO 성과 증명 · AI 브랜드 노출률 +15% (35.4% → 40.6%) | GPTO",
+      "desc": "GPTO 최적화 고객사의 AI 브랜드 노출률이 평균 35.4% → 40.6%로 +15% 증가했습니다. 22만 건 이상 모니터링 데이터, 3,141개 매칭쌍 기준의 산업별·AI 모델별·언어별 성과를 Matched Cohort 방법론과 함께 공개합니다."
+    },
+    {
+      "url": "https://www.gpto.kr/about",
+      "ok": true,
+      "textLen": 2109,
+      "htmlLen": 68699,
+      "textRatio": 0.03069913681421855,
+      "ldCount": 6,
+      "ldInvalid": 0,
+      "types": [
+        "Organization",
+        "Country",
+        "Place",
+        "PostalAddress",
+        "ContactPoint",
+        "Person",
+        "EducationalOrganization",
+        "NewsArticle",
+        "WebSite",
+        "Book",
+        "BreadcrumbList",
+        "ListItem"
+      ],
+      "paras": 11,
+      "items": 6,
+      "inBand": 5,
+      "tooLong": 0,
+      "headings": 10,
+      "qHeadings": 1,
+      "vague": 0,
+      "hasNumbers": 7,
+      "hasTable": false,
+      "hasList": true,
+      "lang": "ko",
+      "title": "GPTO 소개 · AEO/GEO 산업 정의자 | GPTO",
+      "desc": "GPTO는 2025년 3월, AEO·GEO라는 용어가 정립되기 전부터 이 산업을 정의해 온 한국 최초의 AI 답변 최적화 기술 엔진입니다. 대표 이재홍, 도서 「AEO·GEO 생존전략」, Primer Batch 27, Hashed Ventures 투자, 2026 우수기업대상까지 검증 이력을 정리합니다."
+    },
+    {
+      "url": "https://www.gpto.kr/contact",
+      "ok": true,
+      "textLen": 1018,
+      "htmlLen": 50170,
+      "textRatio": 0.02029101056408212,
+      "ldCount": 3,
+      "ldInvalid": 0,
+      "types": [
+        "Organization",
+        "Country",
+        "Place",
+        "PostalAddress",
+        "ContactPoint",
+        "Person",
+        "EducationalOrganization",
+        "NewsArticle",
+        "WebSite",
+        "BreadcrumbList",
+        "ListItem"
+      ],
+      "paras": 5,
+      "items": 1,
+      "inBand": 1,
+      "tooLong": 0,
+      "headings": 5,
+      "qHeadings": 0,
+      "vague": 0,
+      "hasNumbers": 9,
+      "hasTable": false,
+      "hasList": true,
+      "lang": "ko",
+      "title": "상담 문의 | GPTO",
+      "desc": "GPTO는 ChatGPT, Claude, Gemini, Perplexity 답변에서 브랜드가 언급되도록 만드는 AEO/GEO 최적화 서비스입니다. 회사명·산업·예산·시작 시점·AI 답변에 나오고 싶은 질문까지 폼으로 보내주시면 24시간 안에 답변드립니다."
+    }
+  ],
+  "notes": [
+    {
+      "pri": 2,
+      "msg": "문단의 34%만 인용하기 좋은 길이입니다. 한 문단 = 한 주제, 40~80단어로 쪼개세요"
+    },
+    {
+      "pri": 3,
+      "msg": "Next.js 감지 — 기술적으로는 전부 가능합니다. 다만 배포 절차를 타므로 콘텐츠 발행 경로(CMS 연동 여부)를 확인하세요."
+    }
+  ]
+}

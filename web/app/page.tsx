@@ -12,9 +12,70 @@ const mailto = (kind: string) =>
   `mailto:${MAIL}?subject=${encodeURIComponent(`[Cited] ${kind} 신청`)}` +
   `&body=${encodeURIComponent(`홈페이지 주소: \n회사명: \n담당자: \n연락처: \n\n요청: ${kind}\n`)}`;
 
+/**
+ * 구조화 데이터가 아예 없었다. AI 는 이걸 읽고 "이 회사가 뭐 하는 곳인지"를 잡는다.
+ * FAQ 는 화면에 있는 질문 그대로다 — 화면과 다른 걸 넣으면 신뢰가 깎인다.
+ */
+const BASE = process.env.NEXT_PUBLIC_SITE_URL || "https://geo-rose-nine.vercel.app";
+
+const FAQ: [string, string][] = [
+  ["이거 직접 하면 안 되나요?",
+   "됩니다. 다만 재는 일이 반복이라 손이 많이 갑니다. 같은 질문을 여러 번 던지고 표본과 오차범위를 기록해야 근거가 됩니다."],
+  ["성과를 보장하나요?",
+   "보장하지 않습니다. 안 나왔으면 안 나왔다고 기록에 적습니다. 저희가 파는 것은 결과가 아니라 측정과 실행입니다."],
+  ["왜 오차범위를 보여주나요? 숫자가 흐려 보이는데요.",
+   "AI 는 같은 질문에도 매번 다르게 답합니다. 몇 번 물어봤는지 안 적힌 숫자는 근거가 못 됩니다."],
+  ["기존 SEO 대행사와 겹치나요?",
+   "겹치는 부분이 있습니다. 다만 AI 가 인용하는 문서의 대부분은 자사 사이트가 아니라 남의 문서입니다. 그 지면에 들어가는 일이 다릅니다."],
+];
+
+const SCHEMA = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": `${BASE}/#org`,
+      name: "Cited 사이티드",
+      url: BASE,
+      description:
+        "AI 답변에 브랜드가 인용되는지 표본과 오차범위까지 붙여 측정하고, 인용되게 만드는 마케팅 대행사입니다.",
+      areaServed: "KR",
+      knowsAbout: ["AEO", "GEO", "AI 검색 최적화", "생성형 엔진 최적화", "AI 인용률 측정"],
+    },
+    {
+      "@type": "Service",
+      "@id": `${BASE}/#service`,
+      name: "AI 답변 인용 측정 및 최적화",
+      provider: { "@id": `${BASE}/#org` },
+      areaServed: "KR",
+      hasOfferCatalog: {
+        "@type": "OfferCatalog",
+        name: "서비스",
+        itemListElement: SERVICES.map((s) => ({
+          "@type": "Offer",
+          itemOffered: { "@type": "Service", name: s.name, description: s.short, url: `${BASE}/services/${s.slug}` },
+        })),
+      },
+    },
+    {
+      "@type": "FAQPage",
+      "@id": `${BASE}/#faq`,
+      mainEntity: FAQ.map(([q, a]) => ({
+        "@type": "Question",
+        name: q,
+        acceptedAnswer: { "@type": "Answer", text: a },
+      })),
+    },
+  ],
+};
+
 export default function Home() {
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(SCHEMA) }}
+      />
       <Reveal />
       <SiteNav />
 

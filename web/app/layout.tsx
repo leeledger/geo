@@ -4,7 +4,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Cited 사이티드 — AI 답변 인용 측정",
   description:
-    "AI 답변에 브랜드가 인용되는지 표본과 오차범위까지 붙여 측정합니다. 원인이 사이트인지 남의 문서인지 가려냅니다.",
+    "AI 답변에 브랜드가 인용되는지 표본과 오차범위까지 붙여 측정합니다.",
   robots: process.env.NEXT_PUBLIC_ALLOW_INDEX === "true" ? undefined : { index: false, follow: false },
   openGraph: {
     title: "Cited 사이티드 — AI 답변 인용 측정",
