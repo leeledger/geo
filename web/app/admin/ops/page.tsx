@@ -1,5 +1,6 @@
 import { readOps } from "@/lib/ops";
 import Live from "./Live";
+import Flow, { type NodeState } from "./Flow";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -136,6 +137,44 @@ const CSS = `
 .ops .bar i{display:block;height:100%;background:var(--cool)}
 .ops .err{background:#1E1416;border:1px solid #3D2A2C;border-radius:12px;padding:16px 20px;
   color:#D2705F;font-size:13.5px;margin-top:14px}
+.ops-flow{background:var(--card);border:1px solid var(--line);border-radius:16px;
+  padding:16px 16px 6px;margin-top:14px}
+.ops-flow svg{width:100%;height:auto;display:block}
+.ops-nl{fill:var(--ink);font-size:16px;font-weight:800;letter-spacing:-.02em}
+.ops-ns{fill:var(--mut);font-size:12px;font-family:"IBM Plex Mono",monospace}
+.ops-el{fill:var(--faint);font-size:11.5px;font-family:"IBM Plex Mono",monospace;letter-spacing:.04em}
+.ops-tier{fill:var(--ink2);font-size:14px;font-weight:800;letter-spacing:-.02em}
+.ops-live-t{fill:var(--ok);font-size:12px;font-weight:700;font-family:"IBM Plex Mono",monospace}
+.ops-orch{fill:var(--ink);font-size:15px;font-weight:900;letter-spacing:-.02em}
+.ops-orch-t{fill:#7BE8D6;font-size:12px;font-weight:700;font-family:"IBM Plex Mono",monospace}
+.ops-note{color:var(--faint);font-size:11.5px}
+
+/* 24시간 띠 — 빈 시간이 있는지 눈으로 보이게 한다 */
+.ops-band{padding:2px 4px 30px}
+.ops-band-h{display:flex;justify-content:space-between;align-items:baseline;
+  font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--faint);
+  letter-spacing:.12em;margin-bottom:9px}
+.ops-band-note{display:flex;gap:14px;align-items:baseline;letter-spacing:0}
+.ops-band-note .live{color:var(--ok);font-weight:700}
+.ops-band-note .idle{color:var(--faint)}
+.ops-band-note .nx{color:var(--mut)}
+.ops-band-track{position:relative;height:34px;background:var(--sunk);
+  border:1px solid var(--line);border-radius:9px}
+.ops-band-track .tick{position:absolute;top:0;bottom:0;width:1px;background:var(--line)}
+.ops-band-track .tick span{position:absolute;top:38px;left:-5px;font-size:10px;
+  color:var(--faint);font-family:"IBM Plex Mono",monospace}
+.ops-band-track .mk{position:absolute;top:7px;width:7px;height:20px;border-radius:3px;
+  transform:translateX(-3.5px);opacity:.9}
+.ops-band-track .mk.auto{outline:1.5px solid rgba(61,214,160,.55);outline-offset:1px}
+.ops-band-track .nowline{position:absolute;top:-4px;bottom:-4px;width:2px;background:#fff;
+  box-shadow:0 0 10px rgba(255,255,255,.6);border-radius:1px}
+.ops-legend{display:flex;flex-wrap:wrap;gap:16px;align-items:center;padding:12px 12px 10px;
+  font-size:12px;color:var(--mut);border-top:1px solid var(--soft);margin-top:6px}
+.ops-legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;
+  vertical-align:middle}
+.ops-cy{margin-left:auto;font-weight:700;padding:4px 11px;border-radius:6px}
+.ops-cy.ok{color:var(--ok);background:rgba(61,214,160,.1)}
+.ops-cy.bad{color:var(--crit);background:rgba(210,112,95,.12)}
 @media(max-width:640px){
   .ops-slot{grid-template-columns:70px 1fr;row-gap:5px}
   .ops-slot .badge,.ops-slot .need{justify-self:start}
@@ -161,6 +200,49 @@ export default async function OpsPage({
 
   const d = await readOps();
   const covLead = d.crawl.vendors[0];
+
+  /* 노드 상태는 실제 숫자에서 나온다. 색만 예쁘게 칠하면 대시보드가 아니라 그림이다. */
+  const since = d.posts.sinceDays;
+  const crawling = d.crawl.last24h > 0;
+  const measuredToday = d.serp.day
+    ? new Date(d.serp.day).toDateString() === new Date().toDateString()
+    : false;
+  const cycleOk = crawling && d.serp.hits.length > 0;
+
+  const FLOW_NODES: NodeState[] = [
+    {
+      id: "content", label: "콘텐츠", state: since === null ? "stop" : since <= 7 ? "run" : "wait",
+      sub: since === null ? "기록 없음" : `${since}일 전 발행`,
+    },
+    {
+      id: "deliver", label: "유통", state: d.posts.published > 0 ? "run" : "idle",
+      sub: `${d.posts.published}편 내보냄`,
+    },
+    {
+      id: "outside", label: "바깥", state: "run",
+      sub: "사이트·네이버·구글",
+    },
+    {
+      id: "crawler", label: "크롤러", state: crawling ? "run" : "stop",
+      sub: `24시간 ${d.crawl.last24h}회`,
+    },
+    {
+      id: "measure", label: "측정", state: measuredToday ? "run" : "wait",
+      sub: d.serp.day ? `${fmtDay(d.serp.day)} 측정` : "미측정",
+    },
+    {
+      id: "ops", label: "운영", state: "run",
+      sub: "6시간마다 점검",
+    },
+    {
+      id: "human", label: "사람", state: "wait",
+      sub: "로그인·촬영·상담",
+    },
+    {
+      id: "db", label: "기록", state: "run",
+      sub: `노출 ${d.serp.hits.length}건`,
+    },
+  ];
 
   return (
     <div className="ops">
@@ -199,6 +281,13 @@ export default async function OpsPage({
             <div className="k">플레이스 최고 · {d.place[0]?.query ?? "미측정"}</div>
           </div>
         </div>
+
+        <h2>업무가 흐르는 길</h2>
+        <p className="sub">
+          이 일은 고리입니다. 쓰고 → 내보내고 → 크롤러가 읽어 가고 → 그걸 재고 →
+          다음에 뭘 쓸지 정합니다. 어디서 끊겼는지 보이면 손을 쓸 수 있습니다.
+        </p>
+        <Flow nodes={FLOW_NODES} slots={SLOTS} cycleOk={cycleOk} />
 
         <h2>하루 시간표</h2>
         <p className="sub">
