@@ -9,6 +9,12 @@ import { inquirySummary } from "@/lib/inquiries";
 /** 로그인 뒤 돌아올 자리 */
 const HERE = "/admin/ops";
 
+/** 고리 위 자리의 사람 말 이름. 막힌 곳을 문장으로 적을 때 쓴다. */
+const RING_LABEL: Record<string, string> = {
+  content: "쓴다", deliver: "내보낸다", crawler: "읽혀진다",
+  measure: "잰다", next: "다음을 정한다",
+};
+
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
@@ -224,6 +230,15 @@ const CSS = `
 .ops-orch-t{fill:#7BE8D6;font-size:12px;font-weight:700;font-family:"IBM Plex Mono",monospace}
 .ops-note{color:var(--faint);font-size:11.5px}
 
+/* 고리 위 글자. 동사를 크게 — 부서 이름이 아니라 「무엇을 하는 자리」로 읽혀야 한다 */
+.fl-verb{fill:var(--ink);font-size:15.5px;font-weight:800;letter-spacing:-.02em}
+.fl-sub{fill:var(--mut);font-size:12px;font-family:"IBM Plex Mono",monospace}
+.fl-sub.dim{fill:var(--faint);font-size:11px}
+.fl-mid{fill:var(--ink);font-size:14.5px;font-weight:900;letter-spacing:-.02em}
+.fl-step{fill:var(--faint);font-size:10.5px;font-weight:700;font-family:"IBM Plex Mono",monospace}
+.fl-live{fill:var(--ok);font-size:11.5px;font-weight:700;font-family:"IBM Plex Mono",monospace}
+.fl-block{fill:var(--warn);font-size:11.5px;font-weight:700;font-family:"IBM Plex Mono",monospace}
+
 /* 24시간 띠 — 빈 시간이 있는지 눈으로 보이게 한다 */
 .ops-band{padding:2px 4px 30px}
 .ops-band-h{display:flex;justify-content:space-between;align-items:baseline;
@@ -283,7 +298,23 @@ export default async function OpsPage({
   const measuredToday = d.serp.day
     ? new Date(d.serp.day).toDateString() === new Date().toDateString()
     : false;
-  const cycleOk = crawling && d.serp.rivalWon > 0;
+  /**
+   * 고리가 어디서 막혔나.
+   *
+   * 앞 단계가 막히면 뒤는 볼 것도 없으므로 순서대로 본다.
+   * 「고리가 끊겼습니다」만 적어 두면 어디를 손봐야 하는지 알 수 없다.
+   */
+  const blocked: { at: string; why: string } | null =
+    since === null || since > 10
+      ? { at: "content", why: `발행이 ${since ?? "?"}일째 끊겼습니다` }
+      : !crawling
+      ? { at: "crawler", why: "36시간 동안 크롤러가 안 왔습니다" }
+      : !measuredToday
+      ? { at: "measure", why: "오늘 노출을 아직 안 쟀습니다" }
+      : d.serp.rivalWon === 0
+      ? { at: "next", why: `경쟁 검색어에서 아직 0/${d.serp.rivalTotal}입니다` }
+      : null;
+  const cycleOk = !blocked;
 
   const FLOW_NODES: NodeState[] = [
     {
@@ -309,6 +340,11 @@ export default async function OpsPage({
     {
       id: "ops", label: "운영", state: "run",
       sub: "3시간마다 점검",
+    },
+    {
+      id: "next", label: "다음을 정한다",
+      state: d.serp.rivalWon > 0 ? "run" : "wait",
+      sub: `경쟁 ${d.serp.rivalWon}/${d.serp.rivalTotal}`,
     },
     {
       id: "human", label: "사람", state: "wait",
@@ -363,12 +399,18 @@ export default async function OpsPage({
           </div>
         </div>
 
-        <h2>업무가 흐르는 길</h2>
+        <h2>업무가 도는 고리</h2>
         <p className="sub">
-          이 일은 고리입니다. 쓰고 → 내보내고 → 크롤러가 읽어 가고 → 그걸 재고 →
-          다음에 뭘 쓸지 정합니다. 어디서 끊겼는지 보이면 손을 쓸 수 있습니다.
+          이 일은 한 바퀴 돌아 제자리로 옵니다. <b>쓰고 → 내보내고 → 크롤러가 읽어 가고 →
+          그걸 재고 → 잰 결과로 다음에 뭘 쓸지 정합니다.</b> 그래서 고리입니다.
+          {" "}한 자리가 막히면 뒤가 전부 멈추므로, 막힌 자리에 일감이 쌓이게 그렸습니다.
+          {blocked && (
+            <b style={{ color: "var(--warn)" }}>
+              {" "}지금은 「{RING_LABEL[blocked.at] ?? blocked.at}」에서 막혀 있습니다 — {blocked.why}.
+            </b>
+          )}
         </p>
-        <Flow nodes={FLOW_NODES} slots={SLOTS} cycleOk={cycleOk} />
+        <Flow nodes={FLOW_NODES} slots={SLOTS} cycleOk={cycleOk} blocked={blocked} />
 
         <h2>하루 시간표</h2>
         <p className="sub">
