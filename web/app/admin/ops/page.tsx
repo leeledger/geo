@@ -246,6 +246,8 @@ const CSS = `
 .ops-clients .chip.on i{color:var(--cool)}
 .ops-clients .meta{margin-left:auto;font-size:11.5px;color:var(--faint);
   font-family:"IBM Plex Mono",monospace}
+.ops-clients .warn2{width:100%;font-size:12.5px;color:var(--warn);font-weight:700;
+  word-break:keep-all;margin-top:2px}
 @media(max-width:640px){.ops-clients .meta{margin-left:0;width:100%}}
 
 /* 고리 위 글자. 동사를 크게 — 부서 이름이 아니라 「무엇을 하는 자리」로 읽혀야 한다 */
@@ -424,13 +426,22 @@ export default async function OpsPage({
               <Link key={x.slug} href={`/admin/ops?c=${x.slug}`}
                     className={`chip ${x.slug === client.slug ? "on" : ""}`}>
                 {x.name}
-                <i>{x.status === "active" ? "진행중" : x.status}</i>
+                <i>{x.relation === "자사" ? "자사" : "외부"}</i>
               </Link>
             ))}
             <span className="meta">
               {client.domain} · 착수 {client.startedOn.slice(5).replace("-", ".")}
               {client.baselineScore !== null && ` · 착수 진단 ${client.baselineScore}점`}
             </span>
+            {/*
+              자사만 있으면 그건 자가 실험이다. 화면이 「고객사 2곳」처럼
+              보이면 안 된다 — 영업에서 쓸 수 있는 건 남의 회사 사례뿐이다.
+            */}
+            {clients.every((x) => x.relation === "자사") && (
+              <span className="warn2">
+                전부 자사입니다. 외부 고객 0곳 — 지금 숫자는 자가 실험 기록입니다.
+              </span>
+            )}
           </div>
         )}
 

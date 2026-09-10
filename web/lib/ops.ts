@@ -109,6 +109,14 @@ export type Client = {
   /** 착수 시점 사이트 진단 점수. 「고치기 전이 몇 점이었나」를 기억으로 말하지 않는다. */
   baselineScore: number | null;
   baselineOn: string | null;
+  /**
+   * 자사 · 외부.
+   *
+   * 지금 두 곳 다 원장님 소유다. 그건 레퍼런스가 아니라 자가 실험이다.
+   * 「고객사 2곳」이라고 세면 좋아 보이는 숫자를 만드는 것이다 —
+   * 우리가 남에게 하지 말라고 하는 바로 그 짓이다.
+   */
+  relation: string;
 };
 
 export async function listClients(): Promise<Client[]> {
@@ -117,7 +125,7 @@ export async function listClients(): Promise<Client[]> {
     const { rows } = await pool().query(
       `select id, slug, name, alias, domain, status,
               started_on::text as started_on, schema_name,
-              baseline_score, baseline_on::text as baseline_on
+              baseline_score, baseline_on::text as baseline_on, relation
          from geo.clients
         where status <> 'ended'
         order by started_on, id`,
@@ -128,6 +136,7 @@ export async function listClients(): Promise<Client[]> {
       startedOn: r.started_on, schema: r.schema_name,
       baselineScore: r.baseline_score ?? null,
       baselineOn: r.baseline_on ?? null,
+      relation: r.relation ?? "외부",
     }));
   } catch {
     // 표가 아직 없으면 첫 고객사 하나로 친다. 화면이 빈 채로 뜨는 것보다 낫다.
@@ -135,7 +144,7 @@ export async function listClients(): Promise<Client[]> {
       id: 1, slug: "robotncoding", name: "로봇&코딩학원",
       alias: "수도권의 코딩·로봇 교육 학원", domain: "robotncoding.com",
       status: "active", startedOn: "2026-09-05", schema: "academy",
-      baselineScore: 83, baselineOn: "2026-09-05",
+      baselineScore: 83, baselineOn: "2026-09-05", relation: "자사",
     }];
   }
 }
