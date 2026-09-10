@@ -32,7 +32,22 @@ for (const l of fs.readFileSync(new URL("../academy/.env.local", import.meta.url
  * 「마이로봇앤코딩」 같은 것도 있어서 앞에서부터 맞아야 한다.
  */
 const MINE = (s) => /^로봇\s*(앤|&)\s*코딩/.test(s.trim());
-const QUERIES = ["로봇앤코딩학원", "석촌동 코딩학원", "송파구 코딩학원", "송파 초등 코딩학원"];
+/**
+ * 재는 검색어.
+ *
+ * 「로봇앤코딩학원」은 우리 이름이다. 거기서 1위인 건 성과가 아니라 방어 확인이다.
+ * 이겨서 얻은 자리인지 보려면 이름 없이 「지역 + 업종」으로 쳐야 한다.
+ * 그래서 경쟁 검색어를 늘렸다.
+ */
+const QUERIES = [
+  "송파구 코딩학원",
+  "석촌동 코딩학원",
+  "송파 초등 코딩학원",
+  "잠실 코딩학원",
+  "송파구 로봇교실",
+  "헬리오시티 코딩학원",
+  "로봇앤코딩학원",        // 브랜드 — 남에게 안 뺏겼는지만 본다
+];
 
 const ctx = await chromium.launchPersistentContext(path.join(process.cwd(), ".browser-profile"), {
   headless: false,

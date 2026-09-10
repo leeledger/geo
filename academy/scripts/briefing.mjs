@@ -89,15 +89,35 @@ const serp = await q(`
 const lastSerp = await q(`select max(day) d from academy.serp_checks`);
 const serpAge = lastSerp[0]?.d ? days(lastSerp[0].d) : 999;
 const hits = serp.filter((r) => r.hit);
-line(`  마지막 측정 ${serpAge}일 전 · 노출 ${hits.length}/${serp.length}`);
-for (const h of hits) line(`    ${h.engine === "naver" ? "네이버" : "Bing"} ${h.rank}위 — ${h.query}`);
+// 경쟁 검색어와 브랜드 검색어를 갈라 센다.
+// 뭉뚱그리면 「노출 2/10」이 좋아 보이는데, 그 둘이 학원 이름이 들어간
+// 검색이면 이긴 게 아니다. 영업에서 쓸 수 있는 건 경쟁 쪽 숫자뿐이다.
+const rival = serp.filter((r) => r.kind === "경쟁");
+const brand = serp.filter((r) => r.kind === "브랜드");
+const rHit = rival.filter((r) => r.hit);
+const bHit = brand.filter((r) => r.hit);
+
+line(`  마지막 측정 ${serpAge}일 전`);
+line(`  경쟁 검색어  ${rHit.length}/${rival.length}   ← 이겨서 얻는 자리`);
+for (const h of rHit) line(`    ★ ${h.engine === "naver" ? "네이버" : "Bing"} ${h.rank}위 — ${h.query}`);
+if (brand.length) {
+  line(`  브랜드 검색  ${bHit.length}/${brand.length}   (방어 확인. 성과 아님)`);
+  const lost = brand.filter((r) => !r.hit).map((r) => r.query);
+  if (lost.length) line(`    ⚠ 우리 이름인데 안 나옴: ${[...new Set(lost)].join(" · ")}`);
+}
 if (serpAge >= 1) todo.push("노출 측정 — check-index.mjs");
 
 const place = await q(`
   select query, rank from academy.place_checks
    where day = (select max(day) from academy.place_checks) and rank is not null
    order by rank`);
-if (place.length) line(`  플레이스: ${place.map((r) => `${r.query} ${r.rank}위`).join(" · ")}`);
+if (place.length) {
+  const isBrand = (x) => /로봇앤코딩|로봇&코딩|로봇코딩/.test(x.replace(/\s+/g, ""));
+  const pr = place.filter((r) => !isBrand(r.query));
+  const pb = place.filter((r) => isBrand(r.query));
+  if (pr.length) line(`  플레이스 경쟁: ${pr.map((r) => `${r.query} ${r.rank}위`).join(" · ")}`);
+  if (pb.length) line(`  플레이스 브랜드: ${pb.map((r) => `${r.query} ${r.rank}위`).join(" · ")} (성과 아님)`);
+}
 
 // ── 문의 ─────────────────────────────────────────
 line("\n【 문의 】");

@@ -84,6 +84,20 @@ export default async function Home() {
   const caseDay = Math.max(1, Math.floor((Date.now() - START) / 86400000) + 1);
   const serpDay = ops.serp.day ? ops.serp.day.slice(5).replace("-", ".") : "09.08";
 
+  // 「이겨서 얻은 자리」만 센다.
+  // 학원 이름이 들어간 검색에서 1위인 건 성과가 아니다 — 이름이 로봇&코딩이고
+  // 석촌동에 있으니 「석촌동 로봇 코딩학원」에 나오는 건 당연하다.
+  // 그걸 성과로 세면 좋아 보이는 숫자를 만드는 것이고, 그건 우리가 하지 말라는 짓이다.
+  const BRAND = ["로봇앤코딩", "로봇&코딩", "로봇코딩", "robotncoding"];
+  const isBrand = (q: string) => {
+    const t = q.replace(/\s+/g, "");
+    return /^site:/i.test(q) || BRAND.some((b) => t.includes(b.replace(/\s+/g, "")));
+  };
+  const webRival = ops.serp.hits.filter((h) => !isBrand(h.query));
+  const webWins = webRival.length;
+  const webTotal = ops.serp.total || 4;
+  const songpaRank = ops.place.find((p) => /송파구/.test(p.query))?.rank ?? 2;
+
   return (
     <>
       <script
@@ -323,13 +337,15 @@ export default async function Home() {
             </div>
             <div className="cx hi">
               <div className="cxh">
-                <span className="lab2">검색 노출 · {serpDay}</span>
-                <span className="mono cxn">네이버 <Count to={1} />위</span>
+                <span className="lab2">경쟁 검색어 · {serpDay}</span>
+                <span className="mono cxn">플레이스 <Count to={songpaRank} />위</span>
               </div>
               <p>
-                「석촌동 로봇 코딩학원」으로 검색하면 <b>네이버 웹문서 첫 줄에 나옵니다.</b>
-                착수 사흘 만입니다. 다만 「송파구 코딩학원」 같은 경쟁 검색어는 아직 안 잡혔습니다.
-                <b>브랜드명이 먼저 잡히고 경쟁 검색어가 나중에 붙습니다.</b>
+                「송파구 코딩학원」으로 검색했을 때 네이버 플레이스 순위입니다.
+                학원 이름을 안 넣고 지역과 업종만 친 검색이라, 이건 이겨서 얻은 자리입니다.
+                다만 <b>네이버 웹문서 쪽 경쟁 검색어는 아직 {webWins}/{webTotal}입니다.</b>
+                「석촌동 로봇 코딩학원」 1위는 여기 안 넣었습니다 —
+                <b>학원 이름이 들어간 검색은 나오는 게 당연해서 성과가 아닙니다.</b>
               </p>
             </div>
           </div>

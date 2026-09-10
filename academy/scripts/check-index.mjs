@@ -32,12 +32,34 @@ const UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0 Safari/537.36";
 
 /** 실제로 확인할 질의. 학부모가 쓸 말 그대로. */
+/**
+ * 재는 검색어.
+ *
+ * kind 를 「지역」이 아니라 「경쟁 / 브랜드 / 색인」으로 가른다.
+ * 앞선 판은 다섯 중 셋이 학원 이름이 들어간 검색이었고, 그걸 「지역」으로
+ * 묶어 놨다. 「석촌동 로봇 코딩학원」에서 1위인 건 이겨서 얻은 자리가 아니다 —
+ * 이름이 로봇&코딩이고 석촌동에 있으니 나오는 게 당연하다.
+ * 그런 걸 성과로 세면 좋아 보이는 숫자를 만드는 것이다.
+ *
+ * 경쟁   학원 이름 없이 「지역 + 업종」. 학부모가 실제로 치는 말. 이것만이 성과다
+ * 브랜드 이름이 들어감. 이겼는지 못 이겼는지가 아니라 「방어되고 있는지」를 본다
+ * 색인   site: 검색. 올라갔는지 보는 것이지 순위가 아니다
+ */
 const QUERIES = [
   { id: "idx", q: `site:${DOMAIN}`, kind: "색인" },
-  { id: "loc1", q: "송파구 석촌동 코딩학원", kind: "지역" },
-  { id: "loc2", q: "송파 초등 코딩학원 추천", kind: "지역" },
-  { id: "loc3", q: "석촌동 로봇 코딩학원", kind: "지역" },
-  { id: "brand", q: "로봇앤코딩학원 석촌동", kind: "브랜드" },
+
+  // ── 경쟁: 이름 없이 찾는 사람. 늘려 두었다. 이겨야 하는 자리다
+  { id: "c1", q: "송파구 코딩학원", kind: "경쟁" },
+  { id: "c2", q: "송파 초등 코딩학원 추천", kind: "경쟁" },
+  { id: "c3", q: "송파구 석촌동 코딩학원", kind: "경쟁" },
+  { id: "c4", q: "잠실 초등 코딩학원", kind: "경쟁" },
+  { id: "c5", q: "송파구 로봇교실", kind: "경쟁" },
+  { id: "c6", q: "헬리오시티 코딩학원", kind: "경쟁" },
+
+  // ── 브랜드: 남에게 자리를 뺏기고 있지 않은지 본다.
+  //    AI 답변에서 「똑똑한 로봇&코딩학원」(glcedu.co.kr) 이 우리 자리를 가져간 적이 있다
+  { id: "b1", q: "로봇앤코딩학원 석촌동", kind: "브랜드" },
+  { id: "b2", q: "석촌동 로봇 코딩학원", kind: "브랜드" },
 ];
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -136,9 +158,31 @@ for (const e of ENGINES) {
 }
 console.log("  구글    Search Console URL 검사로 확인 (tools/submit-gsc.mjs)");
 
-// 레퍼런스로 내놓으려면 사람이 쓰는 검색에서 한 번은 나와야 한다.
-const READY = rows.some((r) => r.kind !== "색인" && r.hit);
-console.log(`\n  레퍼런스: ${READY ? "쓸 수 있음" : "아직 이름"}`);
+/**
+ * 레퍼런스로 내놓을 수 있는가.
+ *
+ * 앞선 판은 「색인 아닌 것 중 하나라도 걸리면 통과」였다. 그러면 브랜드 검색
+ * 하나로 통과가 된다 — 「석촌동 로봇 코딩학원」 1위로 「쓸 수 있음」이 떴다.
+ * 학원 이름이 로봇&코딩이고 석촌동에 있으니 나오는 게 당연한 검색이다.
+ * 이겨서 얻은 자리가 아니면 영업 자료가 못 된다.
+ */
+const rival = rows.filter((r) => r.kind === "경쟁");
+const rivalHit = rival.filter((r) => r.hit);
+const brand = rows.filter((r) => r.kind === "브랜드");
+const brandMiss = brand.filter((r) => !r.hit);
+
+console.log(`\n  경쟁 검색어  ${rivalHit.length}/${rival.length}   ← 이겨서 얻는 자리`);
+for (const h of rivalHit) console.log(`    ★ [${h.engine}] ${h.rank}위 — ${h.q}`);
+
+if (brandMiss.length) {
+  const names = [...new Set(brandMiss.map((r) => `${r.q}(${r.engine})`))];
+  console.log(`  브랜드 방어  ${brand.length - brandMiss.length}/${brand.length}`);
+  console.log(`    ⚠ 우리 이름인데 안 나옴 — ${names.join(" · ")}`);
+}
+
+console.log(
+  `\n  레퍼런스: ${rivalHit.length ? "쓸 수 있음" : "아직 아님 — 경쟁 검색어에서 한 번도 안 나왔습니다"}`,
+);
 
 if (DRY) process.exit(0);
 
