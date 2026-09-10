@@ -99,6 +99,25 @@ const place = await q(`
    order by rank`);
 if (place.length) line(`  플레이스: ${place.map((r) => `${r.query} ${r.rank}위`).join(" · ")}`);
 
+// ── 문의 ─────────────────────────────────────────
+line("\n【 문의 】");
+try {
+  const [im] = await q(`select * from academy.inquiry_summary limit 1`);
+  const recent = await q(`
+    select day::text d, source, said from academy.inquiries
+     where day > current_date - 7 order by day desc limit 5`);
+  if (!im || im.total === 0) {
+    line("  이번 달 0건");
+    todo.push("문의 기록이 비어 있습니다 — 상담 때 한 줄씩. /admin/inquiry");
+  } else {
+    line(`  이번 달 ${im.total}건 · 검색·AI ${im.from_search}건 · 등록 ${im.enrolled}명`);
+    for (const r of recent) line(`    ${r.d} [${r.source}] ${(r.said || "").slice(0, 34)}`);
+    if (im.from_ai > 0) line(`  → AI 보고 온 사람 ${im.from_ai}명. 이게 이 사업이 되는지의 증거입니다`);
+  }
+} catch {
+  line("  문의 표가 아직 없습니다 (setup-inquiries.mjs)");
+}
+
 // ── 다음 주제 ────────────────────────────────────
 line("\n【 다음 주제 】");
 try {
