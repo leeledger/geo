@@ -109,7 +109,11 @@ export async function saveScan(input: {
 export async function saveLead(input: {
   scanId: string | null; email: string;
   company?: string | null; name?: string | null; phone?: string | null;
-  wants?: string | null; ip: string;
+  wants?: string | null;
+  /** 어떻게 알고 왔는지 — 매출 검증의 유일한 고리 */
+  referral?: string | null;
+  concerns?: string | null; competitor?: string | null; site?: string | null;
+  ip: string;
 }): Promise<string | null> {
   const row = {
     scan_id: input.scanId,
@@ -118,21 +122,43 @@ export async function saveLead(input: {
     name: input.name?.slice(0, 60) || null,
     phone: input.phone?.slice(0, 40) || null,
     wants: input.wants?.slice(0, 60) || null,
+    referral: input.referral?.slice(0, 40) || null,
+    concerns: input.concerns?.slice(0, 400) || null,
+    competitor: input.competitor?.slice(0, 200) || null,
+    site: input.site?.slice(0, 200) || null,
     ip_hash: hashIp(input.ip),
-    source: "free_scan",
+    source: input.referral ? "contact" : "free_scan",
   };
   if (!dbEnabled) return appendFile("leads", row);
 
   try {
     const { rows } = await pool().query(
-      `insert into geo.leads (scan_id, email, company, name, phone, wants, ip_hash, source)
-       values ($1,$2,$3,$4,$5,$6,$7,$8) returning id`,
-      [row.scan_id, row.email, row.company, row.name, row.phone, row.wants, row.ip_hash, row.source],
+      `insert into geo.leads (scan_id, email, company, name, phone, wants, referral, concerns, competitor, site, ip_hash, source)
+       values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) returning id`,
+      [row.scan_id, row.email, row.company, row.name, row.phone, row.wants,
+       row.referral, row.concerns, row.competitor, row.site, row.ip_hash, row.source],
     );
     return rows[0]?.id ?? null;
   } catch (e: any) {
-    console.error("[db] leads insert 실패:", e?.message);
-    return null;
+    // 42703 = 없는 열. schema.sql 의 alter 를 아직 안 돌린 DB 다.
+    // 리드를 버리면 안 되므로 옛 열로 넣고, 경로만은 wants 뒤에 붙여 살린다.
+    if (e?.code !== "42703") {
+      console.error("[db] leads insert 실패:", e?.message);
+      return null;
+    }
+    console.warn("[db] geo.leads 에 새 열이 없습니다. npm run setup-db 를 돌리세요.");
+    const wants = [row.wants, row.referral && `경로:${row.referral}`].filter(Boolean).join(" · ").slice(0, 60) || null;
+    try {
+      const { rows } = await pool().query(
+        `insert into geo.leads (scan_id, email, company, name, phone, wants, ip_hash, source)
+         values ($1,$2,$3,$4,$5,$6,$7,$8) returning id`,
+        [row.scan_id, row.email, row.company ?? row.site, row.name, row.phone, wants, row.ip_hash, row.source],
+      );
+      return rows[0]?.id ?? null;
+    } catch (e2: any) {
+      console.error("[db] leads insert 실패:", e2?.message);
+      return null;
+    }
   }
 }
 
@@ -156,8 +182,8 @@ export async function listLeads(limit = 100) {
   }
   try {
     const { rows } = await pool().query(
-      `select l.id, l.created_at, l.email, l.company, l.name, l.phone, l.wants, l.status,
-              s.origin, s.total as site_score, s.grade
+      // l.* — referral 등 새 열이 있는 DB 와 없는 DB 둘 다에서 돈다
+      `select l.*, s.origin, s.total as site_score, s.grade
          from geo.leads l
          left join geo.scans s on s.id = l.scan_id
         order by l.created_at desc

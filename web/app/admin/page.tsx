@@ -41,7 +41,8 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
             <thead>
               <tr>
                 <th>시각</th><th>이메일</th><th>회사</th><th>진단 도메인</th>
-                <th style={{ textAlign: "right" }}>점수</th><th>등급</th><th>관심</th><th>상태</th>
+                <th style={{ textAlign: "right" }}>점수</th><th>등급</th><th>관심</th>
+                <th>경로</th><th>고민 · 경쟁사</th><th>상태</th>
               </tr>
             </thead>
             <tbody>
@@ -50,7 +51,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
                   <td className="mono" style={{ color: "var(--faint)", whiteSpace: "nowrap" }}>{fmt(l.created_at)}</td>
                   <td><b>{l.email}</b></td>
                   <td>{l.company ?? "—"}</td>
-                  <td className="mono" style={{ fontSize: 12 }}>{l.origin?.replace(/^https?:\/\//, "") ?? "—"}</td>
+                  <td className="mono" style={{ fontSize: 12 }}>{(l.origin ?? l.site)?.replace(/^https?:\/\//, "") ?? "—"}</td>
                   <td className="mono" style={{ textAlign: "right",
                     color: l.site_score == null ? "var(--faint)"
                          : l.site_score < 40 ? "var(--crit)"
@@ -59,6 +60,10 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
                   </td>
                   <td style={{ color: "var(--muted)", fontSize: 12.5 }}>{l.grade ?? "—"}</td>
                   <td style={{ fontSize: 12.5 }}>{l.wants ?? "—"}</td>
+                  <td style={{ fontSize: 12.5, whiteSpace: "nowrap" }}>{l.referral ?? "—"}</td>
+                  <td style={{ fontSize: 12.5, color: "var(--muted)", maxWidth: 280 }}>
+                    {[l.concerns, l.competitor && `경쟁사 ${l.competitor}`].filter(Boolean).join(" · ") || "—"}
+                  </td>
                   <td><span className="pill">{l.status ?? "new"}</span></td>
                 </tr>
               ))}

@@ -9,13 +9,14 @@ export default function SiteNav() {
           <span className="mk" aria-hidden="true">[ ]</span>Cited<em>사이티드</em>
         </Link>
         <span className="links">
+          <Link href="/#geo">GEO란</Link>
           <Link href="/services">서비스</Link>
-          <Link href="/#why">받는 것</Link>
           <Link href="/#how">진행</Link>
-          <Link href="/#case">케이스</Link>
-          <Link href="/#nots">하지 않는 일</Link>
+          <Link href="/#case">도입 사례</Link>
           <Link href="/#price">요금</Link>
+          <Link href="/#faq">자주 묻는 것</Link>
         </span>
+        <Link className="navcta" href="/#start">무료 진단</Link>
       </div>
     </nav>
   );

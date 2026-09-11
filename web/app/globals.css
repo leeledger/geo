@@ -1,730 +1,635 @@
+/* ── 토큰 ────────────────────────────────────────────────
+   신뢰를 파는 회사라 색은 네이비와 블루 둘로 끝낸다.
+   초록·세리프 판은 「가독성이 떨어진다」는 말을 들었다 — 본문은 산세리프, 제목은 굵게. */
 :root{
-  --ground:#F6F7F5; --surface:#FFFFFF; --sunken:#EFF1EE; --deep:#101815;
-  --ink:#141A17; --ink-2:#3B4640; --muted:#5C6862; --faint:#8A958E;
-  --rule:#DCE1DD; --rule-soft:#E7EBE7;
-  --accent:#0E5C48; --accent-soft:#E2EFE9; --accent-ink:#FFFFFF;
-  --band:rgba(14,92,72,.16);
-  --good:#0E8F70; --warn:#B0721A; --crit:#AF3D2E;
-  --on-deep:#E8EDE9; --on-deep-2:#A9B5AE; --accent-deep:#4FC7A4;
+  --ground:#F4F7FB; --surface:#FFFFFF; --sunken:#EDF2F8; --deep:#0A1A33; --deep-2:#0F2446;
+  --ink:#0E1B2E; --ink-2:#2F3E54; --muted:#566378; --faint:#8592A6;
+  --rule:#D9E1EC; --rule-soft:#E7ECF3;
+  --accent:#1B5FD6; --accent-strong:#154BAC; --accent-soft:#E7EFFC; --accent-ink:#FFFFFF;
+  --band:rgba(27,95,214,.14);
+  --good:#0F9D6E; --warn:#B7791F; --crit:#C23B2E;
+  --on-deep:#EEF3FB; --on-deep-2:#AFBDD3; --accent-deep:#6BAEFF;
+  --radius:16px;
+  --shadow:0 1px 2px rgba(14,27,46,.04),0 10px 28px rgba(14,27,46,.06);
   color-scheme: light dark;
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
-    --ground:#0E1311; --surface:#141A18; --sunken:#101614; --deep:#080C0A;
-    --ink:#E6EBE7; --ink-2:#C3CCC7; --muted:#93A099; --faint:#6E7B75;
-    --rule:#242E2A; --rule-soft:#1C2421;
-    --accent:#4FC7A4; --accent-soft:#152722; --accent-ink:#0C1412;
-    --band:rgba(79,199,164,.18);
-    --good:#22A882; --warn:#C8892C; --crit:#D9705F;
+    --ground:#0A111D; --surface:#101A2A; --sunken:#0D1624; --deep:#060D19; --deep-2:#0B1830;
+    --ink:#E7EDF6; --ink-2:#C3CDDB; --muted:#95A2B6; --faint:#6C7890;
+    --rule:#22304A; --rule-soft:#1A2639;
+    --accent:#6BAEFF; --accent-strong:#8DC0FF; --accent-soft:#132440; --accent-ink:#06101F;
+    --band:rgba(107,174,255,.18);
+    --good:#2FBF8A; --warn:#D39A3A; --crit:#E0766A;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 28px rgba(0,0,0,.28);
   }
 }
 :root[data-theme="dark"]{
-  --ground:#0E1311; --surface:#141A18; --sunken:#101614; --deep:#080C0A;
-  --ink:#E6EBE7; --ink-2:#C3CCC7; --muted:#93A099; --faint:#6E7B75;
-  --rule:#242E2A; --rule-soft:#1C2421;
-  --accent:#4FC7A4; --accent-soft:#152722; --accent-ink:#0C1412;
-  --band:rgba(79,199,164,.18);
-  --good:#22A882; --warn:#C8892C; --crit:#D9705F;
+  --ground:#0A111D; --surface:#101A2A; --sunken:#0D1624; --deep:#060D19; --deep-2:#0B1830;
+  --ink:#E7EDF6; --ink-2:#C3CDDB; --muted:#95A2B6; --faint:#6C7890;
+  --rule:#22304A; --rule-soft:#1A2639;
+  --accent:#6BAEFF; --accent-strong:#8DC0FF; --accent-soft:#132440; --accent-ink:#06101F;
+  --band:rgba(107,174,255,.18);
+  --good:#2FBF8A; --warn:#D39A3A; --crit:#E0766A;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 28px rgba(0,0,0,.28);
 }
 
+/* ── 바탕 ── */
 *{box-sizing:border-box}
+html{scroll-padding-top:76px}
+@media (prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
 html,body{padding:0;margin:0}
 body{background:var(--ground);color:var(--ink);
-  font-family:"IBM Plex Sans KR",-apple-system,BlinkMacSystemFont,"Segoe UI","Malgun Gothic",sans-serif;
-  font-size:17px;line-height:1.78;-webkit-font-smoothing:antialiased;letter-spacing:-.006em}
-h1,h2,h3{font-family:"Noto Serif KR",Georgia,serif;font-weight:700;margin:0;line-height:1.32;letter-spacing:-.022em;text-wrap:balance}
+  font-family:"Pretendard Variable",Pretendard,-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic","Segoe UI",sans-serif;
+  font-size:17px;line-height:1.75;letter-spacing:-.011em;-webkit-font-smoothing:antialiased;
+  word-break:keep-all;overflow-wrap:break-word}
+h1,h2,h3,h4{font-family:inherit;font-weight:800;margin:0;line-height:1.3;letter-spacing:-.03em;text-wrap:balance;color:var(--ink)}
 p{margin:0}
 a{color:inherit;text-decoration:none}
-button,input{font-family:inherit;font-size:inherit}
-:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:3px}
-.mono{font-family:"IBM Plex Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
-.wrap{max-width:1080px;margin:0 auto;padding:0 26px}
-.narrow{max-width:720px}
+button,input,select,textarea{font-family:inherit;font-size:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:4px}
+.mono{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-variant-numeric:tabular-nums;letter-spacing:0}
+.num{font-variant-numeric:tabular-nums}
+.wrap{max-width:1160px;margin:0 auto;padding:0 24px}
+.narrow{max-width:760px}
+.wrap.narrow{max-width:800px}
+.hl{color:var(--accent)}
 
-nav{border-bottom:1px solid var(--rule);position:sticky;top:0;background:color-mix(in srgb,var(--ground) 92%,transparent);backdrop-filter:blur(8px);z-index:30}
-nav .wrap{display:flex;align-items:center;gap:24px;height:58px}
-.logo{font-family:"Noto Serif KR",serif;font-weight:700;font-size:17px;letter-spacing:-.02em}
-.logo em{font-style:normal;color:var(--accent)}
-nav .links{margin-left:auto;display:flex;gap:22px;font-size:13.5px;color:var(--muted)}
-nav .links a:hover{color:var(--ink)}
-@media(max-width:680px){nav .links{display:none}}
-
-.stat{display:inline-flex;flex-direction:column;gap:5px}
-.stat .v{font-family:"Noto Serif KR",serif;font-weight:700;font-variant-numeric:tabular-nums;line-height:1}
-.stat .bandbar{height:5px;border-radius:3px;background:var(--band);position:relative}
-.stat .bandbar i{position:absolute;top:0;bottom:0;width:2px;background:var(--accent);border-radius:2px}
-.stat .c{font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--faint);letter-spacing:.02em}
-
-header.hero{padding:92px 0 96px;border-bottom:1px solid var(--rule)}
-.eyebrow{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);display:flex;align-items:center;gap:11px}
-.eyebrow::after{content:"";height:1px;flex:1;background:var(--rule);max-width:120px}
-h1{font-size:clamp(38px,6.2vw,68px);margin:26px 0 0;max-width:14ch;line-height:1.16;letter-spacing:-.035em}
-.lede{font-size:20.5px;color:var(--ink-2);margin-top:22px;max-width:52ch;line-height:1.75}
-.hero-grid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:56px;align-items:start}
-@media(max-width:880px){.hero-grid{grid-template-columns:minmax(0,1fr);gap:40px}}
-
-.spec{border:1px solid var(--rule);background:var(--surface);border-radius:4px;overflow:hidden}
-.spec-hd{padding:10px 16px;border-bottom:1px solid var(--rule-soft);font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--faint);display:flex;gap:9px;align-items:center}
-.spec-hd .dots{display:flex;gap:4px}.spec-hd .dots i{width:5px;height:5px;border-radius:50%;background:var(--rule);display:block}
-.spec-b{padding:17px 18px;font-size:14px;line-height:1.85;color:var(--ink-2)}
-.spec-b mark{background:rgba(255,214,64,.5);color:inherit;padding:.5px 2px;border-bottom:1.5px solid #E8B92E}
-.spec-ft{border-top:1px solid var(--rule-soft);padding:11px 18px;font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--muted)}
-.spec-ft b{color:var(--crit);font-weight:500}
-.runs{display:flex;gap:5px;margin-top:12px;font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--faint);align-items:center;flex-wrap:wrap}
-.runs .chip{border:1px solid var(--rule);border-radius:2px;padding:1px 6px}
-.runs .chip.hit{border-color:var(--accent);color:var(--accent)}
-
-.form{margin-top:30px;display:flex;gap:8px;flex-wrap:wrap}
-.form input{flex:1;min-width:200px;padding:13px 15px;border:1px solid var(--rule);border-radius:3px;background:var(--surface);color:var(--ink);font-size:14.5px}
-.form input:focus{border-color:var(--accent)}
-.btn{padding:13px 22px;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);border-radius:3px;font-size:14.5px;font-weight:500;cursor:pointer;white-space:nowrap;transition:opacity .12s}
-.btn:hover{opacity:.88}
-.btn:disabled{opacity:.5;cursor:progress}
-.btn.ghost{background:transparent;color:var(--accent)}
-.btn.ghost:hover{background:var(--accent-soft);opacity:1}
-.formnote{font-size:12.5px;color:var(--faint);margin-top:11px;line-height:1.6}
-.err{margin-top:12px;font-size:13px;color:var(--crit);border-left:2px solid var(--crit);padding-left:12px}
-
-section{padding:118px 0;border-bottom:1px solid var(--rule)}
+section{padding:112px 0}
 @media(max-width:820px){section{padding:76px 0}}
-section.deep{background:var(--deep);color:var(--on-deep);border-bottom:0}
-section.deep h2{color:var(--on-deep)} section.deep .lab{color:var(--accent-deep)}
+section.plain{background:var(--surface)}
+section.deep{background:var(--deep);color:var(--on-deep);position:relative;overflow:hidden}
+section.deep::before{content:"";position:absolute;inset:0;pointer-events:none;
+  background:
+    radial-gradient(800px 460px at 100% 0%, rgba(64,132,255,.16), transparent 62%),
+    radial-gradient(rgba(255,255,255,.05) 1px, transparent 1.3px) 0 0/28px 28px}
+section.deep > .wrap{position:relative;z-index:1}
+section.deep h2,section.deep h3{color:#fff}
+section.deep .lab,section.deep .hl{color:var(--accent-deep)}
 section.deep .sub2{color:var(--on-deep-2)}
-section.deep .stat .bandbar{background:rgba(79,199,164,.2)}
-section.deep .stat .bandbar i{background:var(--accent-deep)}
-section.deep .stat .v{color:var(--accent-deep)}
-section.deep .stat .c{color:var(--on-deep-2)}
-.lab{font-family:"IBM Plex Mono",monospace;font-size:11.5px;letter-spacing:.17em;text-transform:uppercase;color:var(--accent);margin-bottom:20px}
-h2{font-size:clamp(30px,4.4vw,46px);max-width:18ch;line-height:1.2;letter-spacing:-.03em}
-.sub2{color:var(--muted);margin-top:22px;max-width:52ch;font-size:18px;line-height:1.8}
+section.deep .sub2 b{color:#fff}
 
-.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:34px;margin-top:44px}
-.fact .v{font-size:44px}
-.fact .t{font-size:15.5px;color:var(--on-deep-2);margin-top:14px;line-height:1.78}
-.fact .t b{color:var(--on-deep)}
+.lab{display:flex;align-items:center;gap:9px;font-size:15px;font-weight:700;color:var(--accent);margin-bottom:16px;letter-spacing:-.005em}
+.lab::before{content:"";width:18px;height:2px;border-radius:2px;background:currentColor}
+h2{font-size:clamp(30px,4.2vw,46px);line-height:1.26;letter-spacing:-.038em;max-width:22ch}
+.sub2{font-size:18px;line-height:1.75;color:var(--muted);margin-top:18px;max-width:60ch}
+.sub2 b{color:var(--ink);font-weight:700}
+.center{text-align:center}
+.center .lab{justify-content:center}
+.center h2,.center .sub2{margin-left:auto;margin-right:auto}
 
-.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule);border-radius:4px;margin-top:40px}
-.step{background:var(--surface);padding:24px 22px}
-.step .n{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--accent);letter-spacing:.12em}
-.step h3{font-size:17px;margin:11px 0 9px}
-.step p{font-size:15.5px;color:var(--muted);line-height:1.78}
+/* ── 네비 ── */
+nav{position:sticky;top:0;z-index:40;border-bottom:1px solid var(--rule-soft);
+  background:color-mix(in srgb,var(--surface) 88%,transparent);backdrop-filter:saturate(1.4) blur(10px)}
+nav .wrap{display:flex;align-items:center;gap:28px;height:66px}
+.logo{display:inline-flex;align-items:baseline;font-weight:800;font-size:20px;letter-spacing:-.03em;color:var(--ink)}
+/* 대괄호는 인용 표시이자 "이 안이 우리 영역"이라는 테두리다. */
+.logo .mk{font-family:"IBM Plex Mono",monospace;font-weight:600;letter-spacing:-.08em;color:var(--accent);margin-right:7px}
+.logo em{font-style:normal;font-weight:500;font-size:.7em;color:var(--muted);margin-left:7px;letter-spacing:0}
+nav .links{margin-left:auto;display:flex;gap:28px;font-size:15.5px;font-weight:500;color:var(--ink-2)}
+nav .links a:hover{color:var(--accent)}
+.navcta{padding:9px 18px;border-radius:999px;background:var(--accent);color:var(--accent-ink);font-size:15px;font-weight:700;white-space:nowrap;transition:background .15s}
+.navcta:hover{background:var(--accent-strong)}
+@media(max-width:800px){nav .links{display:none}.navcta{margin-left:auto}}
 
-.diff{display:flex;flex-direction:column;gap:1px;background:var(--rule);border:1px solid var(--rule);border-radius:4px;margin-top:40px;overflow:hidden}
-.d{background:var(--surface);padding:24px 26px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px}
-@media(max-width:760px){.d{grid-template-columns:minmax(0,1fr);gap:14px}}
-.d h3{font-size:17px}
-.d .body{font-size:15.5px;color:var(--muted);line-height:1.8}
-.d .body b{color:var(--ink)}
-.vs{font-family:"IBM Plex Mono",monospace;font-size:11.5px;line-height:1.9}
-.vs .them{color:var(--faint);text-decoration:line-through;text-decoration-color:var(--crit);text-decoration-thickness:1px}
-.vs .us{color:var(--accent)}
+/* ── 버튼 · 입력 ── */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:14px 24px;
+  border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);border-radius:12px;
+  font-size:16px;font-weight:700;cursor:pointer;white-space:nowrap;transition:background .15s,border-color .15s}
+.btn:hover{background:var(--accent-strong);border-color:var(--accent-strong)}
+.btn:disabled{opacity:.55;cursor:progress}
+.btn.ghost{background:transparent;color:var(--accent)}
+.btn.ghost:hover{background:var(--accent-soft)}
+.form{margin-top:30px;display:flex;gap:10px;flex-wrap:wrap}
+.form input{flex:1;min-width:220px;padding:15px 17px;border:1px solid var(--rule);border-radius:12px;background:var(--surface);color:var(--ink);font-size:16px}
+.form input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 4px var(--band)}
+.formnote{font-size:14px;color:var(--faint);margin-top:12px;line-height:1.6}
+.err{margin-top:12px;font-size:14.5px;color:var(--crit);border-left:3px solid var(--crit);padding-left:12px}
 
-.plans{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule);border-radius:4px;margin-top:40px}
-.plan{background:var(--surface);padding:26px 22px;display:flex;flex-direction:column;gap:13px}
-.plan.hi{background:var(--accent-soft)}
-.plan .pn{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.15em;text-transform:uppercase;color:var(--accent)}
-.plan .pp{font-family:"Noto Serif KR",serif;font-size:29px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
-.plan .pp small{font-family:"IBM Plex Sans KR",sans-serif;font-size:12.5px;font-weight:400;color:var(--muted);margin-left:4px}
-.plan .for{font-size:12.5px;color:var(--muted);padding-bottom:12px;border-bottom:1px solid var(--rule-soft)}
-.plan ul{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:8px;font-size:13px;color:var(--ink-2)}
-.plan li{padding-left:15px;position:relative;line-height:1.6}
-.plan li::before{content:"";position:absolute;left:0;top:10px;width:6px;height:1.5px;background:var(--accent)}
-.plan .cta{margin-top:auto;padding-top:16px}
+/* ── 히어로 ──────────────────────────────────────────────
+   어두운 바탕 위에 AI 답변 패널을 띄운다. "저 목록에 내 이름이 없다"가 먼저 보여야 한다. */
+header.hero{position:relative;overflow:hidden;background:var(--deep);color:var(--on-deep);padding:92px 0 60px}
+header.hero::before{content:"";position:absolute;inset:0;pointer-events:none;
+  background:
+    radial-gradient(900px 540px at 88% -12%, rgba(64,132,255,.30), transparent 60%),
+    radial-gradient(700px 480px at -10% 112%, rgba(40,110,230,.18), transparent 60%),
+    radial-gradient(rgba(255,255,255,.07) 1px, transparent 1.3px) 0 0/26px 26px}
+header.hero .wrap{position:relative;z-index:1}
+.hero-grid{display:grid;grid-template-columns:minmax(0,1.08fr) minmax(0,1fr);gap:56px;align-items:center}
+@media(max-width:940px){.hero-grid{grid-template-columns:minmax(0,1fr);gap:44px}}
+.badge{display:inline-flex;align-items:center;gap:9px;padding:7px 15px 7px 12px;border-radius:999px;
+  border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.06);font-size:14px;font-weight:600;color:var(--on-deep)}
+.badge i{width:7px;height:7px;border-radius:50%;background:var(--accent-deep);box-shadow:0 0 0 4px rgba(107,174,255,.22)}
+h1{font-size:clamp(38px,5.4vw,62px);line-height:1.2;letter-spacing:-.042em}
+header.hero h1{color:#fff;margin-top:22px}
+header.hero .hl{color:var(--accent-deep)}
+.lede{font-size:19px;line-height:1.75;color:var(--ink-2);margin-top:22px;max-width:46ch}
+header.hero .lede{color:var(--on-deep-2)}
+header.hero .lede b{color:#fff;font-weight:700}
+header.hero .form input{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.2);color:#fff}
+header.hero .form input::placeholder{color:rgba(238,243,251,.55)}
+header.hero .form > .btn{background:#fff;border-color:#fff;color:#0A1A33}
+header.hero .form > .btn:hover{background:#DCE8FA;border-color:#DCE8FA}
+header.hero .formnote{color:var(--on-deep-2)}
+.herolinks{display:flex;gap:10px 24px;flex-wrap:wrap;margin-top:22px;font-size:15.5px;font-weight:600}
+.herolinks a{color:var(--on-deep);border-bottom:1px solid rgba(255,255,255,.28);padding-bottom:2px;transition:color .15s,border-color .15s}
+.herolinks a:hover{color:#fff;border-color:#fff}
 
-.faq{margin-top:40px;border:1px solid var(--rule);border-radius:4px;overflow:hidden;background:var(--surface)}
-details{border-bottom:1px solid var(--rule-soft)}
-details:last-child{border-bottom:0}
-summary{padding:17px 22px;cursor:pointer;font-weight:500;font-size:14.5px;list-style:none;display:flex;justify-content:space-between;gap:14px;align-items:center}
-summary::-webkit-details-marker{display:none}
-summary::after{content:"+";font-family:"IBM Plex Mono",monospace;color:var(--faint);font-size:16px;flex:0 0 auto}
-details[open] summary::after{content:"−"}
-details p{padding:0 22px 19px;font-size:13.5px;color:var(--muted);line-height:1.75;max-width:64ch}
+/* 히어로 아래 증거 띠 — 서버가 기록한 값만 */
+.proofbar{margin-top:64px;padding-top:26px;border-top:1px solid rgba(255,255,255,.12)}
+.pbh{display:flex;align-items:center;gap:9px;font-size:14px;color:var(--on-deep-2);margin-bottom:16px}
+.pbh i{width:8px;height:8px;border-radius:50%;background:#3DD68C;box-shadow:0 0 0 4px rgba(61,214,140,.18)}
+.pbgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+@media(max-width:760px){.pbgrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.pb{padding:16px 18px;border-radius:14px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1)}
+.pb b{display:block;font-size:30px;font-weight:800;color:#fff;letter-spacing:-.03em;line-height:1.15;font-variant-numeric:tabular-nums}
+.pb b small{font-size:16px;font-weight:600;color:var(--on-deep-2);margin-left:3px}
+.pb > span{display:block;font-size:14px;color:var(--on-deep-2);margin-top:5px;line-height:1.5}
 
-/* ── 진단 결과 ── */
-.result{margin-top:26px;border:1px solid var(--rule);border-radius:4px;background:var(--surface);overflow:hidden}
-.result-hd{padding:18px 22px;border-bottom:1px solid var(--rule-soft);display:flex;align-items:baseline;gap:16px;flex-wrap:wrap}
-.result-hd .score{font-family:"Noto Serif KR",serif;font-size:40px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums;color:var(--accent)}
-.result-hd .grade{font-family:"IBM Plex Mono",monospace;font-size:12px;padding:3px 9px;border:1px solid var(--rule);border-radius:2px;color:var(--muted)}
-.result-hd .dom{font-family:"IBM Plex Mono",monospace;font-size:12.5px;color:var(--muted);margin-left:auto}
-.rows{padding:16px 22px;display:flex;flex-direction:column;gap:9px}
-.rrow{display:grid;grid-template-columns:132px minmax(0,1fr) 48px;align-items:center;gap:12px;font-size:13px}
-.rrow .l{color:var(--muted)}
-.rtrack{height:9px;background:var(--sunken);border-radius:0 4px 4px 0}
-.rfill{height:9px;border-radius:0 4px 4px 0;display:block;background:var(--accent)}
-.rrow .s{font-family:"IBM Plex Mono",monospace;font-size:11.5px;text-align:right;color:var(--ink-2);font-variant-numeric:tabular-nums}
-.fixes{border-top:1px solid var(--rule-soft);padding:16px 22px}
-.fixes h4{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin:0 0 10px;font-weight:400}
-.fix{display:flex;gap:10px;font-size:13.5px;color:var(--ink-2);line-height:1.65;padding:7px 0;border-bottom:1px solid var(--rule-soft)}
-.fix:last-child{border-bottom:0}
-.fix .p{font-family:"IBM Plex Mono",monospace;font-size:9.5px;letter-spacing:.08em;padding:1px 6px;border-radius:2px;border:1px solid;height:fit-content;white-space:nowrap;margin-top:3px}
-.fix .p.p1{color:var(--crit);border-color:color-mix(in srgb,var(--crit) 45%,transparent)}
-.fix .p.p2{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 45%,transparent)}
-.fix .p.p3{color:var(--muted);border-color:var(--rule)}
-.result-ft{border-top:1px solid var(--rule-soft);padding:14px 22px;background:var(--sunken);font-size:12.5px;color:var(--muted);line-height:1.65}
+/* ── GEO 정의 · 비교표 ── */
+.define{margin-top:26px;font-size:clamp(18px,1.9vw,21px);line-height:1.85;color:var(--ink-2);max-width:64ch}
+.define b{color:var(--ink);font-weight:700}
+.cmpwrap{margin-top:44px;overflow-x:auto;border:1px solid var(--rule);border-radius:var(--radius);background:var(--surface);box-shadow:var(--shadow)}
+.cmp{width:100%;border-collapse:collapse;min-width:640px;font-size:16px}
+.cmp th,.cmp td{padding:18px 22px;text-align:left;border-bottom:1px solid var(--rule-soft);vertical-align:top;line-height:1.6}
+.cmp thead th{background:var(--sunken);font-size:15px;color:var(--muted);font-weight:700}
+.cmp thead th.us{color:var(--accent);background:var(--accent-soft)}
+.cmp tbody th{font-weight:600;color:var(--muted);width:19%;font-size:15px}
+.cmp td{color:var(--ink-2)}
+.cmp td.us{background:color-mix(in srgb,var(--accent-soft) 50%,transparent);color:var(--ink);font-weight:600}
+.cmp tbody tr:last-child > *{border-bottom:0}
+.cmpnote{margin-top:20px;font-size:16.5px;color:var(--muted);max-width:72ch}
+.cmpnote b{color:var(--ink)}
 
-footer{padding:44px 0 60px;font-size:12.5px;color:var(--faint)}
-footer .row{display:flex;gap:26px;flex-wrap:wrap;align-items:baseline}
-/* 관리자 링크. 눈에 띄면 안 되지만 찾을 수는 있어야 한다.
-   marginLeft:auto 를 쓴 연도 옆에 오므로 gap 을 줄여 붙인다. */
-footer .fadmin{opacity:.45;margin-left:-14px;text-decoration:none;color:inherit}
-footer .fadmin:hover{opacity:.9;text-decoration:underline}
-.wm{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--faint);border:1px dashed var(--rule);border-radius:3px;padding:9px 13px;margin-top:20px;line-height:1.6}
-@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
-@keyframes pulse{0%,100%{opacity:.4}50%{opacity:1}}
-.loading{animation:pulse 1.4s ease-in-out infinite}
+/* ── 기록으로 보여주기 · 게이지와 코드 ── */
+.proof{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:56px;align-items:center}
+@media(max-width:940px){.proof{grid-template-columns:minmax(0,1fr);gap:40px}}
+.gauges{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-top:36px}
+@media(max-width:560px){.gauges{grid-template-columns:repeat(2,minmax(0,1fr));gap:22px 14px}}
+.gauge{text-align:center}
+.gauge svg{width:100%;max-width:104px;height:auto;display:block;margin:0 auto}
+.gauge .trk{stroke:var(--sunken)}
+.gauge .arc{stroke:var(--accent);stroke-dashoffset:213.6px;transition:stroke-dashoffset 1.1s cubic-bezier(.22,.9,.3,1)}
+.gauge.in .arc{stroke-dashoffset:var(--off)}
+.gauge.low .arc{stroke:var(--warn)}
+.gauge text{font-family:inherit;font-size:25px;font-weight:800;fill:var(--ink);letter-spacing:-.03em}
+.gauge .gl{margin-top:10px;font-size:15px;font-weight:700;color:var(--ink);line-height:1.4}
+.gauge .gn{font-size:13.5px;color:var(--muted);line-height:1.5;margin-top:3px}
+.proofnote{margin-top:28px;padding:16px 20px;border-radius:12px;background:var(--sunken);font-size:15.5px;line-height:1.75;color:var(--muted)}
+.proofnote b{color:var(--ink)}
 
-/* ── 결과 직후 리드 수집 ── */
-.lead{border-top:1px solid var(--rule);padding:20px 22px;background:var(--accent-soft)}
-.lead h4{font-family:"Noto Serif KR",serif;font-size:16px;margin:0 0 7px;font-weight:700}
-.lead .leadsub{font-size:13px;color:var(--ink-2);line-height:1.65;margin-bottom:14px;max-width:56ch}
-.leadrow{display:flex;gap:8px;flex-wrap:wrap}
-.leadrow input{flex:1;min-width:170px;padding:11px 13px;border:1px solid var(--rule);border-radius:3px;
-  background:var(--surface);color:var(--ink);font-size:14px}
-.leadrow input:focus{border-color:var(--accent)}
-.leadrow .btn{padding:11px 18px;font-size:14px}
-.leaddone{font-size:14px;color:var(--ink-2);line-height:1.7}
-.leaddone b{color:var(--ink)}
+.code{border-radius:16px;background:#0D1526;border:1px solid #1E2A40;box-shadow:0 30px 60px rgba(10,26,51,.18);overflow:hidden;color:#C9D4E5}
+.codehd{display:flex;align-items:center;gap:12px;padding:12px 16px;background:#111C31;border-bottom:1px solid #1E2A40;
+  font-family:"IBM Plex Mono",monospace;font-size:12.5px;color:#8594AE}
+.codehd .dots{display:flex;gap:6px}
+.codehd .dots i{width:10px;height:10px;border-radius:50%;display:block;background:#FF5F57}
+.codehd .dots i:nth-child(2){background:#FEBC2E}
+.codehd .dots i:nth-child(3){background:#28C840}
+.codeb{margin:0;padding:18px 20px;font-family:"IBM Plex Mono",monospace;font-size:13.5px;line-height:1.75;overflow-x:auto;white-space:pre;word-break:normal}
+.codeb .c{color:#6F819D}
+.codeb .k{color:#7FB4FF}
+.codeb .v{color:#8BE0B5}
+.codeft{padding:14px 18px;border-top:1px solid #1E2A40;background:#0F192C}
+.codelog{font-family:"IBM Plex Mono",monospace;font-size:12.5px;color:#8FA0BA;line-height:1.85}
+.codelog div{display:grid;grid-template-columns:70px 108px minmax(0,1fr);gap:8px}
+.codelog div span:nth-child(2){color:#7FB4FF}
+.codelog div span:nth-child(3){overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.passed{display:inline-flex;gap:8px;align-items:center;margin-top:12px;padding:7px 13px;border-radius:9px;
+  background:#16A36F;color:#fff;font-size:13.5px;font-weight:700}
+@media(max-width:480px){.codelog div{grid-template-columns:58px minmax(0,1fr)}.codelog div span:nth-child(3){grid-column:1/-1}}
 
-/* ── 관리자 리드 테이블 ── */
-.lead-table{border-collapse:collapse;width:100%;font-size:13px;min-width:760px}
-.lead-table th,.lead-table td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--rule-soft);vertical-align:middle}
-.lead-table thead th{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;
-  color:var(--faint);font-weight:400;background:var(--sunken);white-space:nowrap;border-bottom:1px solid var(--rule)}
-.lead-table tbody tr:last-child td{border-bottom:0}
-.lead-table tbody tr:hover{background:var(--sunken)}
-.pill{font-family:"IBM Plex Mono",monospace;font-size:10px;padding:2px 7px;border:1px solid var(--rule);
-  border-radius:2px;color:var(--muted)}
-
-/* ── 운영 형태 감지 ── */
-.plat{border-bottom:1px solid var(--rule-soft);padding:14px 22px;background:var(--sunken)}
-.plat-hd{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;font-size:14px}
-.plat-kind{font-family:"IBM Plex Mono",monospace;font-size:9.5px;letter-spacing:.1em;padding:2px 7px;
-  border:1px solid var(--rule);border-radius:2px;color:var(--faint)}
-.plat-hd b{font-size:15px}
-.plat-ev{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--faint);margin-left:auto}
-.plat-caps{display:flex;gap:7px 20px;flex-wrap:wrap;margin-top:9px;font-size:12.5px;color:var(--muted)}
-.plat-caps b{color:var(--ink);font-weight:600}
-
-/* ── 브랜드 마크 ────────────────────────────────────────
-   대괄호는 인용 표시이자 "이 안이 우리 영역"이라는 테두리다.
-   Cited 라는 이름이 뜻하는 것을 한 기호로 줄인 형태. */
-.logo .mk{font-family:"IBM Plex Mono",monospace;font-weight:500;letter-spacing:-.08em;
-  color:var(--accent);margin-right:7px;opacity:.85}
-.logo em{font-style:normal;font-weight:400;font-size:.72em;color:var(--muted);
-  margin-left:7px;letter-spacing:0}
-
-/* ── 케이스 스터디 ──────────────────────────────────────
-   이 자리에는 꾸민 수치가 아니라 서버가 기록한 값만 넣는다.
-   구매자는 이미 대행사에 데였고, 예쁜 대시보드 캡처를 믿지 않는다. */
-.case{display:grid;grid-template-columns:repeat(auto-fit,minmax(262px,1fr));gap:16px;margin-top:44px}
-.cx{background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.10);
-  border-radius:13px;padding:19px 20px 21px}
-.cx.hi{background:color-mix(in oklab,var(--accent-deep) 11%,transparent);
-  border-color:color-mix(in oklab,var(--accent-deep) 34%,transparent)}
-.cxh{display:flex;align-items:baseline;justify-content:space-between;gap:12px;
-  padding-bottom:13px;border-bottom:1px solid rgba(255,255,255,.10);margin-bottom:13px}
-.lab2{font-family:"IBM Plex Mono",monospace;font-size:11.5px;letter-spacing:.12em;
-  text-transform:uppercase;color:var(--on-deep-2)}
-.cxn{font-size:26px;font-weight:500;color:var(--accent-deep);letter-spacing:-.02em;white-space:nowrap}
-.cx p{font-size:16px;line-height:1.85;color:var(--on-deep-2)}
-.cx p b{color:var(--on-deep)}
-
-/* 실제 로그 — 계측 장비의 출력처럼 보이게 한다 */
-.caselog{margin-top:26px;border:1px solid rgba(255,255,255,.12);border-radius:12px;
-  background:rgba(0,0,0,.28);overflow:hidden}
-.clh{padding:11px 18px;border-bottom:1px solid rgba(255,255,255,.10);
-  font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--on-deep-2)}
-.cl{display:grid;grid-template-columns:92px 116px 1fr;gap:12px;padding:11px 18px;
-  font-size:13.8px;color:var(--on-deep-2);border-bottom:1px solid rgba(255,255,255,.05)}
-.cl:last-child{border-bottom:0}
-.cl span:first-child{color:var(--faint)}
-.cl span:nth-child(2){color:var(--accent-deep)}
-.cl.dim{color:var(--faint)}
-@media(max-width:600px){.cl{grid-template-columns:74px 1fr;gap:8px}
-  .cl span:nth-child(3){grid-column:1/-1;word-break:break-all}}
-
-.casenote{margin-top:22px;padding:17px 20px;border-left:3px solid var(--accent-deep);
-  background:rgba(255,255,255,.035);border-radius:0 12px 12px 0;
-  font-size:16px;line-height:1.88;color:var(--on-deep-2)}
-.casenote b{color:var(--on-deep)}
-
-/* 케이스 전체 기록으로 가는 링크. 랜딩에 다 넣으면 읽는 부담이 커진다. */
-.caselink{display:inline-flex;flex-direction:column;gap:3px;margin-top:18px;
-  padding:14px 20px;border:1px solid rgba(255,255,255,.10);border-radius:12px;
-  background:rgba(255,255,255,.03);color:var(--on-deep);text-decoration:none;
-  font-size:15.5px;font-weight:700;letter-spacing:-.01em;
-  transition:border-color .18s,background .18s}
-.caselink:hover{border-color:var(--accent-deep);background:rgba(255,255,255,.06)}
-.caselink span{font-size:13px;font-weight:400;color:var(--on-deep-2);letter-spacing:0}
-
-/* ── 신뢰구간 수렴 그래프 ────────────────────────────────
-   이 회사가 파는 것은 "측정"이라 방법론이 한 장으로 보여야 한다.
-   숫자를 크게 쓰는 대신 오차막대를 그린다. 그게 이 업계에서 드문 일이다. */
-.conv{margin:16px 0 0;padding:16px 18px 14px;border:1px solid var(--rule);
-  border-radius:13px;background:var(--surface);color:var(--accent)}
-.convh{display:flex;align-items:baseline;justify-content:space-between;gap:12px;
-  flex-wrap:wrap;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
-  color:var(--muted);padding-bottom:10px;border-bottom:1px solid var(--rule-soft)}
-.convh .dim{color:var(--faint);text-transform:none;letter-spacing:.02em}
-.conv svg{display:block;width:100%;height:auto;margin-top:8px}
-.convf{margin-top:12px;padding-top:13px;border-top:1px solid var(--rule-soft);
-  font-size:14.5px;line-height:1.8;color:var(--muted);
-  font-family:"IBM Plex Sans KR",sans-serif;letter-spacing:-.006em}
-.convf b{color:var(--ink)}
-
-/* ── 쓰면 달라지는 것 ────────────────────────────────────
-   방법론보다 먼저 나와야 하는 절. 사는 사람의 질문을 그대로 제목에 쓰고,
-   답을 한 줄로 준 뒤 그 답이 어떻게 생겼는지 작은 그림으로 보여준다. */
-.whys{display:grid;grid-template-columns:repeat(auto-fit,minmax(272px,1fr));gap:18px;margin-top:48px}
-.w{background:var(--surface);border:1px solid var(--rule);border-radius:14px;
-  padding:22px 22px 20px;display:flex;flex-direction:column;
-  transition:border-color .2s,transform .2s}
-.w:hover{border-color:var(--accent);transform:translateY(-2px)}
-@media (prefers-reduced-motion:reduce){.w:hover{transform:none}}
-.wq{font-family:"Noto Serif KR",serif;font-weight:700;font-size:18.5px;
-  color:var(--ink);line-height:1.45;letter-spacing:-.02em}
-.wa{margin-top:13px;font-size:15.5px;line-height:1.82;color:var(--muted);flex:1}
-.wa b{color:var(--ink)}
-.wb{margin-top:18px;padding-top:15px;border-top:1px solid var(--rule-soft);
-  display:flex;flex-direction:column;gap:8px;font-size:12.5px;color:var(--faint)}
+/* ── 맡기면 받는 것 ── */
+.gets{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:18px;margin-top:48px}
+.get{background:var(--surface);border:1px solid var(--rule);border-radius:var(--radius);padding:28px 26px 24px;
+  display:flex;flex-direction:column;box-shadow:var(--shadow);transition:transform .2s,border-color .2s}
+.get:hover{transform:translateY(-3px);border-color:color-mix(in srgb,var(--accent) 40%,var(--rule))}
+.ico{width:52px;height:52px;border-radius:14px;background:var(--accent-soft);color:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ico svg{width:26px;height:26px}
+.getn{margin-top:22px;font-size:14px;color:var(--accent);font-weight:700}
+.get h3{font-size:22px;margin-top:4px}
+.get p{margin-top:12px;font-size:16.5px;line-height:1.75;color:var(--muted);flex:1}
+.get p b{color:var(--ink);font-weight:700}
+.getb{margin-top:20px;padding-top:16px;border-top:1px solid var(--rule-soft);display:flex;flex-direction:column;gap:9px;font-size:14px;color:var(--muted)}
 .wbar{display:block;height:8px;border-radius:5px;background:var(--sunken);overflow:hidden}
 .wbar i{display:block;height:100%;background:var(--accent);border-radius:5px}
 .wsplit{display:flex;height:8px;border-radius:5px;overflow:hidden;background:var(--sunken)}
 .wsplit i{display:block;height:100%}
 .wsplit i.a{background:var(--accent)}
 .wsplit i.b{background:var(--band)}
-.wdelta{display:flex;align-items:center;gap:11px;font-size:19px;color:var(--ink)}
-.wdelta .d0{color:var(--faint)}
-.wdelta .darrow{color:var(--rule);font-size:15px}
-.wdelta .d1{color:var(--accent);font-weight:500}
-.whyfoot{margin-top:26px;padding:18px 22px;border-left:3px solid var(--rule);
-  background:var(--sunken);border-radius:0 12px 12px 0;
-  font-size:15.5px;line-height:1.85;color:var(--muted);max-width:74ch}
-.whyfoot b{color:var(--ink)}
-
-/* ── 스크롤 시연 ─────────────────────────────────────────
-   오차막대가 가운데에서 위아래로 벌어지며 그려진다.
-   "많이 물어볼수록 답이 또렷해진다"를 글이 아니라 움직임으로 보여주는 것이 목적이라,
-   순서(표본이 작은 것부터)와 방향(중앙에서 바깥으로)이 의미를 갖는다. */
-.conv .ci{transform-origin:center;transform:scaleY(0);opacity:0;
-  transition:transform .62s cubic-bezier(.22,.9,.3,1),opacity .3s ease}
-.conv .ci.in{transform:scaleY(1);opacity:1}
-
-/* 막대 채우기 — 폭은 인라인 --w 로 받는다 */
 .wbar i,.wsplit i{width:0;transition:width .8s cubic-bezier(.22,.9,.3,1)}
 .wbar.in i,.wsplit.in i{width:var(--w)}
+.wdelta{display:flex;align-items:center;gap:11px;font-size:20px;font-weight:700;color:var(--ink)}
+.wdelta .d0{color:var(--faint)}
+.wdelta .darrow{color:var(--rule);font-size:16px}
+.wdelta .d1{color:var(--accent)}
+.whyfoot{margin-top:26px;padding:18px 22px;border-left:3px solid var(--accent);background:var(--accent-soft);
+  border-radius:0 12px 12px 0;font-size:16.5px;line-height:1.8;color:var(--ink-2);max-width:78ch}
+.whyfoot b{color:var(--ink)}
 
-@media (prefers-reduced-motion:reduce){
-  .conv .ci{transform:none;opacity:1;transition:none}
-  .wbar i,.wsplit i{width:var(--w);transition:none}
-}
+/* ── 해당하는 곳 ── */
+.fit{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px;margin-top:44px}
+.fitc{background:var(--surface);border:1px solid var(--rule);border-radius:var(--radius);padding:26px 26px 22px;box-shadow:var(--shadow)}
+.fitc.no{background:var(--sunken);box-shadow:none}
+.fith{display:flex;align-items:center;gap:10px;font-weight:800;font-size:19px;color:var(--ink);letter-spacing:-.02em}
+.fith i{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-style:normal;font-size:14px;
+  background:var(--accent-soft);color:var(--accent)}
+.fitc.no .fith i{background:color-mix(in oklab,var(--crit) 12%,transparent);color:var(--crit)}
+.fitc ul{list-style:none;padding:0;margin:16px 0 0;display:flex;flex-direction:column;gap:12px}
+.fitc li{position:relative;padding-left:18px;font-size:16px;line-height:1.7;color:var(--ink-2)}
+.fitc li::before{content:"";position:absolute;left:0;top:.75em;width:8px;height:2px;background:var(--accent)}
+.fitc.no li{color:var(--muted)}
+.fitc.no li::before{background:var(--faint)}
+.fitc li b{color:var(--ink)}
 
-/* ── 계측기 질감 ─────────────────────────────────────────
-   AI 가 만든 랜딩은 대개 둥근 카드가 균일하게 반복된다.
-   이 페이지는 리포트처럼 보여야 하므로 절 사이에 눈금을 넣는다. */
-section + section > .wrap::before{
-  content:"";display:block;height:1px;margin-bottom:0;
-  background:repeating-linear-gradient(to right,
-    var(--rule) 0 1px, transparent 1px 9px)}
-section.deep + section > .wrap::before,
-section + section.deep > .wrap::before{opacity:.55}
-@media(max-width:760px){section + section > .wrap::before{margin-bottom:38px}}
+/* ── 직접 잰 것 (어두운 절) ── */
+.stat{display:inline-flex;flex-direction:column;gap:7px}
+.stat .v{font-weight:800;font-variant-numeric:tabular-nums;line-height:1;letter-spacing:-.04em}
+.stat .bandbar{height:5px;border-radius:3px;background:var(--band);position:relative}
+.stat .bandbar i{position:absolute;top:0;bottom:0;width:2px;background:var(--accent);border-radius:2px}
+.stat .c{font-size:14px;color:var(--faint)}
+section.deep .stat .bandbar{background:rgba(107,174,255,.2)}
+section.deep .stat .bandbar i{background:var(--accent-deep)}
+section.deep .stat .v{color:#fff}
+section.deep .stat .c{color:var(--on-deep-2)}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:18px;margin-top:48px}
+.fact{padding:26px 24px;border-radius:var(--radius);background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1)}
+.fact .v{font-size:54px}
+.fact .v small{font-size:22px;font-weight:600;color:var(--on-deep-2);margin-left:2px}
+.fact .t{font-size:16px;color:var(--on-deep-2);margin-top:16px;line-height:1.75}
+.fact .t b{color:#fff}
+.casenote{margin-top:22px;padding:18px 22px;border-left:3px solid var(--accent-deep);background:rgba(255,255,255,.04);
+  border-radius:0 12px 12px 0;font-size:16.5px;line-height:1.85;color:var(--on-deep-2)}
+.casenote b{color:#fff}
 
-/* ── 히어로 · 문제를 보여주는 패널 ───────────────────────
-   방법론은 아래 절로 내렸다. 여기서 읽는 사람이 알아야 할 것은 하나다 —
-   AI 가 세 곳을 말하는데 내 이름이 거기 없다. */
-.ask{margin:0;border:1px solid var(--rule);border-radius:15px;background:var(--surface);
-  overflow:hidden;box-shadow:0 16px 42px rgba(20,30,26,.07)}
-.askq{display:flex;align-items:center;gap:11px;padding:14px 18px;background:var(--sunken);
-  border-bottom:1px solid var(--rule);font-size:14.5px;color:var(--ink-2)}
-.askq .dots{display:flex;gap:5px;flex-shrink:0}
-.askq .dots i{width:9px;height:9px;border-radius:50%;background:var(--rule);display:block}
-.askbody{padding:20px 22px 18px}
-.asklead{font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--faint);
-  margin-bottom:14px}
-.asklist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:11px}
-.asklist li{display:flex;align-items:center;gap:12px;font-size:17px;color:var(--ink);font-weight:500}
-.asklist .rk{width:23px;height:23px;border-radius:6px;background:var(--accent-soft);
-  color:var(--accent);font-size:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.askme{margin-top:17px;padding-top:15px;border-top:1px dashed var(--rule);
-  display:flex;align-items:center;justify-content:space-between;gap:14px}
-.askme .mek{font-size:17px;font-weight:600;color:var(--ink)}
-.askme .mev{font-family:"IBM Plex Mono",monospace;font-size:13.5px;color:var(--crit);
-  border:1px solid color-mix(in oklab,var(--crit) 40%,transparent);
-  background:color-mix(in oklab,var(--crit) 9%,transparent);
-  border-radius:20px;padding:5px 13px;white-space:nowrap}
-.askft{padding:14px 20px;background:var(--sunken);border-top:1px solid var(--rule);
-  font-size:14.5px;color:var(--muted);line-height:1.7}
-.askft b{color:var(--ink)}
+/* ── 서비스 카드 (랜딩 · /services 공용) ── */
+.svcs{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:18px;margin-top:48px}
+.svc{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--rule);border-radius:var(--radius);
+  padding:26px 24px 22px;color:inherit;box-shadow:var(--shadow);transition:border-color .2s,transform .2s,box-shadow .2s}
+.svc:hover{border-color:var(--accent);transform:translateY(-3px);box-shadow:0 16px 36px rgba(14,27,46,.1)}
+.svch{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:18px}
+.svch .no{font-size:13px;color:var(--faint)}
+.svch .tag{font-size:12px;letter-spacing:.04em;color:var(--accent);background:var(--accent-soft);border-radius:999px;padding:4px 11px;font-weight:600}
+.svc h2,.svc h3{font-size:23px;margin:0 0 6px;letter-spacing:-.03em}
+.svc p{font-size:16px;line-height:1.7;color:var(--muted)}
+.svcask2{font-size:14.5px;color:var(--accent);font-weight:600;margin-bottom:10px;line-height:1.5}
+.svcdo{list-style:none;margin:16px 0 0;padding:16px 0 0;border-top:1px solid var(--rule-soft);display:flex;flex-direction:column;gap:9px;flex:1}
+.svcdo li{position:relative;padding-left:24px;font-size:15px;color:var(--ink-2);line-height:1.55}
+.svcdo li::before{content:"";position:absolute;left:3px;top:.38em;width:11px;height:6px;border-left:2px solid var(--accent);border-bottom:2px solid var(--accent);transform:rotate(-45deg)}
+.svcterm{margin-top:16px;font-size:14px;color:var(--ink-2);background:var(--sunken);border-radius:10px;padding:9px 12px;line-height:1.5}
+.svcq{margin-top:14px;padding-top:14px;border-top:1px solid var(--rule-soft);font-size:15px;color:var(--ink-2);line-height:1.7}
+.svcgo{margin-top:16px;font-size:15px;color:var(--accent);font-weight:700}
 
-/* 다시 물으면 바뀐다 — 두 줄로 끝낸다 */
-.again{margin-top:14px;border:1px solid var(--rule);border-radius:13px;
-  background:var(--surface);padding:16px 18px 15px}
-.againh{font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:var(--faint);
-  padding-bottom:12px;border-bottom:1px solid var(--rule-soft)}
-.againrow{display:flex;align-items:center;gap:9px;margin-top:11px;font-size:14.5px;color:var(--ink-2)}
-.againrow .rn{font-size:11.5px;color:var(--faint);width:44px;flex-shrink:0}
-.againrow span:not(.rn){width:32px;height:32px;border-radius:8px;background:var(--sunken);
-  display:flex;align-items:center;justify-content:center;font-weight:500}
-.againrow .sw{background:var(--accent);color:var(--accent-ink)}
-.againrow .sw.alt{background:var(--warn);color:#fff}
-.againf{margin-top:14px;padding-top:13px;border-top:1px solid var(--rule-soft);
-  font-size:14.2px;line-height:1.78;color:var(--muted);
-  font-family:"IBM Plex Sans KR",sans-serif;letter-spacing:-.006em}
-.againf b{color:var(--ink)}
+/* ── 진행 ── */
+.flow{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px;margin-top:52px}
+@media(max-width:1000px){.flow{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:580px){.flow{grid-template-columns:minmax(0,1fr)}}
+.fstep{position:relative;background:var(--surface);border:1px solid var(--rule);border-radius:var(--radius);padding:24px 22px;box-shadow:var(--shadow)}
+.fstep::after{content:"";position:absolute;top:41px;right:-19px;width:20px;height:2px;background:var(--rule)}
+.fstep:last-child::after{display:none}
+@media(max-width:1000px){.fstep::after{display:none}}
+.fhead{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.fnum{width:36px;height:36px;border-radius:50%;background:var(--accent);color:var(--accent-ink);font-weight:800;font-size:15px;display:flex;align-items:center;justify-content:center}
+.fwhen{font-size:13.5px;font-weight:700;color:var(--accent);background:var(--accent-soft);border-radius:999px;padding:4px 12px;white-space:nowrap}
+.fstep h3{font-size:20px;margin-top:18px}
+.fstep p{margin-top:10px;font-size:15.5px;line-height:1.75;color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:16px}
+.chips span{font-size:13px;color:var(--ink-2);background:var(--sunken);border:1px solid var(--rule-soft);border-radius:999px;padding:3px 10px}
+.flownote{margin-top:22px;font-size:16px;color:var(--muted)}
+.flownote b{color:var(--ink)}
 
-/* 그래프가 "다른 점" 절로 내려왔으므로 그 자리에 맞게 여백 조정 */
-.d .conv{margin:14px 0 16px}
+/* ── 도입 사례 ──────────────────────────────────────────
+   꾸민 수치가 아니라 서버가 기록한 값만 넣는다.
+   구매자는 이미 대행사에 데였고, 예쁜 대시보드 캡처를 믿지 않는다. */
+.case{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;margin-top:44px}
+.cx{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:var(--radius);padding:22px 22px 22px}
+.cx.hi{background:rgba(107,174,255,.09);border-color:rgba(107,174,255,.32)}
+.cxh{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;
+  padding-bottom:14px;border-bottom:1px solid rgba(255,255,255,.1);margin-bottom:14px}
+.lab2{font-size:14px;font-weight:600;color:var(--on-deep-2)}
+.cxn{font-size:28px;font-weight:800;color:var(--accent-deep);letter-spacing:-.03em;white-space:nowrap;font-variant-numeric:tabular-nums}
+.cx p{font-size:15.5px;line-height:1.8;color:var(--on-deep-2)}
+.cx p b{color:#fff}
 
-/* ── 하지 않는 일 ────────────────────────────────────────
-   대부분의 업체는 무엇을 하는지만 말한다. 안 하는 것을 적는 쪽이
-   구매자에게는 훨씬 강한 신호다 — 지킬 수 없는 약속을 안 한다는 뜻이므로. */
-.nots{display:grid;grid-template-columns:repeat(auto-fit,minmax(272px,1fr));gap:2px;
-  margin-top:44px;background:var(--rule);border:1px solid var(--rule);border-radius:14px;overflow:hidden}
-.nt{background:var(--surface);padding:22px 22px 20px;display:flex;gap:14px;
-  transition:background .18s}
-.nt:hover{background:var(--sunken)}
-.nt .x{flex-shrink:0;width:26px;height:26px;border-radius:50%;
-  background:color-mix(in oklab,var(--crit) 12%,transparent);color:var(--crit);
-  display:flex;align-items:center;justify-content:center;font-size:13px;margin-top:2px}
-.nt b{display:block;font-size:17px;color:var(--ink);letter-spacing:-.02em}
-.nt p{margin:7px 0 0;font-size:15px;line-height:1.75;color:var(--muted)}
-.notsfoot{margin-top:30px;padding:22px 26px;border-radius:14px;
-  background:var(--accent-soft);border:1px solid color-mix(in oklab,var(--accent) 22%,transparent);
-  font-size:17px;line-height:1.85;color:var(--ink-2);max-width:74ch}
-.notsfoot b{color:var(--ink)}
+.casetwo{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:22px;margin-top:40px;align-items:start}
+@media(max-width:900px){.casetwo{grid-template-columns:minmax(0,1fr)}}
+.minih{font-size:16px;font-weight:700;color:#fff;margin-bottom:14px}
+.logrows{display:flex;flex-direction:column;gap:8px}
+.lr{display:grid;grid-template-columns:70px minmax(0,1fr);gap:16px;align-items:start;padding:14px 18px;border-radius:14px;
+  background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.09)}
+.lrd{font-family:"IBM Plex Mono",monospace;font-size:13px;color:var(--accent-deep);background:rgba(107,174,255,.12);border-radius:8px;padding:2px 0;text-align:center;margin-top:2px}
+.lr b{display:block;font-size:16px;color:#fff;font-weight:700;line-height:1.5}
+.lr p{font-size:14.5px;color:var(--on-deep-2);margin-top:2px;line-height:1.65}
+@media(max-width:520px){.lr{grid-template-columns:minmax(0,1fr);gap:6px}.lrd{justify-self:start;padding:2px 10px}}
 
-/* ── 서비스 카드 ─────────────────────────────────────────
-   랜딩에는 한 줄만 두고 설명은 서브페이지로 내렸다.
-   읽을 분량을 고객이 스스로 정하게 하는 것이 목적이다. */
-.svcs{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px;margin-top:46px}
-.svc{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--rule);
-  border-radius:15px;padding:24px 24px 22px;color:inherit;
-  transition:border-color .2s,transform .2s,box-shadow .2s}
-.svc:hover{border-color:var(--accent);transform:translateY(-3px);
-  box-shadow:0 14px 34px rgba(20,30,26,.09)}
-@media (prefers-reduced-motion:reduce){.svc:hover{transform:none}}
-.svch{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:16px}
-.svch .no{font-size:12px;color:var(--faint);letter-spacing:.1em}
-.svch .tag{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);
-  border:1px solid color-mix(in oklab,var(--accent) 30%,transparent);border-radius:20px;padding:3px 10px}
-.svc h2,.svc h3{font-size:23px;margin:0 0 10px;letter-spacing:-.025em}
-.svc p{font-size:16px;line-height:1.75;color:var(--muted);flex:1}
-.svcq{margin-top:14px;padding-top:14px;border-top:1px solid var(--rule-soft);
-  font-size:14.5px;color:var(--ink-2);line-height:1.7}
-.svcgo{margin-top:18px;font-size:13px;color:var(--accent);letter-spacing:.02em}
+.caselog{border:1px solid rgba(255,255,255,.12);border-radius:14px;background:rgba(0,0,0,.25);overflow:hidden}
+.clh{padding:11px 18px;border-bottom:1px solid rgba(255,255,255,.1);font-size:13px;color:var(--on-deep-2)}
+.cl{display:grid;grid-template-columns:74px 104px minmax(0,1fr);gap:10px;padding:10px 18px;
+  font-size:13px;color:var(--on-deep-2);border-bottom:1px solid rgba(255,255,255,.05)}
+.cl:last-child{border-bottom:0}
+.cl span:first-child{color:var(--faint)}
+.cl span:nth-child(2){color:var(--accent-deep)}
+.cl.dim{color:var(--faint)}
+@media(max-width:600px){.cl{grid-template-columns:64px minmax(0,1fr);gap:8px}.cl span:nth-child(3){grid-column:1/-1;word-break:break-all}}
+.caselink{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px;padding:16px 20px;
+  border:1px solid rgba(255,255,255,.14);border-radius:14px;background:rgba(255,255,255,.04);color:#fff;
+  font-size:16px;font-weight:700;transition:border-color .18s,background .18s}
+.caselink:hover{border-color:var(--accent-deep);background:rgba(255,255,255,.07)}
+.caselink span{font-size:14px;font-weight:400;color:var(--on-deep-2)}
 
-/* ── 서비스 상세 ─────────────────────────────────────────── */
-.hero.simple{padding:96px 0 74px}
-.hero.simple .lede{max-width:56ch}
-.svcask{margin-top:26px;padding:18px 22px;border-left:3px solid var(--accent);
-  background:var(--accent-soft);border-radius:0 12px 12px 0;
-  font-family:"Noto Serif KR",serif;font-weight:700;font-size:19px;color:var(--ink);
-  letter-spacing:-.02em;max-width:52ch}
-.wrap.narrow{max-width:780px}
+/* ── 리포트가 다른 점 ── */
+.diff{display:flex;flex-direction:column;gap:14px;margin-top:44px}
+.drow{background:var(--surface);border:1px solid var(--rule);border-radius:var(--radius);padding:26px 28px;
+  display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;box-shadow:var(--shadow)}
+@media(max-width:780px){.drow{grid-template-columns:minmax(0,1fr);gap:14px}}
+.drow h3{font-size:20px}
+.drow .body{font-size:16px;color:var(--muted);line-height:1.8}
+.drow .body b{color:var(--ink)}
+.vs{margin-top:12px;font-size:15px;line-height:1.9}
+.vs .them{color:var(--faint);text-decoration:line-through;text-decoration-color:var(--crit)}
+.vs .us{color:var(--accent);font-weight:700}
+.drow .ivl{grid-column:1/-1}
 
-.does{display:flex;flex-direction:column;gap:0;margin-top:38px}
-.do{display:grid;grid-template-columns:52px 1fr;gap:18px;padding:26px 0;
-  border-bottom:1px solid var(--rule-soft)}
-.do:last-child{border-bottom:0}
-.do .dn{font-size:13px;color:var(--faint);letter-spacing:.08em;padding-top:4px}
-.do b{display:block;font-size:19px;color:var(--ink);letter-spacing:-.02em;
-  font-family:"Noto Serif KR",serif;font-weight:700}
-.do p{margin:10px 0 0;font-size:16px;line-height:1.85;color:var(--muted)}
-@media(max-width:600px){.do{grid-template-columns:1fr;gap:6px}}
-
-.gives{list-style:none;margin:34px 0 0;padding:0;display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:2px;
-  background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.12);
-  border-radius:13px;overflow:hidden}
-.gives li{background:var(--deep);padding:18px 20px;font-size:16px;color:var(--on-deep-2);
-  line-height:1.7;display:flex;gap:11px;align-items:flex-start}
-.gives li::before{content:"→";color:var(--accent-deep);flex-shrink:0}
-
-.limits{list-style:none;margin:30px 0 0;padding:0;display:flex;flex-direction:column;gap:12px}
-.limits li{font-size:16.5px;line-height:1.8;color:var(--muted);
-  padding-left:26px;position:relative}
-.limits li::before{content:"—";position:absolute;left:0;color:var(--rule);font-weight:600}
-
-.terms{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:2px;
-  margin-top:38px;background:var(--rule);border:1px solid var(--rule);
-  border-radius:13px;overflow:hidden}
-.term{background:var(--sunken);padding:18px 20px}
-.term .tk{display:block;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
-.term .tv{display:block;margin-top:7px;font-size:17px;color:var(--ink);font-weight:500}
-
-.svcnav{display:flex;gap:11px;flex-wrap:wrap;margin-top:44px}
-
-/* ── 만져보는 신뢰구간 ───────────────────────────────────
-   이 회사의 주장을 문장으로 설명하는 대신 눌러 보게 한다.
-   측정을 파는 회사가 그래프를 눈대중으로 그리면 자기모순이라
-   숫자는 Wilson score interval 로 실제 계산한다. */
-.ivl{margin:16px 0 18px;border:1px solid var(--rule);border-radius:14px;
-  background:var(--surface);overflow:hidden}
+/* ── 만져보는 신뢰구간 ── */
+.ivl{margin:6px 0 4px;border:1px solid var(--rule);border-radius:14px;background:var(--surface);overflow:hidden}
 .ivlh{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
-  padding:15px 18px;background:var(--sunken);border-bottom:1px solid var(--rule);
-  font-size:12px;letter-spacing:.08em;color:var(--muted)}
-.ivlbtns{display:flex;gap:6px}
-.ivlb{border:1px solid var(--rule);background:var(--surface);color:var(--muted);
-  border-radius:20px;padding:6px 13px;font-size:12.5px;cursor:pointer;
+  padding:14px 18px;background:var(--sunken);border-bottom:1px solid var(--rule);font-size:13px;color:var(--muted)}
+.ivlbtns{display:flex;gap:6px;flex-wrap:wrap}
+.ivlb{border:1px solid var(--rule);background:var(--surface);color:var(--muted);border-radius:999px;padding:6px 13px;font-size:13px;cursor:pointer;
   transition:border-color .16s,color .16s,background .16s}
 .ivlb:hover{border-color:var(--accent);color:var(--ink)}
 .ivlb.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
-
-.ivlplot{padding:26px 22px 20px}
-.ivlaxis{display:flex;justify-content:space-between;font-size:10.5px;color:var(--faint);
-  margin-bottom:9px;letter-spacing:.06em}
-.ivltrack{position:relative;height:44px;border-radius:8px;background:var(--sunken);
-  border:1px solid var(--rule-soft);overflow:hidden}
-.ivlband{position:absolute;top:0;bottom:0;background:var(--band);
-  border-left:2px solid var(--accent);border-right:2px solid var(--accent);
+.ivlplot{padding:24px 22px 18px}
+.ivlaxis{display:flex;justify-content:space-between;font-size:11px;color:var(--faint);margin-bottom:9px}
+.ivltrack{position:relative;height:44px;border-radius:8px;background:var(--sunken);border:1px solid var(--rule-soft);overflow:hidden}
+.ivlband{position:absolute;top:0;bottom:0;background:var(--band);border-left:2px solid var(--accent);border-right:2px solid var(--accent);
   transition:left .55s cubic-bezier(.22,.9,.3,1),width .55s cubic-bezier(.22,.9,.3,1)}
-.ivldot{position:absolute;top:50%;width:11px;height:11px;margin:-5.5px 0 0 -5.5px;
-  border-radius:50%;background:var(--accent);
+.ivldot{position:absolute;top:50%;width:11px;height:11px;margin:-5.5px 0 0 -5.5px;border-radius:50%;background:var(--accent);
   box-shadow:0 0 0 4px color-mix(in oklab,var(--accent) 22%,transparent)}
 .ivltick{position:absolute;top:0;bottom:0;width:1px;background:var(--rule);opacity:.7}
-.ivlread{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-top:16px;
-  font-size:13.5px;color:var(--faint)}
-.ivlread b{font-size:22px;color:var(--ink);font-weight:500;letter-spacing:-.02em}
+.ivlread{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-top:16px;font-size:14px;color:var(--faint)}
+.ivlread b{font-size:22px;color:var(--ink);font-weight:700;letter-spacing:-.02em}
 .ivlread b.rng{color:var(--accent)}
-.ivlnote{margin:0;padding:16px 22px 18px;border-top:1px solid var(--rule-soft);
-  background:var(--sunken);font-size:15px;line-height:1.8;color:var(--muted);
-  font-family:"IBM Plex Sans KR",sans-serif;letter-spacing:-.006em;min-height:62px}
+.ivlnote{margin:0;padding:15px 22px 17px;border-top:1px solid var(--rule-soft);background:var(--sunken);
+  font-size:15px;line-height:1.8;color:var(--muted);min-height:62px}
 .ivlnote b{color:var(--ink)}
 
-/* ── 큰 제목 · 작은 본문 ─────────────────────────────────
-   글씨가 작아 보기 좋으려면 제목이 충분히 커야 한다.
-   본문만 키우면 전체가 뭉툭해지고, 본문만 줄이면 빽빽해진다. 대비가 답이다. */
-h1{font-size:clamp(42px,7vw,80px);line-height:1.08;letter-spacing:-.042em}
-h2{font-size:clamp(32px,5vw,54px);line-height:1.14;letter-spacing:-.035em}
-.lede{font-size:19px;line-height:1.75;max-width:46ch}
-.sub2{font-size:17px;line-height:1.78;max-width:48ch}
-.svc h2,.svc h3{font-size:24px;letter-spacing:-.028em}
-.svc p{font-size:15.5px}
-.wq{font-size:19.5px}
-.wa{font-size:15px}
-.nt b{font-size:17.5px}
-.nt p{font-size:14.8px}
-.cx p{font-size:15.2px}
-.fact .t{font-size:15px}
-@media(max-width:640px){
-  h1{font-size:clamp(34px,9vw,46px)}
-  h2{font-size:clamp(27px,7vw,34px)}
-  .lede{font-size:17.5px}
+/* ── 하지 않는 일 ────────────────────────────────────────
+   안 하는 것을 적는 쪽이 구매자에게는 더 강한 신호다 — 지킬 수 없는 약속을 안 한다는 뜻이므로. */
+.nots{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:44px}
+@media(max-width:700px){.nots{grid-template-columns:minmax(0,1fr)}}
+.nt{background:var(--surface);border:1px solid var(--rule);border-radius:var(--radius);padding:22px 22px 20px;display:flex;gap:14px}
+.nt .x{flex-shrink:0;width:28px;height:28px;border-radius:50%;background:color-mix(in oklab,var(--crit) 12%,transparent);color:var(--crit);
+  display:flex;align-items:center;justify-content:center;font-size:13px;margin-top:1px}
+.nt b{display:block;font-size:18px;color:var(--ink);letter-spacing:-.02em}
+.nt p{margin:6px 0 0;font-size:15.5px;line-height:1.75;color:var(--muted)}
+
+/* ── 요금 ── */
+.ponce{margin-top:44px;border:1px solid var(--rule);border-radius:var(--radius);overflow:hidden;background:var(--surface);box-shadow:var(--shadow)}
+.poh{display:flex;align-items:baseline;gap:16px;flex-wrap:wrap;padding:16px 22px;background:var(--sunken);border-bottom:1px solid var(--rule)}
+.poh .pok{font-size:15px;font-weight:700;color:var(--accent)}
+.poh .pod{font-size:15px;color:var(--muted)}
+.porow{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1px;background:var(--rule-soft)}
+.po{background:var(--surface);padding:20px 22px 22px}
+.po .pot{font-size:16.5px;font-weight:700;color:var(--ink)}
+.po .pop{margin-top:6px;font-size:26px;font-weight:800;color:var(--accent);letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.po p{margin:8px 0 0;font-size:15px;line-height:1.7;color:var(--muted)}
+.plans{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:18px;margin-top:18px;max-width:780px}
+.plan{background:var(--surface);border:1px solid var(--rule);border-radius:var(--radius);padding:28px 26px;display:flex;flex-direction:column;gap:14px;box-shadow:var(--shadow)}
+.plan.hi{border:2px solid var(--accent)}
+.plan .pn{font-size:15px;font-weight:700;color:var(--accent)}
+.plan .pp{font-size:40px;font-weight:800;line-height:1;letter-spacing:-.04em;font-variant-numeric:tabular-nums}
+.plan .pp small{font-size:15px;font-weight:500;color:var(--muted);margin-left:5px;letter-spacing:0}
+.plan .for{font-size:15px;color:var(--muted);padding-bottom:14px;border-bottom:1px solid var(--rule-soft)}
+.plan ul{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:9px;font-size:15.5px;color:var(--ink-2)}
+.plan li{padding-left:24px;position:relative;line-height:1.6}
+.plan li::before{content:"";position:absolute;left:3px;top:.4em;width:11px;height:6px;border-left:2px solid var(--accent);border-bottom:2px solid var(--accent);transform:rotate(-45deg)}
+.plan .cta{margin-top:auto;padding-top:16px}
+.pcompare{margin-top:24px;padding:20px 24px;border-left:3px solid var(--rule);background:var(--sunken);border-radius:0 12px 12px 0;
+  font-size:16px;line-height:1.85;color:var(--muted);max-width:78ch}
+.pcompare b{color:var(--ink)}
+.quote{margin-top:22px;border:1px solid color-mix(in oklab,var(--accent) 26%,transparent);border-radius:14px;background:var(--accent-soft);overflow:hidden;max-width:780px}
+.qh{padding:13px 20px;border-bottom:1px solid color-mix(in oklab,var(--accent) 20%,transparent);font-size:14.5px;font-weight:700;color:var(--accent)}
+.qrow{display:flex;align-items:baseline;justify-content:space-between;gap:14px;flex-wrap:wrap;padding:14px 20px;
+  border-bottom:1px dashed color-mix(in oklab,var(--accent) 18%,transparent);font-size:15.5px;color:var(--ink-2)}
+.qrow:last-of-type{border-bottom:0}
+.qcalc{font-size:15px;color:var(--muted)}
+.qcalc i{font-style:normal;color:var(--faint);margin:0 4px}
+.qcalc em{font-style:normal;color:var(--faint);margin:0 6px;font-size:13px}
+.qcalc b{color:var(--ink);font-size:17px}
+.qnote{margin:0;padding:14px 20px 17px;font-size:15px;line-height:1.75;color:var(--muted)}
+.qnote b{color:var(--ink)}
+
+/* 요금표 안 상담 신청 */
+.askrow{display:flex;gap:8px;flex-wrap:wrap;position:relative}
+.askrow input{flex:1;min-width:150px;padding:12px 14px;border:1px solid var(--rule);border-radius:10px;background:var(--surface);color:var(--ink);font-size:15.5px}
+.askrow input:focus{border-color:var(--accent);outline:none;box-shadow:0 0 0 4px var(--band)}
+.plan .askrow{flex-direction:column}
+.plan .askrow input{min-width:0;width:100%}
+.plan .askrow .btn{width:100%}
+.plan:not(.hi) .askrow .btn{background:transparent;color:var(--accent)}
+.plan:not(.hi) .askrow .btn:hover{background:var(--accent-soft)}
+
+/* ── 자주 묻는 것 ── */
+.faq{margin-top:40px;display:flex;flex-direction:column;gap:10px}
+details{border:1px solid var(--rule);border-radius:14px;background:var(--surface);overflow:hidden}
+details[open]{border-color:color-mix(in srgb,var(--accent) 40%,var(--rule));box-shadow:var(--shadow)}
+summary{padding:19px 22px;cursor:pointer;font-weight:700;font-size:17px;list-style:none;display:flex;justify-content:space-between;gap:14px;align-items:center}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"+";color:var(--accent);font-size:22px;font-weight:500;flex:0 0 auto;line-height:1}
+details[open] summary::after{content:"−"}
+details p{padding:0 22px 20px;font-size:16px;color:var(--muted);line-height:1.8;max-width:70ch}
+
+/* ── 문의 (어두운 절 · 큰 카드) ── */
+.cpanel{margin-top:22px;background:var(--surface);color:var(--ink);border-radius:20px;padding:30px 30px 28px;box-shadow:0 30px 70px rgba(0,0,0,.35)}
+@media(max-width:560px){.cpanel{padding:24px 18px}}
+.cpanel h3,section.deep .cpanel h3{font-size:21px;color:var(--ink)}
+.cpsub{font-size:15.5px;color:var(--muted);margin-top:6px}
+.cpanel .form{margin-top:18px}
+.cform{margin-top:22px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 16px}
+@media(max-width:640px){.cform{grid-template-columns:minmax(0,1fr)}}
+.fld{display:flex;flex-direction:column;gap:7px;min-width:0}
+.fld.full{grid-column:1/-1}
+.fld label,.fld .fl{font-size:15px;font-weight:600;color:var(--ink-2)}
+.fld label i,.fld .fl i{font-style:normal;color:var(--accent);margin-left:2px}
+.fld label small,.fld .fl small{font-weight:400;color:var(--faint);margin-left:4px}
+.fld input,.fld select{width:100%;padding:13px 15px;border:1px solid var(--rule);border-radius:11px;background:var(--ground);color:var(--ink);font-size:16px}
+.fld input:focus,.fld select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 4px var(--band);background:var(--surface)}
+.fhint{font-size:13.5px;color:var(--faint);line-height:1.5}
+.checks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+@media(max-width:640px){.checks{grid-template-columns:minmax(0,1fr)}}
+.ck{display:flex;align-items:center;gap:10px;padding:12px 14px;border:1px solid var(--rule);border-radius:11px;background:var(--ground);
+  font-size:15px;color:var(--ink-2);cursor:pointer;line-height:1.45;transition:border-color .15s,background .15s}
+.ck:hover{border-color:color-mix(in srgb,var(--accent) 45%,var(--rule))}
+.ck input{width:18px;height:18px;accent-color:var(--accent);margin:0;flex-shrink:0}
+.ck:has(input:checked){border-color:var(--accent);background:var(--accent-soft);color:var(--ink)}
+.cform > .btn{grid-column:1/-1;width:100%;padding:16px;font-size:17px}
+.cform .err{grid-column:1/-1}
+.cdone{margin-top:18px;padding:20px 22px;border-radius:12px;background:var(--accent-soft);font-size:16.5px;line-height:1.75;color:var(--ink-2)}
+.cdone b{color:var(--ink)}
+.cfoot{margin-top:18px;text-align:center;font-size:14.5px;color:var(--on-deep-2)}
+
+/* ── 푸터 ── */
+footer{background:var(--deep);color:var(--on-deep-2);padding:64px 0 40px;font-size:15px;border-top:1px solid rgba(255,255,255,.08)}
+.fgrid{display:grid;grid-template-columns:1.5fr 1fr 1fr;gap:40px}
+@media(max-width:760px){.fgrid{grid-template-columns:1fr 1fr}.fgrid > :first-child{grid-column:1/-1}}
+footer .logo{color:#fff}
+footer .logo em{color:var(--on-deep-2)}
+footer .logo .mk{color:var(--accent-deep)}
+.fdesc{margin-top:14px;font-size:15px;line-height:1.75;max-width:36ch}
+footer h4{font-size:15px;color:#fff;font-weight:700;margin-bottom:14px}
+footer ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:9px}
+footer ul a:hover{color:#fff}
+.fbottom{margin-top:44px;padding-top:22px;border-top:1px solid rgba(255,255,255,.1);display:flex;gap:10px 18px;flex-wrap:wrap;align-items:center;font-size:14px}
+/* 관리자 링크. 눈에 띄면 안 되지만 찾을 수는 있어야 한다. */
+.fadmin{opacity:.5;margin-left:auto}
+.fadmin:hover{opacity:1;text-decoration:underline}
+.wm{margin-top:18px;font-size:13.5px;color:var(--on-deep-2);border:1px dashed rgba(255,255,255,.16);border-radius:10px;padding:11px 14px;line-height:1.65}
+.wm b{color:#fff}
+
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important;animation:none!important}
+  .get:hover,.svc:hover{transform:none}
+  .wbar i,.wsplit i{width:var(--w)}
+  .gauge .arc{stroke-dashoffset:var(--off)}
 }
+@keyframes pulse{0%,100%{opacity:.4}50%{opacity:1}}
+.loading{animation:pulse 1.4s ease-in-out infinite}
 
-/* ── 다크 히어로 ────────────────────────────────────────
-   첫 화면에서 대비를 만든다. AI 답변 패널이 어두운 바탕 위에서
-   빛나야 "저 목록에 내 이름이 없다"가 먼저 눈에 들어온다.
-   아래로 내려가면 밝은 지면으로 바뀌어 읽기 편해진다. */
-header.hero{background:var(--deep);color:var(--on-deep);border-bottom:0;position:relative;overflow:hidden}
-header.hero::before{content:"";position:absolute;inset:0;pointer-events:none;
-  background:
-    radial-gradient(720px 420px at 12% -10%, color-mix(in oklab,var(--accent-deep) 13%,transparent), transparent 62%),
-    radial-gradient(560px 380px at 96% 108%, color-mix(in oklab,var(--accent-deep) 8%,transparent), transparent 60%)}
-header.hero .wrap{position:relative;z-index:2}
-header.hero h1{color:var(--on-deep)}
-header.hero .lede{color:var(--on-deep-2)}
-header.hero .lede b{color:var(--on-deep)}
-header.hero .eyebrow{color:var(--accent-deep)}
-header.hero .lab{color:var(--accent-deep)}
+/* ── 진단 결과 ── */
+.result{margin-top:26px;border:1px solid var(--rule);border-radius:14px;background:var(--surface);overflow:hidden;color:var(--ink)}
+.result-hd{padding:18px 22px;border-bottom:1px solid var(--rule-soft);display:flex;align-items:baseline;gap:16px;flex-wrap:wrap}
+.result-hd .score{font-size:42px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums;color:var(--accent);letter-spacing:-.04em}
+.result-hd .grade{font-size:13px;padding:3px 10px;border:1px solid var(--rule);border-radius:999px;color:var(--muted)}
+.result-hd .dom{font-size:13px;color:var(--muted);margin-left:auto}
+.rows{padding:16px 22px;display:flex;flex-direction:column;gap:10px}
+.rrow{display:grid;grid-template-columns:140px minmax(0,1fr) 48px;align-items:center;gap:12px;font-size:14.5px}
+.rrow .l{color:var(--muted)}
+.rtrack{height:9px;background:var(--sunken);border-radius:0 5px 5px 0}
+.rfill{height:9px;border-radius:0 5px 5px 0;display:block;background:var(--accent)}
+.rrow .s{font-size:13px;text-align:right;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.fixes{border-top:1px solid var(--rule-soft);padding:16px 22px}
+.fixes h4{font-size:13px;color:var(--faint);margin:0 0 10px;font-weight:600;letter-spacing:0}
+.fix{display:flex;gap:10px;font-size:15px;color:var(--ink-2);line-height:1.65;padding:8px 0;border-bottom:1px solid var(--rule-soft)}
+.fix:last-child{border-bottom:0}
+.fix .p{font-size:11.5px;font-weight:700;padding:1px 7px;border-radius:5px;border:1px solid;height:fit-content;white-space:nowrap;margin-top:3px}
+.fix .p.p1{color:var(--crit);border-color:color-mix(in srgb,var(--crit) 45%,transparent)}
+.fix .p.p2{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 45%,transparent)}
+.fix .p.p3{color:var(--muted);border-color:var(--rule)}
+.result-ft{border-top:1px solid var(--rule-soft);padding:14px 22px;background:var(--sunken);font-size:14px;color:var(--muted);line-height:1.65}
 
-/* 히어로 안의 패널은 밝게 띄운다 */
-header.hero .ask{background:var(--surface);border-color:transparent;
-  box-shadow:0 26px 60px rgba(0,0,0,.42)}
-header.hero .again{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.13)}
-header.hero .againh{color:var(--on-deep-2);border-bottom-color:rgba(255,255,255,.10)}
-header.hero .againrow{color:var(--on-deep-2)}
-header.hero .againrow span:not(.rn){background:rgba(255,255,255,.08)}
-header.hero .againrow .sw{background:var(--accent-deep);color:var(--deep)}
-header.hero .againrow .sw.alt{background:var(--warn);color:#fff}
-header.hero .againf{color:var(--on-deep-2);border-top-color:rgba(255,255,255,.10)}
-header.hero .againf b{color:var(--on-deep)}
+/* 결과 직후 리드 수집 */
+.lead{border-top:1px solid var(--rule);padding:20px 22px;background:var(--accent-soft)}
+.lead h4{font-size:17px;margin:0 0 7px;font-weight:800}
+.lead .leadsub{font-size:14.5px;color:var(--ink-2);line-height:1.65;margin-bottom:14px;max-width:58ch}
+.leadrow{display:flex;gap:8px;flex-wrap:wrap}
+.leadrow input{flex:1;min-width:170px;padding:12px 14px;border:1px solid var(--rule);border-radius:10px;background:var(--surface);color:var(--ink);font-size:15.5px}
+.leadrow input:focus{border-color:var(--accent);outline:none}
+.leadrow .btn{padding:12px 18px;font-size:15px}
+.leaddone{font-size:15.5px;color:var(--ink-2);line-height:1.7}
+.leaddone b{color:var(--ink)}
 
-/* 진단 폼도 어두운 바탕에 맞춘다 */
-header.hero .form input{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.16);
-  color:var(--on-deep)}
-header.hero .form input::placeholder{color:var(--faint)}
-header.hero .formnote{color:var(--on-deep-2)}
-header.hero .btn{background:var(--accent-deep);border-color:var(--accent-deep);color:var(--deep)}
+/* 운영 형태 감지 */
+.plat{border-bottom:1px solid var(--rule-soft);padding:14px 22px;background:var(--sunken)}
+.plat-hd{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;font-size:15px}
+.plat-kind{font-size:11.5px;padding:2px 8px;border:1px solid var(--rule);border-radius:999px;color:var(--faint)}
+.plat-hd b{font-size:16px}
+.plat-ev{font-size:12px;color:var(--faint);margin-left:auto}
+.plat-caps{display:flex;gap:7px 20px;flex-wrap:wrap;margin-top:9px;font-size:14px;color:var(--muted)}
+.plat-caps b{color:var(--ink);font-weight:600}
 
-/* 서비스 상세의 단순 히어로는 밝게 유지 */
-header.hero.simple{background:var(--ground);color:var(--ink);
-  border-bottom:1px solid var(--rule)}
+/* 관리자 리드 테이블 */
+.lead-table{border-collapse:collapse;width:100%;font-size:14px;min-width:980px}
+.lead-table th,.lead-table td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--rule-soft);vertical-align:middle}
+.lead-table thead th{font-size:12px;color:var(--faint);font-weight:600;background:var(--sunken);white-space:nowrap;border-bottom:1px solid var(--rule)}
+.lead-table tbody tr:last-child td{border-bottom:0}
+.lead-table tbody tr:hover{background:var(--sunken)}
+.pill{font-size:11.5px;padding:2px 8px;border:1px solid var(--rule);border-radius:999px;color:var(--muted)}
+
+/* ── 서비스 상세 ── */
+header.hero.simple{background:var(--surface);color:var(--ink);padding:96px 0 74px;border-bottom:1px solid var(--rule-soft)}
 header.hero.simple::before{display:none}
-header.hero.simple h1{color:var(--ink)}
-header.hero.simple .lede{color:var(--ink-2)}
+header.hero.simple h1{color:var(--ink);margin-top:0}
+header.hero.simple .lede{color:var(--ink-2);max-width:56ch}
 header.hero.simple .lab{color:var(--accent)}
+.svcask{margin-top:26px;padding:18px 22px;border-left:3px solid var(--accent);background:var(--accent-soft);border-radius:0 12px 12px 0;
+  font-weight:700;font-size:19px;color:var(--ink);letter-spacing:-.02em;max-width:52ch}
+.svc-prose{padding:8px 0 42px}
+.svc-prose .wrap{max-width:780px}
+/* 한 문단 80~400자로 쓴다 — 그래야 AI 가 잘라서 인용한다. */
+.svc-prose p{font-size:17.5px;line-height:1.95;color:var(--ink-2);margin:0 0 22px}
+.svc-prose p:last-child{margin-bottom:0}
+.does{display:flex;flex-direction:column;margin-top:38px}
+.do{display:grid;grid-template-columns:52px 1fr;gap:18px;padding:26px 0;border-bottom:1px solid var(--rule-soft)}
+.do:last-child{border-bottom:0}
+.do .dn{font-size:14px;color:var(--accent);font-weight:700;padding-top:3px}
+.do b{display:block;font-size:20px;color:var(--ink);letter-spacing:-.02em;font-weight:800}
+.do p{margin:10px 0 0;font-size:16.5px;line-height:1.85;color:var(--muted)}
+@media(max-width:600px){.do{grid-template-columns:1fr;gap:6px}}
+.gives{list-style:none;margin:34px 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px}
+.gives li{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:16px 18px;font-size:16px;color:var(--on-deep-2);
+  line-height:1.7;display:flex;gap:11px;align-items:flex-start}
+.gives li::before{content:"→";color:var(--accent-deep);flex-shrink:0}
+.limits{list-style:none;margin:30px 0 0;padding:0;display:flex;flex-direction:column;gap:12px}
+.limits li{font-size:17px;line-height:1.8;color:var(--muted);padding-left:26px;position:relative}
+.limits li::before{content:"—";position:absolute;left:0;color:var(--faint);font-weight:600}
+.terms{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin-top:38px}
+.term{background:var(--surface);border:1px solid var(--rule);border-radius:12px;padding:18px 20px}
+.term .tk{display:block;font-size:13.5px;color:var(--faint);font-weight:600}
+.term .tv{display:block;margin-top:6px;font-size:17px;color:var(--ink);font-weight:700}
+.svcnav{display:flex;gap:11px;flex-wrap:wrap;margin-top:44px}
 
 /* ── 살아 있는 시연 ──────────────────────────────────────
    질문이 타이핑되고 답이 하나씩 나오고 내 이름이 없다는 줄이 찍힌다.
-   그리고 같은 질문을 다시 보내면 세 번째 답이 바뀐다.
-   이 회사의 주장 전체가 12초짜리 루프 하나에 들어 있다. */
-.chat{border-radius:16px;background:var(--surface);overflow:hidden;
-  box-shadow:0 28px 64px rgba(0,0,0,.45);border:1px solid transparent}
-.chathd{display:flex;align-items:center;gap:11px;padding:13px 17px;
-  background:var(--sunken);border-bottom:1px solid var(--rule);
-  font-size:11px;letter-spacing:.1em;color:var(--faint)}
+   특정 회사 화면을 복제하지 않되 실제 AI 답변 화면의 특징(엔진 탭·스트리밍·출처 칩)을 갖춘다. */
+.chat{border-radius:18px;background:var(--surface);color:var(--ink);overflow:hidden;box-shadow:0 30px 70px rgba(0,0,0,.45);border:1px solid transparent}
+.chathd{display:flex;align-items:center;gap:11px;padding:12px 16px;background:var(--sunken);border-bottom:1px solid var(--rule);font-size:12px;color:var(--faint)}
 .chathd .dots{display:flex;gap:5px}
 .chathd .dots i{width:9px;height:9px;border-radius:50%;background:var(--rule);display:block}
-.chatround{margin-left:auto;border:1px solid var(--rule);border-radius:20px;padding:3px 10px;
-  color:var(--muted);transition:color .3s,border-color .3s}
-.chatround.r2{color:var(--warn);border-color:color-mix(in oklab,var(--warn) 45%,transparent)}
-
-.chatbody{padding:20px 18px 8px;display:flex;flex-direction:column;gap:12px;min-height:264px}
-.msg{max-width:88%;border-radius:14px;padding:11px 15px;font-size:15px;line-height:1.65}
-.msg.me{align-self:flex-end;background:var(--accent);color:var(--accent-ink);
-  border-bottom-right-radius:4px;min-height:20px}
-.msg.me .caret{display:inline-block;width:2px;height:1em;background:currentColor;
-  vertical-align:-.12em;margin-left:2px;animation:blinkc 1s steps(2) infinite}
-@keyframes blinkc{50%{opacity:0}}
-.msg.ai{align-self:flex-start;background:var(--sunken);color:var(--ink);
-  border-bottom-left-radius:4px;width:88%}
-.msg.ai.thinking{display:flex;gap:5px;padding:15px 17px;width:auto}
-.tdot{width:7px;height:7px;border-radius:50%;background:var(--faint);
-  animation:tb 1.1s ease-in-out infinite}
-.tdot:nth-child(2){animation-delay:.16s}
-.tdot:nth-child(3){animation-delay:.32s}
-@keyframes tb{0%,60%,100%{transform:none;opacity:.4}30%{transform:translateY(-4px);opacity:1}}
-.ailead{margin:0 0 10px;font-size:14px;color:var(--muted)}
-.ailist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:9px}
-.ailist li{display:flex;align-items:center;gap:11px;font-size:16px;font-weight:500;
-  animation:mrise .3s ease-out both}
-@keyframes mrise{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
-.ailist .rk{width:22px;height:22px;border-radius:6px;background:var(--surface);
-  border:1px solid var(--rule);color:var(--muted);font-size:11.5px;
-  display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.ailist li.swap{color:var(--warn)}
-.ailist li.swap .rk{border-color:var(--warn);color:var(--warn)}
-.swtag{margin-left:auto;font-size:10.5px;letter-spacing:.08em;color:var(--warn);
-  border:1px solid color-mix(in oklab,var(--warn) 45%,transparent);
-  border-radius:20px;padding:2px 9px}
-
-.chatverdict{display:flex;align-items:center;justify-content:space-between;gap:12px;
-  margin:2px 2px 0;padding:13px 15px;border-top:1px dashed var(--rule);
-  opacity:0;transform:translateY(4px);transition:opacity .4s,transform .4s}
-.chatverdict.on{opacity:1;transform:none}
-.chatverdict .mek{font-size:16px;font-weight:600;color:var(--ink)}
-.chatverdict .mev{font-size:13px;color:var(--crit);
-  border:1px solid color-mix(in oklab,var(--crit) 40%,transparent);
-  background:color-mix(in oklab,var(--crit) 9%,transparent);
-  border-radius:20px;padding:5px 13px;white-space:nowrap}
-
-.chatft{padding:14px 18px;background:var(--sunken);border-top:1px solid var(--rule);
-  font-size:14.5px;color:var(--muted);line-height:1.7;min-height:52px}
-.chatft b{color:var(--ink)}
-@media (prefers-reduced-motion:reduce){
-  .msg.me .caret,.tdot{animation:none}
-  .ailist li{animation:none}
-}
-
-/* ── 온보딩 스트립 · 견적 예시 ─────────────────────────── */
-.ponce{margin-top:44px;border:1px solid var(--rule);border-radius:15px;overflow:hidden;background:var(--surface)}
-.poh{display:flex;align-items:baseline;gap:16px;flex-wrap:wrap;padding:15px 20px;
-  background:var(--sunken);border-bottom:1px solid var(--rule)}
-.poh .pok{font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--accent)}
-.poh .pod{font-size:13.5px;color:var(--muted)}
-.porow{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:1px;background:var(--rule-soft)}
-.po{background:var(--surface);padding:19px 20px 20px}
-.po .pot{font-size:15.5px;font-weight:700;color:var(--ink);letter-spacing:-.02em}
-.po .pop{margin-top:7px;font-size:21px;color:var(--accent);letter-spacing:-.02em}
-.po p{margin:9px 0 0;font-size:13.8px;line-height:1.7;color:var(--muted)}
-
-.plans{margin-top:18px}
-
-.quote{margin-top:26px;border:1px solid color-mix(in oklab,var(--accent) 26%,transparent);
-  border-radius:14px;background:var(--accent-soft);overflow:hidden}
-.qh{padding:13px 20px;border-bottom:1px solid color-mix(in oklab,var(--accent) 20%,transparent);
-  font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
-.qrow{display:flex;align-items:baseline;justify-content:space-between;gap:14px;flex-wrap:wrap;
-  padding:14px 20px;border-bottom:1px dashed color-mix(in oklab,var(--accent) 18%,transparent);
-  font-size:15px;color:var(--ink-2)}
-.qrow:last-of-type{border-bottom:0}
-.qcalc{font-size:14.5px;color:var(--muted)}
-.qcalc i{font-style:normal;color:var(--faint);margin:0 4px}
-.qcalc em{font-style:normal;color:var(--faint);margin:0 6px;font-size:12.5px}
-.qcalc b{color:var(--ink);font-size:17px}
-.qnote{margin:0;padding:14px 20px 17px;font-size:14px;line-height:1.75;color:var(--muted)}
-.qnote b{color:var(--ink)}
-
-/* ── 채팅 시연 · 실물감 ──────────────────────────────────
-   특정 회사 화면을 복제하지 않되(트레이드 드레스), 실제 AI 답변 화면의
-   특징을 갖춘다: 엔진 탭, "웹 검색 중", 단어 단위 스트리밍, 출처 칩.
-   루프마다 엔진이 바뀐다 — 한 회사만의 문제가 아니라는 뜻이다. */
 .chathd .tabs{display:flex;gap:4px;overflow:hidden}
-.tab{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:8px;
-  font-size:11.5px;color:var(--faint);letter-spacing:.02em;white-space:nowrap;
-  transition:background .3s,color .3s}
+.tab{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:8px;font-size:12.5px;color:var(--faint);white-space:nowrap;transition:background .3s,color .3s}
 .tab i{width:7px;height:7px;border-radius:50%;display:block;opacity:.55;transition:opacity .3s}
 .tab.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,.12)}
 .tab.on i{opacity:1}
 @media(max-width:460px){.tab:not(.on){display:none}}
-
-.aistat{display:flex;align-items:center;gap:9px;align-self:flex-start;
-  font-size:12.5px;color:var(--faint);padding:4px 2px}
-.spin{width:13px;height:13px;border-radius:50%;flex-shrink:0;
-  border:2px solid var(--rule);border-top-color:var(--accent);
-  animation:spin .8s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
-
-.aieng{display:flex;align-items:center;gap:7px;font-size:11px;letter-spacing:.06em;
-  color:var(--faint);margin-bottom:10px}
-.aieng i{width:8px;height:8px;border-radius:50%;display:block}
-.msg.me .caret,.caret{display:inline-block;width:2px;height:1em;background:currentColor;
-  vertical-align:-.12em;margin-left:2px;animation:blinkc 1s steps(2) infinite}
+.chatround{margin-left:auto;border:1px solid var(--rule);border-radius:999px;padding:3px 10px;color:var(--muted);transition:color .3s,border-color .3s}
+.chatround.r2{color:var(--warn);border-color:color-mix(in oklab,var(--warn) 45%,transparent)}
+.chatbody{padding:20px 18px 8px;display:flex;flex-direction:column;gap:12px;min-height:264px}
+.msg{max-width:88%;border-radius:14px;padding:11px 15px;font-size:15.5px;line-height:1.65}
+.msg.me{align-self:flex-end;background:var(--accent);color:var(--accent-ink);border-bottom-right-radius:4px;min-height:20px}
+.msg.ai{align-self:flex-start;background:var(--sunken);color:var(--ink);border-bottom-left-radius:4px;width:88%}
+.msg.ai.thinking{display:flex;gap:5px;padding:15px 17px;width:auto}
+.caret{display:inline-block;width:2px;height:1em;background:currentColor;vertical-align:-.12em;margin-left:2px;animation:blinkc 1s steps(2) infinite}
 .caret.dark{background:var(--ink)}
-.ailead{min-height:1.5em}
-
-.ailist li{display:flex;flex-direction:column;align-items:stretch;gap:3px}
+@keyframes blinkc{50%{opacity:0}}
+.tdot{width:7px;height:7px;border-radius:50%;background:var(--faint);animation:tb 1.1s ease-in-out infinite}
+.tdot:nth-child(2){animation-delay:.16s}
+.tdot:nth-child(3){animation-delay:.32s}
+@keyframes tb{0%,60%,100%{transform:none;opacity:.4}30%{transform:translateY(-4px);opacity:1}}
+.aistat{display:flex;align-items:center;gap:9px;align-self:flex-start;font-size:13px;color:var(--faint);padding:4px 2px}
+.spin{width:13px;height:13px;border-radius:50%;flex-shrink:0;border:2px solid var(--rule);border-top-color:var(--accent);animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.aieng{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--faint);margin-bottom:10px}
+.aieng i{width:8px;height:8px;border-radius:50%;display:block}
+.ailead{margin:0 0 10px;font-size:14.5px;color:var(--muted);min-height:1.5em}
+.ailist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:9px}
+.ailist li{display:flex;flex-direction:column;align-items:stretch;gap:3px;animation:mrise .3s ease-out both}
+@keyframes mrise{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
 .ailn{display:flex;align-items:center;gap:10px}
 .ailn b{font-size:16px;color:var(--ink);letter-spacing:-.015em}
-.aild{font-size:13.5px;color:var(--muted);line-height:1.6}
+.aild{font-size:14px;color:var(--muted);line-height:1.6}
+.ailist .rk{width:22px;height:22px;border-radius:6px;background:var(--surface);border:1px solid var(--rule);color:var(--muted);font-size:11.5px;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .ailist li.swap .ailn b{color:var(--warn)}
-
-.aisrc{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:14px;
-  padding-top:12px;border-top:1px solid var(--rule-soft);
-  animation:mrise .35s ease-out both}
-.srck{font-size:10px;letter-spacing:.12em;color:var(--faint);text-transform:uppercase;margin-right:2px}
-.srcc{font-size:11px;color:var(--muted);background:var(--surface);
-  border:1px solid var(--rule);border-radius:20px;padding:3px 10px}
-@media (prefers-reduced-motion:reduce){.spin{animation:none}.aisrc{animation:none}}
-
-/* 요금 · 두 플랜 구성 */
-.plans.two{grid-template-columns:repeat(auto-fit,minmax(280px,1fr));max-width:720px}
-.pcompare{margin-top:24px;padding:20px 24px;border-left:3px solid var(--rule);
-  background:var(--sunken);border-radius:0 12px 12px 0;
-  font-size:15.5px;line-height:1.85;color:var(--muted);max-width:74ch}
-.pcompare b{color:var(--ink)}
-
-
-/* 서비스 상세의 설명 문단.
-   한 문단 80~400자로 쓴다 — 그래야 AI 가 잘라서 인용한다.
-   조각 문장만 있으면 가져갈 덩어리가 없다. */
-.svc-prose{padding:8px 0 42px}
-.svc-prose .wrap{max-width:760px}
-.svc-prose p{font-size:17px;line-height:1.95;color:var(--ink-2);margin:0 0 22px;
-  word-break:keep-all}
-.svc-prose p:last-child{margin-bottom:0}
-
-/* ── 해당하는 곳 / 안 맞는 곳 ── */
-.fit{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px;margin-top:44px}
-.fitc{background:var(--surface);border:1px solid var(--rule);border-radius:14px;padding:22px 24px 20px}
-.fitc.no{background:var(--sunken)}
-.fith{font-family:"Noto Serif KR",serif;font-weight:700;font-size:17.5px;color:var(--ink);letter-spacing:-.02em}
-.fitc.no .fith{color:var(--muted)}
-.fitc ul{list-style:none;padding:0;margin:16px 0 0;display:flex;flex-direction:column;gap:11px}
-.fitc li{position:relative;padding-left:18px;font-size:15px;line-height:1.75;color:var(--ink-2);word-break:keep-all}
-.fitc li::before{content:"";position:absolute;left:0;top:13px;width:8px;height:1.5px;background:var(--accent)}
-.fitc.no li{color:var(--muted)}
-.fitc.no li::before{background:var(--faint)}
-
-/* ── 상담 신청 폼 (mailto 대신 리드 API 로) ── */
-.askrow{display:flex;gap:8px;flex-wrap:wrap;position:relative}
-.askrow input{flex:1;min-width:150px;padding:12px 14px;border:1px solid var(--rule);border-radius:3px;
-  background:var(--surface);color:var(--ink);font-size:14.5px}
-.askrow input:focus{border-color:var(--accent);outline:none}
-.plan .askrow{flex-direction:column}
-.plan .askrow input{min-width:0;width:100%;font-size:13.5px;padding:10px 12px}
-.plan .askrow .btn{width:100%;text-align:center}
-.plan:not(.hi) .askrow .btn{background:transparent;color:var(--accent)}
-.plan:not(.hi) .askrow .btn:hover{background:var(--accent-soft);opacity:1}
+.ailist li.swap .rk{border-color:var(--warn);color:var(--warn)}
+.swtag{margin-left:auto;font-size:11px;color:var(--warn);border:1px solid color-mix(in oklab,var(--warn) 45%,transparent);border-radius:999px;padding:2px 9px}
+.aisrc{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px solid var(--rule-soft);animation:mrise .35s ease-out both}
+.srck{font-size:11px;color:var(--faint);margin-right:2px}
+.srcc{font-size:12px;color:var(--muted);background:var(--surface);border:1px solid var(--rule);border-radius:999px;padding:3px 10px}
+.chatverdict{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:2px 2px 0;padding:13px 15px;border-top:1px dashed var(--rule);
+  opacity:0;transform:translateY(4px);transition:opacity .4s,transform .4s}
+.chatverdict.on{opacity:1;transform:none}
+.chatverdict .mek{font-size:16px;font-weight:700;color:var(--ink)}
+.chatverdict .mev{font-size:13.5px;font-weight:600;color:var(--crit);border:1px solid color-mix(in oklab,var(--crit) 40%,transparent);
+  background:color-mix(in oklab,var(--crit) 9%,transparent);border-radius:999px;padding:5px 13px;white-space:nowrap}
+.chatft{padding:14px 18px;background:var(--sunken);border-top:1px solid var(--rule);font-size:15px;color:var(--muted);line-height:1.7;min-height:52px}
+.chatft b{color:var(--ink)}

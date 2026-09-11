@@ -212,7 +212,7 @@ export async function readOps(client?: Client): Promise<Ops> {
     const vendors = await q(`
       select vendor, pages_crawled::int pages, pages_total::int total,
              coverage_pct::float pct
-        from ${S}.coverage_by_vendor order by pages_crawled desc limit 8`);
+        from ${S}.coverage_by_vendor where ${ME} order by pages_crawled desc limit 8`);
 
     const vhits = await q(`
       select vendor, count(*)::int hits from ${S}.crawl_hits where ${ME} group by vendor`);

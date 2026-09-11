@@ -37,6 +37,11 @@ create table if not exists geo.leads (
   ip_hash     text,
   status      text default 'new'   -- new / contacted / qualified / closed / dropped
 );
+-- 랜딩 상담 신청 폼 (2026-09-11). 어떻게 알고 왔는지가 매출 검증의 유일한 고리다.
+alter table geo.leads add column if not exists referral   text;  -- AI / 네이버검색 / 구글검색 / 블로그 / 소개 / 기타
+alter table geo.leads add column if not exists concerns   text;  -- 고른 고민을 " · " 로 이어서
+alter table geo.leads add column if not exists competitor text;
+alter table geo.leads add column if not exists site       text;
 create index if not exists leads_created_idx on geo.leads (created_at desc);
 create index if not exists leads_status_idx  on geo.leads (status);
 

@@ -13,6 +13,11 @@ function rateLimited(ip: string) {
   return arr.length > 8;
 }
 
+const str = (v: unknown, max: number) => {
+  const s = typeof v === "string" ? v.trim() : "";
+  return s ? s.slice(0, max) : null;
+};
+
 export async function POST(req: NextRequest) {
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
   if (rateLimited(ip)) {
@@ -32,13 +37,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true });
   }
 
+  // 고민은 체크박스 여러 개. 목록 밖 값도 들어올 수 있으니 길이와 개수만 자른다.
+  const concerns = Array.isArray(body?.concerns)
+    ? body.concerns.filter((c: unknown) => typeof c === "string" && c.trim()).slice(0, 8).map((c: string) => c.trim().slice(0, 40))
+    : [];
+
   const id = await saveLead({
     scanId: typeof body?.scanId === "string" ? body.scanId : null,
     email,
-    company: body?.company ?? null,
-    name: body?.name ?? null,
-    phone: body?.phone ?? null,
-    wants: body?.wants ?? null,
+    company: str(body?.company, 120),
+    name: str(body?.name, 60),
+    phone: str(body?.phone, 40),
+    wants: str(body?.wants, 60),
+    referral: str(body?.referral, 40),
+    concerns: concerns.length ? concerns.join(" · ") : null,
+    competitor: str(body?.competitor, 200),
+    site: str(body?.site, 200),
     ip,
   }).catch(() => null);
 
