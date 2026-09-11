@@ -1,56 +1,43 @@
-# Review Request — Step 2
+# Review Request — Step 3
 *Written by Builder. Read by Reviewer.*
-Date: 2026-09-11
+Date: 2026-09-12
 Ready for Review: YES
 
-저장소 `C:\dev\자동피드백생성기` (아이로그). 커밋 안 함.
-`git diff --stat` (내 파일만): 4 files +78 −39, 새 파일 `lib/reports/view-access.ts` 60줄 (untracked).
-같은 시각 Arch 가 고치는 `app/page.tsx`·`app/features/page.tsx`·`lib/guides.ts`·`components/seo/*`·`public/llms.txt` 는 이 요청에 없다.
+저장소 `C:\dev\자동피드백생성기`. 커밋 안 함. `git diff --stat`: 5 files +91 −85, 새 파일 1개 (`lib/services/message-cost.ts`, 42줄).
+`npm run build` 통과. 실제 문자·알림톡·DB·Solapi 호출은 하지 않았다. 확인은 빌드와 코드 경로만.
 
 ## Files Changed
-- `lib/reports/view-access.ts:1-60` (새 파일) — `checkReportViewAccess(report, { token, academy, slug })` → `'ok' | 'forbidden' | 'expired'`. API 와 메타데이터가 같이 쓰는 한 개의 판단 함수
-  - `:23-29` `tokenMatches` — 문자열 아닌/빈 `view_token` 이면 false, Buffer 길이 먼저 비교 후 `crypto.timingSafeEqual` (길이 달라도 안 던짐)
-  - `:32-34` `isApproved` — `String(value)` 가 `'1'|'t'|'true'`. content route:257 `CAST(is_approved AS text) IN (...)` 와 같은 판정
-  - `:42-46` (a) 토큰 일치 + 만료 전이면 ok, 일치했는데 만료면 `tokenExpired` 표시
-  - `:49-57` (b) academy·slug 둘 다 있으면 `findStudentByPortalSlug(academy, slug)` → `portalEnabled` && `studentId === report.student_id` && 승인
-  - `:59` 둘 다 아니면 토큰이 맞았고 만료였을 때만 `'expired'`, 나머지 `'forbidden'`
-- `app/api/reports/[id]/public/route.ts:5` — view-access import
-- `app/api/reports/[id]/public/route.ts:7-8` — 응답에서 뺄 필드 `view_token`·`token_expires_at`·`ai_raw_response`
-- `app/api/reports/[id]/public/route.ts:45-62` — 「토큰 있을 때만 검증」을 `checkReportViewAccess` 로 교체. expired → 410(기존 문구), forbidden → 403 `링크가 올바르지 않거나 만료되었습니다.`. 404(없는 id)는 앞 `:36-41` 그대로
-- `app/api/reports/[id]/public/route.ts:133-139` — `report` 에서 비공개 필드를 걸러 `publicReport` 로 응답
-- `app/api/parent-portal/[academy]/[slug]/content/route.ts:281` — 포털 리포트 목록 `view_url` 에 `?academy=…&slug=…` (encodeURIComponent)
-- `app/reports/[id]/view/ReportViewClient.tsx:50-51,61-67,82` — URL 의 token·academy·slug 를 `URLSearchParams` 로 API 에 전달, 의존성 배열에 추가. 토큰도 이제 인코딩됨(hex 라 값 변화 없음)
-- `app/reports/[id]/view/page.tsx:9` — Props 에 `searchParams`
-- `app/reports/[id]/view/page.tsx:12-20` — `ROBOTS = { index: false, follow: false }`, 조건 불충족·조회 실패 시 `GENERIC_METADATA`(「학습 리포트 - 아이 로그」, 학생·학원 이름 없음)
-- `app/reports/[id]/view/page.tsx:22-25` — 쿼리 값이 배열이면 첫 값 (`URLSearchParams.get` 과 같은 동작)
-- `app/reports/[id]/view/page.tsx:34-36,46-54` — 메타데이터 쿼리에 `is_approved`·`view_token`·`token_expires_at` 추가, 같은 `checkReportViewAccess` 로 판단, ok 가 아니면 generic
-- `app/reports/[id]/view/page.tsx:56-65,68` — ok 일 때만 학생 이름·학원명 제목, 모든 반환에 robots noindex
+
+- `lib/services/message-cost.ts:1-42` (새 파일) — `getByteLength`·`unitCost(channel)`·`calculateCost` 를 옮겨 둔 곳. import 가 없어서 `'use client'` 설정 페이지에서도 쓸 수 있다. 계산식은 원래 `message-service.ts:35-45` 와 같다: `Math.round(base * 1.1)`, 90바이트 넘으면 LMS. 그래서 17→19, 22→24, 55→61
+- `lib/services/message-service.ts:18,20-21` — 상수·함수 선언을 지우고 `message-cost` 에서 import 한 뒤 `calculateCost`·`getByteLength` 를 re-export 한다. `app/api/messages/send/route.ts:5` 의 import 경로는 그대로 쓸 수 있다
+- `lib/agent/tools.ts:5` — `sendSMS` import 를 `sendOneMessage, getAcademyMessagingConfig` 로 바꿈
+- `lib/agent/tools.ts:598` — `sendTuitionInvoice` 에 `context.userId` 를 넘김 (`senderId` 로 들어간다. `messages/send/route.ts:143` 과 같은 방식)
+- `lib/agent/tools.ts:1668-1735` — `sendTuitionInvoice`: `solapi_sender`·`process.env.SOLAPI_SENDER` 폴백 삭제. 발신번호는 `getAcademyMessagingConfig().senderPhone`(1697-1700) 하나. 발송은 `sendOneMessage`(1704-1715, `messageType:'tuition'`, `channel:'SMS'`, `studentId`, `recipientName`, `variables:{}`). `!sent.success` 면 사유와 `success:0, fail:1, cost:'0원'` 을 돌려준다(1717-1724). 성공하면 `sent.channel` 과 `cost` 를 넣는다. academies 조인은 빼고 학원명은 config 의 `academyName` 에서 가져온다
+- `lib/agent/tools.ts:1787-1852` — `sendSmsToParents`: 발신번호 확인은 위와 같다(1791-1794). 반복마다 `sendOneMessage` 를 부르고(1821-1832, `messageType:'notice'`), `sent.success` 로만 센다(1833-1836). 실패하면 `sent.error`(예: 「잔액 부족」) 사유별로 건수를 모은다(1843). 응답에는 `success`·`fail`·`cost`(차감 합계)가 들어가고, 실패가 있으면 `fail_reasons` 도 들어간다
+- `app/api/agent/chat/route.ts:6,314,318` — 확인 문구에 「발송 잔액에서 건당 24원(긴 문자 61원)이 빠집니다.」를 붙임. 숫자는 `unitCost('SMS')`·`unitCost('LMS')` 에서 온다
+- `app/api/tuition/invoices/[id]/send/route.ts:6-8` — 머리 주석을 「알림톡 실발송은 아직 없다」로 고침
+- `app/api/tuition/invoices/[id]/send/route.ts:32-35` — SELECT 를 `status` 하나로 줄임. 알림톡 판단용 컬럼은 이제 쓰지 않는다
+- `app/api/tuition/invoices/[id]/send/route.ts:51-64` — `sent_method = 'manual'` 을 고정값으로 넣음. TODO 삭제. 응답은 Decision 문구 그대로, `alimtalkSent: false`
+- `app/dashboard/settings/page.tsx:11,767-768,772-773` — 건수는 `alimtalkBalance / unitCost('ALIMTALK'|'SMS')` 로 계산. 표기는 「(부가세 포함 19원)」「(부가세 포함 24원)」. 799-800 의 「VAT 별도」 문구는 brief 대로 남겨 둠
 
 ## Definition of Done
-- [x] **토큰·포털 증명 둘 다 없으면 403** — `view-access.ts:42` 토큰 없음 → 건너뜀, `:49` academy/slug 없음 → 건너뜀, `:59` `'forbidden'` → `route.ts:57-61` 403
-- [x] **틀린 토큰 403** — `view-access.ts:27`/`:28` 불일치 → `:59` forbidden → `route.ts:57-61`
-- [x] **만료 토큰 410** — `view-access.ts:45-46` → `:59` expired → `route.ts:51-55`
-- [x] **올바른 토큰 200** — `view-access.ts:45` ok → `route.ts` 나머지 흐름 그대로 200
-- [x] **응답에 `view_token`·`token_expires_at`·`ai_raw_response` 없음** — `route.ts:8,133-139`. 보기 화면은 이 필드를 안 쓴다 (`app/reports/[id]/view` grep 0건)
-- [x] **포털 목록 링크에 academy·slug** — `content/route.ts:281` → `ReportViewClient.tsx:61-67` 가 API 로 넘김
-- [x] **다른 학생의 slug 로는 403** — `view-access.ts:52` `studentId !== report.student_id` → forbidden
-- [x] **메타데이터가 조건 없이 학생 이름을 안 냄** — `page.tsx:47,54` → `GENERIC_METADATA`, 이름은 `:56-57` (ok 이후)에서만
-- [x] **robots noindex** — `page.tsx:12,19,64` (generic·ok·catch 전부 `ROBOTS`)
-- [x] **`npm run build` 성공** — 라우트 표 끝까지 출력, `ƒ /reports/[id]/view` 포함. Arch 의 동시 수정분이 섞인 작업 트리 기준
-- [x] **REVIEW-REQUEST·BUILD-LOG** — 이 파일, BUILD-LOG Step 2
 
-## 순수 로직 확인 (DB 없음, 파일 삭제함)
-Node 22 `--experimental-strip-types` 로 **실제** `lib/reports/view-access.ts` 를 불러오고, 로더 훅으로 `@/lib/parent-auth` 만 스텁으로 바꿔 20건 확인 — 전부 통과:
-토큰·포털 없음 forbidden / 틀린 토큰(같은 길이·다른 길이, 안 던짐) forbidden / 맞는 토큰 미래 만료(Date·ISO 문자열) ok / 맞는 토큰 지난 만료 expired / 리포트에 view_token 없음 forbidden / 틀린 토큰+만료 행 forbidden / 만료 토큰+유효 포털 ok / 포털 같은 학생 승인 1·true·'t' ok / 다른 학생 slug forbidden / 포털 꺼짐 forbidden / slug 없음(null) forbidden / 미승인 0·null forbidden / academy 만 있고 slug 없음 forbidden / 조회 인자 순서 (academy, slug), 토큰이 맞으면 포털 조회 안 함.
-실제 학생 데이터·운영 DB 호출 없음.
+- [x] 두 에이전트 도구에 `process.env.SOLAPI_SENDER` 와 직접 `sendSMS` 호출이 없다. `tools.ts` 에서 `sendSMS|SOLAPI_SENDER|solapi_sender` 를 grep 하면 0건. 발송은 `tools.ts:1704`, `:1821` 의 `sendOneMessage` 두 곳뿐
+- [x] 발송 결과 수는 `sendOneMessage().success` 로 센다: `tools.ts:1717`(청구서), `:1833-1836`(여러 건)
+- [x] 수납 발송 응답에 「발송되었습니다」가 없다: `route.ts:62-63`
+- [x] 설정 화면 건수는 19·24원 기준이다: `settings/page.tsx:767-768,772-773` → `message-cost.ts` 의 `unitCost`
+- [x] `npm run build` 통과
 
 ## Open Questions
-1. **`token_expires_at` 이 null 인데 토큰이 맞으면 ok** — 기존 동작(`expiresAt && …`)을 그대로 뒀다. brief (a) 는 「만료가 지나지 않음」이라 null 을 어떻게 볼지 명시가 없다. `generate-token:92` 는 항상 둘 다 넣고 cron 은 둘 다 지우니 정상 흐름에선 안 나온다. 막아야 하면 `view-access.ts:45` 한 줄
-2. **토큰 경로는 승인 여부를 안 본다** — 기존 동작 그대로. brief 는 승인 조건을 포털 경로(b)에만 걸었다. 대시보드 공유 버튼이 미승인 리포트에도 토큰을 내는지는 확인 안 함
-3. **generic 메타데이터에서 학원명도 뺐다** — brief 는 「학생 이름 없이 『학습 리포트』」, 문제 설명엔 학원명도 새는 항목으로 적혀 있어 기존 catch 문구 「학습 리포트 - 아이 로그」를 썼다
-4. **만료 토큰이 410 인 건 cron 이 지우기 전까지만** — `cron/daily-usage/route.ts:102-104` 가 만료 즉시 `view_token` 을 null 로 만든다. 그 뒤 같은 링크는 토큰 불일치로 403. 기존에도 같았다(불일치 403). DoD 「만료 토큰 410」은 코드 경로 기준으로 충족
-5. **`fr.*` 의 나머지 필드는 그대로 나간다** — `pdf_path`·`teacher_id`·`sent_to_parent`·`teacher_edited`·`growth_analysis` 등. brief 는 세 필드만 빼라고 했다. `pdf_path` 가 저장소 경로를 드러내는지는 안 봤다 — 필요하면 다음 단계에서 허용 목록 방식으로
-6. 만료 토큰 + 유효한 포털 증명은 ok 로 둔다 — 「둘 중 하나」 해석. 포털 목록 링크엔 토큰이 없어 실제로 겹칠 일은 드묾
+
+1. **수납 화면에는 발송 버튼이 없다.** 앱·컴포넌트·lib 어디에도 `tuition/invoices/.../send` 를 부르는 fetch 가 없다(grep 결과). `alimtalkSent`·`message` 를 읽는 클라이언트 코드도 없다. 그래서 Build Order 4 에서 고친 화면 문구는 없다. KG-7 의 「버튼」은 API 응답만 해당되는 것 같다
+2. **`send_sms` 확인 문구에도 비용을 붙였다.** brief 는 `route.ts:312-313`(청구서)만 지목했다. 여러 건 문자도 이제 잔액에서 빠지니 같이 알렸다. 빼야 하면 한 줄이다
+3. **`sendSmsToParents` 반복 중 예외 처리.** `sendOneMessage` 가 던지면(db 오류 등) 「처리 중 오류」 실패로 세고 다음 학생으로 넘어간다. 원래 오류 문구는 응답에 넣지 않는다. 드문 경우가 하나 있다. Solapi 성공 뒤 잔액 UPDATE 에서 던지면 문자는 나갔는데 실패로 센다. 이건 `sendOneMessage` 안의 문제라 손대지 않았다
+4. **발송 간격 대기가 없다.** `processBatch` 는 건마다 50ms 쉰다(`message-service.ts` 벌크 반복). 에이전트 반복은 원래도 대기가 없었고, Decisions 에 없어서 넣지 않았다. rate limit 에 걸리면 이제 실패로 정직하게 세진다
+5. **납부기한 날짜에 `timeZone: 'Asia/Seoul'` 을 붙였다**(`tools.ts:1702`). CLAUDE.md 함정 「DB 시각은 UTC」를 따른 것이다. brief 에는 없던 변경이다
+6. **`sendOneMessage` 의 `fillVariables` 는 글자 그대로의 `\n`(백슬래시+n)을 줄바꿈으로 바꾼다.** 에이전트가 넘긴 문구에 그 두 글자가 있으면 줄바꿈이 된다. `/api/messages/send` 도 똑같이 동작한다
 
 ## Out of Scope (logged in BUILD-LOG)
-- 없음 (위 Open Questions 5 는 Arch 판단 후 KG 로 올릴지 결정)
+
+- KG-13 — 수납 안내 알림톡 실제 발송 (템플릿 등록 필요, 지금은 부르는 화면 없음)
+- KG-14 — `attendance-service.ts:7-20` 에 단가 상수와 바이트 계산이 따로 있다. 값은 같다
