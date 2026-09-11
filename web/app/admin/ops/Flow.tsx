@@ -18,7 +18,8 @@ import { useEffect, useState } from "react";
  *   막힌 자리에는 일감이 쌓인다. 어디서 막혔는지 손가락으로 짚을 수 있어야 한다
  *   초록은 「지금 일하는 중」만 뜻한다. 멀쩡한 대기는 회색이다
  *   퇴근이 없다 — 24시간 띠에 빈 구간이 있으면 눈에 보이게
- *   움직임을 끈 사람에게는 안 움직인다 (prefers-reduced-motion)
+ *   늘 움직인다. 전에는 prefers-reduced-motion 을 따랐는데, 원장 PC 는 Windows 「애니메이션 효과」가
+ *   꺼져 있어 고리가 통째로 멈춰 보였다(9.11). 이 화면은 원장 한 사람이 보는 운영판이라 움직임이 곧 정보다
  */
 
 export type NodeState = {
@@ -102,16 +103,11 @@ function Glyph({ id, c }: { id: string; c: string }) {
 
 export default function Flow({ nodes, slots, cycleOk, stopped, decision, beats }: Props) {
   const [now, setNow] = useState<Date | null>(null);
-  const [still, setStill] = useState(false);
 
   useEffect(() => {
     setNow(new Date());
     const t = setInterval(() => setNow(new Date()), 30000);
-    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-    setStill(mq.matches);
-    const on = () => setStill(mq.matches);
-    mq.addEventListener("change", on);
-    return () => { clearInterval(t); mq.removeEventListener("change", on); };
+    return () => clearInterval(t);
   }, []);
 
   const by = Object.fromEntries(nodes.map((n) => [n.id, n]));
@@ -237,7 +233,7 @@ export default function Flow({ nodes, slots, cycleOk, stopped, decision, beats }
                     markerEnd={dead ? "url(#ahBad)" : "url(#ahOk)"} />
 
               {/* 일감. 막힌 구간에는 안 흘려보낸다 — 흐르는 그림이 거짓말이 된다 */}
-              {!still && !dead && [0, 1].map((k) => (
+              {!dead && [0, 1].map((k) => (
                 <circle key={k} r="3.4" fill={COLOR.run} opacity=".95">
                   <animateMotion dur={`${4.2 + i * 0.45}s`} begin={`${k * 2.1 + i * 0.5}s`}
                                  repeatCount="indefinite" rotate="auto">
@@ -260,9 +256,9 @@ export default function Flow({ nodes, slots, cycleOk, stopped, decision, beats }
               {[0, 1, 2].map((k) => (
                 <circle key={k} cx={x - k * 11} cy={y - k * 5} r="3.4"
                         fill={COLOR.wait} opacity={0.9 - k * 0.22}>
-                  {!still && <animate attributeName="opacity"
-                                      values={`${0.9 - k * 0.22};${0.35 - k * 0.08};${0.9 - k * 0.22}`}
-                                      dur="2.4s" begin={`${k * 0.3}s`} repeatCount="indefinite" />}
+                  <animate attributeName="opacity"
+                           values={`${0.9 - k * 0.22};${0.35 - k * 0.08};${0.9 - k * 0.22}`}
+                           dur="2.4s" begin={`${k * 0.3}s`} repeatCount="indefinite" />
                 </circle>
               ))}
             </g>
@@ -306,7 +302,7 @@ export default function Flow({ nodes, slots, cycleOk, stopped, decision, beats }
               )}
               <circle cx={p.x} cy={p.y} r={size} fill="#0C1420" stroke={c}
                       strokeWidth={live || isBlock ? 2 : 1.2} opacity={live || isBlock ? 1 : 0.75} />
-              {live && !still && (
+              {live && (
                 <circle cx={p.x} cy={p.y} r={size} fill="none" stroke={c} strokeWidth="1.4">
                   <animate attributeName="r" values={`${size};${size + 13}`} dur="2.6s" repeatCount="indefinite" />
                   <animate attributeName="opacity" values=".5;0" dur="2.6s" repeatCount="indefinite" />

@@ -1,0 +1,353 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&amp;display=swap">
+  <style>
+    body { margin: 0; background: #0A0D14; }
+    * { box-sizing: border-box; }
+    .ilog { font-family: 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; color: #FFFFFF; word-break: keep-all; -webkit-font-smoothing: antialiased; }
+    .ilog p, .ilog h1, .ilog h2, .ilog h3 { margin: 0; text-wrap: pretty; }
+    a { color: #A5B4FC; text-decoration: none; }
+    a:hover { color: #C7D2FE; }
+  </style>
+</helmet>
+
+<div class="ilog" style="width: 1440px; background: #0A0D14; overflow: hidden;">
+
+  <!-- NAV -->
+  <div style="height: 80px; padding: 0 64px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.05); background: rgba(10,13,20,0.8);">
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <div style="width: 40px; height: 40px; border-radius: 12px; background: #4F46E5; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 18px;">i</div>
+      <span style="font-size: 20px; font-weight: 700; letter-spacing: -0.02em;">아이로그</span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <span style="padding: 8px 16px; font-size: 14px; font-weight: 500; color: #D1D5DB;">학원 운영 가이드</span>
+      <span style="padding: 8px 16px; font-size: 14px; font-weight: 500; color: #D1D5DB;">기능 자세히 보기</span>
+      <span style="padding: 8px 22px; font-size: 14px; font-weight: 500; border-radius: 999px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);">로그인</span>
+      <span style="padding: 8px 22px; font-size: 14px; font-weight: 700; border-radius: 999px; background: #6366F1;">무료로 시작</span>
+    </div>
+  </div>
+
+  <!-- HERO -->
+  <div style="position: relative; padding: 96px 64px 104px; display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 64px; align-items: center;">
+    <div style="position: absolute; left: -160px; top: -120px; width: 620px; height: 620px; border-radius: 50%; background: radial-gradient(closest-side, rgba(99,102,241,0.22), rgba(99,102,241,0));"></div>
+    <div style="position: absolute; right: -120px; bottom: -160px; width: 560px; height: 560px; border-radius: 50%; background: radial-gradient(closest-side, rgba(168,85,247,0.16), rgba(168,85,247,0));"></div>
+
+    <div style="position: relative; display: flex; flex-direction: column; gap: 28px;">
+      <div style="align-self: flex-start; display: flex; align-items: center; gap: 8px; padding: 6px 16px; border-radius: 999px; background: rgba(99,102,241,0.1); border: 1px solid rgba(99,102,241,0.2); color: #818CF8; font-size: 14px; font-weight: 700;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/></svg>
+        학원 관리 프로그램 아이로그
+      </div>
+      <h1 style="font-size: 62px; line-height: 1.16; font-weight: 900; letter-spacing: -0.035em;">수업 사진 올리고<br>태그만 고르면<br><span style="color: #818CF8;">학부모 피드백이 써집니다</span></h1>
+      <p style="font-size: 20px; line-height: 1.7; color: #9CA3AF; max-width: 560px;">선생님이 고른 태그와 한 줄 메모로 AI가 한두 문장을 씁니다. 고쳐서 확정하면 월간 리포트와 학생 페이지에 그대로 쌓입니다.</p>
+      <div style="display: flex; align-items: center; gap: 20px; margin-top: 8px;">
+        <span style="display: flex; align-items: center; gap: 10px; padding: 20px 36px; border-radius: 16px; background: #4F46E5; font-size: 20px; font-weight: 900; box-shadow: 0 0 40px -10px rgba(79,70,229,0.6);">
+          무료로 시작하기
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </span>
+        <span style="font-size: 16px; font-weight: 700; color: #C7D2FE;">기능 자세히 보기 →</span>
+      </div>
+      <div style="display: flex; gap: 18px; flex-wrap: wrap; font-size: 14px; color: #6B7280;">
+        <span>출결·학생·반 관리 무료 · 학생 수 제한 없음</span>
+        <span>카드 등록 없음 · 사업자등록증 확인 후 승인</span>
+      </div>
+    </div>
+
+    <!-- hero product mock: 피드백 작성 -->
+    <div style="position: relative; padding: 28px; border-radius: 32px; background: #1A1F2B; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 40px 90px rgba(0,0,0,0.5); display: flex; flex-direction: column; gap: 20px;">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <span style="font-size: 13px; color: #6B7280;">수업 기록 · 블록코딩</span>
+          <span style="font-size: 20px; font-weight: 700;">김하늘</span>
+        </div>
+        <span style="padding: 4px 12px; border-radius: 999px; background: rgba(16,185,129,0.12); color: #34D399; font-size: 12px; font-weight: 700;">사진 3장</span>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px;">
+        <div style="height: 92px; border-radius: 16px; background: linear-gradient(135deg, #312E81, #1E1B4B); display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.35);"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="6" width="18" height="14" rx="3"/><circle cx="12" cy="13" r="3.5"/><path d="M9 6l1.5-2h3L15 6"/></svg></div>
+        <div style="height: 92px; border-radius: 16px; background: linear-gradient(135deg, #3B0764, #1E1B4B); display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.35);"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="6" width="18" height="14" rx="3"/><circle cx="12" cy="13" r="3.5"/><path d="M9 6l1.5-2h3L15 6"/></svg></div>
+        <div style="height: 92px; border-radius: 16px; background: linear-gradient(135deg, #064E3B, #1E1B4B); display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.35);"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="6" width="18" height="14" rx="3"/><circle cx="12" cy="13" r="3.5"/><path d="M9 6l1.5-2h3L15 6"/></svg></div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <span style="font-size: 13px; font-weight: 700; color: #9CA3AF;">관찰 태그</span>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+          <span style="padding: 7px 14px; border-radius: 999px; background: rgba(99,102,241,0.18); border: 1px solid rgba(129,140,248,0.5); color: #C7D2FE; font-size: 14px; font-weight: 500;">집중력 좋음</span>
+          <span style="padding: 7px 14px; border-radius: 999px; background: rgba(99,102,241,0.18); border: 1px solid rgba(129,140,248,0.5); color: #C7D2FE; font-size: 14px; font-weight: 500;">질문 적극적</span>
+          <span style="padding: 7px 14px; border-radius: 999px; background: rgba(99,102,241,0.18); border: 1px solid rgba(129,140,248,0.5); color: #C7D2FE; font-size: 14px; font-weight: 500;">과제 완성</span>
+          <span style="padding: 7px 14px; border-radius: 999px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); color: #6B7280; font-size: 14px;">도움 필요</span>
+        </div>
+        <div style="padding: 12px 16px; border-radius: 14px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); font-size: 14px; color: #D1D5DB;"><span style="color: #6B7280;">메모 </span>반복문 오류를 스스로 찾아 고침</div>
+      </div>
+      <div style="padding: 18px 20px; border-radius: 20px; background: rgba(99,102,241,0.08); border: 1px solid rgba(99,102,241,0.25); display: flex; flex-direction: column; gap: 12px;">
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+          <span style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; color: #A5B4FC;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/></svg>AI 피드백</span>
+          <div style="display: flex; padding: 3px; border-radius: 999px; background: rgba(0,0,0,0.3); font-size: 12px;">
+            <span style="padding: 4px 10px; border-radius: 999px; color: #6B7280;">관찰기록체</span>
+            <span style="padding: 4px 10px; border-radius: 999px; background: #4F46E5; font-weight: 700;">경어체</span>
+          </div>
+        </div>
+        <p style="font-size: 16px; line-height: 1.7; color: #F3F4F6;">반복문 오류를 스스로 찾아 고쳤습니다. 질문에 적극적으로 참여하며 오늘 과제를 끝까지 완성했습니다.</p>
+      </div>
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <span style="font-size: 12px; color: #6B7280;">1건 50원</span>
+        <div style="display: flex; gap: 8px;">
+          <span style="padding: 10px 18px; border-radius: 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); font-size: 14px; font-weight: 500;">다시 쓰기</span>
+          <span style="padding: 10px 22px; border-radius: 12px; background: #4F46E5; font-size: 14px; font-weight: 700;">고쳐서 확정</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FEEDBACK FLOW -->
+  <div style="padding: 104px 64px; background: rgba(255,255,255,0.02); border-top: 1px solid rgba(255,255,255,0.05); border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; flex-direction: column; gap: 56px;">
+    <div style="display: flex; flex-direction: column; gap: 16px; max-width: 760px;">
+      <span style="font-size: 15px; font-weight: 700; color: #818CF8;">피드백 자동화</span>
+      <h2 style="font-size: 46px; line-height: 1.25; font-weight: 900; letter-spacing: -0.03em;">매 수업 쓰던 피드백,<br>선생님은 고르고 확인만 합니다</h2>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px;">
+      <div style="padding: 32px 28px; border-radius: 32px; background: #11141D; border: 1px solid rgba(255,255,255,0.05); display: flex; flex-direction: column; gap: 18px;">
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+          <div style="width: 52px; height: 52px; border-radius: 18px; background: rgba(99,102,241,0.12); color: #818CF8; display: flex; align-items: center; justify-content: center;"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="14" rx="3"/><circle cx="12" cy="13" r="3.5"/><path d="M9 6l1.5-2h3L15 6"/></svg></div>
+          <span style="font-size: 32px; font-weight: 900; color: rgba(255,255,255,0.08);">01</span>
+        </div>
+        <h3 style="font-size: 22px; font-weight: 700;">사진 올리기</h3>
+        <p style="font-size: 16px; line-height: 1.7; color: #9CA3AF;">학생별로 수업 사진을 여러 장 올립니다. 올리는 순간 그날의 수업 기록이 생깁니다.</p>
+      </div>
+      <div style="padding: 32px 28px; border-radius: 32px; background: #11141D; border: 1px solid rgba(255,255,255,0.05); display: flex; flex-direction: column; gap: 18px;">
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+          <div style="width: 52px; height: 52px; border-radius: 18px; background: rgba(234,179,8,0.12); color: #FACC15; display: flex; align-items: center; justify-content: center;"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12l-8 8-9-9V3h8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg></div>
+          <span style="font-size: 32px; font-weight: 900; color: rgba(255,255,255,0.08);">02</span>
+        </div>
+        <h3 style="font-size: 22px; font-weight: 700;">태그와 한 줄 메모</h3>
+        <p style="font-size: 16px; line-height: 1.7; color: #9CA3AF;">관찰 태그를 고르고, 꼭 들어가야 할 말은 메모로 적습니다. 메모는 문장에 가장 먼저 반영됩니다.</p>
+      </div>
+      <div style="padding: 32px 28px; border-radius: 32px; background: #11141D; border: 1px solid rgba(255,255,255,0.05); display: flex; flex-direction: column; gap: 18px;">
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+          <div style="width: 52px; height: 52px; border-radius: 18px; background: rgba(168,85,247,0.12); color: #C084FC; display: flex; align-items: center; justify-content: center;"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 17l.7 1.8L21.5 19.5l-1.8.7L19 22l-.7-1.8-1.8-.7 1.8-.7z"/></svg></div>
+          <span style="font-size: 32px; font-weight: 900; color: rgba(255,255,255,0.08);">03</span>
+        </div>
+        <h3 style="font-size: 22px; font-weight: 700;">AI가 한두 문장</h3>
+        <p style="font-size: 16px; line-height: 1.7; color: #9CA3AF;">학원이 정한 말투로 씁니다. 짧은 관찰 기록체(~함)나 정중한 경어체. 어색한 문장이 나오면 다시 씁니다.</p>
+      </div>
+      <div style="padding: 32px 28px; border-radius: 32px; background: #11141D; border: 1px solid rgba(255,255,255,0.05); display: flex; flex-direction: column; gap: 18px;">
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+          <div style="width: 52px; height: 52px; border-radius: 18px; background: rgba(16,185,129,0.12); color: #34D399; display: flex; align-items: center; justify-content: center;"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5L16 9.5"/></svg></div>
+          <span style="font-size: 32px; font-weight: 900; color: rgba(255,255,255,0.08);">04</span>
+        </div>
+        <h3 style="font-size: 22px; font-weight: 700;">고쳐서 확정</h3>
+        <p style="font-size: 16px; line-height: 1.7; color: #9CA3AF;">선생님이 고친 최종본이 기록으로 남고, 수정 이력도 같이 저장됩니다. 보내기 전에 한 번 읽는 것까지가 선생님 몫입니다.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- REPORT + PARENT PAGE -->
+  <div style="padding: 112px 64px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 72px; align-items: center;">
+    <div style="position: relative; padding: 32px; border-radius: 40px; background: #1A1F2B; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 40px 90px rgba(0,0,0,0.45); display: flex; flex-direction: column; gap: 22px;">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <span style="font-size: 13px; color: #6B7280;">월간 리포트</span>
+          <span style="font-size: 20px; font-weight: 700;">김하늘 · 수업 12회</span>
+        </div>
+        <span style="padding: 4px 12px; border-radius: 999px; background: rgba(99,102,241,0.15); color: #A5B4FC; font-size: 12px; font-weight: 700;">원장 승인</span>
+      </div>
+      <div style="display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 24px; align-items: center;">
+        <svg width="260" height="260" viewBox="0 0 260 260" style="overflow: visible;">
+          <polygon points="130,30 216.6,80 216.6,180 130,230 43.4,180 43.4,80" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>
+          <polygon points="130,64 187.2,97 187.2,163 130,196 72.8,163 72.8,97" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+          <line x1="130" y1="130" x2="130" y2="30" stroke="rgba(255,255,255,0.06)"/>
+          <line x1="130" y1="130" x2="216.6" y2="80" stroke="rgba(255,255,255,0.06)"/>
+          <line x1="130" y1="130" x2="216.6" y2="180" stroke="rgba(255,255,255,0.06)"/>
+          <line x1="130" y1="130" x2="130" y2="230" stroke="rgba(255,255,255,0.06)"/>
+          <line x1="130" y1="130" x2="43.4" y2="180" stroke="rgba(255,255,255,0.06)"/>
+          <line x1="130" y1="130" x2="43.4" y2="80" stroke="rgba(255,255,255,0.06)"/>
+          <polygon points="130,50 190.6,95 182,160 130,215 73.7,162.5 52.1,85" fill="rgba(99,102,241,0.28)" stroke="#818CF8" stroke-width="2"/>
+          <text x="130" y="18" text-anchor="middle" fill="#9CA3AF" font-size="12" font-family="Noto Sans KR, sans-serif">학습 의지</text>
+          <text x="232" y="76" text-anchor="start" fill="#9CA3AF" font-size="12" font-family="Noto Sans KR, sans-serif">이해력</text>
+          <text x="232" y="190" text-anchor="start" fill="#9CA3AF" font-size="12" font-family="Noto Sans KR, sans-serif">표현력</text>
+          <text x="130" y="252" text-anchor="middle" fill="#9CA3AF" font-size="12" font-family="Noto Sans KR, sans-serif">집중력</text>
+          <text x="28" y="190" text-anchor="end" fill="#9CA3AF" font-size="12" font-family="Noto Sans KR, sans-serif">창의성</text>
+          <text x="28" y="76" text-anchor="end" fill="#9CA3AF" font-size="12" font-family="Noto Sans KR, sans-serif">태도</text>
+        </svg>
+        <div style="display: flex; flex-direction: column; gap: 14px;">
+          <div style="padding: 14px 16px; border-radius: 16px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); font-size: 14px; line-height: 1.65; color: #D1D5DB;">이번 달은 반복문과 조건문을 스스로 조합하는 횟수가 늘었습니다. 막히면 먼저 질문하는 태도가 자리를 잡았습니다.</div>
+          <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px;">
+            <div style="height: 56px; border-radius: 12px; background: linear-gradient(135deg, #312E81, #1E1B4B);"></div>
+            <div style="height: 56px; border-radius: 12px; background: linear-gradient(135deg, #3B0764, #1E1B4B);"></div>
+            <div style="height: 56px; border-radius: 12px; background: linear-gradient(135deg, #064E3B, #1E1B4B);"></div>
+          </div>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; justify-content: space-between; padding-top: 18px; border-top: 1px solid rgba(255,255,255,0.06);">
+        <span style="font-size: 13px; color: #6B7280;">링크는 처음 공유한 때부터 7일</span>
+        <span style="display: flex; align-items: center; gap: 8px; padding: 10px 18px; border-radius: 12px; background: #FEE500; color: #191600; font-size: 14px; font-weight: 700;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4C7 4 3 7.1 3 11c0 2.5 1.7 4.7 4.2 6l-1 3.6 4.2-2.8c.5.1 1 .1 1.6.1 5 0 9-3.1 9-7s-4-6.9-9-6.9z"/></svg>
+          카카오톡으로 공유
+        </span>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 28px;">
+      <span style="font-size: 15px; font-weight: 700; color: #818CF8;">리포트와 학생 페이지</span>
+      <h2 style="font-size: 46px; line-height: 1.25; font-weight: 900; letter-spacing: -0.03em;">쌓인 기록이<br>그대로 월간 리포트가 됩니다</h2>
+      <p style="font-size: 18px; line-height: 1.8; color: #9CA3AF;">월간·분기·원하는 기간을 고르면 그동안의 수업 기록과 사진을 묶어 코멘트를 만듭니다. 원장이 승인한 리포트만 카카오톡으로 공유됩니다.</p>
+      <div style="display: flex; flex-direction: column; gap: 14px;">
+        <div style="display: flex; gap: 14px; align-items: flex-start;">
+          <span style="flex: none; margin-top: 3px; width: 22px; height: 22px; border-radius: 50%; background: rgba(99,102,241,0.2); color: #A5B4FC; display: flex; align-items: center; justify-content: center;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
+          <p style="font-size: 17px; line-height: 1.7; color: #D1D5DB;"><strong style="color: #FFFFFF;">학생 페이지</strong> — 여섯 축 성장 프로필, 최근 시험 결과, 리포트 모음, 이번 달 학습 플랜이 한 화면에 있습니다.</p>
+        </div>
+        <div style="display: flex; gap: 14px; align-items: flex-start;">
+          <span style="flex: none; margin-top: 3px; width: 22px; height: 22px; border-radius: 50%; background: rgba(99,102,241,0.2); color: #A5B4FC; display: flex; align-items: center; justify-content: center;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
+          <p style="font-size: 17px; line-height: 1.7; color: #D1D5DB;"><strong style="color: #FFFFFF;">학부모는 설치·로그인 없이</strong> 받은 링크로 봅니다.</p>
+        </div>
+        <div style="display: flex; gap: 14px; align-items: flex-start;">
+          <span style="flex: none; margin-top: 3px; width: 22px; height: 22px; border-radius: 50%; background: rgba(99,102,241,0.2); color: #A5B4FC; display: flex; align-items: center; justify-content: center;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
+          <p style="font-size: 17px; line-height: 1.7; color: #D1D5DB;"><strong style="color: #FFFFFF;">축은 학원마다</strong> 과목에 맞게 바꿀 수 있습니다.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MANAGEMENT -->
+  <div style="padding: 104px 64px; background: rgba(255,255,255,0.02); border-top: 1px solid rgba(255,255,255,0.05); border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; flex-direction: column; gap: 56px;">
+    <div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 40px;">
+      <div style="display: flex; flex-direction: column; gap: 16px;">
+        <span style="font-size: 15px; font-weight: 700; color: #34D399;">학원 관리</span>
+        <h2 style="font-size: 46px; line-height: 1.25; font-weight: 900; letter-spacing: -0.03em;">출결부터 수납 체크까지,<br>손이 덜 가게</h2>
+      </div>
+      <p style="max-width: 420px; font-size: 17px; line-height: 1.75; color: #9CA3AF;">아래 기능은 학생이 30명이든 300명이든 같은 조건으로 무료입니다. 학부모 알림 발송만 건당 비용이 있습니다.</p>
+    </div>
+
+    <div style="display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: auto auto; gap: 20px;">
+      <!-- keypad big card -->
+      <div style="grid-row: span 2; padding: 36px; border-radius: 32px; background: linear-gradient(160deg, #11141D, rgba(49,46,129,0.35)); border: 1px solid rgba(255,255,255,0.06); display: flex; flex-direction: column; gap: 24px;">
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <h3 style="font-size: 26px; font-weight: 700;">출결은 번호 4번, 확인 1번</h3>
+          <p style="font-size: 16px; line-height: 1.75; color: #9CA3AF;">학생이 입구 태블릿에 등원번호를 누르면 등원, 같은 날 다시 누르면 하원입니다. 학부모에게는 알림톡(19원)이나 문자(24원)로 바로 나갑니다.</p>
+        </div>
+        <div style="align-self: center; width: 300px; padding: 24px; border-radius: 28px; background: #0A0D14; border: 1px solid rgba(255,255,255,0.1); display: flex; flex-direction: column; gap: 16px;">
+          <div style="display: flex; justify-content: center; gap: 12px;">
+            <span style="width: 46px; height: 54px; border-radius: 12px; background: rgba(99,102,241,0.18); border: 1px solid rgba(129,140,248,0.5); display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 900;">2</span>
+            <span style="width: 46px; height: 54px; border-radius: 12px; background: rgba(99,102,241,0.18); border: 1px solid rgba(129,140,248,0.5); display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 900;">7</span>
+            <span style="width: 46px; height: 54px; border-radius: 12px; background: rgba(99,102,241,0.18); border: 1px solid rgba(129,140,248,0.5); display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 900;">0</span>
+            <span style="width: 46px; height: 54px; border-radius: 12px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.12);"></span>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px;">
+            <span style="height: 46px; border-radius: 12px; background: rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700;">1</span>
+            <span style="height: 46px; border-radius: 12px; background: rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700;">2</span>
+            <span style="height: 46px; border-radius: 12px; background: rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700;">3</span>
+            <span style="height: 46px; border-radius: 12px; background: rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700;">4</span>
+            <span style="height: 46px; border-radius: 12px; background: rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700;">5</span>
+            <span style="height: 46px; border-radius: 12px; background: rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700;">6</span>
+            <span style="height: 46px; border-radius: 12px; background: rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700;">7</span>
+            <span style="height: 46px; border-radius: 12px; background: rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700;">8</span>
+            <span style="height: 46px; border-radius: 12px; background: rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700;">9</span>
+          </div>
+          <span style="height: 50px; border-radius: 14px; background: #4F46E5; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700;">확인</span>
+        </div>
+        <div style="padding: 14px 16px; border-radius: 16px; background: rgba(254,229,0,0.08); border: 1px solid rgba(254,229,0,0.2); font-size: 14px; line-height: 1.6; color: #FDE68A;">[학원명] 김하늘 원생이 오후 3:02에 등원하였습니다.</div>
+      </div>
+
+      <div style="padding: 30px; border-radius: 32px; background: #11141D; border: 1px solid rgba(255,255,255,0.05); display: flex; flex-direction: column; gap: 12px;">
+        <div style="width: 44px; height: 44px; border-radius: 14px; background: rgba(99,102,241,0.12); color: #818CF8; display: flex; align-items: center; justify-content: center;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.5 3.3-5.5 6.5-5.5s5.7 2 6.5 5.5"/><path d="M16 4.5a3.5 3.5 0 010 7M18.5 14.8c1.7.8 2.7 2.6 3 5.2"/></svg></div>
+        <h3 style="font-size: 20px; font-weight: 700;">명단은 엑셀로 한 번에</h3>
+        <p style="font-size: 15px; line-height: 1.7; color: #9CA3AF;">학생을 엑셀 파일로 한꺼번에 등록하고, 새 학년에는 학년 진급도 한 번에 합니다.</p>
+      </div>
+      <div style="padding: 30px; border-radius: 32px; background: #11141D; border: 1px solid rgba(255,255,255,0.05); display: flex; flex-direction: column; gap: 12px;">
+        <div style="width: 44px; height: 44px; border-radius: 14px; background: rgba(234,179,8,0.12); color: #FACC15; display: flex; align-items: center; justify-content: center;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="3"/><path d="M8 8h8M8 12h8M8 16h5"/></svg></div>
+        <h3 style="font-size: 20px; font-weight: 700;">회차는 등원할 때 차감</h3>
+        <p style="font-size: 15px; line-height: 1.7; color: #9CA3AF;">회차제 학원은 등원하면 남은 회차가 하나씩 줄고, 알림 문장에 넣어 보낼 수 있습니다.</p>
+      </div>
+      <div style="padding: 30px; border-radius: 32px; background: #11141D; border: 1px solid rgba(255,255,255,0.05); display: flex; flex-direction: column; gap: 12px;">
+        <div style="width: 44px; height: 44px; border-radius: 14px; background: rgba(16,185,129,0.12); color: #34D399; display: flex; align-items: center; justify-content: center;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4" width="17" height="16" rx="3"/><path d="M8 10l2 2 4-4M8 16h8"/></svg></div>
+        <h3 style="font-size: 20px; font-weight: 700;">업무는 담당자와 상태로</h3>
+        <p style="font-size: 15px; line-height: 1.7; color: #9CA3AF;">담당 선생님을 정하고 대기·진행중·완료로 넘기며, 학생 특이사항은 댓글로 나눕니다.</p>
+      </div>
+      <div style="padding: 30px; border-radius: 32px; background: #11141D; border: 1px solid rgba(255,255,255,0.05); display: flex; flex-direction: column; gap: 12px;">
+        <div style="width: 44px; height: 44px; border-radius: 14px; background: rgba(168,85,247,0.12); color: #C084FC; display: flex; align-items: center; justify-content: center;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M3 10h18M7 15h4"/></svg></div>
+        <h3 style="font-size: 20px; font-weight: 700;">수납은 한 화면에서 체크</h3>
+        <p style="font-size: 15px; line-height: 1.7; color: #9CA3AF;">미납과 납부 완료를 표시합니다. 선생님마다 볼 수 있는 화면은 원장이 정합니다.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- PRICING -->
+  <div style="padding: 112px 64px; display: flex; flex-direction: column; gap: 52px;">
+    <div style="display: flex; flex-direction: column; gap: 16px; align-items: center; text-align: center;">
+      <span style="font-size: 15px; font-weight: 700; color: #818CF8;">요금</span>
+      <h2 style="font-size: 46px; line-height: 1.25; font-weight: 900; letter-spacing: -0.03em;">돈이 드는 곳은 두 곳입니다</h2>
+      <p style="font-size: 17px; color: #9CA3AF;">발송 잔액과 AI 크레딧은 따로 충전하고, 쓴 만큼 빠집니다.</p>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px;">
+      <div style="padding: 36px; border-radius: 32px; background: #4F46E5; display: flex; flex-direction: column; gap: 18px;">
+        <span style="font-size: 16px; font-weight: 700; color: #E0E7FF;">기본 관리</span>
+        <div style="display: flex; align-items: baseline; gap: 6px;"><span style="font-size: 56px; font-weight: 900; letter-spacing: -0.04em;">0</span><span style="font-size: 20px; font-weight: 700;">원</span></div>
+        <p style="font-size: 15px; line-height: 1.7; color: #E0E7FF;">출결 기록, 학생·반 관리, 업무 공유, 수납 체크. 학생 수 제한 없음.</p>
+      </div>
+      <div style="padding: 36px; border-radius: 32px; background: #11141D; border: 1px solid rgba(255,255,255,0.06); display: flex; flex-direction: column; gap: 18px;">
+        <span style="font-size: 16px; font-weight: 700; color: #D1D5DB;">학부모 알림</span>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <div style="display: flex; justify-content: space-between; font-size: 17px;"><span style="color: #9CA3AF;">카카오 알림톡</span><strong>19원</strong></div>
+          <div style="display: flex; justify-content: space-between; font-size: 17px;"><span style="color: #9CA3AF;">문자</span><strong>24원</strong></div>
+          <div style="display: flex; justify-content: space-between; font-size: 17px;"><span style="color: #9CA3AF;">긴 문자(LMS)</span><strong>61원</strong></div>
+        </div>
+        <p style="font-size: 14px; line-height: 1.7; color: #6B7280;">건당, 부가세 포함. 1만~10만원 선불 충전. 발송 방식을 고르기 전에는 나가지 않습니다.</p>
+      </div>
+      <div style="padding: 36px; border-radius: 32px; background: #11141D; border: 1px solid rgba(255,255,255,0.06); display: flex; flex-direction: column; gap: 18px;">
+        <span style="font-size: 16px; font-weight: 700; color: #D1D5DB;">AI 기능</span>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <div style="display: flex; justify-content: space-between; font-size: 17px;"><span style="color: #9CA3AF;">수업 피드백</span><strong>50원</strong></div>
+          <div style="display: flex; justify-content: space-between; font-size: 17px;"><span style="color: #9CA3AF;">종합 리포트</span><strong>200원</strong></div>
+          <div style="display: flex; justify-content: space-between; font-size: 17px;"><span style="color: #9CA3AF;">영어 예상 문제 1문항</span><strong>20원</strong></div>
+        </div>
+        <p style="font-size: 14px; line-height: 1.7; color: #6B7280;">AI 무제한 패스는 재원생 30명 이하 월 19,000원부터. 예상 문제 출제는 패스가 있어도 차감됩니다.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- GUIDES -->
+  <div style="padding: 0 64px 112px; display: flex; flex-direction: column; gap: 32px;">
+    <h2 style="font-size: 30px; font-weight: 900; letter-spacing: -0.02em;">고르기 전에 읽어 보세요</h2>
+    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px;">
+      <div style="padding: 28px; border-radius: 28px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); display: flex; flex-direction: column; gap: 10px;">
+        <span style="font-size: 13px; font-weight: 700; color: #818CF8;">학원 운영 가이드</span>
+        <h3 style="font-size: 19px; line-height: 1.45; font-weight: 700;">학원 관리 프로그램, 무엇을 보고 골라야 하나요?</h3>
+      </div>
+      <div style="padding: 28px; border-radius: 28px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); display: flex; flex-direction: column; gap: 10px;">
+        <span style="font-size: 13px; font-weight: 700; color: #818CF8;">학원 운영 가이드</span>
+        <h3 style="font-size: 19px; line-height: 1.45; font-weight: 700;">학원 수업 리포트, AI가 대신 쓰면 선생님은 무엇을 하나요?</h3>
+      </div>
+      <div style="padding: 28px; border-radius: 28px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); display: flex; flex-direction: column; gap: 10px;">
+        <span style="font-size: 13px; font-weight: 700; color: #818CF8;">학원 운영 가이드</span>
+        <h3 style="font-size: 19px; line-height: 1.45; font-weight: 700;">학원 출결을 학부모 카카오톡으로 자동으로 알리려면?</h3>
+      </div>
+    </div>
+  </div>
+
+  <!-- FINAL CTA -->
+  <div style="padding: 96px 64px; background: #4F46E5; display: flex; flex-direction: column; align-items: center; gap: 24px; text-align: center;">
+    <h2 style="font-size: 48px; line-height: 1.25; font-weight: 900; letter-spacing: -0.03em;">오늘 수업 사진부터 올려 보세요</h2>
+    <p style="font-size: 18px; color: #E0E7FF;">기본 관리는 무료입니다. 사업자등록증 확인 후 승인되면 바로 씁니다.</p>
+    <span style="margin-top: 8px; padding: 18px 40px; border-radius: 999px; background: #FFFFFF; color: #4F46E5; font-size: 19px; font-weight: 900;">아이로그 무료로 시작하기</span>
+  </div>
+
+  <!-- FOOTER -->
+  <div style="padding: 48px 64px; background: #07090F; border-top: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: flex-start; gap: 40px;">
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <span style="font-size: 17px; font-weight: 700;">아이로그 (iLog)</span>
+      <span style="font-size: 14px; color: #6B7280;">ilog.ai.kr · ilog.ai@kakao.com</span>
+      <span style="font-size: 13px; color: #4B5563;">(주)아이로그(ilog.co.kr)·ILOG(ilog.kr)와 관계없는 별개의 서비스입니다.</span>
+    </div>
+    <div style="display: flex; gap: 24px; font-size: 14px; color: #9CA3AF;">
+      <span>학원 운영 가이드</span><span>기능</span><span>이용약관</span><span>개인정보처리방침</span>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

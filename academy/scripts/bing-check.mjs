@@ -51,8 +51,11 @@ const ms = await q(`
 const m = ms[0];
 console.log(`  ${m.hits}회 · ${m.pages}쪽 · 마지막 ${m.last ?? "없음"}`);
 if (m.pages < 10) {
-  console.log("  → 빙봇도 거의 안 왔습니다. IndexNow 는 「알림」일 뿐,");
-  console.log("     실제 색인은 빙 웹마스터에 사이트맵을 넣어야 붙습니다.");
+  // 9.11 에 이 문구만 보고 「빙 웹마스터 등록은 사람 일」이라고 보고했는데,
+  // 실제로는 9/5 사이트맵 제출·9/10 크롤 성공(45개 발견) 상태였다. 추측하지 말고 화면을 본다.
+  console.log("  → 빙봇 방문이 적습니다. 빙 웹마스터 사이트맵 상태를 먼저 확인하세요:");
+  console.log("     cd tools && node bing-webmaster-look.mjs \"https://www.bing.com/webmasters/sitemaps?siteUrl=https%3A%2F%2Frobotncoding.com%2F\"");
+  console.log("     제출·크롤 성공인데 색인이 0 이면 기다리는 단계입니다. 사이트맵이 없으면 tools/bing-submit-sitemap.mjs");
 }
 
 await pool.end();

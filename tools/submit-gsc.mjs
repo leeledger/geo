@@ -102,8 +102,12 @@ for (const [i, u] of urls.entries()) {
   const body = await page.locator("body").innerText().catch(() => "");
 
   if (/색인이 생성됨|URL이 Google에 등록됨/.test(body)) {
-    console.log("  = 이미 색인돼 있습니다");
-    // 그래도 최신 내용 반영을 위해 요청은 눌러 둔다
+    // 이미 색인된 주소에 요청을 누르면 하루 한도(10건 안팎)만 먹는다.
+    // 9.11 에 8건 중 7건이 이미 색인된 주소였고, 정작 안 된 주소는 한도에 막혔다.
+    console.log("  = 이미 색인돼 있습니다 — 한도를 아끼려 건너뜁니다");
+    done.add(u);
+    await writeFile(DONE_FILE, JSON.stringify([...done], null, 2));
+    continue;
   }
 
   try {
