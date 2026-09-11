@@ -39,7 +39,7 @@ const FAQ: [string, string][] = [
   ["숫자를 어떻게 믿나요?",
    "믿어 달라고 하지 않습니다. 질문, 답변 원문, 답에 붙은 출처 주소, 물어본 시각이 전부 남아 있고 요청하시면 그대로 드립니다. 내부 보고에 원문을 붙이셔도 됩니다."],
   ["SEO 대행사와 뭐가 다른가요?",
-   "SEO 는 검색 결과에서 클릭을 얻는 일이고, 이건 AI 답변 문장 안에 이름이 들어가는 일입니다. 저희가 ERP 질문으로 확인해 보니 AI 답에 붙은 출처 중 회사 자기 사이트는 18%였습니다. 나머지 82%는 비교 글과 목록이라 들어가야 할 지면이 다릅니다. 기존 SEO 자산은 그대로 씁니다."],
+   "SEO 는 검색 결과에서 클릭을 얻는 일이고, 이건 AI 답 속에 이름이 나오게 하는 일입니다. AI 는 회사 홈페이지보다 비교 글과 업체 목록을 더 많이 읽습니다. 그래서 손봐야 할 곳이 다릅니다. 해 둔 SEO 는 버리지 않고 그대로 씁니다."],
   ["그만두면 뭐가 남나요?",
    "사이트를 만들어 드렸다면 도메인·저장소·호스팅 계정이 전부 고객사 명의라 그대로 남습니다. 그동안의 답변 원문과 리포트도 드립니다. 최소 약정이 없어서 한 달 단위로 멈출 수 있습니다."],
 ];
@@ -102,7 +102,7 @@ const SCAN = { total: 92, baseline: 83, crawler: 100, schema: 100, chunk: 47, ch
  * 「진단한 회사」는 34곳 중 사이트 점수 1위(80점).
  */
 const ERP_BARS: [string, number, boolean][] = [
-  ["A사", 9, false], ["B사", 8, false], ["C사", 8, false], ["D사", 4, false], ["진단한 회사", 3, true],
+  ["A사", 9, false], ["B사", 8, false], ["C사", 8, false], ["D사", 4, false], ["이 회사", 3, true],
 ];
 const ERP_DOCS = [
   "국내 ERP 업체 순위 Top5",
@@ -227,10 +227,9 @@ export default async function Home() {
           <div className="lab">GEO 가 뭔가요</div>
           <h2>검색 결과의 링크가 아니라<br /><span className="hl">답변 문장 안의 이름</span></h2>
           <p className="define">
-            ChatGPT 에 「중소기업용 ERP 추천해줘」라고 치면 링크 열 개 대신 회사 이름 몇 개가 문장으로 나옵니다.
-            그 문장에 우리 이름이 들어가게 하는 일이 <b>GEO(생성형 엔진 최적화)</b>입니다.
-            저희가 이런 ERP 질문 12개를 웹 검색을 켠 AI 에 모두 15번 물었더니, 한 답에 회사 이름이 평균 <b>2.9개</b> 나왔고
-            답에 붙은 출처 가운데 <b>회사 자기 사이트는 18%</b>였습니다.
+            손님이 ChatGPT 에 「아이 보낼 영어학원 추천해줘」라고 물으면, 링크 목록 대신 학원 이름 몇 개가 답으로 나옵니다.
+            그 답에 우리 이름이 들어가게 만드는 일이 <b>GEO(생성형 엔진 최적화)</b>입니다.
+            AI 는 우리 홈페이지만 보고 답하지 않습니다. <b>비교 글, 후기, 업체 목록</b>을 같이 읽고 이름을 고릅니다.
           </p>
 
           <div className="cmpwrap">
@@ -239,17 +238,17 @@ export default async function Home() {
                 <tr><th scope="col">구분</th><th scope="col">검색 최적화 (SEO)</th><th scope="col" className="us">AI 답변 노출 (GEO)</th></tr>
               </thead>
               <tbody>
-                <tr><th scope="row">얻는 것</th><td>결과 목록의 링크 클릭</td><td className="us">답변 문장 안의 이름</td></tr>
-                <tr><th scope="row">한 번에 보이는 수</th><td>링크 10개 안팎</td><td className="us">이름 3개 안팎 · 측정 평균 2.9개</td></tr>
-                <tr><th scope="row">들어가야 할 곳</th><td>우리 홈페이지</td><td className="us">비교 글·목록 · AI 가 붙인 출처의 82%</td></tr>
-                <tr><th scope="row">확인하는 법</th><td>검색해서 순위 한 번</td><td className="us">같은 질문을 여러 번 · 몇 번 중 몇 번</td></tr>
+                <tr><th scope="row">얻는 것</th><td>검색 결과에서 클릭</td><td className="us">AI 답 속에 이름이 나옴</td></tr>
+                <tr><th scope="row">손님 눈에 보이는 것</th><td>링크 열 개</td><td className="us">추천 이름 두세 개</td></tr>
+                <tr><th scope="row">손봐야 할 곳</th><td>우리 홈페이지</td><td className="us">홈페이지와 AI 가 읽는 남의 글</td></tr>
+                <tr><th scope="row">잘됐는지 보는 법</th><td>검색해서 순위 확인</td><td className="us">같은 질문을 여러 번 해서 몇 번 나오는지</td></tr>
               </tbody>
             </table>
           </div>
           <p className="cmpnote">
-            그 측정에서 출처로 가장 많이 붙은 곳은 <b>ERP 업체 순위를 정리한 비교 사이트 한 곳(11번)</b>이었습니다.
-            업체 홈페이지가 아무리 좋아도 그 글에 이름이 없으면 답에서 빠집니다.
-            SEO 를 이미 맡긴 곳이 있다면 그건 그대로 두셔도 됩니다.
+            그래서 홈페이지를 잘 만들어도 비교 글과 목록에 이름이 없으면 답에서 빠집니다.
+            반대로 홈페이지는 허술한데 여기저기 이름이 올라 있는 회사가 자주 나옵니다. <b>아래에 실제 기록이 있습니다.</b>{" "}
+            SEO 를 이미 맡긴 곳이 있다면 그대로 두셔도 됩니다.
           </p>
         </div>
       </section>
@@ -312,8 +311,8 @@ export default async function Home() {
           <div className="lab">맡기면 받는 것</div>
           <h2>리포트에 들어가는 것을<br /><span className="hl">실제 기록</span>으로 보여 드립니다</h2>
           <p className="sub2">
-            아래 세 장은 저희가 실제로 남긴 기록입니다. 회사 이름만 가렸습니다.
-            앞의 두 장은 ERP 회사 한 곳을 진단한 리포트, 마지막 장은 사례 학원의 작업 기록입니다.
+            아래 세 장은 실제로 남긴 기록입니다. 앞의 두 장은 소프트웨어 회사 한 곳을 진단한 리포트,
+            마지막 장은 사례 학원의 작업 기록입니다. 회사 이름은 가렸습니다.
           </p>
 
           <div className="gets">
@@ -322,8 +321,8 @@ export default async function Home() {
               <div className="getn">01 · 몇 번 중 몇 번</div>
               <h3>지금 불리고 있나</h3>
               <p>
-                ERP 질문 12개를 15번 물어 회사마다 몇 번 나왔는지 셌습니다.
-                사이트 점수가 34곳 중 가장 높았던 회사는 <b>15번 중 3번</b>이었습니다.
+                그 업계 손님이 물어볼 질문을 AI 에게 15번 묻고, 회사마다 이름이 몇 번 나왔는지 셌습니다.
+                홈페이지 점수가 가장 높았던 이 회사는 <b>15번 중 3번</b>이었습니다.
               </p>
               <div className="getb">
                 <div className="mbars">
@@ -343,15 +342,15 @@ export default async function Home() {
               <div className="getn">02 · 빠진 자리</div>
               <h3>왜 안 나오나</h3>
               <p>
-                AI 가 참고한 ERP 비교 글 14개를 하나씩 열었습니다. A·B·C사는 대부분 들어 있었고
-                <b> 진단한 회사 이름은 한 번도 없었습니다.</b> 사이트가 아니라 이 글들이 문제였습니다.
+                AI 가 답할 때 참고한 비교 글 14개를 하나씩 열어 봤습니다. A·B·C사는 대부분 있었고
+                <b> 이 회사 이름은 한 번도 없었습니다.</b> 고칠 곳은 홈페이지가 아니라 이 글들이었습니다.
               </p>
               <div className="getb">
                 <div className="docs">
                   {ERP_DOCS.map((t) => (
                     <div className="doc" key={t}>
                       <span>「{t}」</span>
-                      <span className="yn">A·B·C 있음 · <em>우리 없음</em></span>
+                      <span className="yn">A·B·C 있음 · <em>이 회사 없음</em></span>
                     </div>
                   ))}
                 </div>
@@ -420,7 +419,7 @@ export default async function Home() {
           <div className="lab">직접 측정한 것 · B2B 소프트웨어 34곳</div>
           <h2>사이트 점수와 AI 노출은<br /><span className="hl">따로 움직였습니다</span></h2>
           <p className="sub2">
-            국내 B2B 소프트웨어 회사 34곳의 사이트를 진단하고, 그중 ERP 회사들은 AI 에 직접 물어 몇 번 나오는지 셌습니다.
+            국내 소프트웨어 회사 34곳의 홈페이지를 진단했습니다. 그중 한 업계는 AI 에게 직접 물어 회사마다 몇 번 나오는지도 셌습니다.
           </p>
 
           <div className="facts">
@@ -431,8 +430,8 @@ export default async function Home() {
                 <span className="c">사이트 19점 회사의 AI 노출</span>
               </div>
               <div className="t">
-                사이트는 AI 가 읽기 어려운 상태였는데 <b>비교 글 14개 중 9개에 이름이 있었습니다.</b>
-                답에는 15번 중 8번 나왔습니다.
+                홈페이지는 AI 가 읽기 어려운 상태였는데 <b>비교 글 14개 중 9개에 이름이 있었습니다.</b>{" "}
+                15번 물으면 8번 나왔습니다.
               </div>
             </div>
             <div className="fact">
@@ -870,7 +869,7 @@ export default async function Home() {
             </div>
           </div>
           <div className="wm">
-            이 페이지의 시장 숫자(사이트 34곳 진단 · ERP 질문 12개를 AI 에 15번 물은 결과)는 저희가 직접 측정한 값입니다.
+            이 페이지의 시장 숫자(홈페이지 34곳 진단 · 한 업계 질문을 AI 에게 15번 물은 결과)는 저희가 직접 측정한 값입니다.
             표본이 작아 <b>대략의 방향</b>으로 봐 주세요. 사례의 방문 기록은 서버에 남은 원본이고, 학원 이름과 지역만 가렸습니다.
           </div>
           <div className="fbottom">
