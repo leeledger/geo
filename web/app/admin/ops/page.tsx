@@ -6,6 +6,7 @@ import Live from "./Live";
 import Flow, { type NodeState } from "./Flow";
 import Link from "next/link";
 import { inquirySummary } from "@/lib/inquiries";
+import Brief from "./Brief";
 /** 로그인 뒤 돌아올 자리 */
 const HERE = "/admin/ops";
 
@@ -489,6 +490,9 @@ export default async function OpsPage({
           </div>
           <Live slots={SLOTS} />
         </div>
+
+        {/* 오늘 한 일 — 마감 시각으로 자른 하루. 고객사 전체를 한 번에 본다 */}
+        <Brief />
 
         {/*
           고객사 줄. 지금은 한 곳이라 이름만 보이고, 늘어나면 탭이 된다.

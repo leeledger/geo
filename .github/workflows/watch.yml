@@ -22,12 +22,20 @@ on:
     - cron: "11 */3 * * *"   # 3시간마다. :00 을 피한다
   workflow_dispatch: {}
 
+# 「오늘 한 일」이 커밋·정찰 이슈·자동 작업 실행을 읽는다
+permissions:
+  contents: read
+  issues: read
+  actions: read
+
 jobs:
   watch:
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # 오늘 커밋을 세려면 기록이 있어야 한다
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -44,6 +52,14 @@ jobs:
       - name: 브리핑
         working-directory: academy
         run: node scripts/briefing.mjs
+
+      # 마감 시각으로 자른 하루. 지난 마감분이 안 굳었으면 굳히고, 지금 창을 갱신한다.
+      - name: 오늘 한 일
+        working-directory: academy
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/daily-brief.mjs --close-if-due --snapshot
 
       # 맨 뒤에 둔다. 여기서 실패해야 앞의 브리핑 기록이 로그에 남는다.
       - name: 상태 점검
