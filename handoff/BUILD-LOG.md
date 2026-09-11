@@ -5,7 +5,7 @@
 
 ## Current Status
 
-**Active step:** 없음 — Step 1~7 배포 완료. 남은 것은 Step 8(네이버 소유확인 캡차 = 사람 일)과 Known Gaps 잔여분, 학원 주간 발행
+**Active step:** 없음 — Step 1~8 배포 완료. 남은 것: 네이버 소유확인 캡차(사람 일), Known Gaps 잔여분(KG-2·5·13·17), 학원 주간 발행
 **Last cleared:** Step 0 — 2026-09-11 (설치 이전 작업 기록)
 **Pending deploy:** NO
 
@@ -168,6 +168,21 @@ Decisions made:
 Reviewer findings: (한도 풀리면 커밋 diff 재검토)
 Deploy: confirmed 2026-09-12 — 아이로그 커밋 1d18f79. 운영 `/` `/terms` `/guide` 200
 
+### Step 8 — 발송 잔액 예약·환원 (KG-15) · 단가 단일화 (KG-14) — COMPLETE
+*Date: 2026-09-12*
+
+Files changed:
+- `lib/services/message-service.ts` — 잔액 확인+차감을 한 쿼리(조건부 UPDATE ... RETURNING)로 예약, 실패 시 환원, 알림톡→문자 폴백은 차액만 반영
+- `lib/services/attendance-service.ts` — 같은 방식으로 예약·환원(실패 분기와 catch 둘 다), 단가·바이트 계산을 `message-cost` 에서 import (로컬 상수 삭제)
+
+Decisions made:
+- 예약(선차감) 방식으로 간다 — 보내기 전에 깎고 못 보내면 돌려준다. 확인 후 차감은 동시 발송에서 음수가 된다
+- 이미 보낸 뒤의 폴백 차액은 조건부로 막지 않는다(되돌릴 수 없다). 실패하면 로그만 남긴다
+- 실제 발송 시험은 하지 않았다 — 문자 한 건이 곧 돈이다. 잔액 쿼리 6곳을 훑어 예약·환원 쌍을 확인했다
+
+Reviewer findings: (한도 풀리면 커밋 diff 재검토)
+Deploy: confirmed 2026-09-12 — 아이로그 커밋 65be615. 운영 `/` `/auth/login` `/guide/ai-class-report` 200
+
 ---
 
 ## Known Gaps
@@ -186,8 +201,8 @@ Deploy: confirmed 2026-09-12 — 아이로그 커밋 1d18f79. 운영 `/` `/terms
 - **KG-11** — 아이로그 공개 리포트 응답이 denylist 라 `fr.*` 의 나머지(`teacher_id`·`academy_id`·`pdf_path`·`sent_to_parent`·`teacher_edited`)가 나가고, 새 컬럼도 자동으로 실린다 (`api/reports/[id]/public/route.ts:8,23,133-135`) — 기준을 `ReportViewClient.tsx` `interface Report` 필드로 한 allowlist 로 — logged 2026-09-11 (Richard)
 - **KG-12** — 승인 전 리포트도 토큰 링크로 열린다. 토큰 발급(`generate-token/route.ts:30-63`)이 승인을 안 보고, 화면(`dashboard/reports/[id]/page.tsx:167`)만 막는다 — 승인 전 공유를 허용할지 원장 정책 — logged 2026-09-11 (Richard)
 - **KG-13** — 아이로그 수납 안내 알림톡이 실제로 안 나간다. 수납 안내 템플릿이 등록돼 있지 않다. Step 3 에서 라우트(`tuition/invoices/[id]/send/route.ts`)가 「보내지 않았다」고 답하게만 고침. 보내려면 템플릿 등록 → `sendOneMessage`(ALIMTALK, pfId·templateId) 연결 → `students.tuition_alimtalk_enabled` 확인 → `sent_method` 기록. 지금은 이 라우트를 부르는 화면이 없다 — logged 2026-09-12 (Bob)
-- **KG-14** — 아이로그 `lib/services/attendance-service.ts:7-20` 이 단가 상수(17·22·55·1.1)와 바이트 계산을 따로 갖고 있다. 지금은 `message-cost.ts` 와 값이 같다. 단가를 바꿀 때 두 곳을 고쳐야 한다 — 출결 알림 경로라 Step 3 에서 안 건드림 — logged 2026-09-12 (Bob)
-- **KG-15** — 아이로그 `lib/services/message-service.ts:122-128,226-229` 잔액 확인과 차감이 다른 쿼리라 동시에 보내면 잔액이 음수가 될 수 있다. 또 솔라피 성공 뒤 잔액 UPDATE 가 던지면 보낸 문자가 실패로 집계된다 — 발송 경로 전체(출결·단체·에이전트)가 이 함수를 쓴다. 조건부 UPDATE(`WHERE alimtalk_balance >= $1`) + 반환 행 확인으로 묶어야 한다 — logged 2026-09-12 (Richard)
+- **KG-14** — [해결됨 · Step 8] 아이로그 `lib/services/attendance-service.ts:7-20` 이 단가 상수(17·22·55·1.1)와 바이트 계산을 따로 갖고 있다. 지금은 `message-cost.ts` 와 값이 같다. 단가를 바꿀 때 두 곳을 고쳐야 한다 — 출결 알림 경로라 Step 3 에서 안 건드림 — logged 2026-09-12 (Bob)
+- **KG-15** — [해결됨 · Step 8] 아이로그 `lib/services/message-service.ts:122-128,226-229` 잔액 확인과 차감이 다른 쿼리라 동시에 보내면 잔액이 음수가 될 수 있다. 또 솔라피 성공 뒤 잔액 UPDATE 가 던지면 보낸 문자가 실패로 집계된다 — 발송 경로 전체(출결·단체·에이전트)가 이 함수를 쓴다. 조건부 UPDATE(`WHERE alimtalk_balance >= $1`) + 반환 행 확인으로 묶어야 한다 — logged 2026-09-12 (Richard)
 - **KG-17** — 아이로그에 환불 정책이 없다. 충전 잔액·AI 무제한 이용권의 환불 기준이 코드·문서 어디에도 없어 약관 개정(Step 6)에서 환불 조항을 새로 만들지 않았다 — 원장이 기준을 정하면 약관에 넣는다 — logged 2026-09-12 (Arch)
 - **KG-16** — [해결됨 · Step 7] 아이로그 기출 분석이 단종 모델로 실패하고 크레딧 100P 가 환불되지 않는다. Groq 모델 목록(9.12 조회)에 `meta-llama/llama-4-scout-17b-16e-instruct` 없음 — 비전 모델 자체가 없다 (`lib/ai/groq-client.ts:287`, `app/api/exams/route.ts:62-116`). 「학교별 기출 → 예상 문제」 전체가 막힌다 — **Step 7** — logged 2026-09-12 (Arch)
 
