@@ -183,6 +183,25 @@ Decisions made:
 Reviewer findings: (한도 풀리면 커밋 diff 재검토)
 Deploy: confirmed 2026-09-12 — 아이로그 커밋 65be615. 운영 `/` `/auth/login` `/guide/ai-class-report` 200
 
+### 후속 — Richard 배포 후 검토의 Must Fix 3건 (돈 새는 길) — COMPLETE
+*Date: 2026-09-12*
+
+Richard 가 Step 3~8 을 배포 후 검토해 돈이 새는 경로 셋을 찾았다. 롤백은 권하지 않았다(되돌리면 KG-12·15·16 이 다시 열린다).
+
+Files changed: `lib/services/attendance-service.ts`, `lib/services/message-service.ts`, `lib/repositories/message-repository.ts`, `app/api/exams/route.ts`, `lib/ai/claude-client.ts`, `app/api/reports/[id]/public/route.ts`, `app/reports/[id]/view/ReportViewClient.tsx`, `app/api/agent/chat/route.ts`
+
+- MF1 출결: 잔액을 예약한 뒤 발신번호가 없으면 환원 없이 실패 → 발신번호 확인을 예약보다 앞으로. 미등록 학원은 등원마다 19원씩 잃고 있었다
+- MF2 문자: 예약과 발송 사이의 로그 INSERT 가 던지면 잔액만 사라졌다(게다가 화면에는 「차감되지 않았습니다」) → 환원 후 실패 반환
+- MF3 기출 분석: 무제한 패스 학원은 차감이 없는데 실패 시 100P 환불 → 없던 크레딧이 생겼다. 실제 차감된 경우에만 환불. 문항 0개도 실패 처리
+- 그 밖(Should Fix): 잔액 부족 문구 최신값, 실패 이력 cost 0, 환원 금액은 reservedCost, 폴백 차액 음수 경고, PDF/정체불명 이미지 차단, 없는 리포트 id 도 403, AGENT_MODEL 환경변수 목록 검사
+
+Decisions made:
+- Groq 모델 목록은 코드에 두되 환경변수도 검사한다. 기동 시 `/models` 조회는 넣지 않는다(요청 지연·실패 시 동작 불명) — 대신 정찰에 「에이전트 챗 응답 실패」 규칙을 넣는 것을 다음 후보로
+- `if (result)` 죽은 분기는 남긴다(항상 참이라 돈이 새지 않음). 다음에 이 파일을 만질 때 정리
+
+Reviewer findings: Must Fix 3 + Should Fix 다수 → 반영. 남긴 것 2건은 위 Decisions
+Deploy: confirmed 2026-09-12 — 아이로그 커밋 cfbe688. 운영에서 없는 리포트 id 403(이전 404), 홈·가이드 200
+
 ---
 
 ## Known Gaps
