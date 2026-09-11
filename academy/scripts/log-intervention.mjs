@@ -5,11 +5,15 @@
  * 정작 무엇을 언제 했는지는 아무 데도 안 남고 있었다.
  * 2주 뒤에 GPTBot 커버리지가 올라도 왜 올랐는지 증명할 수가 없다.
  *
+ * 09.11 고객사 칸을 붙였다. 전에는 아이로그에 한 일을 적을 자리가 없었다.
+ *
  *   node scripts/log-intervention.mjs "한 일" "왜" "무엇이 달라지길 기대하나"
- *   node scripts/log-intervention.mjs --list
+ *   node scripts/log-intervention.mjs --client ilog "한 일" "왜" "기대"
+ *   node scripts/log-intervention.mjs --list [--client ilog]
  */
 import fs from "node:fs";
 import { Pool } from "pg";
+import { CLIENTS, bySlug } from "../clients.mjs";
 
 for (const l of fs.readFileSync(new URL("../.env.local", import.meta.url), "utf8").split(/\r?\n/)) {
   const m = /^([A-Z_]+)=(.*)$/.exec(l);
@@ -32,16 +36,27 @@ await pool.query(`
     expect   text,
     created  timestamptz not null default now()
   )`);
+await pool.query(`alter table academy.interventions add column if not exists client_id int not null default 1`);
 
-const args = process.argv.slice(2);
+let args = process.argv.slice(2);
+let client = null;
+const ci = args.indexOf("--client");
+if (ci >= 0) {
+  client = bySlug(args[ci + 1]);
+  if (!client) throw new Error(`고객사 없음: ${args[ci + 1]}`);
+  args = args.filter((_, i) => i !== ci && i !== ci + 1);
+}
 
 if (args[0] === "--list" || !args.length) {
   const { rows } = await pool.query(
-    `select day::text, what, why, expect from academy.interventions order by day desc, id desc`,
+    `select day::text, client_id, what, why, expect from academy.interventions
+      where ($1::int is null or client_id = $1) order by day desc, id desc`,
+    [client?.id ?? null],
   );
   if (!rows.length) console.log("  기록 없음");
   for (const r of rows) {
-    console.log(`\n  ${r.day}  ${r.what}`);
+    const name = CLIENTS.find((c) => c.id === r.client_id)?.name ?? `#${r.client_id}`;
+    console.log(`\n  ${r.day}  [${name}] ${r.what}`);
     if (r.why) console.log(`     왜   ${r.why}`);
     if (r.expect) console.log(`     기대 ${r.expect}`);
   }
@@ -51,8 +66,8 @@ if (args[0] === "--list" || !args.length) {
 
 const [what, why, expect] = args;
 await pool.query(
-  `insert into academy.interventions (what, why, expect) values ($1,$2,$3)`,
-  [what, why ?? null, expect ?? null],
+  `insert into academy.interventions (client_id, what, why, expect) values ($1,$2,$3,$4)`,
+  [client?.id ?? 1, what, why ?? null, expect ?? null],
 );
-console.log(`  기록했습니다 — ${what}`);
+console.log(`  기록했습니다 — [${(client ?? CLIENTS[0]).name}] ${what}`);
 await pool.end();

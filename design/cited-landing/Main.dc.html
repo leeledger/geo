@@ -1,0 +1,949 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800;900&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;display=swap">
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body { background: #F4F7FB; color: #0E1B2E; font-family: "Pretendard Variable", Pretendard, "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif; -webkit-font-smoothing: antialiased; word-break: keep-all; letter-spacing: -0.011em; line-height: 1.7; }
+    a { color: #1B5FD6; text-decoration: none; }
+    a:hover { color: #154BAC; }
+    h1, h2, h3, h4, p { margin: 0; }
+    button { font-family: inherit; cursor: pointer; border: 0; background: none; padding: 0; color: inherit; letter-spacing: inherit; }
+    .wrap { width: 1200px; margin: 0 auto; }
+    .mono { font-family: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace; letter-spacing: 0; }
+    .lab { display: flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 700; }
+    .lab i { display: block; width: 20px; height: 2px; border-radius: 2px; background: currentColor; }
+    .h2 { font-size: 50px; line-height: 1.2; font-weight: 800; letter-spacing: -0.045em; margin-top: 18px; color: #0E1B2E; text-wrap: balance; }
+    .sub { font-size: 19px; line-height: 1.75; color: #566378; margin-top: 20px; max-width: 660px; text-wrap: pretty; }
+    .deep { background: #0A1A33; color: #EEF3FB; position: relative; overflow: hidden; }
+    .deep::before { content: ""; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(900px 520px at 88% -8%, rgba(64,132,255,0.26), transparent 60%), radial-gradient(700px 480px at -8% 108%, rgba(40,110,230,0.14), transparent 60%), radial-gradient(rgba(255,255,255,0.06) 1px, transparent 1.3px) 0 0 / 26px 26px; }
+    .deep > .wrap { position: relative; z-index: 1; }
+    .deep .h2 { color: #FFFFFF; }
+    .deep .sub { color: #AFBDD3; }
+    .card { background: #FFFFFF; border: 1px solid #D9E1EC; border-radius: 18px; box-shadow: 0 1px 2px rgba(14,27,46,0.04), 0 14px 36px rgba(14,27,46,0.07); }
+    .glass { background: rgba(255,255,255,0.045); border: 1px solid rgba(255,255,255,0.11); border-radius: 18px; }
+    .hov { transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease; }
+    .hov:hover { transform: translateY(-4px); box-shadow: 0 22px 48px rgba(14,27,46,0.12); border-color: #9DB6E4; }
+    .press { transition: transform .12s ease, filter .15s ease; }
+    .press:hover { filter: brightness(1.06); }
+    .press:active { transform: scale(0.98); }
+    .reveal { animation: rise .9s cubic-bezier(.2,.8,.2,1) both; }
+    .reveal2 { animation: rise .9s cubic-bezier(.2,.8,.2,1) .18s both; }
+    @keyframes rise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+    @keyframes blink { 50% { opacity: .35; } }
+    .live { animation: blink 1.6s ease-in-out infinite; }
+    @keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+    .fade { animation: fade .35s ease-out both; }
+    .bar { transition: width .6s cubic-bezier(.2,.8,.2,1), left .6s cubic-bezier(.2,.8,.2,1); }
+  </style>
+</helmet>
+
+<div style="width: 1440px; background: #F4F7FB;">
+
+  <!-- ─────────── 네비 ─────────── -->
+  <div style="background: #0A1A33; border-bottom: 1px solid rgba(255,255,255,0.08);">
+    <div class="wrap" style="height: 72px; display: flex; align-items: center; gap: 32px;">
+      <div style="display: flex; align-items: baseline; gap: 8px; font-size: 21px; font-weight: 800; color: #FFFFFF; letter-spacing: -0.03em;">
+        <span class="mono" style="color: #6BAEFF; font-weight: 600; letter-spacing: -0.08em;">[ ]</span>
+        <span>Cited</span>
+        <span style="font-size: 14px; font-weight: 500; color: #AFBDD3; letter-spacing: 0;">사이티드</span>
+      </div>
+      <div style="margin-left: auto; display: flex; gap: 30px; font-size: 15px; font-weight: 500; color: #C9D4E5;">
+        <span>GEO란</span><span>서비스</span><span>요금</span><span>진행</span><span>도입 사례</span><span>자주 묻는 것</span>
+      </div>
+      <button class="press" style="height: 40px; padding: 0 20px; border-radius: 999px; background: {{accent}}; color: #FFFFFF; font-size: 15px; font-weight: 700;">무료 진단</button>
+    </div>
+  </div>
+
+  <!-- ─────────── 히어로 ─────────── -->
+  <div class="deep" style="padding: 84px 0 72px;">
+    <div class="wrap">
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 64px; align-items: center;">
+        <div class="reveal">
+          <div style="display: inline-flex; align-items: center; gap: 10px; height: 34px; padding: 0 16px 0 12px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.18); background: rgba(255,255,255,0.06); font-size: 14px; font-weight: 600; color: #EEF3FB;">
+            <span class="live" style="width: 8px; height: 8px; border-radius: 50%; background: #6BAEFF;"></span>
+            <span>AI 답변 노출 · GEO</span>
+          </div>
+          <h1 style="margin-top: 26px; font-size: 64px; line-height: 1.16; font-weight: 800; letter-spacing: -0.05em; color: #FFFFFF;">손님이 AI에게 물었을 때<br><span style="color: #6BAEFF;">우리 이름이 나옵니까?</span></h1>
+          <p style="margin-top: 24px; font-size: 20px; line-height: 1.75; color: #AFBDD3; max-width: 540px; text-wrap: pretty;">「{{scene.q}}」. 이렇게 물으면 AI 는 링크 대신 <b style="color: #FFFFFF;">이름 세 개쯤</b>으로 답합니다. 거기 우리가 있는지 여러 번 물어 세고, 없으면 들어가게 만듭니다.</p>
+
+          <div style="margin-top: 22px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <span style="font-size: 13px; color: #8FA0BA; margin-right: 6px;">업종 바꿔 보기</span>
+            <sc-for list="{{inds}}" as="it" hint-placeholder-count="3">
+              <button class="press" onClick="{{it.pick}}" style="height: 34px; padding: 0 16px; border-radius: 999px; font-size: 14px; font-weight: 600; border: 1px solid {{it.bd}}; background: {{it.bg}}; color: {{it.fg}};">{{it.label}}</button>
+            </sc-for>
+          </div>
+
+          <div style="margin-top: 30px; display: flex; gap: 10px; max-width: 560px;">
+            <div style="flex: 1; height: 58px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.07); display: flex; align-items: center; padding: 0 18px; font-size: 16px; color: rgba(238,243,251,0.55);">회사 홈페이지 주소 (예: example.co.kr)</div>
+            <button class="press" style="height: 58px; padding: 0 26px; border-radius: 14px; background: #FFFFFF; color: #0A1A33; font-size: 16px; font-weight: 800;">무료 진단 받기</button>
+          </div>
+          <p style="margin-top: 12px; font-size: 14px; color: #8FA0BA;">7가지를 자동으로 봅니다. 가입도 결제도 없이 바로 결과가 나옵니다.</p>
+          <div style="margin-top: 26px; display: flex; gap: 26px; font-size: 15.5px; font-weight: 600;">
+            <span style="color: #EEF3FB; border-bottom: 1px solid rgba(255,255,255,0.3); padding-bottom: 2px;">도입 사례 기록 보기 →</span>
+            <span style="color: #EEF3FB; border-bottom: 1px solid rgba(255,255,255,0.3); padding-bottom: 2px;">내 조건으로 요금 계산</span>
+          </div>
+        </div>
+
+        <!-- AI 답변 시연 -->
+        <div class="reveal2">
+          <div style="border-radius: 22px; background: #FFFFFF; box-shadow: 0 40px 90px rgba(0,0,0,0.45); overflow: hidden; color: #0E1B2E;">
+            <div style="display: flex; align-items: center; gap: 10px; padding: 12px 16px; background: #EDF2F8; border-bottom: 1px solid #D9E1EC;">
+              <div style="display: flex; gap: 6px;">
+                <span style="width: 10px; height: 10px; border-radius: 50%; background: #D9E1EC;"></span>
+                <span style="width: 10px; height: 10px; border-radius: 50%; background: #D9E1EC;"></span>
+                <span style="width: 10px; height: 10px; border-radius: 50%; background: #D9E1EC;"></span>
+              </div>
+              <div style="display: flex; gap: 4px; margin-left: 6px;">
+                <sc-for list="{{engines}}" as="e" hint-placeholder-count="3">
+                  <button class="mono" onClick="{{e.pick}}" style="display: flex; align-items: center; gap: 7px; height: 30px; padding: 0 12px; border-radius: 9px; font-size: 12.5px; background: {{e.bg}}; color: {{e.fg}}; box-shadow: {{e.sh}};">
+                    <span style="width: 8px; height: 8px; border-radius: 50%; background: {{e.dot}};"></span>
+                    <span>{{e.name}}</span>
+                  </button>
+                </sc-for>
+              </div>
+              <span class="mono" style="margin-left: auto; height: 26px; padding: 0 10px; border-radius: 999px; border: 1px solid {{roundBd}}; color: {{roundFg}}; font-size: 12px; display: flex; align-items: center;">{{round}}회차</span>
+            </div>
+
+            <div style="padding: 22px 20px 8px; display: flex; flex-direction: column; gap: 14px; min-height: 452px;">
+              <div style="align-self: flex-end; max-width: 86%; background: {{accent}}; color: #FFFFFF; border-radius: 16px 16px 4px 16px; padding: 12px 16px; font-size: 15.5px; line-height: 1.6;">{{scene.q}}</div>
+              <div class="fade" style="align-self: flex-start; width: 92%; background: #EDF2F8; border-radius: 16px 16px 16px 4px; padding: 14px 16px;">
+                <div class="mono" style="display: flex; align-items: center; gap: 7px; font-size: 12px; color: #8592A6;">
+                  <span style="width: 8px; height: 8px; border-radius: 50%; background: {{engine.dot}};"></span>
+                  <span>{{engine.name}}</span>
+                </div>
+                <p style="margin-top: 8px; font-size: 14.5px; color: #566378;">{{scene.lead}}</p>
+                <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 11px;">
+                  <sc-for list="{{items}}" as="it" hint-placeholder-count="3">
+                    <div style="display: flex; gap: 10px; align-items: flex-start;">
+                      <span class="mono" style="flex: none; width: 22px; height: 22px; border-radius: 6px; border: 1px solid {{it.rkBd}}; color: {{it.rkFg}}; background: #FFFFFF; font-size: 11.5px; display: flex; align-items: center; justify-content: center; margin-top: 2px;">{{it.rank}}</span>
+                      <div style="flex: 1;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                          <b style="font-size: 16px; color: {{it.nameFg}};">{{it.n}}</b>
+                          <sc-if value="{{it.swapped}}" hint-placeholder-val="{{ false }}">
+                            <span style="font-size: 11px; font-weight: 700; color: #B7791F; border: 1px solid rgba(183,121,31,0.45); border-radius: 999px; padding: 1px 8px;">1회차와 다름</span>
+                          </sc-if>
+                        </div>
+                        <div style="font-size: 13.5px; color: #566378; line-height: 1.55;">{{it.d}}</div>
+                      </div>
+                    </div>
+                  </sc-for>
+                </div>
+                <div style="margin-top: 14px; padding-top: 12px; border-top: 1px solid #D9E1EC; display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
+                  <span style="font-size: 11px; color: #8592A6; margin-right: 2px;">출처</span>
+                  <sc-for list="{{scene.src}}" as="src" hint-placeholder-count="4">
+                    <span style="font-size: 12px; color: #566378; background: #FFFFFF; border: 1px solid #D9E1EC; border-radius: 999px; padding: 2px 10px;">{{src}}</span>
+                  </sc-for>
+                </div>
+              </div>
+              <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 6px 4px; border-top: 1px dashed #D9E1EC;">
+                <b style="font-size: 16px;">우리 회사</b>
+                <span style="font-size: 13.5px; font-weight: 700; color: #C23B2E; background: rgba(194,59,46,0.08); border: 1px solid rgba(194,59,46,0.35); border-radius: 999px; padding: 5px 14px;">{{verdict}}</span>
+              </div>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 14px; padding: 14px 18px; background: #EDF2F8; border-top: 1px solid #D9E1EC;">
+              <p style="flex: 1; font-size: 14.5px; line-height: 1.6; color: #566378;">{{footA}}<b style="color: #0E1B2E;">{{footB}}</b></p>
+              <button class="press" onClick="{{ask}}" style="flex: none; height: 40px; padding: 0 16px; border-radius: 10px; background: #0A1A33; color: #FFFFFF; font-size: 14px; font-weight: 700;">{{askLabel}}</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 증거 띠 -->
+      <div style="margin-top: 72px; padding-top: 28px; border-top: 1px solid rgba(255,255,255,0.12);">
+        <div style="display: flex; align-items: center; gap: 10px; font-size: 14px; color: #AFBDD3;">
+          <span class="live" style="width: 8px; height: 8px; border-radius: 50%; background: #3DD68C;"></span>
+          <span>도입 사례 · 서버가 기록한 값 · 매일 갱신</span>
+        </div>
+        <div style="margin-top: 16px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px;">
+          <div class="glass" style="padding: 20px 22px;">
+            <div style="display: flex; align-items: baseline; gap: 4px;"><b style="font-size: 38px; font-weight: 800; color: #FFFFFF; letter-spacing: -0.04em; line-height: 1.1;">7</b><span style="font-size: 17px; font-weight: 600; color: #AFBDD3;">일차</span></div>
+            <div style="margin-top: 6px; font-size: 14.5px; color: #AFBDD3;">착수일부터 센 날</div>
+          </div>
+          <div class="glass" style="padding: 20px 22px;">
+            <div style="display: flex; align-items: baseline; gap: 4px;"><b style="font-size: 38px; font-weight: 800; color: #FFFFFF; letter-spacing: -0.04em; line-height: 1.1;">8</b><span style="font-size: 17px; font-weight: 600; color: #AFBDD3;">곳</span></div>
+            <div style="margin-top: 6px; font-size: 14.5px; color: #AFBDD3;">다녀간 AI·검색 크롤러</div>
+          </div>
+          <div class="glass" style="padding: 20px 22px;">
+            <div style="display: flex; align-items: baseline; gap: 4px;"><b style="font-size: 38px; font-weight: 800; color: #FFFFFF; letter-spacing: -0.04em; line-height: 1.1;">565</b><span style="font-size: 17px; font-weight: 600; color: #AFBDD3;">회</span></div>
+            <div style="margin-top: 6px; font-size: 14.5px; color: #AFBDD3;">크롤러 누적 방문</div>
+          </div>
+          <div class="glass" style="padding: 20px 22px;">
+            <div style="display: flex; align-items: baseline; gap: 4px;"><b style="font-size: 38px; font-weight: 800; color: #FFFFFF; letter-spacing: -0.04em; line-height: 1.1;">43</b><span style="font-size: 17px; font-weight: 600; color: #AFBDD3;">편</span></div>
+            <div style="margin-top: 6px; font-size: 14.5px; color: #AFBDD3;">AI 가 읽을 수 있게 된 글</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────── GEO 란 ─────────── -->
+  <div style="background: #FFFFFF; padding: 120px 0;">
+    <div class="wrap">
+      <div class="lab" style="color: {{accent}};"><i></i><span>GEO 가 뭔가요</span></div>
+      <h2 class="h2">검색 결과의 링크가 아니라<br><span style="color: {{accent}};">답변 문장 안의 이름</span></h2>
+      <p style="margin-top: 26px; font-size: 21px; line-height: 1.85; color: #2F3E54; max-width: 830px; text-wrap: pretty;">손님이 ChatGPT 에 「아이 보낼 영어학원 추천해줘」라고 물으면, 링크 목록 대신 학원 이름 몇 개가 답으로 나옵니다. 그 답에 우리 이름이 들어가게 만드는 일이 <b style="color: #0E1B2E;">GEO(생성형 엔진 최적화)</b>입니다. AI 는 우리 홈페이지만 보고 답하지 않습니다. <b style="color: #0E1B2E;">비교 글, 후기, 업체 목록</b>을 같이 읽고 이름을 고릅니다.</p>
+
+      <div style="margin-top: 52px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px;">
+        <div class="card" style="padding: 32px 32px 28px; box-shadow: none; background: #F7F9FC;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <b style="font-size: 20px; color: #566378;">검색 최적화 (SEO)</b>
+            <span style="height: 28px; padding: 0 12px; border-radius: 999px; background: #EDF2F8; color: #566378; font-size: 13px; font-weight: 600; display: flex; align-items: center;">링크 열 개</span>
+          </div>
+          <div style="margin-top: 22px; height: 150px; border-radius: 14px; background: #FFFFFF; border: 1px solid #E3E9F2; padding: 16px 18px; display: flex; flex-direction: column; gap: 11px;">
+            <div style="display: flex; gap: 10px; align-items: center;"><span style="width: 14px; height: 14px; border-radius: 4px; background: #D9E1EC;"></span><span style="height: 8px; width: 62%; border-radius: 4px; background: #D9E1EC;"></span></div>
+            <div style="display: flex; gap: 10px; align-items: center;"><span style="width: 14px; height: 14px; border-radius: 4px; background: #D9E1EC;"></span><span style="height: 8px; width: 48%; border-radius: 4px; background: #E3E9F2;"></span></div>
+            <div style="display: flex; gap: 10px; align-items: center;"><span style="width: 14px; height: 14px; border-radius: 4px; background: #D9E1EC;"></span><span style="height: 8px; width: 70%; border-radius: 4px; background: #E3E9F2;"></span></div>
+            <div style="display: flex; gap: 10px; align-items: center;"><span style="width: 14px; height: 14px; border-radius: 4px; background: #D9E1EC;"></span><span style="height: 8px; width: 40%; border-radius: 4px; background: #E3E9F2;"></span></div>
+            <div style="display: flex; gap: 10px; align-items: center;"><span style="width: 14px; height: 14px; border-radius: 4px; background: #D9E1EC;"></span><span style="height: 8px; width: 56%; border-radius: 4px; background: #EDF2F8;"></span></div>
+          </div>
+          <div style="margin-top: 22px; display: grid; grid-template-columns: 140px minmax(0, 1fr); row-gap: 14px; font-size: 16px;">
+            <span style="color: #8592A6;">얻는 것</span><span style="color: #2F3E54;">검색 결과에서 클릭</span>
+            <span style="color: #8592A6;">손님 눈에 보이는 것</span><span style="color: #2F3E54;">링크 열 개</span>
+            <span style="color: #8592A6;">손봐야 할 곳</span><span style="color: #2F3E54;">우리 홈페이지</span>
+            <span style="color: #8592A6;">잘됐는지 보는 법</span><span style="color: #2F3E54;">검색해서 순위 확인</span>
+          </div>
+        </div>
+
+        <div style="padding: 32px 32px 28px; border-radius: 18px; background: #0A1A33; color: #EEF3FB; box-shadow: 0 28px 64px rgba(10,26,51,0.28);">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <b style="font-size: 20px; color: #FFFFFF;">AI 답변 노출 (GEO)</b>
+            <span style="height: 28px; padding: 0 12px; border-radius: 999px; background: rgba(107,174,255,0.16); color: #6BAEFF; font-size: 13px; font-weight: 600; display: flex; align-items: center;">추천 이름 두세 개</span>
+          </div>
+          <div style="margin-top: 22px; height: 150px; border-radius: 14px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 16px 18px; display: flex; flex-direction: column; gap: 10px;">
+            <span style="height: 8px; width: 58%; border-radius: 4px; background: rgba(255,255,255,0.14);"></span>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px;">
+              <span style="height: 34px; padding: 0 14px; border-radius: 10px; background: rgba(255,255,255,0.1); display: flex; align-items: center; font-size: 15px; font-weight: 700; color: #FFFFFF;">① A 학원</span>
+              <span style="height: 34px; padding: 0 14px; border-radius: 10px; background: rgba(255,255,255,0.1); display: flex; align-items: center; font-size: 15px; font-weight: 700; color: #FFFFFF;">② B 학원</span>
+              <span style="height: 34px; padding: 0 14px; border-radius: 10px; border: 1.5px dashed #6BAEFF; display: flex; align-items: center; font-size: 15px; font-weight: 700; color: #6BAEFF;">③ 우리 학원?</span>
+            </div>
+            <span style="height: 8px; width: 42%; border-radius: 4px; background: rgba(255,255,255,0.1); margin-top: 6px;"></span>
+          </div>
+          <div style="margin-top: 22px; display: grid; grid-template-columns: 140px minmax(0, 1fr); row-gap: 14px; font-size: 16px;">
+            <span style="color: #8FA0BA;">얻는 것</span><span style="color: #FFFFFF; font-weight: 600;">AI 답 속에 이름이 나옴</span>
+            <span style="color: #8FA0BA;">손님 눈에 보이는 것</span><span style="color: #FFFFFF; font-weight: 600;">추천 이름 두세 개</span>
+            <span style="color: #8FA0BA;">손봐야 할 곳</span><span style="color: #FFFFFF; font-weight: 600;">홈페이지와 AI 가 읽는 남의 글</span>
+            <span style="color: #8FA0BA;">잘됐는지 보는 법</span><span style="color: #FFFFFF; font-weight: 600;">같은 질문을 여러 번 해서 몇 번 나오는지</span>
+          </div>
+        </div>
+      </div>
+      <p style="margin-top: 24px; font-size: 17px; line-height: 1.8; color: #566378; max-width: 860px;">그래서 홈페이지를 잘 만들어도 비교 글과 목록에 이름이 없으면 답에서 빠집니다. 반대로 홈페이지는 허술한데 여기저기 이름이 올라 있는 회사가 자주 나옵니다. <b style="color: #0E1B2E;">아래에 실제 기록이 있습니다.</b> SEO 를 이미 맡긴 곳이 있다면 그대로 두셔도 됩니다.</p>
+    </div>
+  </div>
+
+  <!-- ─────────── 말 대신 기록 ─────────── -->
+  <div style="background: #F4F7FB; padding: 120px 0;">
+    <div class="wrap" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 64px; align-items: center;">
+      <div>
+        <div class="lab" style="color: {{accent}};"><i></i><span>말 대신 기록</span></div>
+        <h2 class="h2">사례 학원 사이트,<br><span style="color: {{accent}};">7개 항목 중 6개가 90점 넘게</span></h2>
+        <p class="sub">홈페이지 주소를 넣으면 나오는 무료 진단과 같은 7개 항목입니다. 착수할 때 종합 83점이던 사이트를 첫 주에 고친 뒤 다시 돌린 결과입니다.</p>
+        <div style="margin-top: 40px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px;">
+          <div style="display: flex; flex-direction: column; align-items: center; text-align: center;">
+            <div style="width: 112px; height: 112px; border-radius: 50%; background: conic-gradient({{accent}} 0 92%, #E3E9F2 0); display: flex; align-items: center; justify-content: center;"><div style="width: 88px; height: 88px; border-radius: 50%; background: #F4F7FB; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 800; letter-spacing: -0.04em;">92</div></div>
+            <div style="margin-top: 12px; font-size: 15px; font-weight: 700;">종합</div>
+            <div style="font-size: 13.5px; color: #566378;">착수 때 83</div>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: center; text-align: center;">
+            <div style="width: 112px; height: 112px; border-radius: 50%; background: conic-gradient({{accent}} 0 100%, #E3E9F2 0); display: flex; align-items: center; justify-content: center;"><div style="width: 88px; height: 88px; border-radius: 50%; background: #F4F7FB; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 800; letter-spacing: -0.04em;">100</div></div>
+            <div style="margin-top: 12px; font-size: 15px; font-weight: 700;">AI 크롤러 접근</div>
+            <div style="font-size: 13.5px; color: #566378;">봇 이름으로 허용</div>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: center; text-align: center;">
+            <div style="width: 112px; height: 112px; border-radius: 50%; background: conic-gradient({{accent}} 0 100%, #E3E9F2 0); display: flex; align-items: center; justify-content: center;"><div style="width: 88px; height: 88px; border-radius: 50%; background: #F4F7FB; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 800; letter-spacing: -0.04em;">100</div></div>
+            <div style="margin-top: 12px; font-size: 15px; font-weight: 700;">구조화 데이터</div>
+            <div style="font-size: 13.5px; color: #566378;">6쪽 전부 · 오류 0</div>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: center; text-align: center;">
+            <div style="width: 112px; height: 112px; border-radius: 50%; background: conic-gradient(#C98A2B 0 47%, #E3E9F2 0); display: flex; align-items: center; justify-content: center;"><div style="width: 88px; height: 88px; border-radius: 50%; background: #F4F7FB; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 800; letter-spacing: -0.04em;">47</div></div>
+            <div style="margin-top: 12px; font-size: 15px; font-weight: 700;">인용할 만한 문단</div>
+            <div style="font-size: 13.5px; color: #566378;">334개 중 151개</div>
+          </div>
+        </div>
+        <div style="margin-top: 28px; display: flex; gap: 14px; align-items: flex-start; padding: 18px 20px; border-radius: 14px; background: #FFFFFF; border: 1px solid #D9E1EC;">
+          <svg width="22" height="22" viewBox="0 0 24 24" style="flex: none; margin-top: 2px; fill: none; stroke: #C98A2B; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v5M12 16.5v.01"></path></svg>
+          <p style="font-size: 15.5px; line-height: 1.75; color: #566378;"><b style="color: #0E1B2E;">문단 점수 47은 아직 못 고친 부분입니다.</b> 80자가 안 되는 짧은 문단이 183개였고 400자 넘는 문단은 0개였습니다. 잘된 칸만 골라 싣지 않습니다.</p>
+        </div>
+      </div>
+
+      <div style="border-radius: 18px; background: #0D1526; border: 1px solid #1E2A40; box-shadow: 0 34px 70px rgba(10,26,51,0.22); overflow: hidden; color: #C9D4E5;">
+        <div class="mono" style="display: flex; align-items: center; gap: 12px; padding: 13px 16px; background: #111C31; border-bottom: 1px solid #1E2A40; font-size: 12.5px; color: #8594AE;">
+          <div style="display: flex; gap: 6px;"><span style="width: 10px; height: 10px; border-radius: 50%; background: #FF5F57;"></span><span style="width: 10px; height: 10px; border-radius: 50%; background: #FEBC2E;"></span><span style="width: 10px; height: 10px; border-radius: 50%; background: #28C840;"></span></div>
+          <span>robots.txt · 사례 학원</span>
+        </div>
+        <div class="mono" style="padding: 20px 22px; font-size: 14px; line-height: 1.85; white-space: pre;">
+          <div style="color: #6F819D;"># AI 크롤러를 User-agent 별로 명시 허용한다.</div>
+          <div style="color: #6F819D;"># 네이버 블로그는 이 봇들을 전부 차단한다.</div>
+          <div style="height: 12px;"></div>
+          <div><span style="color: #7FB4FF;">User-agent:</span> <span style="color: #8BE0B5;">OAI-SearchBot</span></div>
+          <div><span style="color: #7FB4FF;">Allow:</span> /</div>
+          <div style="height: 12px;"></div>
+          <div><span style="color: #7FB4FF;">User-agent:</span> <span style="color: #8BE0B5;">GPTBot</span></div>
+          <div><span style="color: #7FB4FF;">Allow:</span> /</div>
+          <div style="height: 12px;"></div>
+          <div><span style="color: #7FB4FF;">User-agent:</span> <span style="color: #8BE0B5;">ClaudeBot</span></div>
+          <div><span style="color: #7FB4FF;">Allow:</span> /</div>
+          <div style="height: 12px;"></div>
+          <div><span style="color: #7FB4FF;">User-agent:</span> <span style="color: #8BE0B5;">Yeti</span></div>
+          <div><span style="color: #7FB4FF;">Allow:</span> /</div>
+          <div style="color: #6F819D;"># … 이하 생략</div>
+        </div>
+        <div style="padding: 16px 22px 20px; border-top: 1px solid #1E2A40; background: #0F192C;">
+          <div class="mono" style="display: grid; grid-template-columns: 76px 110px minmax(0, 1fr); row-gap: 6px; font-size: 13px; color: #8FA0BA;">
+            <span>15:49:01</span><span style="color: #7FB4FF;">ClaudeBot</span><span>/robots.txt</span>
+            <span>15:49:27</span><span style="color: #7FB4FF;">ClaudeBot</span><span>/blog/(옮긴 글)</span>
+            <span>+18h</span><span style="color: #7FB4FF;">Googlebot</span><span>/ · /blog · /sitemap.xml</span>
+            <span>+3d</span><span style="color: #7FB4FF;">Yeti</span><span>/sitemap.xml</span>
+          </div>
+          <div style="margin-top: 14px; display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 14px; border-radius: 9px; background: #16A36F; color: #FFFFFF; font-size: 13.5px; font-weight: 700;">
+            <svg width="14" height="14" viewBox="0 0 24 24" style="fill: none; stroke: #FFFFFF; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round;"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>
+            <span>서버 기록 · 크롤러 8곳 · 565회</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────── 맡기면 받는 것 (탭) ─────────── -->
+  <div style="background: #FFFFFF; padding: 120px 0;">
+    <div class="wrap">
+      <div class="lab" style="color: {{accent}};"><i></i><span>맡기면 받는 것</span></div>
+      <h2 class="h2">리포트에 들어가는 것을<br><span style="color: {{accent}};">실제 기록</span>으로 보여 드립니다</h2>
+      <p class="sub">아래 세 장은 실제로 남긴 기록입니다. 앞의 두 장은 소프트웨어 회사 한 곳을 진단한 리포트, 마지막 장은 사례 학원의 작업 기록입니다. 회사 이름은 가렸습니다.</p>
+
+      <div style="margin-top: 48px; display: grid; grid-template-columns: 380px minmax(0, 1fr); gap: 24px; align-items: stretch;">
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <sc-for list="{{tabs}}" as="t" hint-placeholder-count="3">
+            <button class="press" onClick="{{t.pick}}" style="text-align: left; padding: 22px 24px; border-radius: 16px; border: 1px solid {{t.bd}}; background: {{t.bg}}; color: {{t.fg}}; display: flex; flex-direction: column; gap: 4px;">
+              <span style="font-size: 14px; font-weight: 700; color: {{t.kf}};">{{t.no}} · {{t.k}}</span>
+              <span style="font-size: 22px; font-weight: 800; letter-spacing: -0.03em;">{{t.t}}</span>
+            </button>
+          </sc-for>
+          <div style="margin-top: 6px; padding: 18px 20px; border-radius: 16px; background: #F4F7FB; font-size: 15px; line-height: 1.75; color: #566378;"><b style="color: #0E1B2E;">「몇 위 보장」은 없습니다.</b> AI 답은 물을 때마다 바뀝니다. 그래서 여러 번 묻고, 몇 번 물었는지를 숫자 옆에 같이 적습니다.</div>
+        </div>
+
+        <div class="card" style="padding: 36px 40px; min-height: 460px;">
+          <sc-if value="{{tab0}}" hint-placeholder-val="{{ true }}">
+            <div class="fade">
+              <div style="font-size: 14px; font-weight: 600; color: #8592A6;">소프트웨어 회사 진단 리포트 · 회사 이름 가림</div>
+              <h3 style="margin-top: 10px; font-size: 30px; font-weight: 800; letter-spacing: -0.035em;">홈페이지 점수 1위 회사가 <span style="color: {{accent}};">15번 중 3번</span></h3>
+              <p style="margin-top: 12px; font-size: 17px; line-height: 1.8; color: #566378;">그 업계 손님이 물어볼 질문을 AI 에게 15번 묻고, 회사마다 이름이 몇 번 나왔는지 셌습니다.</p>
+              <div style="margin-top: 30px; display: flex; flex-direction: column; gap: 14px;">
+                <sc-for list="{{bars}}" as="b" hint-placeholder-count="5">
+                  <div style="display: grid; grid-template-columns: 96px minmax(0, 1fr) 56px; gap: 16px; align-items: center;">
+                    <span style="font-size: 16px; font-weight: {{b.fw}}; color: {{b.fg}};">{{b.name}}</span>
+                    <span style="height: 14px; border-radius: 8px; background: #EDF2F8; overflow: hidden;"><span class="bar" style="display: block; height: 100%; width: {{b.w}}; border-radius: 8px; background: {{b.fill}};"></span></span>
+                    <span class="mono" style="font-size: 15px; font-weight: 600; text-align: right; color: {{b.fg}};">{{b.n}}/15</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+          <sc-if value="{{tab1}}" hint-placeholder-val="{{ false }}">
+            <div class="fade">
+              <div style="font-size: 14px; font-weight: 600; color: #8592A6;">같은 회사 · AI 가 답할 때 참고한 비교 글</div>
+              <h3 style="margin-top: 10px; font-size: 30px; font-weight: 800; letter-spacing: -0.035em;">비교 글 14개에 <span style="color: #C23B2E;">이름 0번</span></h3>
+              <p style="margin-top: 12px; font-size: 17px; line-height: 1.8; color: #566378;">AI 가 답할 때 참고한 비교 글 14개를 하나씩 열어 봤습니다. A·B·C사는 대부분 있었고 이 회사 이름은 한 번도 없었습니다. 고칠 곳은 홈페이지가 아니라 이 글들이었습니다.</p>
+              <div style="margin-top: 26px; display: flex; flex-direction: column; gap: 10px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 16px 18px; border-radius: 12px; background: #F4F7FB;"><span style="font-size: 16px; font-weight: 600;">「국내 ERP 업체 순위 Top5」</span><span style="font-size: 14px; color: #566378; white-space: nowrap;">A·B·C 있음 · <b style="color: #C23B2E;">이 회사 없음</b></span></div>
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 16px 18px; border-radius: 12px; background: #F4F7FB;"><span style="font-size: 16px; font-weight: 600;">「중견·중소기업 ERP 프로그램 비교 가이드」</span><span style="font-size: 14px; color: #566378; white-space: nowrap;">A·B·C 있음 · <b style="color: #C23B2E;">이 회사 없음</b></span></div>
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 16px 18px; border-radius: 12px; background: #F4F7FB;"><span style="font-size: 16px; font-weight: 600;">「회사 규모별 ERP 추천」</span><span style="font-size: 14px; color: #566378; white-space: nowrap;">A·B·C 있음 · <b style="color: #C23B2E;">이 회사 없음</b></span></div>
+              </div>
+            </div>
+          </sc-if>
+          <sc-if value="{{tab2}}" hint-placeholder-val="{{ false }}">
+            <div class="fade">
+              <div style="font-size: 14px; font-weight: 600; color: #8592A6;">사례 학원 · 작업 기록</div>
+              <h3 style="margin-top: 10px; font-size: 30px; font-weight: 800; letter-spacing: -0.035em;">고칠 때마다 <span style="color: {{accent}};">무엇을 · 왜 · 기대</span>를 남깁니다</h3>
+              <p style="margin-top: 12px; font-size: 17px; line-height: 1.8; color: #566378;">같은 질문으로 다시 물었을 때 무엇이 달라졌는지 견줄 기준이 됩니다.</p>
+              <div style="margin-top: 26px; border-radius: 14px; border: 1px solid #D9E1EC; overflow: hidden;">
+                <div style="display: grid; grid-template-columns: 96px minmax(0, 1fr); border-bottom: 1px solid #E7ECF3;"><span style="padding: 18px; background: #F4F7FB; font-size: 15px; font-weight: 700; color: {{accent}};">무엇</span><span style="padding: 18px; font-size: 17px; font-weight: 600;">네이버 플레이스 소개글 188자 → 933자</span></div>
+                <div style="display: grid; grid-template-columns: 96px minmax(0, 1fr); border-bottom: 1px solid #E7ECF3;"><span style="padding: 18px; background: #F4F7FB; font-size: 15px; font-weight: 700; color: {{accent}};">왜</span><span style="padding: 18px; font-size: 17px; line-height: 1.7;">네이버 AI 가 이 학원을 <b>「무선 인터넷과 남녀 구분 화장실을 제공합니다」</b>라고 소개하고 있었음</span></div>
+                <div style="display: grid; grid-template-columns: 96px minmax(0, 1fr);"><span style="padding: 18px; background: #F4F7FB; font-size: 15px; font-weight: 700; color: {{accent}};">기대</span><span style="padding: 18px; font-size: 17px;">무엇을 가르치는 학원인지 답에 들어간다</span></div>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────── 해당하는 곳 ─────────── -->
+  <div style="background: #F4F7FB; padding: 120px 0;">
+    <div class="wrap">
+      <div class="lab" style="color: {{accent}};"><i></i><span>해당하는 곳</span></div>
+      <h2 class="h2">손님이 고르기 전에<br>한 번은 물어보는 업종이면 됩니다</h2>
+      <p class="sub">학원, 병원·치과, 세무·법무 사무소, 인테리어, 소프트웨어 회사. 계약하기 전에 「어디가 괜찮아?」를 누군가에게 묻는 곳입니다. 그 누군가가 AI 로 바뀌고 있습니다.</p>
+      <div style="margin-top: 44px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px;">
+        <div class="card" style="padding: 30px 32px;">
+          <div style="display: flex; align-items: center; gap: 12px; font-size: 21px; font-weight: 800;">
+            <span style="width: 30px; height: 30px; border-radius: 50%; background: #E7EFFC; display: flex; align-items: center; justify-content: center;"><svg width="16" height="16" viewBox="0 0 24 24" style="fill: none; stroke: {{accent}}; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round;"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></span>
+            <span>이런 곳에 맞습니다</span>
+          </div>
+          <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 14px; font-size: 17px; line-height: 1.7; color: #2F3E54;">
+            <div><b style="color: #0E1B2E;">지역 이름과 업종으로 검색되는 곳</b> — 「○○구 코딩학원」「△△동 치과」</div>
+            <div><b style="color: #0E1B2E;">비교당하는 곳</b> — 손님이 서너 군데 견주고 고르는 업종</div>
+            <div><b style="color: #0E1B2E;">밖에 내놓을 사실이 있는 곳</b> — 연차·건수·가격·방식처럼 적을 수 있는 것</div>
+          </div>
+        </div>
+        <div style="padding: 30px 32px; border-radius: 18px; background: #EDF2F8; border: 1px solid #D9E1EC;">
+          <div style="display: flex; align-items: center; gap: 12px; font-size: 21px; font-weight: 800; color: #2F3E54;">
+            <span style="width: 30px; height: 30px; border-radius: 50%; background: rgba(194,59,46,0.1); display: flex; align-items: center; justify-content: center;"><svg width="14" height="14" viewBox="0 0 24 24" style="fill: none; stroke: #C23B2E; stroke-width: 3; stroke-linecap: round;"><path d="M6 6l12 12M18 6L6 18"></path></svg></span>
+            <span>이런 곳은 안 맞습니다</span>
+          </div>
+          <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 14px; font-size: 17px; line-height: 1.7; color: #566378;">
+            <div>이름을 이미 알고 찾아오는 브랜드 — 제품명으로 검색되면 이 일이 필요 없습니다</div>
+            <div>한 번 사고 끝나는 물건 — 묻지 않고 삽니다</div>
+            <div>적을 사실이 없는 회사 — 할 말이 없으면 들어갈 글도 없습니다</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────── 직접 측정한 것 ─────────── -->
+  <div class="deep" style="padding: 120px 0;">
+    <div class="wrap">
+      <div class="lab" style="color: #6BAEFF;"><i></i><span>직접 측정한 것 · 소프트웨어 회사 34곳</span></div>
+      <h2 class="h2">사이트 점수와 AI 노출은<br><span style="color: #6BAEFF;">따로 움직였습니다</span></h2>
+      <p class="sub">국내 소프트웨어 회사 34곳의 홈페이지를 진단했습니다. 그중 한 업계는 AI 에게 직접 물어 회사마다 몇 번 나오는지도 셌습니다.</p>
+
+      <div class="glass" style="margin-top: 48px; padding: 36px 40px;">
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 48px;">
+          <div>
+            <div style="display: flex; align-items: baseline; justify-content: space-between;"><b style="font-size: 22px; color: #FFFFFF;">홈페이지 19점 회사</b><span style="font-size: 14px; color: #8FA0BA;">비교 글 14개 중 9개에 이름</span></div>
+            <div style="margin-top: 22px; display: grid; grid-template-columns: 110px minmax(0, 1fr) 64px; gap: 14px; align-items: center;">
+              <span style="font-size: 15px; color: #AFBDD3;">홈페이지</span><span style="height: 16px; border-radius: 8px; background: rgba(255,255,255,0.08);"><span style="display: block; width: 19%; height: 100%; border-radius: 8px; background: #5A6B86;"></span></span><span class="mono" style="font-size: 15px; color: #AFBDD3; text-align: right;">19점</span>
+              <span style="font-size: 15px; color: #FFFFFF; font-weight: 700;">AI 답 노출</span><span style="height: 16px; border-radius: 8px; background: rgba(255,255,255,0.08);"><span style="display: block; width: 53%; height: 100%; border-radius: 8px; background: #6BAEFF;"></span></span><span class="mono" style="font-size: 15px; color: #6BAEFF; font-weight: 600; text-align: right;">8/15</span>
+            </div>
+          </div>
+          <div>
+            <div style="display: flex; align-items: baseline; justify-content: space-between;"><b style="font-size: 22px; color: #FFFFFF;">홈페이지 80점 회사</b><span style="font-size: 14px; color: #8FA0BA;">비교 글 14개 중 0개에 이름</span></div>
+            <div style="margin-top: 22px; display: grid; grid-template-columns: 110px minmax(0, 1fr) 64px; gap: 14px; align-items: center;">
+              <span style="font-size: 15px; color: #AFBDD3;">홈페이지</span><span style="height: 16px; border-radius: 8px; background: rgba(255,255,255,0.08);"><span style="display: block; width: 80%; height: 100%; border-radius: 8px; background: #5A6B86;"></span></span><span class="mono" style="font-size: 15px; color: #AFBDD3; text-align: right;">80점</span>
+              <span style="font-size: 15px; color: #FFFFFF; font-weight: 700;">AI 답 노출</span><span style="height: 16px; border-radius: 8px; background: rgba(255,255,255,0.08);"><span style="display: block; width: 20%; height: 100%; border-radius: 8px; background: #6BAEFF;"></span></span><span class="mono" style="font-size: 15px; color: #6BAEFF; font-weight: 600; text-align: right;">3/15</span>
+            </div>
+          </div>
+        </div>
+        <p style="margin-top: 30px; padding-top: 24px; border-top: 1px solid rgba(255,255,255,0.1); font-size: 18px; line-height: 1.75; color: #C9D4E5;">그래서 일이 둘로 나뉩니다. 사이트를 AI 가 <b style="color: #FFFFFF;">읽을 수 있게</b> 만드는 일과, AI 가 참고하는 비교 글·목록에 이름을 <b style="color: #FFFFFF;">넣는</b> 일. 사이트 점수가 1위여도 뒤엣것이 없으면 답에 안 나옵니다.</p>
+      </div>
+
+      <div style="margin-top: 18px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px;">
+        <div class="glass" style="padding: 28px 32px; display: flex; gap: 28px; align-items: center;">
+          <div style="display: flex; align-items: baseline; gap: 4px; flex: none;"><b style="font-size: 56px; font-weight: 800; color: #FFFFFF; letter-spacing: -0.05em; line-height: 1;">7</b><span style="font-size: 22px; color: #AFBDD3; font-weight: 600;">/34</span></div>
+          <p style="font-size: 16.5px; line-height: 1.7; color: #AFBDD3;">60점을 넘긴 홈페이지. 절반인 <b style="color: #FFFFFF;">17곳은 40점 아래</b>였고 AI 크롤러 접근이 0점인 곳도 있었습니다.</p>
+        </div>
+        <div class="glass" style="padding: 28px 32px; display: flex; gap: 28px; align-items: center;">
+          <div style="display: flex; align-items: baseline; gap: 2px; flex: none;"><b style="font-size: 56px; font-weight: 800; color: #FFFFFF; letter-spacing: -0.05em; line-height: 1;">28</b><span style="font-size: 22px; color: #AFBDD3; font-weight: 600;">%</span></div>
+          <p style="font-size: 16.5px; line-height: 1.7; color: #AFBDD3;">같은 질문을 한 번 더 했을 때 바뀐 추천 목록. <b style="color: #FFFFFF;">한 번 물어보고 「1위」라 적는 건 동전 한 번 던진 것</b>입니다.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────── 서비스 ─────────── -->
+  <div style="background: #FFFFFF; padding: 120px 0 100px;">
+    <div class="wrap">
+      <div class="lab" style="color: {{accent}};"><i></i><span>서비스</span></div>
+      <h2 class="h2">처음부터 <span style="color: {{accent}};">전부 맡기실 필요는</span> 없습니다</h2>
+      <p class="sub">측정부터 해 보시길 권합니다. 나머지는 결과를 보고 정하시면 됩니다. 이미 쓸 만한 홈페이지가 있다면 새로 만들 필요도 없습니다.</p>
+      <div style="margin-top: 48px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px;">
+        <sc-for list="{{services}}" as="sv" hint-placeholder-count="4">
+          <div class="card hov" style="padding: 26px 24px 24px; display: flex; flex-direction: column;">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+              <span class="mono" style="font-size: 13px; color: #8592A6;">{{sv.no}}</span>
+              <span style="height: 26px; padding: 0 11px; border-radius: 999px; background: #E7EFFC; color: {{accent}}; font-size: 12px; font-weight: 700; display: flex; align-items: center;">{{sv.tag}}</span>
+            </div>
+            <h3 style="margin-top: 18px; font-size: 25px; font-weight: 800; letter-spacing: -0.035em;">{{sv.name}}</h3>
+            <div style="margin-top: 8px; font-size: 14.5px; font-weight: 600; line-height: 1.5; color: {{accent}};">{{sv.q}}</div>
+            <p style="margin-top: 10px; font-size: 16px; line-height: 1.65; color: #566378;">{{sv.short}}</p>
+            <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #E7ECF3; display: flex; flex-direction: column; gap: 9px; flex: 1;">
+              <sc-for list="{{sv.does}}" as="d" hint-placeholder-count="3">
+                <div style="display: flex; gap: 10px; align-items: flex-start; font-size: 15px; line-height: 1.5; color: #2F3E54;"><svg width="16" height="16" viewBox="0 0 24 24" style="flex: none; margin-top: 3px; fill: none; stroke: {{accent}}; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round;"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg><span>{{d}}</span></div>
+              </sc-for>
+            </div>
+            <div style="margin-top: 18px; padding: 10px 12px; border-radius: 10px; background: #F4F7FB; font-size: 14px; line-height: 1.5; color: #2F3E54;">{{sv.terms}}</div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────── 요금 계산 ─────────── -->
+  <div style="background: #F4F7FB; padding: 110px 0 120px;">
+    <div class="wrap">
+      <div class="lab" style="color: {{accent}};"><i></i><span>요금</span></div>
+      <h2 class="h2">우리 회사 조건으로<br><span style="color: {{accent}};">바로 계산해 보세요</span></h2>
+      <p class="sub">세팅은 한 번이면 끝나서 월 요금에 안 넣습니다. 섞어 두면 그만둘 때 「세팅비는 다 낸 건가」로 다투게 됩니다.</p>
+
+      <div style="margin-top: 48px; display: grid; grid-template-columns: minmax(0, 1fr) 440px; gap: 24px; align-items: start;">
+        <div class="card" style="padding: 34px 36px;">
+          <div style="font-size: 15px; font-weight: 700; color: #8592A6;">1 · 지금 홈페이지는</div>
+          <div style="margin-top: 14px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px;">
+            <sc-for list="{{sites}}" as="o" hint-placeholder-count="3">
+              <button class="press" onClick="{{o.pick}}" style="text-align: left; padding: 18px; border-radius: 14px; border: 1.5px solid {{o.bd}}; background: {{o.bg}}; display: flex; flex-direction: column; gap: 6px;">
+                <span style="display: flex; align-items: center; gap: 8px;"><span style="width: 16px; height: 16px; border-radius: 50%; border: 2px solid {{o.ring}}; background: {{o.dot}};"></span><b style="font-size: 16.5px;">{{o.t}}</b></span>
+                <span style="font-size: 13.5px; line-height: 1.5; color: #566378;">{{o.d}}</span>
+                <span class="mono" style="margin-top: 4px; font-size: 16px; font-weight: 600; color: {{o.cf}};">{{o.costLabel}}</span>
+              </button>
+            </sc-for>
+          </div>
+
+          <div style="margin-top: 30px; font-size: 15px; font-weight: 700; color: #8592A6;">2 · 블로그에 쌓아 둔 글을 옮길까요</div>
+          <div style="margin-top: 14px; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 18px 20px; border-radius: 14px; border: 1px solid #D9E1EC;">
+            <div>
+              <b style="font-size: 16.5px;">블로그 글 이관</b>
+              <div style="font-size: 13.5px; color: #566378; margin-top: 2px;">AI 크롤러를 막는 블로그 글을 AI 가 읽는 곳으로 · 30편 기준 +80만원</div>
+            </div>
+            <button class="press" onClick="{{toggleMigrate}}" style="flex: none; width: 58px; height: 32px; border-radius: 999px; background: {{migBg}}; position: relative;"><span style="position: absolute; top: 4px; left: {{migLeft}}; width: 24px; height: 24px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 1px 3px rgba(0,0,0,0.25); transition: left .2s ease;"></span></button>
+          </div>
+
+          <div style="margin-top: 30px; font-size: 15px; font-weight: 700; color: #8592A6;">3 · 매달 어디까지 맡기시나요</div>
+          <div style="margin-top: 14px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px;">
+            <sc-for list="{{plans}}" as="p" hint-placeholder-count="2">
+              <button class="press" onClick="{{p.pick}}" style="text-align: left; padding: 20px; border-radius: 14px; border: 1.5px solid {{p.bd}}; background: {{p.bg}}; display: flex; flex-direction: column; gap: 6px;">
+                <span style="display: flex; align-items: center; justify-content: space-between;"><span style="display: flex; align-items: center; gap: 8px;"><span style="width: 16px; height: 16px; border-radius: 50%; border: 2px solid {{p.ring}}; background: {{p.dot}};"></span><b style="font-size: 18px;">{{p.t}}</b></span><span style="font-size: 20px; font-weight: 800; letter-spacing: -0.03em;">{{p.price}}<small style="font-size: 13px; font-weight: 500; color: #566378;">만원/월</small></span></span>
+                <span style="font-size: 14px; color: #566378;">{{p.for}}</span>
+              </button>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="border-radius: 20px; background: #0A1A33; color: #EEF3FB; padding: 32px 32px 28px; box-shadow: 0 30px 70px rgba(10,26,51,0.3);">
+          <sc-if value="{{sameAsCase}}" hint-placeholder-val="{{ true }}">
+            <div style="display: inline-flex; align-items: center; height: 28px; padding: 0 12px; border-radius: 999px; background: rgba(107,174,255,0.16); color: #6BAEFF; font-size: 13px; font-weight: 700;">도입 사례 학원과 같은 조건</div>
+          </sc-if>
+          <div style="margin-top: 16px; font-size: 15px; color: #AFBDD3;">시작할 때 한 번</div>
+          <div style="display: flex; align-items: baseline; gap: 6px;"><b style="font-size: 58px; font-weight: 800; letter-spacing: -0.05em; color: #FFFFFF; line-height: 1.1;">{{initTotal}}</b><span style="font-size: 20px; font-weight: 600; color: #AFBDD3;">만원</span></div>
+          <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 6px;">
+            <sc-for list="{{breakdown}}" as="l" hint-placeholder-count="2">
+              <div style="display: flex; justify-content: space-between; font-size: 14.5px; color: #AFBDD3;"><span>{{l.k}}</span><span class="mono">{{l.v}}</span></div>
+            </sc-for>
+          </div>
+          <div style="margin-top: 22px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.12); font-size: 15px; color: #AFBDD3;">매달 · {{plan.t}}</div>
+          <div style="display: flex; align-items: baseline; gap: 6px;"><b style="font-size: 44px; font-weight: 800; letter-spacing: -0.05em; color: #FFFFFF; line-height: 1.15;">{{plan.price}}</b><span style="font-size: 18px; font-weight: 600; color: #AFBDD3;">만원</span></div>
+          <div style="margin-top: 14px; display: flex; flex-direction: column; gap: 8px;">
+            <sc-for list="{{plan.items}}" as="x" hint-placeholder-count="5">
+              <div style="display: flex; gap: 9px; align-items: flex-start; font-size: 14.5px; line-height: 1.5; color: #C9D4E5;"><svg width="14" height="14" viewBox="0 0 24 24" style="flex: none; margin-top: 4px; fill: none; stroke: #6BAEFF; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round;"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg><span>{{x}}</span></div>
+            </sc-for>
+          </div>
+          <button class="press" style="margin-top: 26px; width: 100%; height: 56px; border-radius: 14px; background: #FFFFFF; color: #0A1A33; font-size: 17px; font-weight: 800;">이 조건으로 상담 신청</button>
+          <p style="margin-top: 12px; font-size: 13px; color: #8FA0BA; text-align: center;">최소 약정 없음 · 월 단위 · 세금계산서 발행 · 부가세 별도</p>
+        </div>
+      </div>
+      <p style="margin-top: 26px; font-size: 16px; line-height: 1.85; color: #566378; max-width: 900px;">대기업 대상 GEO 컨설팅은 월 500만원부터 시작합니다. 저희는 <b style="color: #0E1B2E;">학원·병원·사무소 한 곳 규모</b>에 맞췄습니다. 월 4만원짜리 측정 도구도 있는데, 질문을 직접 짜고 결과를 직접 읽고 직접 고쳐야 합니다. 영어권 기준이라 「○○구 코딩학원」 같은 한국어 지역 질문은 잘 못 잡습니다. <b style="color: #0E1B2E;">직접 하실 수 있으면 그 도구가 낫습니다.</b></p>
+    </div>
+  </div>
+
+  <!-- ─────────── 진행 ─────────── -->
+  <div style="background: #FFFFFF; padding: 120px 0;">
+    <div class="wrap">
+      <div class="lab" style="color: {{accent}};"><i></i><span>진행</span></div>
+      <h2 class="h2">두 달을 이렇게 씁니다</h2>
+      <p class="sub">첫 주에 지금 숫자를 남기고, 마지막 주에 같은 질문으로 다시 셉니다. 그 사이가 일입니다.</p>
+
+      <div style="margin-top: 48px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0;">
+        <sc-for list="{{flow}}" as="f" hint-placeholder-count="4">
+          <button onClick="{{f.pick}}" style="text-align: left; display: flex; flex-direction: column; gap: 14px; padding-right: 16px;">
+            <span style="display: flex; align-items: center; gap: 0;">
+              <span style="flex: none; width: 44px; height: 44px; border-radius: 50%; background: {{f.numBg}}; color: {{f.numFg}}; font-size: 17px; font-weight: 800; display: flex; align-items: center; justify-content: center; box-shadow: {{f.ring}}; transition: background .25s ease;">{{f.no}}</span>
+              <span style="flex: 1; height: 3px; margin-left: 12px; border-radius: 2px; background: {{f.line}}; transition: background .25s ease;"></span>
+            </span>
+            <span style="font-size: 14px; font-weight: 700; color: {{f.wf}};">{{f.w}}</span>
+            <span style="font-size: 20px; font-weight: 800; letter-spacing: -0.03em; color: {{f.tf}}; line-height: 1.35;">{{f.t}}</span>
+          </button>
+        </sc-for>
+      </div>
+
+      <div class="card fade" style="margin-top: 32px; padding: 32px 36px; display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 40px; align-items: center;">
+        <div>
+          <div style="font-size: 14px; font-weight: 700; color: {{accent}};">{{step.w}}</div>
+          <h3 style="margin-top: 6px; font-size: 28px; font-weight: 800; letter-spacing: -0.035em;">{{step.t}}</h3>
+          <p style="margin-top: 12px; font-size: 17.5px; line-height: 1.8; color: #566378;">{{step.p}}</p>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end;">
+          <sc-for list="{{step.c}}" as="c" hint-placeholder-count="3">
+            <span style="height: 36px; padding: 0 14px; border-radius: 999px; background: #F4F7FB; border: 1px solid #E3E9F2; font-size: 14.5px; font-weight: 600; color: #2F3E54; display: flex; align-items: center;">{{c}}</span>
+          </sc-for>
+        </div>
+      </div>
+      <p style="margin-top: 20px; font-size: 16px; color: #566378;">첫 리포트는 <b style="color: #0E1B2E;">착수 후 2주</b>에 나갑니다. 플레이스·구글 비즈니스 프로필처럼 대표자 인증이 필요한 곳은 사장님이 권한을 열어 주셔야 진행됩니다.</p>
+    </div>
+  </div>
+
+  <!-- ─────────── 도입 사례 ─────────── -->
+  <div class="deep" style="padding: 120px 0;">
+    <div class="wrap">
+      <div class="lab" style="color: #6BAEFF;"><i></i><span>도입 사례 · 수도권 코딩·로봇 학원 · 7일차</span></div>
+      <h2 class="h2">홈페이지 없이<br>블로그만 있던 학원</h2>
+      <p class="sub">학원 이름과 지역은 가렸습니다. 숫자는 <b style="color: #FFFFFF;">서버 기록에서 매일 다시 가져오고</b>, 안 오른 숫자도 같은 크기로 싣습니다.</p>
+
+      <div style="margin-top: 48px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px;">
+        <div class="glass" style="padding: 26px 28px; border-color: rgba(107,174,255,0.35); background: rgba(107,174,255,0.08);">
+          <div style="display: flex; justify-content: space-between; align-items: baseline; padding-bottom: 16px; border-bottom: 1px solid rgba(255,255,255,0.1);"><span style="font-size: 14.5px; font-weight: 600; color: #AFBDD3;">경쟁 검색어 · 착수 때 → 지금</span><b style="font-size: 32px; font-weight: 800; color: #6BAEFF; letter-spacing: -0.03em;">0 → 4 / 6</b></div>
+          <p style="margin-top: 16px; font-size: 16px; line-height: 1.8; color: #AFBDD3;">「○○구 코딩학원」처럼 <b style="color: #FFFFFF;">학원 이름 없이</b> 친 검색 6개입니다. 착수 때는 위쪽이 전부 오늘학교·순위닷 같은 학원 목록 사이트였고 학원 홈페이지는 한 곳도 없었습니다.</p>
+        </div>
+        <div class="glass" style="padding: 26px 28px;">
+          <div style="display: flex; justify-content: space-between; align-items: baseline; padding-bottom: 16px; border-bottom: 1px solid rgba(255,255,255,0.1);"><span style="font-size: 14.5px; font-weight: 600; color: #AFBDD3;">네이버 플레이스 · 「○○구 코딩학원」</span><b style="font-size: 32px; font-weight: 800; color: #6BAEFF; letter-spacing: -0.03em;">2위</b></div>
+          <p style="margin-top: 16px; font-size: 16px; line-height: 1.8; color: #AFBDD3;">네이버 AI 가 이 학원을 <b style="color: #FFFFFF;">「무선 인터넷과 남녀 구분 화장실을 제공합니다」</b>라고 소개하고 있었습니다. 소개글 188자가 대부분 의무 게시 안내문이었습니다. 933자로 다시 썼습니다.</p>
+        </div>
+        <div class="glass" style="padding: 26px 28px;">
+          <div style="display: flex; justify-content: space-between; align-items: baseline; padding-bottom: 16px; border-bottom: 1px solid rgba(255,255,255,0.1);"><span style="font-size: 14.5px; font-weight: 600; color: #AFBDD3;">다녀간 크롤러 · 7일차</span><b style="font-size: 32px; font-weight: 800; color: #6BAEFF; letter-spacing: -0.03em;">8곳 · 565회</b></div>
+          <p style="margin-top: 16px; font-size: 16px; line-height: 1.8; color: #AFBDD3;">첫날은 구글과 Anthropic 두 곳이었습니다. 네이버 블로그는 GPTBot·ClaudeBot 을 막아서 <b style="color: #FFFFFF;">쌓아 둔 글 32편이 AI 에겐 없는 글</b>이었습니다. 사진 69장까지 막히지 않은 곳으로 옮겼습니다.</p>
+        </div>
+        <div class="glass" style="padding: 26px 28px; border-color: rgba(107,174,255,0.35); background: rgba(107,174,255,0.08);">
+          <div style="display: flex; justify-content: space-between; align-items: baseline; padding-bottom: 16px; border-bottom: 1px solid rgba(255,255,255,0.1);"><span style="font-size: 14.5px; font-weight: 600; color: #AFBDD3;">AI 답변 인용 · 첫 기준선</span><b style="font-size: 32px; font-weight: 800; color: #6BAEFF; letter-spacing: -0.03em;">0 / 8</b></div>
+          <p style="margin-top: 16px; font-size: 16px; line-height: 1.8; color: #AFBDD3;">검색을 켠 AI 한 곳에 학부모 질문 8개를 한 번씩 물었습니다. 이 학원 사이트를 출처로 단 답은 <b style="color: #FFFFFF;">0개</b>였습니다. 학원 이름이 나온 답 2개의 출처는 <b style="color: #FFFFFF;">학원 목록 사이트</b>였습니다.</p>
+        </div>
+      </div>
+
+      <div style="margin-top: 40px; display: grid; grid-template-columns: minmax(0, 1fr) 460px; gap: 24px; align-items: start;">
+        <div>
+          <div style="font-size: 17px; font-weight: 700; color: #FFFFFF; margin-bottom: 14px;">날짜별로 한 일</div>
+          <div style="position: relative; padding-left: 28px;">
+            <div style="position: absolute; left: 7px; top: 8px; bottom: 8px; width: 2px; background: rgba(107,174,255,0.25);"></div>
+            <div style="display: flex; flex-direction: column; gap: 18px;">
+              <div style="position: relative;"><span style="position: absolute; left: -26px; top: 6px; width: 12px; height: 12px; border-radius: 50%; background: #6BAEFF; box-shadow: 0 0 0 4px rgba(107,174,255,0.2);"></span><span class="mono" style="font-size: 13px; color: #6BAEFF;">1일차</span><div style="font-size: 16.5px; font-weight: 700; color: #FFFFFF;">사이트 구축 · 도메인 연결</div><div style="font-size: 15px; color: #AFBDD3;">AI 크롤러를 이름으로 허용하고 llms.txt 와 구조화 데이터를 붙였습니다.</div></div>
+              <div style="position: relative;"><span style="position: absolute; left: -26px; top: 6px; width: 12px; height: 12px; border-radius: 50%; background: #6BAEFF;"></span><span class="mono" style="font-size: 13px; color: #6BAEFF;">1일차</span><div style="font-size: 16.5px; font-weight: 700; color: #FFFFFF;">블로그 글 32편 이관 · 첫 AI 방문</div><div style="font-size: 15px; color: #AFBDD3;">주소를 연결한 날 오후 3시 49분. ClaudeBot 이 robots.txt 부터 읽었습니다.</div></div>
+              <div style="position: relative;"><span style="position: absolute; left: -26px; top: 6px; width: 12px; height: 12px; border-radius: 50%; background: #6BAEFF;"></span><span class="mono" style="font-size: 13px; color: #6BAEFF;">2일차</span><div style="font-size: 16.5px; font-weight: 700; color: #FFFFFF;">구글 비즈니스 프로필 등록 · 학원 목록 사이트 등재 신청</div><div style="font-size: 15px; color: #AFBDD3;">대표자 본인인증이 필요한 항목은 사장님이 직접 했습니다.</div></div>
+              <div style="position: relative;"><span style="position: absolute; left: -26px; top: 6px; width: 12px; height: 12px; border-radius: 50%; background: #6BAEFF;"></span><span class="mono" style="font-size: 13px; color: #6BAEFF;">4일차</span><div style="font-size: 16.5px; font-weight: 700; color: #FFFFFF;">네이버 검색에 사이트가 처음 잡힘</div><div style="font-size: 15px; color: #AFBDD3;">옮긴 글이 네이버 검색 결과에 나오기 시작했습니다.</div></div>
+              <div style="position: relative;"><span style="position: absolute; left: -26px; top: 6px; width: 12px; height: 12px; border-radius: 50%; background: #6BAEFF;"></span><span class="mono" style="font-size: 13px; color: #6BAEFF;">6일차</span><div style="font-size: 16.5px; font-weight: 700; color: #FFFFFF;">학원 이름 없이 친 검색어에 첫 노출 · 플레이스 소개글 188자 → 933자</div><div style="font-size: 15px; color: #AFBDD3;">네이버 통합검색 「○○구 코딩학원」에 사이트가 나왔습니다.</div></div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div style="font-size: 17px; font-weight: 700; color: #FFFFFF; margin-bottom: 14px;">서버가 기록한 실제 방문 로그</div>
+          <div style="border-radius: 16px; border: 1px solid rgba(255,255,255,0.12); background: rgba(0,0,0,0.25); overflow: hidden;">
+            <div class="mono" style="display: grid; grid-template-columns: 78px 106px minmax(0, 1fr); row-gap: 0; font-size: 13px; color: #AFBDD3;">
+              <span style="padding: 12px 0 12px 18px; border-bottom: 1px solid rgba(255,255,255,0.06); color: #8592A6;">15:49:01</span><span style="padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.06); color: #6BAEFF;">ClaudeBot</span><span style="padding: 12px 18px 12px 0; border-bottom: 1px solid rgba(255,255,255,0.06);">/robots.txt</span>
+              <span style="padding: 12px 0 12px 18px; border-bottom: 1px solid rgba(255,255,255,0.06); color: #8592A6;">15:49:27</span><span style="padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.06); color: #6BAEFF;">ClaudeBot</span><span style="padding: 12px 18px 12px 0; border-bottom: 1px solid rgba(255,255,255,0.06);">/blog/(옮긴 글)</span>
+              <span style="padding: 12px 0 12px 18px; border-bottom: 1px solid rgba(255,255,255,0.06); color: #8592A6;">+18h</span><span style="padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.06); color: #6BAEFF;">Googlebot</span><span style="padding: 12px 18px 12px 0; border-bottom: 1px solid rgba(255,255,255,0.06);">/ · /blog · /sitemap.xml</span>
+              <span style="padding: 12px 0 12px 18px; color: #8592A6;">+3d</span><span style="padding: 12px 0; color: #6BAEFF;">Yeti</span><span style="padding: 12px 18px 12px 0;">/sitemap.xml · 네이버 색인</span>
+            </div>
+          </div>
+          <div class="press" style="margin-top: 12px; display: flex; justify-content: space-between; align-items: center; padding: 18px 22px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.16); background: rgba(255,255,255,0.05); font-size: 16.5px; font-weight: 700; color: #FFFFFF;"><span>전체 기록 보기</span><span style="font-size: 14px; font-weight: 500; color: #AFBDD3;">이름·지역을 가린 원본 →</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────── 리포트가 다른 점 ─────────── -->
+  <div style="background: #FFFFFF; padding: 120px 0;">
+    <div class="wrap">
+      <div class="lab" style="color: {{accent}};"><i></i><span>리포트가 다른 점</span></div>
+      <h2 class="h2">보기 좋은 숫자를<br>만들지 않습니다</h2>
+      <p class="sub">「AI 가시성 92%」 같은 딱 떨어지는 숫자는 몇 번 물었는지가 빠져 있기 쉽습니다. 저희 리포트는 이렇게 적습니다.</p>
+
+      <div class="card" style="margin-top: 48px; overflow: hidden;">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 26px 32px; border-bottom: 1px solid #E7ECF3;">
+          <div>
+            <h3 style="font-size: 24px; font-weight: 800; letter-spacing: -0.03em;">몇 번 물었는지 같이 씁니다</h3>
+            <div style="margin-top: 6px; font-size: 15px; color: #566378;">같은 62%라도 몇 번 물었느냐에 따라 믿을 수 있는 정도가 다릅니다. 눌러 보세요.</div>
+          </div>
+          <div style="display: flex; gap: 6px; padding: 5px; border-radius: 999px; background: #F4F7FB; border: 1px solid #E3E9F2;">
+            <sc-for list="{{nbtns}}" as="b" hint-placeholder-count="4">
+              <button class="mono press" onClick="{{b.pick}}" style="height: 38px; padding: 0 16px; border-radius: 999px; font-size: 14px; font-weight: 600; background: {{b.bg}}; color: {{b.fg}};">{{b.label}}</button>
+            </sc-for>
+          </div>
+        </div>
+        <div style="padding: 36px 32px 30px;">
+          <div class="mono" style="display: flex; justify-content: space-between; font-size: 12px; color: #8592A6; margin-bottom: 10px;"><span>0%</span><span>50%</span><span>100%</span></div>
+          <div style="position: relative; height: 64px; border-radius: 12px; background: #F4F7FB; border: 1px solid #E7ECF3; overflow: hidden;">
+            <span style="position: absolute; top: 0; bottom: 0; left: 50%; width: 1px; background: #D9E1EC;"></span>
+            <span class="bar" style="position: absolute; top: 0; bottom: 0; left: {{ivl.left}}; width: {{ivl.width}}; background: rgba(27,95,214,0.14); border-left: 2px solid {{accent}}; border-right: 2px solid {{accent}};"></span>
+            <span style="position: absolute; top: 50%; left: 62%; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; background: {{accent}}; box-shadow: 0 0 0 5px rgba(27,95,214,0.2);"></span>
+          </div>
+          <div style="margin-top: 22px; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;">
+            <b style="font-size: 34px; font-weight: 800; letter-spacing: -0.04em;">62%</b>
+            <span style="font-size: 16px; color: #8592A6;">일 수도 있고</span>
+            <b class="mono" style="font-size: 30px; font-weight: 600; color: {{accent}};">{{ivl.lo}}~{{ivl.hi}}%</b>
+            <span style="font-size: 16px; color: #8592A6;">사이 어디든 · {{ivl.n}}번 물었을 때</span>
+          </div>
+        </div>
+        <div style="padding: 18px 32px 22px; background: #F4F7FB; border-top: 1px solid #E7ECF3; font-size: 16.5px; line-height: 1.8; color: #566378;">{{note.a}}<b style="color: #0E1B2E;">{{note.b}}</b>{{note.c}}</div>
+      </div>
+
+      <div style="margin-top: 18px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px;">
+        <div class="card" style="padding: 28px 30px; box-shadow: none;">
+          <h3 style="font-size: 21px; font-weight: 800; letter-spacing: -0.03em;">답변 원문을 드립니다</h3>
+          <div style="margin-top: 12px; font-size: 15px; color: #8592A6; text-decoration: line-through; text-decoration-color: #C23B2E;">대시보드 점수만</div>
+          <div style="font-size: 16px; font-weight: 700; color: {{accent}};">질문 · 답변 전문 · 답에 붙은 출처 · 엔진 · 시각</div>
+          <p style="margin-top: 12px; font-size: 16px; line-height: 1.75; color: #566378;">「그 숫자 어떻게 냈냐」에 원문을 열어 답합니다. 내부 보고에 그대로 붙이실 수 있습니다.</p>
+        </div>
+        <div class="card" style="padding: 28px 30px; box-shadow: none;">
+          <h3 style="font-size: 21px; font-weight: 800; letter-spacing: -0.03em;">고칠 게 없으면 없다고 합니다</h3>
+          <div style="margin-top: 12px; font-size: 15px; color: #8592A6; text-decoration: line-through; text-decoration-color: #C23B2E;">사이트 80점 → 개선 제안 12건</div>
+          <div style="font-size: 16px; font-weight: 700; color: {{accent}};">사이트 80점 → 「사이트는 됐는데 안 불립니다」</div>
+          <p style="margin-top: 12px; font-size: 16px; line-height: 1.75; color: #566378;">위에서 본 사이트 점수 1위 회사의 실제 진단 결론입니다. 대신 경쟁 3사는 있고 이 회사만 빠진 비교 글 세 곳을 먼저 들어갈 곳으로 적었습니다.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────── 하지 않는 일 ─────────── -->
+  <div style="background: #F4F7FB; padding: 120px 0;">
+    <div class="wrap">
+      <div class="lab" style="color: {{accent}};"><i></i><span>하지 않는 일</span></div>
+      <h2 class="h2">계약서에 넣어도 되는 네 줄</h2>
+      <p class="sub">이 바닥에는 몇 달은 효과가 나고 그 뒤에 손해가 되는 방법이 있습니다. 안 씁니다.</p>
+      <div style="margin-top: 44px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px;">
+        <div class="card" style="padding: 26px 28px; display: flex; gap: 16px; box-shadow: none;">
+          <span style="flex: none; width: 34px; height: 34px; border-radius: 50%; background: rgba(194,59,46,0.1); display: flex; align-items: center; justify-content: center;"><svg width="14" height="14" viewBox="0 0 24 24" style="fill: none; stroke: #C23B2E; stroke-width: 3; stroke-linecap: round;"><path d="M6 6l12 12M18 6L6 18"></path></svg></span>
+          <div><b style="font-size: 19px;">링크를 사지 않습니다</b><p style="margin-top: 6px; font-size: 16px; line-height: 1.75; color: #566378;">적발되면 회복에 몇 달이 걸립니다. 그 몇 달의 손해는 고객사가 집니다.</p></div>
+        </div>
+        <div class="card" style="padding: 26px 28px; display: flex; gap: 16px; box-shadow: none;">
+          <span style="flex: none; width: 34px; height: 34px; border-radius: 50%; background: rgba(194,59,46,0.1); display: flex; align-items: center; justify-content: center;"><svg width="14" height="14" viewBox="0 0 24 24" style="fill: none; stroke: #C23B2E; stroke-width: 3; stroke-linecap: round;"><path d="M6 6l12 12M18 6L6 18"></path></svg></span>
+          <div><b style="font-size: 19px;">댓글·후기를 만들지 않습니다</b><p style="margin-top: 6px; font-size: 16px; line-height: 1.75; color: #566378;">사람을 동원해 커뮤니티에 글을 뿌리거나 같은 글을 여러 곳에 돌리지 않습니다. AI 는 중복을 걸러냅니다.</p></div>
+        </div>
+        <div class="card" style="padding: 26px 28px; display: flex; gap: 16px; box-shadow: none;">
+          <span style="flex: none; width: 34px; height: 34px; border-radius: 50%; background: rgba(194,59,46,0.1); display: flex; align-items: center; justify-content: center;"><svg width="14" height="14" viewBox="0 0 24 24" style="fill: none; stroke: #C23B2E; stroke-width: 3; stroke-linecap: round;"><path d="M6 6l12 12M18 6L6 18"></path></svg></span>
+          <div><b style="font-size: 19px;">없는 사실을 쓰지 않습니다</b><p style="margin-top: 6px; font-size: 16px; line-height: 1.75; color: #566378;">실적·수상·연혁을 부풀리지 않습니다. 다른 글과 어긋나면 AI 가 다른 회사로 봅니다.</p></div>
+        </div>
+        <div class="card" style="padding: 26px 28px; display: flex; gap: 16px; box-shadow: none;">
+          <span style="flex: none; width: 34px; height: 34px; border-radius: 50%; background: rgba(194,59,46,0.1); display: flex; align-items: center; justify-content: center;"><svg width="14" height="14" viewBox="0 0 24 24" style="fill: none; stroke: #C23B2E; stroke-width: 3; stroke-linecap: round;"><path d="M6 6l12 12M18 6L6 18"></path></svg></span>
+          <div><b style="font-size: 19px;">계정을 대신 만들지 않습니다</b><p style="margin-top: 6px; font-size: 16px; line-height: 1.75; color: #566378;">대표자 인증이 필요한 계정은 고객사 소유입니다. 열어만 주시면 됩니다.</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────── 자주 묻는 것 ─────────── -->
+  <div style="background: #FFFFFF; padding: 120px 0;">
+    <div style="width: 840px; margin: 0 auto;">
+      <div class="lab" style="color: {{accent}};"><i></i><span>자주 묻는 것</span></div>
+      <h2 class="h2">상담에서 먼저 나오는 질문</h2>
+      <div style="margin-top: 40px; display: flex; flex-direction: column; gap: 12px;">
+        <sc-for list="{{faqs}}" as="q" hint-placeholder-count="6">
+          <div style="border-radius: 16px; border: 1px solid {{q.bd}}; background: #FFFFFF; box-shadow: {{q.sh}}; overflow: hidden; transition: border-color .2s ease, box-shadow .2s ease;">
+            <button onClick="{{q.pick}}" style="width: 100%; text-align: left; padding: 22px 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; font-size: 18px; font-weight: 700;">
+              <span>{{q.q}}</span>
+              <span style="flex: none; width: 30px; height: 30px; border-radius: 50%; background: {{q.signBg}}; color: {{q.signFg}}; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 600;">{{q.sign}}</span>
+            </button>
+            <sc-if value="{{q.open}}" hint-placeholder-val="{{ false }}">
+              <p class="fade" style="padding: 0 24px 22px; font-size: 16.5px; line-height: 1.8; color: #566378;">{{q.a}}</p>
+            </sc-if>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────── 시작 ─────────── -->
+  <div class="deep" style="padding: 120px 0 100px;">
+    <div class="wrap" style="width: 880px;">
+      <div style="text-align: center;">
+        <div class="lab" style="color: #6BAEFF; justify-content: center;"><i></i><span>시작</span></div>
+        <h2 class="h2">홈페이지 주소부터<br><span style="color: #6BAEFF;">넣어 보세요</span></h2>
+        <p class="sub" style="margin-left: auto; margin-right: auto;">AI 가 읽을 수 있는 상태인지 7개 항목 점수가 바로 나옵니다. 그다음이 필요하면 아래에 남겨 주세요. 홈페이지가 없어도 됩니다.</p>
+      </div>
+
+      <div style="margin-top: 40px; border-radius: 22px; background: #FFFFFF; color: #0E1B2E; padding: 32px 34px; box-shadow: 0 30px 70px rgba(0,0,0,0.35);">
+        <h3 style="font-size: 22px; font-weight: 800;">무료 진단</h3>
+        <p style="margin-top: 6px; font-size: 15.5px; color: #566378;">주소만 넣으면 됩니다. 연락처는 결과를 본 뒤에 남기셔도 됩니다.</p>
+        <div style="margin-top: 18px; display: flex; gap: 10px;">
+          <div style="flex: 1; height: 58px; border-radius: 14px; border: 1px solid #D9E1EC; background: #F4F7FB; display: flex; align-items: center; padding: 0 18px; font-size: 16px; color: #8592A6;">회사 홈페이지 주소</div>
+          <button class="press" style="height: 58px; padding: 0 26px; border-radius: 14px; background: {{accent}}; color: #FFFFFF; font-size: 16px; font-weight: 800;">무료 진단 받기</button>
+        </div>
+      </div>
+
+      <div style="margin-top: 18px; border-radius: 22px; background: #FFFFFF; color: #0E1B2E; padding: 32px 34px; box-shadow: 0 30px 70px rgba(0,0,0,0.35);">
+        <h3 style="font-size: 22px; font-weight: 800;">상담 신청</h3>
+        <p style="margin-top: 6px; font-size: 15.5px; color: #566378;">어떻게 알고 오셨는지 꼭 여쭙습니다. 저희가 하는 일이 실제로 닿는지 확인하는 유일한 방법이라서입니다.</p>
+        <div style="margin-top: 22px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px;">
+          <div style="display: flex; flex-direction: column; gap: 7px;"><span style="font-size: 15px; font-weight: 600; color: #2F3E54;">성함 · 직함</span><span style="height: 50px; border-radius: 11px; border: 1px solid #D9E1EC; background: #F4F7FB; display: flex; align-items: center; padding: 0 15px; color: #8592A6;">홍길동 · 원장</span></div>
+          <div style="display: flex; flex-direction: column; gap: 7px;"><span style="font-size: 15px; font-weight: 600; color: #2F3E54;">이메일 <span style="color: {{accent}};">*</span></span><span style="height: 50px; border-radius: 11px; border: 1px solid #D9E1EC; background: #F4F7FB; display: flex; align-items: center; padding: 0 15px; color: #8592A6;">name@company.com</span></div>
+          <div style="display: flex; flex-direction: column; gap: 7px;"><span style="font-size: 15px; font-weight: 600; color: #2F3E54;">어떻게 알고 오셨어요? <span style="color: {{accent}};">*</span></span><span style="height: 50px; border-radius: 11px; border: 1px solid #D9E1EC; background: #F4F7FB; display: flex; align-items: center; justify-content: space-between; padding: 0 15px; color: #8592A6;"><span>골라 주세요</span><span>▾</span></span></div>
+          <div style="display: flex; flex-direction: column; gap: 7px;"><span style="font-size: 15px; font-weight: 600; color: #2F3E54;">홈페이지 주소 <span style="font-weight: 400; color: #8592A6;">없으면 비워 두세요</span></span><span style="height: 50px; border-radius: 11px; border: 1px solid #D9E1EC; background: #F4F7FB; display: flex; align-items: center; padding: 0 15px; color: #8592A6;">example.com</span></div>
+        </div>
+        <div style="margin-top: 18px; font-size: 15px; font-weight: 600; color: #2F3E54;">지금 가장 걸리는 것 <span style="font-weight: 400; color: #8592A6;">여러 개 골라도 됩니다</span></div>
+        <div style="margin-top: 8px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;">
+          <span style="height: 48px; border-radius: 11px; border: 1.5px solid {{accent}}; background: #E7EFFC; display: flex; align-items: center; gap: 10px; padding: 0 14px; font-size: 15px;"><span style="width: 18px; height: 18px; border-radius: 5px; background: {{accent}};"></span>AI 답변에 우리 이름이 안 나온다</span>
+          <span style="height: 48px; border-radius: 11px; border: 1px solid #D9E1EC; background: #F4F7FB; display: flex; align-items: center; gap: 10px; padding: 0 14px; font-size: 15px;"><span style="width: 18px; height: 18px; border-radius: 5px; border: 1.5px solid #B8C4D6; background: #FFFFFF;"></span>경쟁사만 추천된다</span>
+          <span style="height: 48px; border-radius: 11px; border: 1px solid #D9E1EC; background: #F4F7FB; display: flex; align-items: center; gap: 10px; padding: 0 14px; font-size: 15px;"><span style="width: 18px; height: 18px; border-radius: 5px; border: 1.5px solid #B8C4D6; background: #FFFFFF;"></span>홈페이지가 없고 블로그만 있다</span>
+          <span style="height: 48px; border-radius: 11px; border: 1px solid #D9E1EC; background: #F4F7FB; display: flex; align-items: center; gap: 10px; padding: 0 14px; font-size: 15px;"><span style="width: 18px; height: 18px; border-radius: 5px; border: 1.5px solid #B8C4D6; background: #FFFFFF;"></span>지금 상태를 숫자로 알고 싶다</span>
+        </div>
+        <button class="press" style="margin-top: 20px; width: 100%; height: 58px; border-radius: 14px; background: {{accent}}; color: #FFFFFF; font-size: 17px; font-weight: 800;">상담 신청</button>
+      </div>
+      <p style="margin-top: 18px; text-align: center; font-size: 15px; color: #AFBDD3;">메일로 답장드립니다. 영업 전화는 하지 않습니다.</p>
+    </div>
+  </div>
+
+  <!-- ─────────── 푸터 ─────────── -->
+  <div style="background: #071327; color: #AFBDD3; padding: 64px 0 44px; border-top: 1px solid rgba(255,255,255,0.06);">
+    <div class="wrap">
+      <div style="display: grid; grid-template-columns: 1.6fr 1fr 1fr; gap: 40px;">
+        <div>
+          <div style="display: flex; align-items: baseline; gap: 8px; font-size: 21px; font-weight: 800; color: #FFFFFF; letter-spacing: -0.03em;"><span class="mono" style="color: #6BAEFF; font-weight: 600; letter-spacing: -0.08em;">[ ]</span><span>Cited</span><span style="font-size: 14px; font-weight: 500; color: #AFBDD3; letter-spacing: 0;">사이티드</span></div>
+          <p style="margin-top: 14px; font-size: 15px; line-height: 1.75; max-width: 340px;">손님이 AI 에게 물었을 때 우리 이름이 나오는지 확인하고, 나오게 만듭니다.</p>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 10px; font-size: 15px;"><b style="color: #FFFFFF; margin-bottom: 4px;">서비스</b><span>측정</span><span>기술 세팅</span><span>외부 문서</span><span>사이트 구축</span></div>
+        <div style="display: flex; flex-direction: column; gap: 10px; font-size: 15px;"><b style="color: #FFFFFF; margin-bottom: 4px;">기록</b><span>도입 사례 리포트</span><span>GEO 와 SEO 의 차이</span><span>두 달 진행 순서</span><span>요금</span></div>
+      </div>
+      <div style="margin-top: 40px; padding: 14px 16px; border-radius: 12px; border: 1px dashed rgba(255,255,255,0.16); font-size: 13.5px; line-height: 1.7;">이 페이지의 시장 숫자(홈페이지 34곳 진단 · 한 업계 질문을 AI 에게 15번 물은 결과)는 저희가 직접 측정한 값입니다. 표본이 작아 <b style="color: #FFFFFF;">대략의 방향</b>으로 봐 주세요. 사례의 방문 기록은 서버에 남은 원본이고, 학원 이름과 지역만 가렸습니다.</div>
+      <div style="margin-top: 28px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.08); display: flex; gap: 18px; font-size: 14px;"><span>© 2026 Cited 사이티드</span><span>AI 답변 노출 · GEO</span></div>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"accent":{"editor":"color","default":"#1B5FD6","options":["#1B5FD6","#2563EB","#0E7C86","#5B4FD6"],"section":"브랜드"}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { ind: 0, eng: 0, round: 1, tab: 0, site: 0, migrate: true, plan: 0, n: 0, step: 0, faq: 0 };
+  }
+
+  renderVals() {
+    const s = this.state;
+    const accent = this.props.accent ?? '#1B5FD6';
+
+    // ── 히어로 시연. 이름은 A·B·C — 예시 화면이다
+    const SCENES = [
+      { label: '치과', q: '마포구에서 임플란트 잘하는 치과 추천해줘', lead: '후기와 비교 글을 바탕으로 세 곳을 추천드립니다.',
+        r: [{ n: 'A치과', d: '임플란트 상담 후기가 가장 많이 보입니다.' }, { n: 'B치과', d: '야간 진료가 있어 직장인 후기가 많습니다.' }, { n: 'C치과', d: '비용을 항목별로 공개했다는 글이 있습니다.' }],
+        swap: { n: 'D치과', d: '최근 지역 카페 글에서 자주 언급됩니다.' }, src: ['치과 비교 글', '지역 카페', '블로그 후기', '병원 목록'] },
+      { label: '세무사', q: '법인 세무 잘 보는 세무사 사무소 추천해줘', lead: '검색 결과를 바탕으로 다음 세 곳을 추천드립니다.',
+        r: [{ n: 'A 세무회계', d: '법인 기장과 세무조정 사례 글이 많습니다.' }, { n: 'B 세무사사무소', d: '스타트업 법인 설립 상담 후기가 있습니다.' }, { n: 'C 택스', d: '월 기장료를 공개하고 있습니다.' }],
+        swap: { n: 'D 세무법인', d: '비교 글에서 응답이 빠르다고 꼽힙니다.' }, src: ['세무사 비교 글', '창업 커뮤니티', '사무소 블로그', '전문가 목록'] },
+      { label: '인테리어', q: '30평 아파트 인테리어 업체 추천해줘', lead: '시공 후기와 목록 사이트를 바탕으로 세 곳입니다.',
+        r: [{ n: 'A 인테리어', d: '30평대 시공 사진 후기가 가장 많습니다.' }, { n: 'B 디자인', d: '견적서를 항목별로 준다는 후기가 있습니다.' }, { n: 'C 리모델링', d: '하자 보수 기간을 계약서에 적는다고 합니다.' }],
+        swap: { n: 'D 공간', d: '최근 맘카페 추천 글에 자주 나옵니다.' }, src: ['시공 후기 모음', '맘카페 글', '업체 목록', '비교 블로그'] },
+    ];
+    const ENG = [{ name: 'ChatGPT', dot: '#74AA9C' }, { name: 'Claude', dot: '#D97757' }, { name: 'Gemini', dot: '#4E86F5' }];
+    const scene = SCENES[s.ind];
+    const list = s.round === 1 ? scene.r : [scene.r[0], scene.r[1], scene.swap];
+    const items = list.map((x, i) => {
+      const sw = s.round === 2 && i === 2;
+      return { n: x.n, d: x.d, rank: i + 1, swapped: sw, nameFg: sw ? '#B7791F' : '#0E1B2E', rkBd: sw ? '#B7791F' : '#D9E1EC', rkFg: sw ? '#B7791F' : '#566378' };
+    });
+    const inds = SCENES.map((x, i) => {
+      const on = i === s.ind;
+      return { label: x.label, bg: on ? '#FFFFFF' : 'rgba(255,255,255,0.06)', fg: on ? '#0A1A33' : '#EEF3FB', bd: on ? '#FFFFFF' : 'rgba(255,255,255,0.22)', pick: () => this.setState({ ind: i, round: 1 }) };
+    });
+    const engines = ENG.map((x, i) => {
+      const on = i === s.eng;
+      return { name: x.name, dot: x.dot, bg: on ? '#FFFFFF' : 'transparent', fg: on ? '#0E1B2E' : '#8592A6', sh: on ? '0 1px 4px rgba(14,27,46,0.14)' : 'none', pick: () => this.setState({ eng: i, round: 1 }) };
+    });
+    const r2 = s.round === 2;
+
+    // ── 기록 탭
+    const TABS = [{ no: '01', k: '몇 번 중 몇 번', t: '지금 불리고 있나' }, { no: '02', k: '빠진 자리', t: '왜 안 나오나' }, { no: '03', k: '고친 이유', t: '고친 게 먹혔나' }];
+    const tabs = TABS.map((x, i) => {
+      const on = i === s.tab;
+      return { no: x.no, k: x.k, t: x.t, bg: on ? '#0A1A33' : '#FFFFFF', fg: on ? '#FFFFFF' : '#0E1B2E', kf: on ? '#6BAEFF' : accent, bd: on ? '#0A1A33' : '#D9E1EC', pick: () => this.setState({ tab: i }) };
+    });
+    const bars = [['A사', 9], ['B사', 8], ['C사', 8], ['D사', 4], ['이 회사', 3]].map(([name, n], i) => {
+      const me = i === 4;
+      return { name, n, w: Math.round((n / 15) * 100) + '%', fill: me ? accent : '#C7D6EE', fw: me ? '800' : '500', fg: me ? accent : '#566378' };
+    });
+
+    // ── 서비스 (web/lib/services.ts 그대로)
+    const services = [
+      { no: '01', tag: 'Measurement', name: '측정', q: '“우리가 AI 답변에 나오긴 하나요?”', short: '지금 몇 번에 한 번 불리는지 셉니다.', does: ['질문 세트를 만듭니다', '주요 AI 4곳에 여러 번 묻습니다', '몇 번 중 몇 번인지 셉니다'], terms: '월 단위 · 최소 약정 없음 · 첫 리포트 착수 후 2주' },
+      { no: '02', tag: 'Technical', name: '기술 세팅', q: '“AI가 우리 홈페이지를 읽기는 하나요?”', short: 'AI가 읽을 수 있는 상태로 만듭니다.', does: ['AI 크롤러를 열어 줍니다', '자바스크립트 없이도 글이 나오게 합니다', '구조화 데이터를 붙입니다'], terms: '2~3주 · 초기 1회 80만원' },
+      { no: '03', tag: 'Placement', name: '외부 문서', q: '“홈페이지는 고쳤는데 왜 아직도 안 나오나요?”', short: 'AI가 참고하는 남의 글에 들어갑니다.', does: ['AI가 참고한 글을 역으로 찾습니다', '경쟁사는 있는데 우리만 빠진 글을 고릅니다', '그 글에 들어갑니다'], terms: '월 단위 · 관리 플랜에 포함 (월 79만원)' },
+      { no: '04', tag: 'Build', name: '사이트 구축', q: '“블로그만 하는데 홈페이지가 꼭 있어야 하나요?”', short: '홈페이지가 없거나 못 쓰는 경우에만.', does: ['읽히는 구조로 짓습니다', '기존 블로그 글을 옮깁니다 (선택)', '글 쓰는 곳을 만들어 드립니다'], terms: '2~4주 · 초기 1회 250만원 (기술 세팅 포함)' },
+    ];
+
+    // ── 요금 계산 (랜딩 요금표의 값 그대로)
+    const SITES = [
+      { t: '홈페이지 없음', d: '블로그만 있거나 못 쓰는 사이트', cost: 250, line: '사이트 구축 · 기술 세팅 포함' },
+      { t: '홈페이지 있음', d: 'AI 가 읽게 손봐야 하는 사이트', cost: 80, line: '기술 세팅' },
+      { t: '진단 통과', d: '이미 AI 가 읽는 사이트', cost: 0, line: '세팅 필요 없음' },
+    ];
+    const opt = (on) => ({ bd: on ? accent : '#D9E1EC', bg: on ? '#EEF4FD' : '#FFFFFF', ring: on ? accent : '#B8C4D6', dot: on ? accent : '#FFFFFF' });
+    const sites = SITES.map((x, i) => Object.assign({ t: x.t, d: x.d, costLabel: x.cost ? x.cost + '만원' : '0원', cf: i === s.site ? accent : '#2F3E54', pick: () => this.setState({ site: i }) }, opt(i === s.site)));
+    const PLANS = [
+      { t: '리포트', price: 39, for: '숫자를 보고 직접 고치실 팀', items: ['질문 30개 × AI 4곳 · 월 2회', '몇 번 중 몇 번 불렸는지 + 흔들리는 범위', 'AI 방문 기록 — 어느 AI 가 몇 쪽 읽었는지', '답변 원문 전량', '경쟁사 3곳 나란히', '고칠 곳 다섯 개, 순서대로'] },
+      { t: '관리', price: 79, for: '고치는 일까지 맡기실 팀', items: ['리포트 전부', 'AI 가 가져다 쓸 글 월 1편 작성·발행', '업계 목록·디렉터리 등재', '퍼져 있는 틀린 정보 정정', '월 1회 통화'] },
+    ];
+    const plans = PLANS.map((x, i) => Object.assign({ t: x.t, price: x.price, for: x.for, pick: () => this.setState({ plan: i }) }, opt(i === s.plan)));
+    const site = SITES[s.site];
+    const breakdown = [{ k: site.line, v: site.cost ? site.cost + '만원' : '0원' }];
+    if (s.migrate) breakdown.push({ k: '블로그 글 이관 · 30편 기준', v: '80만원' });
+
+    // ── 몇 번 물었나 — Wilson score interval 로 실제 계산
+    const STEPS = [5, 20, 50, 150];
+    const P = 0.62, z = 1.96, n = STEPS[s.n];
+    const dd = 1 + (z * z) / n, cc = P + (z * z) / (2 * n);
+    const sd = z * Math.sqrt((P * (1 - P)) / n + (z * z) / (4 * n * n));
+    const lo = Math.max(0, (cc - sd) / dd), hi = Math.min(1, (cc + sd) / dd);
+    const span = Math.round((hi - lo) * 100);
+    const LO = Math.round(lo * 100), HI = Math.round(hi * 100);
+    const NOTES = [
+      { a: '5번만 물으면 같은 62%라도 실제 값은 ', b: LO + '%에서 ' + HI + '% 사이', c: ' 어디든 될 수 있습니다. 이 숫자로는 아무것도 말할 수 없습니다.' },
+      { a: '20번으로 늘리면 범위가 절반쯤 줄어듭니다. 그래도 ', b: '폭이 ' + span + '%p', c: '라 지난달과 견주기엔 넓습니다.' },
+      { a: '50번쯤 되면 「대략 이 정도」라고 말할 수 있습니다. ', b: '여기부터가 보고할 만한 숫자', c: '입니다.' },
+      { a: '150번이면 폭이 ', b: span + '%p', c: '까지 좁아집니다. 이 정도라야 지난달과 비교해서 「늘었다」고 말할 수 있습니다.' },
+    ];
+    const nbtns = STEPS.map((v, i) => ({ label: v + '회', bg: i === s.n ? accent : 'transparent', fg: i === s.n ? '#FFFFFF' : '#566378', pick: () => this.setState({ n: i }) }));
+
+    // ── 진행
+    const FLOW = [
+      { w: '1주차', t: '지금 상태를 숫자로 남깁니다', p: '손님이 실제로 칠 질문 30개를 만들어 AI 4곳에 여러 번 묻습니다. 학원이면 「○○구 초등 코딩학원 추천」, 치과면 「△△동 임플란트 잘하는 곳」 같은 말입니다.', c: ['질문 30개', 'AI 4곳', '사이트 7항목 진단'] },
+      { w: '2~3주차', t: 'AI 가 읽을 수 있게 만듭니다', p: 'robots.txt 에 GPTBot·ClaudeBot 을 이름으로 열고 회사 정보를 구조화 데이터로 붙입니다. AI 크롤러를 막는 블로그에만 있던 글은 옮깁니다.', c: ['robots.txt', 'llms.txt', '구조화 데이터', '방문 기록'] },
+      { w: '4~8주차', t: '비교 글·목록에 들어갑니다', p: 'AI 답에 붙은 출처를 모아 경쟁사는 있고 우리만 없는 글 다섯 곳을 고릅니다. 목록 사이트에 등재하고, 플레이스 소개글을 채우고, 틀린 정보를 고칩니다.', c: ['등재', '소개글', '정정', '글 1편'] },
+      { w: '8주차', t: '같은 질문으로 다시 셉니다', p: '1단계와 같은 질문, 같은 AI, 같은 횟수로 다시 묻습니다. 오른 것, 안 오른 것, 거절당한 등재까지 적고 다음 두 달에 할 일을 정합니다.', c: ['답변 원문 전량', '거절된 곳 포함'] },
+    ];
+    const flow = FLOW.map((x, i) => {
+      const done = i <= s.step, on = i === s.step;
+      return { no: i + 1, w: x.w, t: x.t, numBg: done ? accent : '#EDF2F8', numFg: done ? '#FFFFFF' : '#8592A6', ring: on ? '0 0 0 6px rgba(27,95,214,0.16)' : 'none', line: i < s.step ? accent : '#E3E9F2', wf: on ? accent : '#8592A6', tf: on ? '#0E1B2E' : '#8592A6', pick: () => this.setState({ step: i }) };
+    });
+
+    // ── 자주 묻는 것 (랜딩 FAQ 그대로)
+    const FAQ = [
+      ['직접 하면 안 되나요?', '기술 세팅은 직접 하실 수 있고 그러시길 권합니다. 하루면 됩니다. 어려운 건 AI 4곳에 같은 질문을 여러 번 물어 세는 일과, 경쟁사는 있고 우리만 없는 비교 글을 찾아내는 일입니다. 저희가 파는 건 그 둘입니다.'],
+      ['얼마나 걸리나요?', '사례 학원은 착수 넷째 날 네이버 검색에 사이트가 처음 잡혔고, 여섯째 날 학원 이름 없이 친 지역 검색어에 나오기 시작했습니다. AI 답변에 이름이 붙기까지 얼마나 걸리는지는 아직 모릅니다. 결과가 나오면 사례 기록에 그대로 적습니다.'],
+      ['성과를 보장하나요?', '안 합니다. 대신 어떤 질문을, 어느 AI 에, 몇 번 묻는지를 계약서에 적고 시작할 때 숫자를 남깁니다. 두 달 뒤 같은 방법으로 다시 센 결과를 그대로 드립니다.'],
+      ['숫자를 어떻게 믿나요?', '믿어 달라고 하지 않습니다. 질문, 답변 원문, 답에 붙은 출처 주소, 물어본 시각이 전부 남아 있고 요청하시면 그대로 드립니다.'],
+      ['SEO 대행사와 뭐가 다른가요?', 'SEO 는 검색 결과에서 클릭을 얻는 일이고, 이건 AI 답 속에 이름이 나오게 하는 일입니다. AI 는 회사 홈페이지보다 비교 글과 업체 목록을 더 많이 읽습니다. 그래서 손봐야 할 곳이 다릅니다.'],
+      ['그만두면 뭐가 남나요?', '사이트를 만들어 드렸다면 도메인·저장소·호스팅 계정이 전부 고객사 명의라 그대로 남습니다. 그동안의 답변 원문과 리포트도 드립니다. 최소 약정이 없어서 한 달 단위로 멈출 수 있습니다.'],
+    ];
+    const faqs = FAQ.map(([q, a], i) => {
+      const open = i === s.faq;
+      return { q, a, open, sign: open ? '−' : '+', bd: open ? accent : '#D9E1EC', sh: open ? '0 14px 36px rgba(14,27,46,0.08)' : 'none', signBg: open ? accent : '#F4F7FB', signFg: open ? '#FFFFFF' : '#566378', pick: () => this.setState({ faq: open ? -1 : i }) };
+    });
+
+    return {
+      accent,
+      scene, engine: ENG[s.eng], items, inds, engines,
+      round: s.round,
+      roundBd: r2 ? 'rgba(183,121,31,0.5)' : '#D9E1EC',
+      roundFg: r2 ? '#B7791F' : '#566378',
+      verdict: r2 ? '이번에도 없음' : '목록에 없음',
+      footA: r2 ? '같은 질문인데 ' : '예시 화면입니다. 손님은 여기 나온 이름만 봅니다. ',
+      footB: r2 ? '세 번째가 바뀌었습니다.' : '2페이지는 없습니다.',
+      askLabel: r2 ? '처음으로' : '같은 질문 다시 묻기',
+      ask: () => this.setState({ round: r2 ? 1 : 2 }),
+
+      tabs, bars, tab0: s.tab === 0, tab1: s.tab === 1, tab2: s.tab === 2,
+      services,
+
+      sites, plans, plan: PLANS[s.plan], breakdown,
+      initTotal: site.cost + (s.migrate ? 80 : 0),
+      migBg: s.migrate ? accent : '#C9D3E1',
+      migLeft: s.migrate ? '30px' : '4px',
+      toggleMigrate: () => this.setState({ migrate: !s.migrate }),
+      sameAsCase: s.site === 0 && s.migrate,
+
+      nbtns, note: NOTES[s.n],
+      ivl: { n, lo: LO, hi: HI, left: (lo * 100).toFixed(1) + '%', width: ((hi - lo) * 100).toFixed(1) + '%' },
+
+      flow, step: FLOW[s.step],
+      faqs,
+    };
+  }
+}
+</script>
+</body>
+</html>

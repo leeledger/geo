@@ -1,0 +1,14 @@
+{
+  "artboards": [
+    { "file": "Main.dc.html", "title": "랜딩 · 데스크톱", "x": 0, "y": 0, "w": 1440, "h": 15400, "is_interactive": true },
+    { "file": "Mobile.dc.html", "title": "랜딩 · 모바일 (핵심 흐름)", "x": 1560, "y": 0, "w": 390, "h": 5600, "is_interactive": true }
+  ],
+  "annotations": [
+    {
+      "id": "brief",
+      "x": 2030, "y": 0, "w": 360,
+      "text": "누를 수 있는 곳\n· 히어로: 업종 칩 · AI 탭 · 같은 질문 다시 묻기\n· 맡기면 받는 것: 기록 탭 3장\n· 요금: 홈페이지 상태 · 블로그 이관 · 플랜 → 금액 계산\n· 진행: 단계 누르기\n· 리포트가 다른 점: 5/20/50/150회 → 범위 계산\n· 자주 묻는 것: 펼치기\n\n숫자는 저장소·DB 기록 그대로. 증거 띠·사례의 방문 수는 실제 사이트에서 매일 갱신되는 값의 오늘 스냅샷.\n\n캔버스에서는 글꼴이 Noto Sans KR 로 보입니다. 실제 사이트는 Pretendard."
+    }
+  ],
+  "launch": { "view": "canvas" }
+}

@@ -1,0 +1,296 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800;900&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;display=swap">
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body { background: #F4F7FB; color: #0E1B2E; font-family: "Pretendard Variable", Pretendard, "Noto Sans KR", "Apple SD Gothic Neo", system-ui, sans-serif; -webkit-font-smoothing: antialiased; word-break: keep-all; letter-spacing: -0.011em; line-height: 1.7; }
+    a { color: #1B5FD6; text-decoration: none; }
+    a:hover { color: #154BAC; }
+    h1, h2, h3, p { margin: 0; }
+    button { font-family: inherit; cursor: pointer; border: 0; background: none; padding: 0; color: inherit; letter-spacing: inherit; }
+    .mono { font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace; letter-spacing: 0; }
+    .lab { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; }
+    .lab i { display: block; width: 16px; height: 2px; border-radius: 2px; background: currentColor; }
+    .h2 { font-size: 30px; line-height: 1.26; font-weight: 800; letter-spacing: -0.04em; margin-top: 12px; }
+    .sub { font-size: 16px; line-height: 1.75; color: #566378; margin-top: 12px; }
+    .deep { background: #0A1A33; color: #EEF3FB; position: relative; overflow: hidden; }
+    .deep::before { content: ""; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(420px 300px at 100% -5%, rgba(64,132,255,0.28), transparent 60%), radial-gradient(rgba(255,255,255,0.06) 1px, transparent 1.3px) 0 0 / 22px 22px; }
+    .deep > div { position: relative; z-index: 1; }
+    .press { transition: transform .12s ease, filter .15s ease; }
+    .press:active { transform: scale(0.98); }
+    @keyframes blink { 50% { opacity: .35; } }
+    .live { animation: blink 1.6s ease-in-out infinite; }
+    @keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+    .fade { animation: fade .35s ease-out both; }
+  </style>
+</helmet>
+
+<div style="width: 390px; background: #F4F7FB;">
+
+  <div class="deep">
+    <div style="padding: 0 20px;">
+      <div style="height: 60px; display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: baseline; gap: 6px; font-size: 19px; font-weight: 800; color: #FFFFFF;"><span class="mono" style="color: #6BAEFF; letter-spacing: -0.08em;">[ ]</span><span>Cited</span><span style="font-size: 12.5px; font-weight: 500; color: #AFBDD3;">사이티드</span></div>
+        <button class="press" style="height: 38px; padding: 0 16px; border-radius: 999px; background: {{accent}}; color: #FFFFFF; font-size: 14px; font-weight: 700;">무료 진단</button>
+      </div>
+
+      <div style="padding: 30px 0 40px;">
+        <div style="display: inline-flex; align-items: center; gap: 8px; height: 30px; padding: 0 12px 0 10px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.18); background: rgba(255,255,255,0.06); font-size: 13px; font-weight: 600;"><span class="live" style="width: 7px; height: 7px; border-radius: 50%; background: #6BAEFF;"></span><span>AI 답변 노출 · GEO</span></div>
+        <h1 style="margin-top: 18px; font-size: 36px; line-height: 1.22; font-weight: 800; letter-spacing: -0.05em; color: #FFFFFF;">손님이 AI에게 물었을 때 <span style="color: #6BAEFF;">우리 이름이 나옵니까?</span></h1>
+        <p style="margin-top: 16px; font-size: 16.5px; line-height: 1.75; color: #AFBDD3;">「{{scene.q}}」. 이렇게 물으면 AI 는 링크 대신 <b style="color: #FFFFFF;">이름 세 개쯤</b>으로 답합니다. 거기 우리가 있는지 여러 번 물어 세고, 없으면 들어가게 만듭니다.</p>
+        <div style="margin-top: 16px; display: flex; gap: 8px; flex-wrap: wrap;">
+          <sc-for list="{{inds}}" as="it" hint-placeholder-count="3">
+            <button class="press" onClick="{{it.pick}}" style="height: 44px; padding: 0 16px; border-radius: 999px; font-size: 14px; font-weight: 600; border: 1px solid {{it.bd}}; background: {{it.bg}}; color: {{it.fg}};">{{it.label}}</button>
+          </sc-for>
+        </div>
+
+        <div style="margin-top: 22px; border-radius: 18px; background: #FFFFFF; color: #0E1B2E; overflow: hidden; box-shadow: 0 24px 60px rgba(0,0,0,0.45);">
+          <div style="display: flex; align-items: center; gap: 4px; padding: 10px 12px; background: #EDF2F8; border-bottom: 1px solid #D9E1EC;">
+            <sc-for list="{{engines}}" as="e" hint-placeholder-count="3">
+              <button class="mono" onClick="{{e.pick}}" style="display: flex; align-items: center; gap: 6px; height: 32px; padding: 0 10px; border-radius: 8px; font-size: 12px; background: {{e.bg}}; color: {{e.fg}};"><span style="width: 7px; height: 7px; border-radius: 50%; background: {{e.dot}};"></span><span>{{e.name}}</span></button>
+            </sc-for>
+            <span class="mono" style="margin-left: auto; font-size: 11.5px; color: {{roundFg}};">{{round}}회차</span>
+          </div>
+          <div style="padding: 16px 14px 6px; display: flex; flex-direction: column; gap: 12px;">
+            <div style="align-self: flex-end; max-width: 88%; background: {{accent}}; color: #FFFFFF; border-radius: 14px 14px 4px 14px; padding: 10px 13px; font-size: 14.5px; line-height: 1.55;">{{scene.q}}</div>
+            <div class="fade" style="background: #EDF2F8; border-radius: 14px 14px 14px 4px; padding: 12px 13px;">
+              <p style="font-size: 13.5px; color: #566378;">{{scene.lead}}</p>
+              <div style="margin-top: 8px; display: flex; flex-direction: column; gap: 9px;">
+                <sc-for list="{{items}}" as="it" hint-placeholder-count="3">
+                  <div style="display: flex; gap: 8px; align-items: flex-start;">
+                    <span class="mono" style="flex: none; width: 20px; height: 20px; border-radius: 5px; border: 1px solid {{it.rkBd}}; color: {{it.rkFg}}; background: #FFFFFF; font-size: 11px; display: flex; align-items: center; justify-content: center; margin-top: 2px;">{{it.rank}}</span>
+                    <div><b style="font-size: 15px; color: {{it.nameFg}};">{{it.n}}</b><div style="font-size: 13px; color: #566378; line-height: 1.5;">{{it.d}}</div></div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 4px 4px; border-top: 1px dashed #D9E1EC;"><b style="font-size: 15px;">우리 회사</b><span style="font-size: 12.5px; font-weight: 700; color: #C23B2E; background: rgba(194,59,46,0.08); border: 1px solid rgba(194,59,46,0.35); border-radius: 999px; padding: 4px 12px;">{{verdict}}</span></div>
+          </div>
+          <div style="padding: 12px 14px; background: #EDF2F8; border-top: 1px solid #D9E1EC; display: flex; flex-direction: column; gap: 10px;">
+            <p style="font-size: 13.5px; line-height: 1.55; color: #566378;">{{footA}}<b style="color: #0E1B2E;">{{footB}}</b></p>
+            <button class="press" onClick="{{ask}}" style="height: 44px; border-radius: 10px; background: #0A1A33; color: #FFFFFF; font-size: 14px; font-weight: 700;">{{askLabel}}</button>
+          </div>
+        </div>
+
+        <div style="margin-top: 22px; display: flex; flex-direction: column; gap: 8px;">
+          <div style="height: 54px; border-radius: 13px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.07); display: flex; align-items: center; padding: 0 16px; font-size: 15px; color: rgba(238,243,251,0.55);">회사 홈페이지 주소</div>
+          <button class="press" style="height: 54px; border-radius: 13px; background: #FFFFFF; color: #0A1A33; font-size: 16px; font-weight: 800;">무료 진단 받기</button>
+        </div>
+        <p style="margin-top: 10px; font-size: 13px; color: #8FA0BA;">7가지를 자동으로 봅니다. 가입도 결제도 없이 바로 결과가 나옵니다.</p>
+
+        <div style="margin-top: 28px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.12);">
+          <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: #AFBDD3;"><span class="live" style="width: 7px; height: 7px; border-radius: 50%; background: #3DD68C;"></span><span>도입 사례 · 서버가 기록한 값</span></div>
+          <div style="margin-top: 12px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px;">
+            <div style="padding: 14px 16px; border-radius: 14px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.11);"><b style="font-size: 28px; font-weight: 800; color: #FFFFFF; letter-spacing: -0.04em;">7</b><span style="font-size: 14px; color: #AFBDD3;">일차</span><div style="font-size: 13px; color: #AFBDD3;">착수일부터 센 날</div></div>
+            <div style="padding: 14px 16px; border-radius: 14px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.11);"><b style="font-size: 28px; font-weight: 800; color: #FFFFFF; letter-spacing: -0.04em;">8</b><span style="font-size: 14px; color: #AFBDD3;">곳</span><div style="font-size: 13px; color: #AFBDD3;">다녀간 AI·검색 크롤러</div></div>
+            <div style="padding: 14px 16px; border-radius: 14px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.11);"><b style="font-size: 28px; font-weight: 800; color: #FFFFFF; letter-spacing: -0.04em;">565</b><span style="font-size: 14px; color: #AFBDD3;">회</span><div style="font-size: 13px; color: #AFBDD3;">크롤러 누적 방문</div></div>
+            <div style="padding: 14px 16px; border-radius: 14px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.11);"><b style="font-size: 28px; font-weight: 800; color: #FFFFFF; letter-spacing: -0.04em;">43</b><span style="font-size: 14px; color: #AFBDD3;">편</span><div style="font-size: 13px; color: #AFBDD3;">AI 가 읽을 수 있게 된 글</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 실제 기록 -->
+  <div style="background: #FFFFFF; padding: 64px 20px;">
+    <div class="lab" style="color: {{accent}};"><i></i><span>맡기면 받는 것</span></div>
+    <h2 class="h2">리포트에 들어가는 것을 <span style="color: {{accent}};">실제 기록</span>으로</h2>
+    <p class="sub">실제로 남긴 기록입니다. 회사 이름은 가렸습니다.</p>
+    <div style="margin-top: 20px; display: flex; gap: 6px;">
+      <sc-for list="{{tabs}}" as="t" hint-placeholder-count="3">
+        <button class="press" onClick="{{t.pick}}" style="flex: 1; min-height: 56px; padding: 8px 6px; border-radius: 12px; border: 1px solid {{t.bd}}; background: {{t.bg}}; color: {{t.fg}}; font-size: 13.5px; font-weight: 700; line-height: 1.35;">{{t.t}}</button>
+      </sc-for>
+    </div>
+    <div style="margin-top: 14px; padding: 22px 20px; border-radius: 16px; border: 1px solid #D9E1EC; background: #FFFFFF;">
+      <sc-if value="{{tab0}}" hint-placeholder-val="{{ true }}">
+        <div class="fade">
+          <h3 style="font-size: 21px; font-weight: 800; letter-spacing: -0.03em;">홈페이지 점수 1위 회사가 <span style="color: {{accent}};">15번 중 3번</span></h3>
+          <p style="margin-top: 8px; font-size: 15px; line-height: 1.7; color: #566378;">그 업계 손님이 물어볼 질문을 AI 에게 15번 묻고, 회사마다 이름이 몇 번 나왔는지 셌습니다.</p>
+          <div style="margin-top: 18px; display: flex; flex-direction: column; gap: 10px;">
+            <sc-for list="{{bars}}" as="b" hint-placeholder-count="5">
+              <div style="display: grid; grid-template-columns: 62px minmax(0, 1fr) 42px; gap: 10px; align-items: center;">
+                <span style="font-size: 14px; font-weight: {{b.fw}}; color: {{b.fg}};">{{b.name}}</span>
+                <span style="height: 10px; border-radius: 6px; background: #EDF2F8; overflow: hidden;"><span style="display: block; height: 100%; width: {{b.w}}; background: {{b.fill}}; border-radius: 6px;"></span></span>
+                <span class="mono" style="font-size: 13px; text-align: right; color: {{b.fg}};">{{b.n}}/15</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+      <sc-if value="{{tab1}}" hint-placeholder-val="{{ false }}">
+        <div class="fade">
+          <h3 style="font-size: 21px; font-weight: 800; letter-spacing: -0.03em;">비교 글 14개에 <span style="color: #C23B2E;">이름 0번</span></h3>
+          <p style="margin-top: 8px; font-size: 15px; line-height: 1.7; color: #566378;">A·B·C사는 대부분 있었고 이 회사 이름은 한 번도 없었습니다. 고칠 곳은 홈페이지가 아니라 이 글들이었습니다.</p>
+          <div style="margin-top: 14px; display: flex; flex-direction: column; gap: 8px; font-size: 14.5px;">
+            <div style="padding: 12px 14px; border-radius: 10px; background: #F4F7FB;"><b>「국내 ERP 업체 순위 Top5」</b><div style="font-size: 13px; color: #566378;">A·B·C 있음 · <b style="color: #C23B2E;">이 회사 없음</b></div></div>
+            <div style="padding: 12px 14px; border-radius: 10px; background: #F4F7FB;"><b>「중견·중소기업 ERP 프로그램 비교 가이드」</b><div style="font-size: 13px; color: #566378;">A·B·C 있음 · <b style="color: #C23B2E;">이 회사 없음</b></div></div>
+            <div style="padding: 12px 14px; border-radius: 10px; background: #F4F7FB;"><b>「회사 규모별 ERP 추천」</b><div style="font-size: 13px; color: #566378;">A·B·C 있음 · <b style="color: #C23B2E;">이 회사 없음</b></div></div>
+          </div>
+        </div>
+      </sc-if>
+      <sc-if value="{{tab2}}" hint-placeholder-val="{{ false }}">
+        <div class="fade">
+          <h3 style="font-size: 21px; font-weight: 800; letter-spacing: -0.03em;">고칠 때마다 무엇을 · 왜 · 기대를 남깁니다</h3>
+          <div style="margin-top: 14px; display: flex; flex-direction: column; gap: 12px; font-size: 15px; line-height: 1.65;">
+            <div><b style="color: {{accent}};">무엇</b><div>네이버 플레이스 소개글 188자 → 933자</div></div>
+            <div><b style="color: {{accent}};">왜</b><div>네이버 AI 가 학원을 「무선 인터넷과 남녀 구분 화장실을 제공합니다」라고 소개하고 있었음</div></div>
+            <div><b style="color: {{accent}};">기대</b><div>무엇을 가르치는 학원인지 답에 들어간다</div></div>
+          </div>
+        </div>
+      </sc-if>
+    </div>
+  </div>
+
+  <!-- 요금 계산 -->
+  <div style="background: #F4F7FB; padding: 64px 20px;">
+    <div class="lab" style="color: {{accent}};"><i></i><span>요금</span></div>
+    <h2 class="h2">우리 회사 조건으로 <span style="color: {{accent}};">바로 계산</span></h2>
+    <div style="margin-top: 22px; font-size: 14px; font-weight: 700; color: #8592A6;">1 · 지금 홈페이지는</div>
+    <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 8px;">
+      <sc-for list="{{sites}}" as="o" hint-placeholder-count="3">
+        <button class="press" onClick="{{o.pick}}" style="min-height: 60px; text-align: left; padding: 12px 16px; border-radius: 12px; border: 1.5px solid {{o.bd}}; background: {{o.bg}}; display: flex; align-items: center; gap: 10px;">
+          <span style="flex: none; width: 16px; height: 16px; border-radius: 50%; border: 2px solid {{o.ring}}; background: {{o.dot}};"></span>
+          <span style="flex: 1;"><b style="font-size: 15.5px;">{{o.t}}</b><span style="display: block; font-size: 12.5px; color: #566378;">{{o.d}}</span></span>
+          <span class="mono" style="font-size: 14.5px; font-weight: 600; color: {{o.cf}};">{{o.costLabel}}</span>
+        </button>
+      </sc-for>
+    </div>
+    <div style="margin-top: 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; border-radius: 12px; border: 1px solid #D9E1EC; background: #FFFFFF;">
+      <span><b style="font-size: 15.5px;">블로그 글 이관</b><span style="display: block; font-size: 12.5px; color: #566378;">30편 기준 +80만원</span></span>
+      <button class="press" onClick="{{toggleMigrate}}" style="flex: none; width: 58px; height: 32px; border-radius: 999px; background: {{migBg}}; position: relative;"><span style="position: absolute; top: 4px; left: {{migLeft}}; width: 24px; height: 24px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 1px 3px rgba(0,0,0,0.25); transition: left .2s ease;"></span></button>
+    </div>
+    <div style="margin-top: 16px; font-size: 14px; font-weight: 700; color: #8592A6;">2 · 매달</div>
+    <div style="margin-top: 10px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;">
+      <sc-for list="{{plans}}" as="p" hint-placeholder-count="2">
+        <button class="press" onClick="{{p.pick}}" style="min-height: 64px; text-align: left; padding: 12px 14px; border-radius: 12px; border: 1.5px solid {{p.bd}}; background: {{p.bg}};"><b style="font-size: 16px;">{{p.t}}</b><span style="display: block; font-size: 18px; font-weight: 800;">{{p.price}}<small style="font-size: 12px; font-weight: 500; color: #566378;">만원/월</small></span></button>
+      </sc-for>
+    </div>
+    <div style="margin-top: 16px; border-radius: 18px; background: #0A1A33; color: #EEF3FB; padding: 22px 20px;">
+      <div style="display: flex; justify-content: space-between; align-items: baseline;"><span style="font-size: 14px; color: #AFBDD3;">시작할 때</span><span><b style="font-size: 36px; font-weight: 800; color: #FFFFFF; letter-spacing: -0.04em;">{{initTotal}}</b><span style="font-size: 15px; color: #AFBDD3;">만원</span></span></div>
+      <div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 4px;"><span style="font-size: 14px; color: #AFBDD3;">매달 · {{plan.t}}</span><span><b style="font-size: 28px; font-weight: 800; color: #FFFFFF; letter-spacing: -0.04em;">{{plan.price}}</b><span style="font-size: 15px; color: #AFBDD3;">만원</span></span></div>
+      <button class="press" style="margin-top: 16px; width: 100%; height: 50px; border-radius: 12px; background: #FFFFFF; color: #0A1A33; font-size: 16px; font-weight: 800;">이 조건으로 상담 신청</button>
+      <p style="margin-top: 10px; font-size: 12px; color: #8FA0BA; text-align: center;">최소 약정 없음 · 월 단위 · 부가세 별도</p>
+    </div>
+  </div>
+
+  <!-- 자주 묻는 것 -->
+  <div style="background: #FFFFFF; padding: 64px 20px;">
+    <div class="lab" style="color: {{accent}};"><i></i><span>자주 묻는 것</span></div>
+    <h2 class="h2">상담에서 먼저 나오는 질문</h2>
+    <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 8px;">
+      <sc-for list="{{faqs}}" as="q" hint-placeholder-count="6">
+        <div style="border-radius: 14px; border: 1px solid {{q.bd}}; overflow: hidden;">
+          <button onClick="{{q.pick}}" style="width: 100%; min-height: 56px; text-align: left; padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 15.5px; font-weight: 700;"><span>{{q.q}}</span><span style="flex: none; font-size: 18px; color: {{q.signFg2}};">{{q.sign}}</span></button>
+          <sc-if value="{{q.open}}" hint-placeholder-val="{{ false }}"><p class="fade" style="padding: 0 16px 16px; font-size: 14.5px; line-height: 1.75; color: #566378;">{{q.a}}</p></sc-if>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <!-- 시작 -->
+  <div class="deep">
+    <div style="padding: 64px 20px 56px; text-align: center;">
+      <h2 class="h2" style="color: #FFFFFF;">홈페이지 주소부터 <span style="color: #6BAEFF;">넣어 보세요</span></h2>
+      <p class="sub" style="color: #AFBDD3;">7개 항목 점수가 바로 나옵니다. 홈페이지가 없어도 됩니다.</p>
+      <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 8px;">
+        <div style="height: 54px; border-radius: 13px; background: #FFFFFF; display: flex; align-items: center; padding: 0 16px; font-size: 15px; color: #8592A6;">회사 홈페이지 주소</div>
+        <button class="press" style="height: 54px; border-radius: 13px; background: {{accent}}; color: #FFFFFF; font-size: 16px; font-weight: 800;">무료 진단 받기</button>
+      </div>
+      <p style="margin-top: 14px; font-size: 13.5px; color: #AFBDD3;">메일로 답장드립니다. 영업 전화는 하지 않습니다.</p>
+    </div>
+  </div>
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"accent":{"editor":"color","default":"#1B5FD6","options":["#1B5FD6","#2563EB","#0E7C86","#5B4FD6"],"section":"브랜드"}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { ind: 0, eng: 0, round: 1, tab: 0, site: 0, migrate: true, plan: 0, faq: 0 };
+  }
+
+  renderVals() {
+    const s = this.state;
+    const accent = this.props.accent ?? '#1B5FD6';
+    const SCENES = [
+      { label: '치과', q: '마포구에서 임플란트 잘하는 치과 추천해줘', lead: '후기와 비교 글을 바탕으로 세 곳을 추천드립니다.',
+        r: [{ n: 'A치과', d: '임플란트 상담 후기가 가장 많이 보입니다.' }, { n: 'B치과', d: '야간 진료가 있어 직장인 후기가 많습니다.' }, { n: 'C치과', d: '비용을 항목별로 공개했다는 글이 있습니다.' }],
+        swap: { n: 'D치과', d: '최근 지역 카페 글에서 자주 언급됩니다.' } },
+      { label: '세무사', q: '법인 세무 잘 보는 세무사 사무소 추천해줘', lead: '검색 결과를 바탕으로 다음 세 곳을 추천드립니다.',
+        r: [{ n: 'A 세무회계', d: '법인 기장과 세무조정 사례 글이 많습니다.' }, { n: 'B 세무사사무소', d: '스타트업 법인 설립 상담 후기가 있습니다.' }, { n: 'C 택스', d: '월 기장료를 공개하고 있습니다.' }],
+        swap: { n: 'D 세무법인', d: '비교 글에서 응답이 빠르다고 꼽힙니다.' } },
+      { label: '인테리어', q: '30평 아파트 인테리어 업체 추천해줘', lead: '시공 후기와 목록 사이트를 바탕으로 세 곳입니다.',
+        r: [{ n: 'A 인테리어', d: '30평대 시공 사진 후기가 가장 많습니다.' }, { n: 'B 디자인', d: '견적서를 항목별로 준다는 후기가 있습니다.' }, { n: 'C 리모델링', d: '하자 보수 기간을 계약서에 적는다고 합니다.' }],
+        swap: { n: 'D 공간', d: '최근 맘카페 추천 글에 자주 나옵니다.' } },
+    ];
+    const ENG = [{ name: 'ChatGPT', dot: '#74AA9C' }, { name: 'Claude', dot: '#D97757' }, { name: 'Gemini', dot: '#4E86F5' }];
+    const scene = SCENES[s.ind];
+    const r2 = s.round === 2;
+    const list = r2 ? [scene.r[0], scene.r[1], scene.swap] : scene.r;
+    const items = list.map((x, i) => {
+      const sw = r2 && i === 2;
+      return { n: x.n, d: x.d, rank: i + 1, nameFg: sw ? '#B7791F' : '#0E1B2E', rkBd: sw ? '#B7791F' : '#D9E1EC', rkFg: sw ? '#B7791F' : '#566378' };
+    });
+    const inds = SCENES.map((x, i) => {
+      const on = i === s.ind;
+      return { label: x.label, bg: on ? '#FFFFFF' : 'rgba(255,255,255,0.06)', fg: on ? '#0A1A33' : '#EEF3FB', bd: on ? '#FFFFFF' : 'rgba(255,255,255,0.22)', pick: () => this.setState({ ind: i, round: 1 }) };
+    });
+    const engines = ENG.map((x, i) => {
+      const on = i === s.eng;
+      return { name: x.name, dot: x.dot, bg: on ? '#FFFFFF' : 'transparent', fg: on ? '#0E1B2E' : '#8592A6', pick: () => this.setState({ eng: i, round: 1 }) };
+    });
+
+    const TABS = ['지금 불리고 있나', '왜 안 나오나', '고친 게 먹혔나'];
+    const tabs = TABS.map((t, i) => ({ t, bg: i === s.tab ? '#0A1A33' : '#FFFFFF', fg: i === s.tab ? '#FFFFFF' : '#0E1B2E', bd: i === s.tab ? '#0A1A33' : '#D9E1EC', pick: () => this.setState({ tab: i }) }));
+    const bars = [['A사', 9], ['B사', 8], ['C사', 8], ['D사', 4], ['이 회사', 3]].map(([name, n], i) => ({ name, n, w: Math.round((n / 15) * 100) + '%', fill: i === 4 ? accent : '#C7D6EE', fw: i === 4 ? '800' : '500', fg: i === 4 ? accent : '#566378' }));
+
+    const SITES = [
+      { t: '홈페이지 없음', d: '블로그만 있거나 못 쓰는 사이트', cost: 250 },
+      { t: '홈페이지 있음', d: 'AI 가 읽게 손봐야 하는 사이트', cost: 80 },
+      { t: '진단 통과', d: '이미 AI 가 읽는 사이트', cost: 0 },
+    ];
+    const opt = (on) => ({ bd: on ? accent : '#D9E1EC', bg: on ? '#EEF4FD' : '#FFFFFF', ring: on ? accent : '#B8C4D6', dot: on ? accent : '#FFFFFF' });
+    const sites = SITES.map((x, i) => Object.assign({ t: x.t, d: x.d, costLabel: x.cost ? x.cost + '만원' : '0원', cf: i === s.site ? accent : '#2F3E54', pick: () => this.setState({ site: i }) }, opt(i === s.site)));
+    const PLANS = [{ t: '리포트', price: 39 }, { t: '관리', price: 79 }];
+    const plans = PLANS.map((x, i) => Object.assign({ t: x.t, price: x.price, pick: () => this.setState({ plan: i }) }, opt(i === s.plan)));
+
+    const FAQ = [
+      ['직접 하면 안 되나요?', '기술 세팅은 직접 하실 수 있고 그러시길 권합니다. 어려운 건 AI 4곳에 같은 질문을 여러 번 물어 세는 일과, 경쟁사는 있고 우리만 없는 비교 글을 찾아내는 일입니다.'],
+      ['얼마나 걸리나요?', '사례 학원은 착수 넷째 날 네이버 검색에 사이트가 처음 잡혔고, 여섯째 날 학원 이름 없이 친 지역 검색어에 나오기 시작했습니다. AI 답변에 이름이 붙기까지는 아직 모릅니다.'],
+      ['성과를 보장하나요?', '안 합니다. 대신 어떤 질문을, 어느 AI 에, 몇 번 묻는지를 계약서에 적고 시작할 때 숫자를 남깁니다. 두 달 뒤 같은 방법으로 다시 센 결과를 그대로 드립니다.'],
+      ['그만두면 뭐가 남나요?', '도메인·저장소·호스팅 계정이 전부 고객사 명의라 그대로 남습니다. 최소 약정이 없어서 한 달 단위로 멈출 수 있습니다.'],
+    ];
+    const faqs = FAQ.map(([q, a], i) => {
+      const open = i === s.faq;
+      return { q, a, open, sign: open ? '−' : '+', bd: open ? accent : '#D9E1EC', signFg2: open ? accent : '#8592A6', pick: () => this.setState({ faq: open ? -1 : i }) };
+    });
+
+    return {
+      accent, scene, items, inds, engines,
+      round: s.round, roundFg: r2 ? '#B7791F' : '#566378',
+      verdict: r2 ? '이번에도 없음' : '목록에 없음',
+      footA: r2 ? '같은 질문인데 ' : '예시 화면입니다. 손님은 여기 나온 이름만 봅니다. ',
+      footB: r2 ? '세 번째가 바뀌었습니다.' : '2페이지는 없습니다.',
+      askLabel: r2 ? '처음으로' : '같은 질문 다시 묻기',
+      ask: () => this.setState({ round: r2 ? 1 : 2 }),
+      tabs, bars, tab0: s.tab === 0, tab1: s.tab === 1, tab2: s.tab === 2,
+      sites, plans, plan: PLANS[s.plan],
+      initTotal: SITES[s.site].cost + (s.migrate ? 80 : 0),
+      migBg: s.migrate ? accent : '#C9D3E1', migLeft: s.migrate ? '30px' : '4px',
+      toggleMigrate: () => this.setState({ migrate: !s.migrate }),
+      faqs,
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,84 @@
+{
+  "engine": "claude-code-websearch",
+  "set": "ilog-buyer",
+  "day": "2026-09-11",
+  "note": "Claude Code 의 WebSearch 로 잰 것. 로봇&코딩학원 기준선(manual.claude-code-websearch.json)과 같은 방법이다. 소비자가 보는 ChatGPT·claude.ai 화면과 다르다. 검색을 켜고 답하는 구조는 같지만 엔진 하나, 회차 1회다. 기준선으로만 쓴다. 착수(09.10) 다음 날, 전달 파일 3종이 반영된 상태에서 쟀다.",
+  "measure": "답변이 인용한 출처에 ilog.ai.kr 이 들어갔는가 · 답변에 아이로그가 이름으로 나왔는가",
+  "runs": [
+    {
+      "i": 0, "stage": "discovery",
+      "prompt": "학원 관리 프로그램 추천",
+      "cited_us": false, "mentioned_us": false,
+      "sources": ["talk.cashnote.kr", "help.academy.prompie.com", "blog.bati.ai", "blog.smply.one", "gshk.io", "rallyz.co.kr", "classup.io"],
+      "rivals_named": ["ACA2000", "통통통", "출결버스", "아이엠클래스", "랠리즈", "공선학관"]
+    },
+    {
+      "i": 1, "stage": "discovery",
+      "prompt": "무료 학원관리 프로그램 뭐가 좋아",
+      "cited_us": false, "mentioned_us": false,
+      "sources": ["help.academy.prompie.com", "blog.bati.ai", "eduhub.co.kr", "rallyz.co.kr", "gshk.io", "classup.io", "moneymaster.kr", "on-hi.com"],
+      "rivals_named": ["클래스업", "랠리즈", "공선학관", "통통통", "온하이"],
+      "note": "아이로그는 관리 기능 평생 무료인데 「무료」 질문에서 안 나왔다. 무료라는 사실이 밖의 글에 안 적혀 있다."
+    },
+    {
+      "i": 2, "stage": "feature",
+      "prompt": "학원 출결 학부모 카톡 알림 자동 프로그램",
+      "cited_us": false, "mentioned_us": false,
+      "sources": ["apps.apple.com (학원친구)", "edustaff.co.kr/blog", "attalk.co.kr", "educlick.co.kr", "rallyz.co.kr", "modoocheck.com"],
+      "rivals_named": ["에듀스탭", "출결톡", "모두출첵", "랠리즈", "학원친구"],
+      "note": "아이로그 핵심 기능(등하원 카톡 알림)과 정확히 같은 질문인데 안 나왔다."
+    },
+    {
+      "i": 3, "stage": "feature",
+      "prompt": "학원 수업 리포트 AI가 자동으로 써주는 앱",
+      "cited_us": false, "mentioned_us": false,
+      "sources": ["clipo.ai", "ai-classroom-bora-84234.web.app", "allforyoung.com", "airepoto.com", "threads.com", "apps.apple.com (에이플)"],
+      "rivals_named": ["클리포", "선생님의 책상", "AI레포토"],
+      "note": "학원용 AI 수업 리포트를 내세우는 서비스가 답에 하나도 없다. 비어 있는 자리다."
+    },
+    {
+      "i": 4, "stage": "discovery",
+      "prompt": "소규모 학원 1인 원장 쓸 만한 학원관리 앱",
+      "cited_us": false, "mentioned_us": false,
+      "sources": ["talk.cashnote.kr", "gshk.io", "rallyz.co.kr", "anotherclass.co.kr", "classup.io", "on-hi.com", "hakwonjoa.com"],
+      "rivals_named": ["공선학관", "랠리즈", "어나더클래스", "클래스업", "온하이", "학원조아"]
+    },
+    {
+      "i": 5, "stage": "brand",
+      "prompt": "아이로그 학원관리 프로그램",
+      "cited_us": true, "mentioned_us": true,
+      "sources": ["macgai7.com", "edu-coding.co.kr", "gshk.io", "edugram.co.kr", "rallyz.co.kr", "ilog.ai.kr", "academy.classup.io", "classup.io", "on-hi.com"],
+      "note": "기능(카톡 알림·스태프 공유·AI 문제 생성·인원 무관 요금)을 정확히 설명했다. 출처 제목은 「아이 로그」 — 사이트 제목이 띄어쓰기로 들어가 있다."
+    },
+    {
+      "i": 6, "stage": "brand",
+      "prompt": "ilog.ai.kr 아이로그",
+      "cited_us": true, "mentioned_us": true,
+      "sources": ["saramin.co.kr ((주)아이로그)", "ilog.ai.kr", "kstec.co.kr", "ilog.co.kr", "ilog.kr", "logbase.kr", "en.wikipedia.org"],
+      "name_collision": "(주)아이로그 ilog.co.kr (SI 회사) · ILOG ilog.kr — 같은 이름이 둘 더 있다",
+      "note": "AI 가 스스로 「다른 회사로 보인다」고 구분했다. 도메인을 줘야 구분된다."
+    },
+    {
+      "i": 7, "stage": "comparison",
+      "prompt": "클래스업 랠리즈 말고 다른 학원관리 프로그램 비교",
+      "cited_us": false, "mentioned_us": false,
+      "sources": ["talk.cashnote.kr", "help.academy.prompie.com", "blog.bati.ai", "blog.smply.one", "rallyz.co.kr", "didisam.blog"],
+      "rivals_named": ["통통통", "에듀OK", "랠리즈", "출결버스", "이코딩", "ACA2000", "아이엠클래스"]
+    }
+  ],
+  "summary": {
+    "n": 8,
+    "cited_us": 2,
+    "cited_us_non_brand": 0,
+    "non_brand_n": 6,
+    "mentioned_without_citation": 0,
+    "third_party_surfaces_that_did_get_cited": [
+      "talk.cashnote.kr (캐시노트 — 학원 운영 대표 프로그램 3가지 비교)",
+      "blog.bati.ai (학원 관리 프로그램 8종 비교)",
+      "blog.smply.one (학원 관리 프로그램 추천 리스트 5가지)",
+      "help.academy.prompie.com (오늘학교 고객센터 — 학원 관리 프로그램 글)",
+      "didisam.blog (학원 관리 프로그램 고르는 법)",
+      "moneymaster.kr (학원관리프로그램 무료)"
+    ]
+  }
+}

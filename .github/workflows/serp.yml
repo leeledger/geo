@@ -40,6 +40,13 @@ jobs:
           printf 'DATABASE_URL=%s\n' "$DATABASE_URL" > .env.local
           node scripts/check-index.mjs
 
+      # 고객사마다 다시 진단해 「지금 점수」를 남긴다. 착수 점수만 있으면
+      # 고친 게 먹혔는지 모른다 — 아이로그가 44 → 75 가 된 걸 하루 넘게 몰랐다.
+      - name: 재진단
+        working-directory: academy
+        continue-on-error: true
+        run: node scripts/rescan.mjs
+
       - name: 케이스 리포트 갱신
         working-directory: academy
         run: node scripts/case-report.mjs --out ../web/public/case/academy.html

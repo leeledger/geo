@@ -579,12 +579,12 @@ export default async function Home() {
             </div>
             <div className="cx hi">
               <div className="cxh">
-                <span className="lab2">AI 답변 인용</span>
-                <span className="cxn">아직 모름</span>
+                <span className="lab2">AI 답변 인용 · 첫 기준선</span>
+                <span className="cxn">0 / 8</span>
               </div>
               <p>
-                검색에 올라온 지 며칠 안 돼서 지금 물어보면 AI 가 아직 못 본 상태를 세게 됩니다.
-                <b> 질문 33개를 AI 마다 5번씩 묻는 준비</b>는 끝났습니다. 결과가 0이어도 여기 적습니다.
+                검색을 켠 AI 한 곳에 학부모 질문 8개를 한 번씩 물었습니다. 이 학원 사이트를 출처로 단 답은 <b>0개</b>였습니다.
+                학원 이름이 나온 답은 2개였는데 출처가 <b>학원 목록 사이트</b>였습니다. 질문 33개를 5번씩 묻는 넓은 측정은 준비돼 있습니다.
               </p>
             </div>
           </div>

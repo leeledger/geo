@@ -86,12 +86,15 @@ const isBrandQuery = (q: string) => {
  * 분모가 26 같은 이상한 수가 된다. 실제로 랜딩에 「0/26」이 찍혔다.
  * 한 질의는 어느 엔진에서든 한 번 걸리면 이긴 것으로 본다.
  */
-function rivalTally(rows: { engine: string; query: string; hit: boolean }[]) {
+function rivalTally(rows: { engine: string; query: string; hit: boolean; kind?: string }[]) {
   const rival = new Map<string, boolean>();
   const brand = new Map<string, boolean>();
   for (const r of rows) {
-    const m = isBrandQuery(r.query) ? brand : rival;
-    if (/^site:/i.test(r.query)) continue;         // 색인 확인은 순위가 아니다
+    if (r.kind === "색인" || /^site:/i.test(r.query)) continue;   // 색인 확인은 순위가 아니다
+    // 측정 스크립트가 적어 둔 종류를 믿는다. 학원 이름 조각으로 가르면
+    // 아이로그의 「아이로그 학원」 같은 브랜드 검색이 경쟁 검색으로 세진다.
+    const isBrand = r.kind ? r.kind === "브랜드" : isBrandQuery(r.query);
+    const m = isBrand ? brand : rival;
     m.set(r.query, (m.get(r.query) ?? false) || r.hit);
   }
   return {
@@ -123,6 +126,9 @@ export type Client = {
   /** 착수 시점 사이트 진단 점수. 「고치기 전이 몇 점이었나」를 기억으로 말하지 않는다. */
   baselineScore: number | null;
   baselineOn: string | null;
+  /** 다시 진단한 점수. 착수 점수만 있으면 고친 게 먹혔는지 모른다 (rescan.mjs) */
+  currentScore: number | null;
+  currentOn: string | null;
   /**
    * 자사 · 외부.
    *
@@ -139,7 +145,8 @@ export async function listClients(): Promise<Client[]> {
     const { rows } = await pool().query(
       `select id, slug, name, alias, domain, status,
               started_on::text as started_on, schema_name,
-              baseline_score, baseline_on::text as baseline_on, relation
+              baseline_score, baseline_on::text as baseline_on, relation,
+              current_score, current_on::text as current_on
          from geo.clients
         where status <> 'ended'
         order by started_on, id`,
@@ -150,6 +157,8 @@ export async function listClients(): Promise<Client[]> {
       startedOn: r.started_on, schema: r.schema_name,
       baselineScore: r.baseline_score ?? null,
       baselineOn: r.baseline_on ?? null,
+      currentScore: r.current_score ?? null,
+      currentOn: r.current_on ?? null,
       relation: r.relation ?? "외부",
     }));
   } catch {
@@ -158,7 +167,7 @@ export async function listClients(): Promise<Client[]> {
       id: 1, slug: "robotncoding", name: "로봇&코딩학원",
       alias: "수도권의 코딩·로봇 교육 학원", domain: "robotncoding.com",
       status: "active", startedOn: "2026-09-05", schema: "academy",
-      baselineScore: 83, baselineOn: "2026-09-05", relation: "자사",
+      baselineScore: 83, baselineOn: "2026-09-05", currentScore: null, currentOn: null, relation: "자사",
     }];
   }
 }
@@ -220,7 +229,7 @@ export async function readOps(client?: Client): Promise<Ops> {
 
     const serpDay = await q(`select max(day)::text d from ${S}.serp_checks where ${ME}`);
     const serp = serpDay[0]?.d
-      ? await q(`select engine, query, rank, hit from ${S}.serp_checks
+      ? await q(`select engine, query, kind, rank, hit from ${S}.serp_checks
                   where ${ME} and day = '${serpDay[0].d}'`)
       : [];
 
@@ -247,7 +256,7 @@ export async function readOps(client?: Client): Promise<Ops> {
         (select max(naver_at) from ${S}.posts where ${ME}) as deliver,
         (select max(seen_at) from ${S}.crawl_hits where ${ME}) as crawler,
         (select max(checked_at) from ${S}.serp_checks where ${ME}) as measure,
-        (select max(created) from ${S}.interventions) as next`);
+        (select max(created) from ${S}.interventions where ${ME}) as next`);
 
     const [more] = await q(`
       select

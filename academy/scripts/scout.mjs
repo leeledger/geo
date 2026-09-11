@@ -143,15 +143,41 @@ for (const c of clients) {
   }
 
   // ── 6. 착수 진단 점수가 낮은 채로 방치되는가
+  // 착수 점수만 보면 고쳐 놓은 곳도 계속 「방치」로 뜬다. 지금 점수가 있으면 그걸 본다.
   const [cl] = await q(`
-    select baseline_score s, baseline_on::date b,
-           (current_date - baseline_on::date) age
-      from geo.clients where id = $1`, P).catch(() => [{}]);
+    select coalesce(current_score, baseline_score) s, baseline_score b0,
+           current_on, (current_date - coalesce(current_on, baseline_on)::date) age
+      from geo.clients where id = $1`, P)
+    .catch(() => q(`
+      select baseline_score s, baseline_score b0, null as current_on,
+             (current_date - baseline_on::date) age
+        from geo.clients where id = $1`, P))
+    .catch(() => [{}]);
   if (cl?.s !== null && cl?.s !== undefined && cl.s < 70 && cl.age >= 7) {
     report(`baseline-${c.slug}`, "기회",
-      `${c.name} — 착수 진단 ${cl.s}점인데 ${cl.age}일째 그대로입니다`,
+      `${c.name} — 진단 ${cl.s}점인데 ${cl.age}일째 그대로입니다`,
       "0점 항목은 파일 몇 개면 오릅니다. 손 안 대면 그 아래 단계가 전부 막힙니다.",
       "구조화 데이터·llms.txt·sitemap.xml 부터 채우세요.");
+  }
+
+  // 다시 진단한 지 오래됐는가 — 고친 게 먹혔는지 모르는 채로 다음 일을 정하게 된다
+  if (cl?.current_on !== undefined) {
+    const stale = cl.current_on ? Math.floor((Date.now() - new Date(cl.current_on)) / 86400000) : null;
+    if (stale === null || stale >= 3) {
+      report(`rescan-${c.slug}`, "샘",
+        `${c.name} — ${stale === null ? "다시 진단한 적이 없습니다" : `마지막 진단 ${stale}일 전`}`,
+        "착수 점수만 있으면 고친 뒤 몇 점이 됐는지 모릅니다. 아이로그가 44 → 75 가 된 걸 하루 넘게 몰랐습니다.",
+        `node scripts/rescan.mjs --client ${c.slug}`);
+    }
+  }
+
+  // 측정 기록이 한 줄도 없는가 — 고객사를 받아 놓고 안 재는 상태
+  const [sc] = await q(`select count(*)::int n from academy.serp_checks where client_id = $1`, P).catch(() => [{ n: -1 }]);
+  if (sc.n === 0) {
+    report(`nomeasure-${c.slug}`, "막힘",
+      `${c.name} — 검색 노출을 한 번도 안 쟀습니다`,
+      "기준선이 없으면 나중에 좋아져도 증명을 못 합니다. 고객사를 받은 첫날 할 일입니다.",
+      `academy/clients.mjs 에 검색어를 넣고 node scripts/check-index.mjs --client ${c.slug}`);
   }
 }
 

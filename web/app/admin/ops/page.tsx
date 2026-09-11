@@ -508,6 +508,7 @@ export default async function OpsPage({
             <span className="meta">
               {client.domain} · 착수 {client.startedOn.slice(5).replace("-", ".")}
               {client.baselineScore !== null && ` · 착수 진단 ${client.baselineScore}점`}
+              {client.currentScore !== null && ` → 지금 ${client.currentScore}점`}
             </span>
             {/*
               자사 레퍼런스는 정해진 순서다 — 레퍼런스 증명 → 도메인 → 영업.

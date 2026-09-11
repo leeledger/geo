@@ -1,0 +1,282 @@
+{
+  "origin": "https://ilog.ai.kr",
+  "scanned_at": "2026-09-11T02:03:22.569Z",
+  "total": 75,
+  "grade": "보통",
+  "platform": {
+    "id": "nextjs",
+    "name": "Next.js",
+    "kind": "프레임워크",
+    "rootFile": "yes",
+    "schema": "yes",
+    "publish": "medium",
+    "owner": "개발팀",
+    "note": "기술적으로는 전부 가능합니다. 다만 배포 절차를 타므로 콘텐츠 발행 경로(CMS 연동 여부)를 확인하세요.",
+    "evidence": "/_next/static/"
+  },
+  "checks": {
+    "crawler": {
+      "score": 98,
+      "bots": [
+        {
+          "id": "OAI-SearchBot",
+          "label": "ChatGPT 검색",
+          "weight": 3,
+          "allowed": true,
+          "basis": "명시 그룹",
+          "explicit": true
+        },
+        {
+          "id": "ChatGPT-User",
+          "label": "ChatGPT 사용자요청",
+          "weight": 3,
+          "allowed": true,
+          "basis": "명시 그룹",
+          "explicit": true
+        },
+        {
+          "id": "PerplexityBot",
+          "label": "Perplexity",
+          "weight": 3,
+          "allowed": true,
+          "basis": "명시 그룹",
+          "explicit": true
+        },
+        {
+          "id": "Perplexity-User",
+          "label": "Perplexity 사용자",
+          "weight": 2,
+          "allowed": true,
+          "basis": "명시 그룹",
+          "explicit": true
+        },
+        {
+          "id": "ClaudeBot",
+          "label": "Claude",
+          "weight": 3,
+          "allowed": true,
+          "basis": "명시 그룹",
+          "explicit": true
+        },
+        {
+          "id": "Googlebot",
+          "label": "구글 색인",
+          "weight": 3,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        },
+        {
+          "id": "Bingbot",
+          "label": "Bing/Copilot",
+          "weight": 2,
+          "allowed": true,
+          "basis": "명시 그룹",
+          "explicit": true
+        },
+        {
+          "id": "Yeti",
+          "label": "네이버",
+          "weight": 2,
+          "allowed": true,
+          "basis": "명시 그룹",
+          "explicit": true
+        },
+        {
+          "id": "GPTBot",
+          "label": "OpenAI 학습",
+          "weight": 1,
+          "allowed": true,
+          "basis": "명시 그룹",
+          "explicit": true
+        },
+        {
+          "id": "Google-Extended",
+          "label": "Gemini 학습",
+          "weight": 1,
+          "allowed": true,
+          "basis": "명시 그룹",
+          "explicit": true
+        },
+        {
+          "id": "CCBot",
+          "label": "Common Crawl",
+          "weight": 1,
+          "allowed": true,
+          "basis": "* 그룹",
+          "explicit": false
+        }
+      ],
+      "blocked": []
+    },
+    "llmstxt": {
+      "score": 80,
+      "exists": true,
+      "bytes": 2018,
+      "sections": 6,
+      "hasEntity": false
+    },
+    "sitemap": {
+      "score": 100,
+      "exists": true,
+      "urls": 4
+    },
+    "ssr": {
+      "score": 70,
+      "avgTextLen": 1263,
+      "textRatio": 0.0322,
+      "thinPages": 1,
+      "totalPages": 3
+    },
+    "schema": {
+      "score": 82,
+      "pagesWithLd": 3,
+      "totalPages": 3,
+      "types": [
+        "SoftwareApplication",
+        "Offer",
+        "Audience",
+        "Organization",
+        "ContactPoint",
+        "WebSite",
+        "FAQPage",
+        "Question",
+        "Answer"
+      ],
+      "matched": [
+        "Organization",
+        "WebSite",
+        "FAQPage"
+      ],
+      "invalid": 0
+    },
+    "chunk": {
+      "score": 51,
+      "paragraphs": 31,
+      "listItems": 33,
+      "inBand": 13,
+      "bandRate": 41.9,
+      "tooLong": 0,
+      "vagueSubjects": 0
+    },
+    "patterns": {
+      "score": 36,
+      "questionHeadings": 0,
+      "numericFacts": 7,
+      "pagesWithTable": 0,
+      "pagesWithList": 3,
+      "pagesWithMeta": 3
+    }
+  },
+  "pages": [
+    {
+      "url": "https://ilog.ai.kr",
+      "ok": true,
+      "textLen": 1486,
+      "htmlLen": 42840,
+      "textRatio": 0.03468720821661998,
+      "ldCount": 1,
+      "ldInvalid": 0,
+      "types": [
+        "SoftwareApplication",
+        "Offer",
+        "Audience",
+        "Organization",
+        "ContactPoint",
+        "WebSite",
+        "FAQPage",
+        "Question",
+        "Answer"
+      ],
+      "paras": 13,
+      "items": 12,
+      "inBand": 4,
+      "tooLong": 0,
+      "headings": 8,
+      "qHeadings": 0,
+      "vague": 0,
+      "hasNumbers": 3,
+      "hasTable": false,
+      "hasList": true,
+      "lang": "ko",
+      "title": "아이 로그",
+      "desc": "부모님과 소통하는 우리 아이 성장 기록, 아이 로그"
+    },
+    {
+      "url": "https://ilog.ai.kr/",
+      "ok": true,
+      "textLen": 1486,
+      "htmlLen": 42840,
+      "textRatio": 0.03468720821661998,
+      "ldCount": 1,
+      "ldInvalid": 0,
+      "types": [
+        "SoftwareApplication",
+        "Offer",
+        "Audience",
+        "Organization",
+        "ContactPoint",
+        "WebSite",
+        "FAQPage",
+        "Question",
+        "Answer"
+      ],
+      "paras": 13,
+      "items": 12,
+      "inBand": 4,
+      "tooLong": 0,
+      "headings": 8,
+      "qHeadings": 0,
+      "vague": 0,
+      "hasNumbers": 3,
+      "hasTable": false,
+      "hasList": true,
+      "lang": "ko",
+      "title": "아이 로그",
+      "desc": "부모님과 소통하는 우리 아이 성장 기록, 아이 로그"
+    },
+    {
+      "url": "https://ilog.ai.kr/features",
+      "ok": true,
+      "textLen": 816,
+      "htmlLen": 29887,
+      "textRatio": 0.027302840699969886,
+      "ldCount": 1,
+      "ldInvalid": 0,
+      "types": [
+        "SoftwareApplication",
+        "Offer",
+        "Audience",
+        "Organization",
+        "ContactPoint",
+        "WebSite",
+        "FAQPage",
+        "Question",
+        "Answer"
+      ],
+      "paras": 5,
+      "items": 9,
+      "inBand": 5,
+      "tooLong": 0,
+      "headings": 5,
+      "qHeadings": 0,
+      "vague": 0,
+      "hasNumbers": 1,
+      "hasTable": false,
+      "hasList": true,
+      "lang": "ko",
+      "title": "아이 로그",
+      "desc": "부모님과 소통하는 우리 아이 성장 기록, 아이 로그"
+    }
+  ],
+  "notes": [
+    {
+      "pri": 2,
+      "msg": "질문형 제목이 하나도 없습니다. 사람이 AI에게 묻는 문장을 그대로 제목으로 쓰세요"
+    },
+    {
+      "pri": 3,
+      "msg": "Next.js 감지 — 기술적으로는 전부 가능합니다. 다만 배포 절차를 타므로 콘텐츠 발행 경로(CMS 연동 여부)를 확인하세요."
+    }
+  ]
+}

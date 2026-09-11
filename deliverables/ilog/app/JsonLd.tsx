@@ -26,7 +26,14 @@ const DATA = {
       "@type": "SoftwareApplication",
       "@id": "https://ilog.ai.kr/#app",
       name: "아이로그",
-      alternateName: ["iLog", "아이 로그", "아이로그 학원관리"],
+      alternateName: ["iLog", "아이 로그", "아이로그 학원관리", "아이로그 학원 관리 프로그램"],
+      /**
+       * 같은 이름이 둘 더 있다 — (주)아이로그(ilog.co.kr, SI 회사), ILOG(ilog.kr).
+       * 네이버에서 「아이로그」를 치면 첫 화면이 전부 그쪽이고, AI 도 도메인을 줘야 구분했다.
+       * 구분하는 문장을 기계가 읽는 자리에 한 번 적어 둔다.
+       */
+      disambiguatingDescription:
+        "ilog.ai.kr 의 학원 운영 관리 프로그램입니다. (주)아이로그(ilog.co.kr)·ILOG(ilog.kr)와는 다른 서비스입니다.",
       applicationCategory: "BusinessApplication",
       applicationSubCategory: "학원 운영 관리",
       operatingSystem: "Web",
