@@ -3,35 +3,49 @@
 
 ---
 
-## Step 5 — [보안 2] 승인한 리포트만 공유되고, 공개 응답은 보기 화면이 쓰는 필드만 (KG-11, KG-12)
+## Step 6 — 아이로그 약관·결제 화면을 실제 요금 구조에 맞춘다 (KG-1, 무제한 패스 범위)
 
 저장소: `C:\dev\자동피드백생성기` (아이로그, main 작업 트리).
 
 ### 지금 문제 (Arch 확인, 2026-09-12)
-- **KG-12** `app/api/reports/[id]/generate-token/route.ts:31-63` — 작성자·원장·반 담당만 확인하고 `is_approved` 를 안 본다. 화면(`app/dashboard/reports/[id]/page.tsx:167`)은 승인 전 공유를 막는데 API 로 부르면 발급된다
-- **KG-11** `app/api/reports/[id]/public/route.ts:18-31,133-139` — `fr.*` 를 가져와 세 필드만 빼고(denylist) 나머지(`teacher_id`·`academy_id`·`pdf_path`·`sent_to_parent`·`teacher_edited` 등)를 그대로 보낸다. 컬럼이 늘면 자동으로 공개된다
+- **약관 제6조**(`app/terms/page.tsx:115-128`) 「학생 수 기반의 종량제」「선불 30일 이용권」「납부 지연 시 이용 제한」 — 코드와 다르다. 실제: 기본 관리 무료(`app/api/students/limit-check/route.ts:4-15`, `lib/auth-helpers.ts:11-19`), 학부모 알림은 건당 선불 발송 잔액 차감(`lib/services/attendance-service.ts:17-20,215`), AI 는 크레딧 차감(`lib/ai/credit-costs.ts`) 또는 월 정액 AI 무제한 이용권(`components/billing/AiCreditCharge.tsx:83-88`, `app/api/billing/confirm/route.ts:67`). 제9조·탈퇴 조항에도 「요금 납부를 지연한 경우」(:210), 「미납 요금이 있는 경우 탈퇴 전에 정산」(:228)
+- **결제 화면**(`components/billing/AiCreditCharge.tsx`)
+  - `:114` 예상 문제 잔액 환산을 `/ 300`, `:147` 「예상 문제 생성 건당 300P」, `:151` 「문항 재출제 건당 50P」 — deprecated 단가. 실제는 문항당 20P, 재출제 20P(`credit-costs.ts:9-13`, `app/api/exams/route.ts:148,270-271`)
+  - `:283` 무제한 이용권 「한 달간 횟수 제한 없이 AI 기능을 자유롭게」 — 예상 문제 출제·재출제는 패스와 무관하게 차감(`lib/ai/billing.ts:8-9`, `deductAiCreditForced`)
+  - `:121` 만료일이 없으면 「무제한 활성 (~평생)」 — 증명할 수 없는 영구 표기
 
 ### Decisions (원장 위임으로 Arch 결정, 2026-09-12)
-- 토큰 발급은 **승인한 리포트만**. 조건은 content route 와 같은 `CAST(is_approved AS text) IN ('1','t','true')`. 아니면 403 `{ error: '승인한 리포트만 공유할 수 있습니다.' }`. 이미 발급된 유효 토큰 재사용 분기도 승인 확인 뒤에 둔다
-- 열람(`lib/reports/view-access.ts`)의 토큰 경로는 이번에 바꾸지 않는다 — 발급을 막으면 새로 생기지 않고, 이미 나간 링크를 깨지 않는다
-- 공개 응답은 **allowlist**. 기준은 보기 화면 `app/reports/[id]/view/ReportViewClient.tsx:30-45` `interface Report` 가 쓰는 필드: `id, student_id, student_name, student_grade, teacher_name, period_start, period_end, report_type, summary, academy_name, activities, activity_count, axes, prev_axes`. 이 밖에 보기 화면이 실제로 읽는 필드가 있으면(grep `report\.`) 목록에 넣고 요청서에 적는다
-- `activities` 항목도 보기 화면 `interface Activity`(18-28) 필드로 좁힌다 — `group_id` 등 내부 값은 뺀다(보기 화면이 안 쓰면)
-- `PRIVATE_REPORT_FIELDS` denylist 는 지운다 (allowlist 하나로)
-- SQL 은 그대로 둬도 되지만, 응답을 만드는 곳에서 allowlist 로만 조립한다
+- 무제한 패스에서 예상 문제 출제·재출제 제외는 **의도한 정책으로 둔다**(billing.ts 주석이 명시). 대신 결제 화면·약관에 분명히 적는다
+- 결제 화면 단가·환산은 `AI_COSTS` 상수에서 가져온다(이미 클라이언트 안전 파일). 예상 문제는 「문항당 20P」「약 N문항」, 재출제 「문항당 20P」
+- `:283` 문구 → 「한 달간 수업 피드백·리포트·기출 분석을 횟수 제한 없이 씁니다. 예상 문제 출제·재출제는 문항당 20P 가 따로 차감됩니다.」(뜻이 같으면 문장은 다듬어도 됨)
+- `:121` 만료일 없음 → 「무제한 활성」만 (날짜 괄호 없이)
+- **약관 개정** (이용자에게 유리한 변경):
+  - 제5조 서비스 목록은 그대로 두되 「학생 출결 기록 및 학부모 알림 발송」「AI 영어 시험 출제」를 더한다(코드에 있는 기능만)
+  - 제6조를 바꾼다:
+    1. 학생 정보·출결 기록·반 관리 등 기본 관리 기능은 학생 수와 관계없이 무료로 제공합니다.
+    2. 학부모 알림(알림톡·문자) 발송은 건당 요금이 부과되며, 이용자가 미리 충전한 발송 잔액에서 차감됩니다. 건당 요금은 서비스 화면에 표시합니다.
+    3. AI 기능은 기능별로 정한 AI 크레딧이 차감되거나, 월 정액 AI 무제한 이용권으로 이용할 수 있습니다. 이용권 요금은 재원생 수 구간에 따르며 결제일부터 1개월간 적용됩니다. 예상 문제 출제·재출제는 이용권과 관계없이 크레딧이 차감됩니다. 기능별 단가는 서비스 화면에 표시합니다.
+    4. 충전과 이용권 결제는 선불입니다. 잔액이 부족하면 해당 발송·AI 기능이 실행되지 않습니다.
+  - 「요금 납부를 지연한 경우」(:210)와 「미납 요금이 있는 경우 탈퇴 전에 정산」(:228)은 선불 구조와 맞지 않아 삭제
+  - 환불 조항은 **새로 만들지 않는다** — 근거가 되는 환불 정책이 코드·문서에 없다(지어내지 않는다). Known Gap 으로
+  - 부칙: 「본 약관은 2025년 12월 18일부터 시행됩니다.」를 남기고 「개정 약관은 2026년 9월 19일부터 시행됩니다. (2026년 9월 12일 공지)」를 더한다 — 제3조의 공지 절차에 맞춰 7일 전 공지
+  - 약관 페이지 맨 위에 개정 안내 한 줄: 「2026년 9월 12일 약관 제5조·제6조를 실제 요금 구조에 맞게 개정했습니다. 2026년 9월 19일부터 시행합니다.」 (앱에 공지사항 기능이 코드에서 확인되지 않아, 약관 화면 자체에 공지)
 
 ### Build Order
-1. `generate-token/route.ts` — SELECT 에 `fr.is_approved`, 권한 확인 뒤 승인 확인
-2. 보기 화면이 읽는 필드 grep → allowlist 확정
-3. `public/route.ts` — allowlist 로 응답 조립, activities 도 좁힘
-4. `npm run build`
+1. `components/billing/AiCreditCharge.tsx` — `:111-114` 환산, `:133-152` 단가표, `:283` 이용권 문구, `:121` 평생 표기
+2. `app/terms/page.tsx` — 개정 안내, 제5조 항목, 제6조, `:210`, `:228`, 부칙
+3. `npm run build`
 
 ### Flags
-- Flag: 대시보드 공유 버튼 흐름(`dashboard/reports/[id]/page.tsx:160-190`)이 403 을 받았을 때 사용자에게 뜻이 통하는 문구가 뜨는지 확인 (화면이 이미 승인 전엔 막으니 보통 안 온다)
-- Flag: PDF·다운로드 라우트(인증 필요)는 건드리지 않는다
-- Flag: 실제 데이터 호출·DB 스키마 변경·커밋·푸시·배포 금지
+- Flag: 결제·차감 로직은 바꾸지 않는다. 화면 문구와 약관만
+- Flag: 개인정보처리방침은 이번 범위 밖
+- Flag: 커밋·푸시·배포 금지
 
 ### Definition of Done
-- [ ] 미승인 리포트에 토큰 발급 403 (코드 경로), 승인 리포트는 기존대로
-- [ ] 공개 응답 키가 allowlist 뿐 (activities 항목 포함)
-- [ ] 보기 화면이 쓰는 필드가 빠지지 않음 (grep 근거)
+- [ ] 결제 화면에 300P·50P(예상 문제·재출제)·「평생」 없음, 단가가 `AI_COSTS` 에서 옴
+- [ ] 이용권 문구에 예상 문제 별도 차감이 보임
+- [ ] 약관 제6조가 위 네 항, 납부 지연·미납 정산 문구 없음, 부칙·상단 개정 안내
 - [ ] `npm run build` 성공
+
+### Known Gaps 로 넘길 것
+- 환불 정책 부재 (충전 잔액·이용권 환불 기준)

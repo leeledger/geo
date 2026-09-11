@@ -102,6 +102,11 @@ probe/
   값은 파일로 넘기고(`vercel env add X production < file`), 넣은 뒤 `env pull` 로 길이를 확인한다
 - **gh 계정이 `codeis8520-ctrl` 로 되돌아간다.** 푸시 전 `gh auth switch --user leeledger`
 - 네이버 에디터에서 고쳐 쓸 때 본문 컴포넌트를 누르고 `Ctrl+A` **두 번**
+- **`node_modules` 를 정션(junction)으로 걸어 두고 그 폴더를 지우면 원본이 날아간다.**
+  git worktree 를 만들어 `mklink /J node_modules` 로 연결했다가 `git worktree remove --force` 를 했더니
+  본 저장소의 `node_modules` 가 통째로 지워졌다(2026-09-12, 아이로그). 병렬 작업 트리는 의존성을 따로 설치하거나,
+  Turbopack 이 정션을 거부하니 아예 한 트리에서 차례로 한다
+- **네이버 서치어드바이저의 소유확인·RSS 제출은 캡차가 뜬다.** 우회하지 않는다 — 사람이 10초 안에 끝낸다
 - **DB 시각은 UTC 로 나온다.** `toISOString()`·`toLocaleString()` 에 `timeZone: "Asia/Seoul"` 을 안 주면
   GitHub Actions 러너에서 UTC 로 찍힌다. 첫 크롤러 방문 00:49(KST)가 「오후 3시 49분」으로 랜딩·리포트에 나가 있었다
 - **고객사를 추가하면 `academy/clients.mjs` 에 한 덩어리 넣는다.** 표에 client_id 만 만들고 스크립트를 안 고치면

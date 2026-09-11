@@ -5,7 +5,7 @@
 
 ## Current Status
 
-**Active step:** 5 — [보안 2] 승인한 리포트만 토큰 발급 · 공개 응답 allowlist (KG-11, KG-12)
+**Active step:** 없음 — Step 1~7 배포 완료. 남은 것은 Step 8(네이버 소유확인 캡차 = 사람 일)과 Known Gaps 잔여분, 학원 주간 발행
 **Last cleared:** Step 0 — 2026-09-11 (설치 이전 작업 기록)
 **Pending deploy:** NO
 
@@ -121,6 +121,53 @@ Decisions made:
 Reviewer findings: Bob 이 이식 중 세션 한도로 중단 → Arch 가 마무리·자체 점검(1440·390 시안 대조, 가로 넘침 0, 빠진 구역 0, 특허·평생무료 0). 리뷰어 한도 풀리면 `git show 9dcbf24` 재검토
 Deploy: confirmed 2026-09-12 — `npx vercel --prod`. 운영 홈 200, 4단계·요금 구역 확인, 특허 0건, 기능 페이지 「사진만 올리면」 0건
 
+### Step 5 — [보안 2] 승인한 리포트만 토큰 발급 · 공개 응답 allowlist (KG-11, KG-12) — COMPLETE
+*Date: 2026-09-12*
+
+아이로그 커밋(아래 Deploy). Bob·Richard 는 세션 한도로 못 돌아 Arch 가 짓고 자체 점검했다.
+
+Files changed:
+- `app/api/reports/[id]/generate-token/route.ts` — SELECT 에 `fr.is_approved`, 권한 확인 뒤 승인 확인(미승인 403 「승인한 리포트만 공유할 수 있습니다.」)
+- `app/api/reports/[id]/public/route.ts` — denylist → allowlist. 리포트 10개 필드 + 활동 9개 필드만. `pick()` 헬퍼
+
+Decisions made:
+- allowlist 기준은 보기 화면이 실제로 읽는 값 (`ReportViewClient.tsx` 를 grep: 이름·기간·요약·수업 횟수·활동·축·직전 축)
+- `student_id`·`teacher_id`·`academy_id`·`pdf_path`·`sent_to_parent`·`teacher_edited` 는 응답에서 빠진다
+- 열람 판단(view-access)의 토큰 경로는 그대로 — 발급을 막으면 새 링크가 안 생기고 기존 링크는 안 깨진다
+
+Reviewer findings: (한도 풀리면 커밋 diff 재검토)
+Deploy: confirmed 2026-09-12 — 아이로그 커밋 e7fa3db, `npx vercel --prod`. 운영에서 실제 리포트 id 로 토큰 없음 403 · 틀린 토큰 403 · 없는 id 404 (응답 본문은 받지 않음)
+
+### Step 6 — 약관·결제 화면을 실제 요금 구조에 맞춤 (KG-1) — COMPLETE
+*Date: 2026-09-12*
+
+Files changed: `app/terms/page.tsx`(상단 개정 안내·제5조 목록·제6조 4항·제10조/제11조 정리·부칙), `components/billing/AiCreditCharge.tsx`(AI_COSTS 단가·환산, 「평생」 표기 제거, 이용권 설명에 예상 문제 별도 차감)
+
+Decisions made:
+- 무제한 패스에서 예상 문제 출제 제외는 의도된 정책으로 둔다 (`lib/ai/billing.ts:8-9` 주석) — 대신 화면·약관에 적는다
+- 환불 조항은 근거가 없어 새로 만들지 않는다 → KG-17
+- 약관 개정은 이용자에게 유리한 변경. 제3조 공지 절차대로 9.12 공지·9.19 시행으로 적었다
+
+Reviewer findings: (한도 풀리면 커밋 diff 재검토)
+Deploy: confirmed 2026-09-12 — 아이로그 커밋 dfe9bc0. 운영 `/terms` 200, 개정 안내 보임, 「종량제」·「납부를 지연」 0건
+
+### Step 7 — 기출 분석을 Claude Vision 으로 · 실패 시 환불 (KG-16) · 에이전트 챗 모델 (KG-3) — COMPLETE
+*Date: 2026-09-12*
+
+Files changed:
+- `lib/ai/claude-client.ts` — `analyzeExamPaper` 추가 (Claude Vision, 5장씩 배치, base64 앞부분으로 mime 판별, JSON 파싱·코드펜스 제거). 출력 모양은 기존 저장 코드와 동일
+- `app/api/exams/route.ts` — 분석 호출을 claudeClient 로, 실패 시 `chargeAiCredit` 로 100P 환불 + `ai_analysis_status='failed'` + 원본 이미지 유지 + 사용자 문구(502)
+- `lib/ai/groq-client.ts` — 기존 `analyzeExamPaper` 에 @deprecated
+- `app/api/agent/chat/route.ts` — 기본 모델 `openai/gpt-oss-120b`, 허용 목록을 9.12 조회 결과로
+
+Decisions made:
+- Groq 모델 목록을 직접 조회해서 판단했다(비전 0개, llama-3.3·llama-3.1 없음). 추측하지 않는다
+- 실패해도 원본 base64 를 지우지 않는다 — 지우면 재시도가 불가능해진다
+- 실제 Claude 호출 시험은 하지 않았다(과금·저작권 이미지). 다음에 원장이 기출을 올리면 그때 확인한다
+
+Reviewer findings: (한도 풀리면 커밋 diff 재검토)
+Deploy: confirmed 2026-09-12 — 아이로그 커밋 1d18f79. 운영 `/` `/terms` `/guide` 200
+
 ---
 
 ## Known Gaps
@@ -141,7 +188,8 @@ Deploy: confirmed 2026-09-12 — `npx vercel --prod`. 운영 홈 200, 4단계·�
 - **KG-13** — 아이로그 수납 안내 알림톡이 실제로 안 나간다. 수납 안내 템플릿이 등록돼 있지 않다. Step 3 에서 라우트(`tuition/invoices/[id]/send/route.ts`)가 「보내지 않았다」고 답하게만 고침. 보내려면 템플릿 등록 → `sendOneMessage`(ALIMTALK, pfId·templateId) 연결 → `students.tuition_alimtalk_enabled` 확인 → `sent_method` 기록. 지금은 이 라우트를 부르는 화면이 없다 — logged 2026-09-12 (Bob)
 - **KG-14** — 아이로그 `lib/services/attendance-service.ts:7-20` 이 단가 상수(17·22·55·1.1)와 바이트 계산을 따로 갖고 있다. 지금은 `message-cost.ts` 와 값이 같다. 단가를 바꿀 때 두 곳을 고쳐야 한다 — 출결 알림 경로라 Step 3 에서 안 건드림 — logged 2026-09-12 (Bob)
 - **KG-15** — 아이로그 `lib/services/message-service.ts:122-128,226-229` 잔액 확인과 차감이 다른 쿼리라 동시에 보내면 잔액이 음수가 될 수 있다. 또 솔라피 성공 뒤 잔액 UPDATE 가 던지면 보낸 문자가 실패로 집계된다 — 발송 경로 전체(출결·단체·에이전트)가 이 함수를 쓴다. 조건부 UPDATE(`WHERE alimtalk_balance >= $1`) + 반환 행 확인으로 묶어야 한다 — logged 2026-09-12 (Richard)
-- **KG-16** — [운영 장애] 아이로그 기출 분석이 단종 모델로 실패하고 크레딧 100P 가 환불되지 않는다. Groq 모델 목록(9.12 조회)에 `meta-llama/llama-4-scout-17b-16e-instruct` 없음 — 비전 모델 자체가 없다 (`lib/ai/groq-client.ts:287`, `app/api/exams/route.ts:62-116`). 「학교별 기출 → 예상 문제」 전체가 막힌다 — **Step 7** — logged 2026-09-12 (Arch)
+- **KG-17** — 아이로그에 환불 정책이 없다. 충전 잔액·AI 무제한 이용권의 환불 기준이 코드·문서 어디에도 없어 약관 개정(Step 6)에서 환불 조항을 새로 만들지 않았다 — 원장이 기준을 정하면 약관에 넣는다 — logged 2026-09-12 (Arch)
+- **KG-16** — [해결됨 · Step 7] 아이로그 기출 분석이 단종 모델로 실패하고 크레딧 100P 가 환불되지 않는다. Groq 모델 목록(9.12 조회)에 `meta-llama/llama-4-scout-17b-16e-instruct` 없음 — 비전 모델 자체가 없다 (`lib/ai/groq-client.ts:287`, `app/api/exams/route.ts:62-116`). 「학교별 기출 → 예상 문제」 전체가 막힌다 — **Step 7** — logged 2026-09-12 (Arch)
 
 ## Decisions — Step 1 리뷰 후 (Arch, 2026-09-11)
 - 리뷰에서 나온 제품 결함(KG-6~9)은 원장 몫이 아니라 사이티드가 고친다 — 원장 지시 「찾았으면 고쳐라」. 보안(KG-6)이 먼저
