@@ -3,50 +3,35 @@
 
 ---
 
-## Step 3 — 아이로그 발송이 말과 돈이 맞게 한다 (KG-7, KG-8, KG-9)
+## Step 5 — [보안 2] 승인한 리포트만 공유되고, 공개 응답은 보기 화면이 쓰는 필드만 (KG-11, KG-12)
 
-저장소: `C:\dev\자동피드백생성기`.
+저장소: `C:\dev\자동피드백생성기` (아이로그, main 작업 트리).
 
-### 지금 문제 (Arch 확인, 2026-09-11)
-- **KG-8 에이전트 문자 두 개가 잔액을 안 빼고, 플랫폼 번호로 나간다**
-  - `lib/agent/tools.ts:1668-1716` `sendTuitionInvoice` — `a.solapi_sender || process.env.SOLAPI_SENDER` 로 발신, `sendSMS` 직접 호출, 차감·로그 없음
-  - `lib/agent/tools.ts:1768-1818` `sendSmsToParents` — 같은 구조. 게다가 `sendSMS` 는 실패해도 던지지 않고 `{ success:false }` 를 돌려주는데(`lib/services/message-service.ts:235-241` 참고) try/catch 로만 세서 실패도 「성공」으로 센다
-  - 정상 경로는 이미 있다: `sendOneMessage(input)` (`lib/services/message-service.ts:141-267`) — 잔액 확인·로그·차감·실패 처리를 다 한다. 발신번호는 `getAcademyMessagingConfig(academyId).senderPhone` (`:375-410`, 컬럼 `alimtalk_sender_phone`)
-- **KG-7 수납 발송 버튼이 안 보내면서 보냈다고 답한다**
-  - `app/api/tuition/invoices/[id]/send/route.ts:53-72` — 상태만 `sent`, `sent_method` 는 `'alimtalk'` 로 기록, 응답 「수납 안내 알림톡이 발송되었습니다.」, `alimtalkSent: true`. 실제 발송 코드는 `:63` TODO
-  - 수납 안내용 알림톡 템플릿이 없어서 지금은 보낼 수 없다
-- **KG-9 설정 화면 건수 계산만 부가세 전 단가**
-  - `app/dashboard/settings/page.tsx:766-772` — `alimtalkBalance / 17`, `/ 22`, 「(17원)」「(22원)」. 실제 차감은 19·24원(`message-service.ts:35-45`, `attendance-service.ts:213`)
-  - 같은 파일 `:799-800` 과 `app/dashboard/attendance/charge/page.tsx:238-240` 의 「건당 17원 (VAT 별도)」는 맞는 말이라 두고 간다
+### 지금 문제 (Arch 확인, 2026-09-12)
+- **KG-12** `app/api/reports/[id]/generate-token/route.ts:31-63` — 작성자·원장·반 담당만 확인하고 `is_approved` 를 안 본다. 화면(`app/dashboard/reports/[id]/page.tsx:167`)은 승인 전 공유를 막는데 API 로 부르면 발급된다
+- **KG-11** `app/api/reports/[id]/public/route.ts:18-31,133-139` — `fr.*` 를 가져와 세 필드만 빼고(denylist) 나머지(`teacher_id`·`academy_id`·`pdf_path`·`sent_to_parent`·`teacher_edited` 등)를 그대로 보낸다. 컬럼이 늘면 자동으로 공개된다
 
-### Decisions
-- 에이전트 두 도구는 `sendOneMessage` 로 보낸다. 채널 `'SMS'`(바이트가 넘으면 서비스가 LMS 로 계산), 발신번호는 `getAcademyMessagingConfig` 의 `senderPhone` 만. **`process.env.SOLAPI_SENDER` 폴백은 없앤다** — 학원 번호가 없으면 「발신번호가 없습니다. 설정에서 등록하세요」 오류
-- 결과는 `sendOneMessage` 의 `success` 로 센다. 응답에 성공·실패 수와 차감 금액 합계를 넣는다. 잔액 부족은 실패로 세고 이유를 보여 준다
-- `messageType` 은 청구서 `'tuition'`, 일반 `'notice'`. `studentId`·`recipientName` 을 채운다. `templateBody` 에 완성된 문장을 넣고 `variables: {}`
-- 수납 발송 라우트는 **보내지 않는 것을 정직하게 말한다.** `sent_method = 'manual'`, 응답 「수납 안내 상태로 바꿨습니다. 알림톡 자동 발송은 아직 지원하지 않으니 학부모 연락은 따로 해 주세요.」, `alimtalkSent: false`. 실제 발송 구현은 템플릿 등록이 필요해 이번 범위 밖(Known Gaps)
-- 설정 화면 건수는 19·24원으로 나누고 「(부가세 포함 19원)」「(부가세 포함 24원)」. 숫자는 `calculateCost` 와 같은 식에서 오게 — 상수를 새로 흩뿌리지 않는다(가능하면 `message-service.ts` 에서 export 된 계산을 쓴다. 클라이언트 번들에 db import 가 딸려 오면 안 되니, 안 되면 한 곳에 상수 파일을 만든다)
-- 에이전트 확인 문구(`app/api/agent/chat/route.ts:312-313`)에 「발송 잔액에서 건당 24원(긴 문자 61원)이 빠집니다」를 붙인다
+### Decisions (원장 위임으로 Arch 결정, 2026-09-12)
+- 토큰 발급은 **승인한 리포트만**. 조건은 content route 와 같은 `CAST(is_approved AS text) IN ('1','t','true')`. 아니면 403 `{ error: '승인한 리포트만 공유할 수 있습니다.' }`. 이미 발급된 유효 토큰 재사용 분기도 승인 확인 뒤에 둔다
+- 열람(`lib/reports/view-access.ts`)의 토큰 경로는 이번에 바꾸지 않는다 — 발급을 막으면 새로 생기지 않고, 이미 나간 링크를 깨지 않는다
+- 공개 응답은 **allowlist**. 기준은 보기 화면 `app/reports/[id]/view/ReportViewClient.tsx:30-45` `interface Report` 가 쓰는 필드: `id, student_id, student_name, student_grade, teacher_name, period_start, period_end, report_type, summary, academy_name, activities, activity_count, axes, prev_axes`. 이 밖에 보기 화면이 실제로 읽는 필드가 있으면(grep `report\.`) 목록에 넣고 요청서에 적는다
+- `activities` 항목도 보기 화면 `interface Activity`(18-28) 필드로 좁힌다 — `group_id` 등 내부 값은 뺀다(보기 화면이 안 쓰면)
+- `PRIVATE_REPORT_FIELDS` denylist 는 지운다 (allowlist 하나로)
+- SQL 은 그대로 둬도 되지만, 응답을 만드는 곳에서 allowlist 로만 조립한다
 
 ### Build Order
-1. `lib/agent/tools.ts` — `sendTuitionInvoice`, `sendSmsToParents` 를 `sendOneMessage` 경유로
-2. `app/api/agent/chat/route.ts:312-313` — 확인 문구에 비용
-3. `app/api/tuition/invoices/[id]/send/route.ts` — 정직한 응답, `sent_method`
-4. 수납 화면이 `alimtalkSent`·`message` 를 어떻게 쓰는지 grep 해서 문구가 어긋나지 않게
-5. `app/dashboard/settings/page.tsx:766-772` — 건수·단가 표기
-6. `npm run build`
+1. `generate-token/route.ts` — SELECT 에 `fr.is_approved`, 권한 확인 뒤 승인 확인
+2. 보기 화면이 읽는 필드 grep → allowlist 확정
+3. `public/route.ts` — allowlist 로 응답 조립, activities 도 좁힘
+4. `npm run build`
 
 ### Flags
-- Flag: `sendOneMessage` 는 알림톡이면 `pfId`·`templateId` 가 필요하다. 이번엔 SMS 만 쓴다
-- Flag: 에이전트 도구는 확인을 거친 뒤 실행되는 쓰기 도구다. 확인 흐름은 바꾸지 않는다
-- Flag: DB 스키마를 바꾸지 않는다
-- Flag: 학부모에게 실제 문자를 보내는 테스트를 하지 않는다. 빌드와 코드 경로로만 확인
+- Flag: 대시보드 공유 버튼 흐름(`dashboard/reports/[id]/page.tsx:160-190`)이 403 을 받았을 때 사용자에게 뜻이 통하는 문구가 뜨는지 확인 (화면이 이미 승인 전엔 막으니 보통 안 온다)
+- Flag: PDF·다운로드 라우트(인증 필요)는 건드리지 않는다
+- Flag: 실제 데이터 호출·DB 스키마 변경·커밋·푸시·배포 금지
 
 ### Definition of Done
-- [ ] 두 에이전트 도구에 `process.env.SOLAPI_SENDER`·직접 `sendSMS` 호출이 없다
-- [ ] 발송 결과 수가 `sendOneMessage().success` 기준이다
-- [ ] 수납 발송 응답이 「발송되었습니다」라고 하지 않는다
-- [ ] 설정 화면 건수가 19·24원 기준이다
+- [ ] 미승인 리포트에 토큰 발급 403 (코드 경로), 승인 리포트는 기존대로
+- [ ] 공개 응답 키가 allowlist 뿐 (activities 항목 포함)
+- [ ] 보기 화면이 쓰는 필드가 빠지지 않음 (grep 근거)
 - [ ] `npm run build` 성공
-
-### Known Gaps 로 넘길 것
-- 수납 안내 알림톡 실제 발송 (템플릿 등록 필요)

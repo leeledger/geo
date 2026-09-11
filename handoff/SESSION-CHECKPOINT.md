@@ -3,7 +3,13 @@
 
 ---
 
-## Where We Stopped
+## Where We Stopped (2026-09-12 갱신)
+
+Step 1·1b·2·3·4 배포 완료 (아이로그 0c1b6d4 · 017f1e7/bf3e03f · 4ca23e8 · 26de039 · 9dcbf24).
+Bob·Richard 에이전트가 세션 한도(12:40 리셋)로 중단돼 Step 3 재작업·Step 4 이식은 Arch 가 마무리했다 — 한도가 풀리면 커밋 diff 로 재검토.
+다음: Step 5(승인한 리포트만 토큰·응답 allowlist) → Step 6(약관·결제 화면) → Step 7(기출 분석 단종 모델·환불, 운영 장애라 우선) → Step 8(네이버 소유확인 캡차는 사람 일).
+
+## 이전 기록
 
 Bob 이 Step 3(아이로그 발송: 에이전트 문자 차감·수납 발송 응답·설정 단가 표시)을 짓는 중. 끝나면 Richard 리뷰 → 커밋 → 배포(`npx vercel --prod`, 다른 작업이 작업 트리에 있으면 worktree 로).
 그다음 Step 4 = 아이로그 랜딩 개편 이식 — 브리프 초안 `handoff/NEXT-BRIEF-step4.md`, 시안 캔버스 https://claude.ai/code/artifact/bf23cf6e-4092-4259-92c6-666ec1d26885
@@ -28,6 +34,8 @@ Bob 이 Step 3(아이로그 발송: 에이전트 문자 차감·수납 발송 �
 - KG-12 → **승인한 리포트만 토큰을 발급**한다. 화면(`dashboard/reports/[id]/page.tsx:167`)이 이미 막는 규칙을 API 에도 — Step 5 (KG-11 응답 allowlist 와 함께)
 - KG-3 에이전트 챗 단종 모델 → 다른 AI 호출과 같은 모델로 교체 — Step 7
 - 아이로그 네이버 서치어드바이저 → 사이티드가 등록·소유확인·사이트맵 제출 — Step 8
+  - 9.12 진행: 소유확인 메타태그 운영 배포 완료(아이로그 커밋 dd26f2d, 운영 HTML 확인). 「소유확인」 누르면 **자동입력 방지 문자(캡차)** 가 떠서 멈춤 — 캡차는 우회하지 않는다
+  - **사람 일(10초)**: 브라우저에서 https://searchadvisor.naver.com/console/verify?site=https%3A%2F%2Filog.ai.kr → 「HTML 태그」 선택 → 소유확인 → 캡차 입력. 끝나면 사이트맵 제출은 사이티드가 이어서 한다
 
 ## 순서
 

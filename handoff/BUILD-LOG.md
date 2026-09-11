@@ -5,7 +5,7 @@
 
 ## Current Status
 
-**Active step:** 3 — 아이로그 발송이 말과 돈이 맞게 한다 (KG-7, KG-8, KG-9) — IN REVIEW
+**Active step:** 5 — [보안 2] 승인한 리포트만 토큰 발급 · 공개 응답 allowlist (KG-11, KG-12)
 **Last cleared:** Step 0 — 2026-09-11 (설치 이전 작업 기록)
 **Pending deploy:** NO
 
@@ -100,8 +100,26 @@ Decisions made:
 - 수납 발송 라우트는 `status` 만 조회. `tuition_alimtalk_enabled`·`parent_phone` 은 안 쓰게 돼서 SELECT 에서 뺌
 - `attendance-service.ts` 는 안 건드림 — 같은 상수·바이트 계산을 따로 갖고 있음 (KG-14)
 
-Reviewer findings: (리뷰 전)
-Deploy: (리뷰 전)
+Reviewer findings: Richard — Must Fix 2(여러 건 문자 결과에 차감액·사유 없음·전원 실패도 성공, 청구서 실패 시 JSON 원문), Should Fix 5. 재작업은 Bob 세션 한도로 중단 → Arch 가 마무리(REVIEW-REQUEST 참조). 리뷰어 한도 풀리면 diff 로 재검토
+Deploy: confirmed 2026-09-12 — 아이로그 커밋 26de039, `npx vercel --prod`. 운영 `/` 200 · `/auth/login` 200. 실제 문자 발송 시험은 안 함(돈이 나간다) — 코드 경로·빌드·타입으로 확인
+
+### Step 4 — 아이로그 랜딩 개편 이식 (원장 지시: 피드백 자동화·관리 편의) — COMPLETE
+*Date: 2026-09-12*
+
+시안 `design/ilog-landing/Main.dc.html`·`Mobile.dc.html` → 아이로그 커밋 9dcbf24.
+
+Files changed:
+- `app/page.tsx` — 전면 재작성(시안 구성). PWA 설치·iOS 안내·standalone 이동·스크롤 진행바 유지
+- `app/features/page.tsx` — 첫 섹션 문구를 코드 사실로(KG-4 해소), 빈 데모 영상 3개 제거
+- `components/features/FeatureSection.tsx` — `video` 선택적, 없으면 영상 칸을 안 그리고 1열로
+
+Decisions made:
+- 「평생 무료」 안 씀 (증명 불가한 영구 약속) → 「기본 관리 무료 · 학생 수 제한 없음」
+- 별도 작업 트리(`C:\dev\ilog-step4`)는 Turbopack 이 node_modules 정션을 거부해 빌드 불가 → main 트리로 옮겨 마무리하고 worktree·브랜치 삭제
+- 확인용 스크린샷은 등장 효과(whileInView) 때문에 빈 화면으로 찍힌다 → CSS 로 전부 보이게 덮어쓰고 촬영
+
+Reviewer findings: Bob 이 이식 중 세션 한도로 중단 → Arch 가 마무리·자체 점검(1440·390 시안 대조, 가로 넘침 0, 빠진 구역 0, 특허·평생무료 0). 리뷰어 한도 풀리면 `git show 9dcbf24` 재검토
+Deploy: confirmed 2026-09-12 — `npx vercel --prod`. 운영 홈 200, 4단계·요금 구역 확인, 특허 0건, 기능 페이지 「사진만 올리면」 0건
 
 ---
 
@@ -122,6 +140,8 @@ Deploy: (리뷰 전)
 - **KG-12** — 승인 전 리포트도 토큰 링크로 열린다. 토큰 발급(`generate-token/route.ts:30-63`)이 승인을 안 보고, 화면(`dashboard/reports/[id]/page.tsx:167`)만 막는다 — 승인 전 공유를 허용할지 원장 정책 — logged 2026-09-11 (Richard)
 - **KG-13** — 아이로그 수납 안내 알림톡이 실제로 안 나간다. 수납 안내 템플릿이 등록돼 있지 않다. Step 3 에서 라우트(`tuition/invoices/[id]/send/route.ts`)가 「보내지 않았다」고 답하게만 고침. 보내려면 템플릿 등록 → `sendOneMessage`(ALIMTALK, pfId·templateId) 연결 → `students.tuition_alimtalk_enabled` 확인 → `sent_method` 기록. 지금은 이 라우트를 부르는 화면이 없다 — logged 2026-09-12 (Bob)
 - **KG-14** — 아이로그 `lib/services/attendance-service.ts:7-20` 이 단가 상수(17·22·55·1.1)와 바이트 계산을 따로 갖고 있다. 지금은 `message-cost.ts` 와 값이 같다. 단가를 바꿀 때 두 곳을 고쳐야 한다 — 출결 알림 경로라 Step 3 에서 안 건드림 — logged 2026-09-12 (Bob)
+- **KG-15** — 아이로그 `lib/services/message-service.ts:122-128,226-229` 잔액 확인과 차감이 다른 쿼리라 동시에 보내면 잔액이 음수가 될 수 있다. 또 솔라피 성공 뒤 잔액 UPDATE 가 던지면 보낸 문자가 실패로 집계된다 — 발송 경로 전체(출결·단체·에이전트)가 이 함수를 쓴다. 조건부 UPDATE(`WHERE alimtalk_balance >= $1`) + 반환 행 확인으로 묶어야 한다 — logged 2026-09-12 (Richard)
+- **KG-16** — [운영 장애] 아이로그 기출 분석이 단종 모델로 실패하고 크레딧 100P 가 환불되지 않는다. Groq 모델 목록(9.12 조회)에 `meta-llama/llama-4-scout-17b-16e-instruct` 없음 — 비전 모델 자체가 없다 (`lib/ai/groq-client.ts:287`, `app/api/exams/route.ts:62-116`). 「학교별 기출 → 예상 문제」 전체가 막힌다 — **Step 7** — logged 2026-09-12 (Arch)
 
 ## Decisions — Step 1 리뷰 후 (Arch, 2026-09-11)
 - 리뷰에서 나온 제품 결함(KG-6~9)은 원장 몫이 아니라 사이티드가 고친다 — 원장 지시 「찾았으면 고쳐라」. 보안(KG-6)이 먼저
