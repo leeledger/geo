@@ -468,10 +468,10 @@ export default async function Home() {
       <section id="services" className="plain">
         <div className="wrap">
           <div className="lab">서비스</div>
-          <h2>넷 중 <span className="hl">필요한 것만</span> 삽니다</h2>
+          <h2>처음부터 <span className="hl">전부 맡기실 필요는</span> 없습니다</h2>
           <p className="sub2">
-            대부분은 측정부터 시작합니다. 나머지는 진단해 본 뒤에 정해도 됩니다.
-            쓸 만한 사이트가 이미 있으면 구축은 필요 없습니다.
+            측정부터 해 보시길 권합니다. 나머지는 결과를 보고 정하시면 됩니다.
+            이미 쓸 만한 홈페이지가 있다면 새로 만들 필요도 없습니다.
           </p>
           <div className="svcs">
             {SERVICES.map((sv) => (
