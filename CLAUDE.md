@@ -1,3 +1,5 @@
+@.claude/skills/token-optimization.md
+
 # 이 저장소에서 일하는 법
 
 1인 기업이다. 사람 손이 적으니 자동화된 것과 사람이 해야 하는 것을 늘 갈라 둔다.
@@ -104,6 +106,16 @@ probe/
   GitHub Actions 러너에서 UTC 로 찍힌다. 첫 크롤러 방문 00:49(KST)가 「오후 3시 49분」으로 랜딩·리포트에 나가 있었다
 - **고객사를 추가하면 `academy/clients.mjs` 에 한 덩어리 넣는다.** 표에 client_id 만 만들고 스크립트를 안 고치면
   아무도 안 잰다 — 아이로그가 하루 넘게 그랬다
+
+## Three Man Team (v1.3.0 · manifest.md)
+
+Available agents: Arch (Architect), Bob (Builder), Richard (Reviewer)
+
+- 세션 시작: `handoff/SESSION-CHECKPOINT.md` → `ARCHITECT.md`. 체크포인트가 없으면 `handoff/BUILD-LOG.md` + `handoff/ARCHITECT-BRIEF.md`
+- 한 줄 수정·오타가 아닌 작업은 Arch 가 `handoff/ARCHITECT-BRIEF.md` 를 쓰고 → Bob(`builder`) 이 짓고 `REVIEW-REQUEST.md` → Richard(`reviewer`) 가 `REVIEW-FEEDBACK.md`
+- 한 번에 한 단계. 단계 밖에서 발견한 문제는 고치지 말고 BUILD-LOG Known Gaps 에 적는다
+- 배포 게이트는 상시 승인(원장 결정) — Richard 통과 + 운영 주소 확인이면 묻지 않고 배포하고 결과를 보고한다
+- 결정은 내리는 즉시 BUILD-LOG 에 적는다. 세션 끝에는 SESSION-CHECKPOINT 를 갱신한다
 
 ## 사람만 할 수 있는 일
 
