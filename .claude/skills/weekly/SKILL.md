@@ -19,8 +19,11 @@ cd tools && node naver-place-check.mjs
 ## 2. 케이스 리포트 갱신
 
 ```
-cd academy && node scripts/case-report.mjs --out ../web/public/case/robotncoding.html
+cd academy && node scripts/case-report.mjs --out ../web/public/case/academy.html
 ```
+
+공개본은 학원 이름·지역·사이트 주소·경쟁 학원·글 주소를 가리고 날짜를 「N일차」로 바꾼다.
+원본이 필요하면 `--private` 로 뽑되 `web/public` 에는 두지 않는다 (스크립트가 막는다).
 
 `serp` 워크플로가 매일 돌리지만, 사람이 한 번은 열어서 읽어 본다.
 **굳은 문장이 없는지** 본다 — 사실이 바뀌었는데 문장이 그대로면 레퍼런스로 못 쓴다.

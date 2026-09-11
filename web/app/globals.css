@@ -222,6 +222,22 @@ header.hero .formnote{color:var(--on-deep-2)}
 .wdelta .d0{color:var(--faint)}
 .wdelta .darrow{color:var(--rule);font-size:16px}
 .wdelta .d1{color:var(--accent)}
+/* 실제 기록 카드 안의 작은 그림 — 회사별 횟수 · 빠진 글 · 고친 이유 */
+.mbars{display:flex;flex-direction:column;gap:8px;width:100%}
+.mbar{display:grid;grid-template-columns:78px minmax(0,1fr) 40px;gap:10px;align-items:center;font-size:13.5px;color:var(--muted)}
+.mbar .t{height:8px;border-radius:5px;background:var(--sunken);overflow:hidden}
+.mbar .t i{display:block;height:100%;width:var(--w);background:color-mix(in srgb,var(--accent) 30%,var(--sunken));border-radius:5px}
+.mbar.me{color:var(--ink);font-weight:700}
+.mbar.me .t i{background:var(--accent)}
+.mbar b{font-weight:600;text-align:right;font-variant-numeric:tabular-nums;color:var(--ink-2)}
+.mbar.me b{color:var(--accent)}
+.docs{display:flex;flex-direction:column;gap:6px;width:100%}
+.doc{display:flex;flex-direction:column;gap:2px;font-size:13.5px;color:var(--ink-2);padding:8px 11px;border-radius:9px;background:var(--sunken);line-height:1.45}
+.doc .yn{font-size:12.5px;color:var(--muted)}
+.doc .yn em{font-style:normal;color:var(--crit);font-weight:700}
+.rec{display:grid;grid-template-columns:34px minmax(0,1fr);gap:6px 10px;margin:0;font-size:13.8px;line-height:1.55;width:100%}
+.rec dt{color:var(--accent);font-weight:700}
+.rec dd{margin:0;color:var(--ink-2)}
 .whyfoot{margin-top:26px;padding:18px 22px;border-left:3px solid var(--accent);background:var(--accent-soft);
   border-radius:0 12px 12px 0;font-size:16.5px;line-height:1.8;color:var(--ink-2);max-width:78ch}
 .whyfoot b{color:var(--ink)}
@@ -300,7 +316,8 @@ section.deep .stat .c{color:var(--on-deep-2)}
 /* ── 도입 사례 ──────────────────────────────────────────
    꾸민 수치가 아니라 서버가 기록한 값만 넣는다.
    구매자는 이미 대행사에 데였고, 예쁜 대시보드 캡처를 믿지 않는다. */
-.case{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;margin-top:44px}
+.case{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:44px}
+@media(max-width:760px){.case{grid-template-columns:minmax(0,1fr)}}
 .cx{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:var(--radius);padding:22px 22px 22px}
 .cx.hi{background:rgba(107,174,255,.09);border-color:rgba(107,174,255,.32)}
 .cxh{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;

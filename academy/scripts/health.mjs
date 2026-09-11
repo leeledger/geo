@@ -28,7 +28,7 @@ const URLS = [
   ["학원 llms.txt", "https://robotncoding.com/llms.txt"],
   ["사이티드 홈", "https://geo-rose-nine.vercel.app/"],
   ["사이티드 사이트맵", "https://geo-rose-nine.vercel.app/sitemap.xml"],
-  ["케이스 리포트", "https://geo-rose-nine.vercel.app/case/robotncoding.html"],
+  ["케이스 리포트", "https://geo-rose-nine.vercel.app/case/academy.html"],
 ];
 
 console.log("── 주소 ──");

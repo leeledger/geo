@@ -65,7 +65,7 @@ export default function ContactForm() {
     return (
       <p className="cdone">
         <b>받았습니다.</b> 적어 주신 메일로 답장드립니다.
-        홈페이지 주소를 적으셨으면 먼저 재 보고, 그 숫자를 들고 연락드립니다.
+        홈페이지 주소를 적으셨으면 먼저 진단해 보고, 그 결과를 들고 연락드립니다.
       </p>
     );
   }
@@ -91,7 +91,7 @@ export default function ContactForm() {
       <div className="fld full">
         <label htmlFor="cf-rival">경쟁사 주소<small>선택</small></label>
         <input id="cf-rival" value={f.competitor} onChange={set("competitor")} placeholder="손님이 우리와 견주는 곳" disabled={busy} />
-        <span className="fhint">적어 주시면 같은 질문으로 나란히 잽니다.</span>
+        <span className="fhint">적어 주시면 같은 질문으로 나란히 비교해 드립니다.</span>
       </div>
       <div className="fld full">
         <label htmlFor="cf-ref">어떻게 알고 오셨어요?<i>*</i></label>

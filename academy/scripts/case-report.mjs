@@ -6,11 +6,17 @@
  * 고객사가 늘어나는 순간 무너진다. 그래서 DB 에서 뽑아 페이지를 만든다.
  *
  * 정직하게 쓴다는 원칙:
- *  - 아직 모르는 것은 "모른다"고 적는다. 인용률은 아직 안 쟀다.
+ *  - 아직 모르는 것은 "모른다"고 적는다. 인용률은 아직 안 셌다.
  *  - 우리가 한 일과 아직 안 한 일을 구분해서 적는다.
  *  - 기준선 없이 "좋아졌다"고 말하지 않는다.
  *
- *   node scripts/case-report.mjs > ../../probe/data/case-report.html
+ * 공개본은 가린다 (09.11 「너무 적나라하게 다 보인다」).
+ *  - 학원 이름·지역(구·동·생활권)·사이트 주소·경쟁 학원·글 주소를 가린다. 조합되면 특정된다.
+ *  - 달력 날짜는 착수 기준 「N일차」로 바꾼다. 날짜는 늙고, 도메인 등록일과 맞춰 보면 특정된다.
+ *  - 원본이 필요하면 --private 로 뽑되 web/public 에 두지 않는다.
+ *
+ *   node scripts/case-report.mjs --out ../web/public/case/academy.html
+ *   node scripts/case-report.mjs --private --out ../../probe/data/case-private.html
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -20,6 +26,9 @@ for (const l of fs.readFileSync(new URL("../.env.local", import.meta.url), "utf8
   const m = /^([A-Z_]+)=(.*)$/.exec(l);
   if (m && !process.env[m[1]]) process.env[m[1]] = m[2];
 }
+
+const PRIVATE = process.argv.includes("--private");
+const START = new Date("2026-09-05T00:00:00+09:00");
 
 const u = new URL(process.env.DATABASE_URL);
 u.searchParams.delete("sslmode");
@@ -47,11 +56,19 @@ const hitPaths = (await pool.query(
 )).rows;
 
 // 검색 노출 — 오늘 상태와, 각 질의가 처음 잡힌 날
-const serp = (await pool.query(
+// 하루에 두 번 돌면 같은 질의가 두 줄 들어온다. 질의마다 한 줄, 걸린 쪽을 남긴다.
+const serpRaw = (await pool.query(
   `select engine, kind, query, hit, rank from academy.serp_checks
     where day = (select max(day) from academy.serp_checks)
     order by engine, kind desc, query`,
 )).rows;
+const serpBy = new Map();
+for (const r of serpRaw) {
+  const k = `${r.engine}|${r.query}`;
+  const p = serpBy.get(k);
+  if (!p || (r.hit && (!p.hit || (r.rank ?? 99) < (p.rank ?? 99)))) serpBy.set(k, r);
+}
+const serp = [...serpBy.values()];
 const serpFirst = (await pool.query(
   `select engine, query, min(day) d from academy.serp_checks
     where hit group by engine, query order by min(day), engine`,
@@ -64,11 +81,38 @@ try {
     path.resolve(process.cwd(), "..", "probe", "data", "scans", "robotncoding.com.json"), "utf8"));
 } catch {}
 
-const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-const d = (t) => t ? new Date(t).toLocaleString("ko-KR", { dateStyle: "medium", timeStyle: "short" }) : "—";
-const day = (t) => t ? new Date(t).toLocaleDateString("ko-KR", { month: "2-digit", day: "2-digit" }) : "—";
+/** 가림 규칙. 긴 말부터 — 「송파런」을 「송파」보다 먼저 바꿔야 한다. */
+const MASKS = [
+  [/로봇\s*(?:&|앤)\s*코딩\s*학원/g, "[학원명]"],
+  [/로봇앤코딩|로봇&코딩/g, "[학원명]"],
+  [/(?:www\.)?robotncoding\.com/g, "[사이트]"],
+  [/강남점 카카오채널/g, "같은 이름 다른 지점 카카오채널"],
+  [/learns\.academy 대치동/g, "다른 지역 학원 목록"],
+  [/송파런/g, "지역 학원 정보 사이트"],
+  [/로보티즈/g, "학원 브랜드 A"],
+  [/디랩/g, "학원 브랜드 B"],
+  [/글로벌리더센터/g, "학원 브랜드 C"],
+  [/서울(?:특별시)?\s*/g, ""],
+  [/송파구|송파/g, "[구]"],
+  [/석촌동|석촌/g, "[동]"],
+  [/잠실|헬리오시티|가락/g, "[생활권]"],
+  [/\/blog\/[a-z0-9-]+/g, "/blog/(글)"],
+];
+const mask = (s) => PRIVATE ? String(s) : MASKS.reduce((t, [re, r]) => t.replace(re, r), String(s));
+const esc = (s) => mask(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-// ── 착수 전 기준선 (2026-09-05 실측)
+const nth = (t) => Math.floor((new Date(t).getTime() - START.getTime()) / 86400000) + 1;
+const hm = (t) => new Date(t).toLocaleTimeString("ko-KR", { hour: "numeric", minute: "2-digit", timeZone: "Asia/Seoul" });
+const d = (t) => !t ? "—" : PRIVATE
+  ? new Date(t).toLocaleString("ko-KR", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Seoul" })
+  : `${nth(t)}일차 ${hm(t)}`;
+const day = (t) => !t ? "—" : PRIVATE
+  ? new Date(t).toLocaleDateString("ko-KR", { month: "2-digit", day: "2-digit", timeZone: "Asia/Seoul" })
+  : `${nth(t)}일차`;
+/** TIMELINE 의 "09.05" 같은 표기를 공개본에서는 일차로 */
+const dt = (s) => PRIVATE ? s : `${nth(`2026-${s.replace(".", "-")}T12:00:00+09:00`)}일차`;
+
+// ── 착수 전 기준선 (착수일 실측)
 const BASELINE = [
   ["송파구 석촌동 코딩학원 추천", "오늘학교 · 순위닷"],
   ["서울 송파구 초등학생 코딩학원 추천", "오늘학교 · 순위닷 · 모하지"],
@@ -92,15 +136,22 @@ const TIMELINE = [
   ["09.05", "일별 스냅샷 자동화", "GitHub Actions 가 매일 기록을 남긴다."],
   ["09.06", "구글 비즈니스 프로필 등록", "구글 AI 개요와 Gemini 가 지역 질의에 이 데이터를 직접 쓴다. 대표자 본인인증이 필요해 대행이 불가능한 항목이다."],
   ["09.06", "오늘학교 아카데미 등재 신청", "「송파구 코딩학원」 목록에 없던 것을 채웠다. 심사 대기중."],
+  ["09.10", "네이버 플레이스 소개글 188자 → 933자", "네이버 AI 가 소개글에서 쓸 문장을 못 찾아 편의시설 태그만 읽고 「무선 인터넷과 남녀 구분 화장실을 제공합니다」라고 답하고 있었다."],
 ];
 
 const TODO = [
   ["오늘학교 등재 확인", "심사 대기중. 통과되면 「송파구 코딩학원」 목록에 들어간다."],
   ["런즈 · 순위닷 등재", "같은 문안을 재사용한다. 표현이 갈리면 AI 가 다른 학원으로 볼 수 있다."],
-  ["엔진별 인용률 측정", "색인이 잡힌 뒤에 잰다. 지금 재면 전 엔진 0% 가 나올 것이 뻔하다."],
+  ["엔진별 인용률 측정", "색인이 잡힌 뒤에 센다. 지금 세면 전 엔진 0% 가 나올 것이 뻔하다."],
 ];
 
-const out = `<title>로봇&코딩학원 · AI 노출 리포트</title>
+const TITLE = PRIVATE ? "로봇&amp;코딩학원 · AI 노출 리포트" : "도입 사례 · 수도권 코딩·로봇 학원 · AI 노출 리포트";
+const rivalHit = serp.some((r) => r.hit && r.kind === "경쟁");
+/** 엔진이 셋이다. 전에는 「naver 가 아니면 Bing」이라 통합검색 노출이 Bing 으로 찍혔다. */
+const ENG = { naver: "네이버 웹문서", naver_all: "네이버 통합검색", bing: "Bing" };
+const eng = (e) => ENG[e] ?? e;
+
+const out = `<title>${TITLE}</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+KR:wght@400;500;700;800;900&display=swap">
 <style>
 :root{--bg:#F8F7F4;--card:#FFF;--sunken:#F1EFE9;--line:#E3E0D8;--line-2:#EDEBE4;
@@ -112,7 +163,7 @@ const out = `<title>로봇&코딩학원 · AI 노출 리포트</title>
   --ink:#E9EDF3;--ink-2:#A9B3C1;--ink-3:#6F7A8A;--accent:#F5A623;--ok:#3DD6A0;--wait:#E0B85C}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);
-  font-family:"Noto Sans KR",system-ui,sans-serif;font-size:15px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  font-family:"Noto Sans KR",system-ui,sans-serif;font-size:15px;line-height:1.75;-webkit-font-smoothing:antialiased;word-break:keep-all}
 .mono{font-family:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace}
 .wrap{max-width:880px;margin:0 auto;padding:0 24px}
 header{padding:62px 0 30px;border-bottom:1px solid var(--line)}
@@ -162,11 +213,13 @@ footer{padding:40px 0 68px;margin-top:42px;border-top:1px solid var(--line);colo
 
 <header><div class="wrap">
   <div class="eb">Case Study · 진행중</div>
-  <h1>로봇&amp;코딩학원 · AI 노출 리포트</h1>
+  <h1>${TITLE}</h1>
   <p class="dek">
-    서울 송파구 석촌동 코딩·로봇·AI 학원. 착수 <b>2026년 9월 5일</b>.
+    ${PRIVATE
+      ? `서울 송파구 석촌동 코딩·로봇·AI 학원. 착수 <b>2026년 9월 5일</b>. 생성 시각 ${d(new Date())}.`
+      : `수도권의 코딩·로봇 교육 학원입니다. <b>학원 이름·지역·사이트 주소·경쟁 학원은 가렸습니다.</b>
+    날짜는 착수일을 1일차로 셉니다. 착수 ${nth(new Date())}일차에 갱신했습니다.`}
     이 문서는 <b>DB 에서 자동 생성</b>되며, 아직 확인되지 않은 것은 확인되지 않았다고 적습니다.
-    생성 시각 ${d(new Date())}.
   </p>
 </div></header>
 
@@ -190,8 +243,8 @@ footer{padding:40px 0 68px;margin-top:42px;border-top:1px solid var(--line);colo
   </p></div>
 
   <h2><span class="n">02</span>지금까지 한 일</h2>
-  <div class="tl">${TIMELINE.map(([dt, t, p]) =>
-    `<div class="e"><div class="d">${dt}</div><div class="t">${esc(t)}</div><p>${esc(p)}</p></div>`).join("")}
+  <div class="tl">${TIMELINE.map(([when, t, p]) =>
+    `<div class="e"><div class="d">${dt(when)}</div><div class="t">${esc(t)}</div><p>${esc(p)}</p></div>`).join("")}
   </div>
 
   <h2><span class="n">03</span>측정 가능한 변화</h2>
@@ -256,16 +309,16 @@ ${hitPaths.length ? `
   <p class="sub">
     크롤러가 왔다는 것과 사람이 검색해서 찾을 수 있다는 것은 다른 단계입니다.
     아래는 <b>매일 실제로 검색해서 남긴 기록</b>입니다.
-    엔진마다 색인 속도가 다르므로 나눠서 잽니다.
+    엔진마다 색인 속도가 다르므로 나눠서 확인합니다.
   </p>
 ${serp.length ? `
   <div class="tw"><table>
     <thead><tr><th>엔진</th><th>구분</th><th>검색어</th><th>결과</th></tr></thead>
     <tbody>${serp.map((r) => `<tr>
-      <td class="m">${esc(r.engine === "naver" ? "네이버" : "Bing")}</td>
+      <td class="m">${esc(eng(r.engine))}</td>
       <td class="m">${esc(r.kind)}</td>
       <td>${esc(r.query)}</td>
-      <td class="m">${r.hit ? `<b>${r.rank}위</b>` : `<span class="no">미노출</span>`}</td>
+      <td class="m">${r.hit ? (r.rank ? `<b>${r.rank}위</b>` : `<b>노출</b>`) : `<span class="no">미노출</span>`}</td>
     </tr>`).join("")}
     </tbody>
   </table></div>
@@ -273,24 +326,27 @@ ${serpFirst.length ? `
   <div class="box"><p>
     <b>처음 검색에 나온 날.</b>
     ${serpFirst.map((f) =>
-      `${esc(f.engine === "naver" ? "네이버" : "Bing")} &middot; ${esc(f.query)} &mdash; ${day(f.d)}`).join("<br>")}
+      `${esc(eng(f.engine))} &middot; ${esc(f.query)} &mdash; ${day(f.d)}`).join("<br>")}
   </p></div>` : ""}
   <div class="box"><p>
-    구글은 결과 페이지를 긁으면 막히기 때문에 여기서 재지 않습니다.
+    구글은 결과 페이지를 긁으면 막히기 때문에 여기서 세지 않습니다.
     대신 Search Console 의 URL 검사로 페이지마다 확인합니다.
-    <b>지역 경쟁 검색어는 아직 잡히지 않았습니다</b> &mdash;
-    브랜드명과 정확한 지역명이 먼저 잡히고 경쟁 검색어가 나중에 붙는 순서입니다.
+    ${rivalHit
+      ? `<b>학원 이름 없이 친 지역 경쟁 검색어도 잡히기 시작했습니다</b> &mdash;
+    브랜드명과 정확한 지역명이 먼저 잡히고, 경쟁 검색어가 나중에 붙었습니다.`
+      : `<b>지역 경쟁 검색어는 아직 잡히지 않았습니다</b> &mdash;
+    브랜드명과 정확한 지역명이 먼저 잡히고 경쟁 검색어가 나중에 붙는 순서입니다.`}
   </p></div>
 ` : `<div class="box"><p>아직 측정 기록이 없습니다.</p></div>`}
 
   <h2><span class="n">06</span>아직 모르는 것</h2>
   <p class="sub">케이스 스터디에서 이 항목을 빼면 신뢰를 잃습니다.</p>
   <div class="box">
-    <p><b>인용률은 아직 재지 않았습니다.</b>
+    <p><b>인용률은 아직 세지 않았습니다.</b>
     ${serp.some((r) => r.hit)
-      ? `검색에는 올라왔지만 올라온 지 며칠 안 됐습니다. 지금 재면 AI 가 아직 못 본 상태를 재는 셈입니다.
+      ? `검색에는 올라왔지만 올라온 지 며칠 안 됐습니다. 지금 물어보면 AI 가 아직 못 본 상태를 세는 셈입니다.
          측정 도구(33개 질문 &times; 5회 반복)는 준비돼 있고, 며칠 뒤에 돌립니다.`
-      : `색인이 잡히기 전에 재면 전 엔진 0% 가 나올 것이 뻔합니다. 색인이 확인된 뒤에 잽니다.`}</p>
+      : `색인이 잡히기 전에 물어보면 전 엔진 0% 가 나올 것이 뻔합니다. 색인이 확인된 뒤에 셉니다.`}</p>
     <p><b>이 케이스에는 약점이 있습니다.</b> 학원 대표가 곧 이 프로젝트의 의뢰인이라
     사이트를 즉시 고칠 수 있었습니다. 실제 고객사는 도메인 권한·개발팀·결재 라인이 있어
     같은 작업에 몇 주가 걸립니다. <b>다음 고객사에서 시험할 것은 기술이 아니라 리드타임입니다.</b></p>
@@ -308,9 +364,9 @@ ${snaps.length > 1 ? `
   <h2><span class="n">08</span>일별 기록</h2>
   <p class="sub">GitHub Actions 가 매일 자동으로 남깁니다.</p>
   <div class="tw"><table>
-    <thead><tr><th>날짜</th><th>문서</th><th>누적 크롤러 방문</th><th>엔진</th></tr></thead>
+    <thead><tr><th>${PRIVATE ? "날짜" : "일차"}</th><th>문서</th><th>누적 크롤러 방문</th><th>엔진</th></tr></thead>
     <tbody>${snaps.map((s) => `<tr>
-      <td class="m">${new Date(s.day).toLocaleDateString("ko-KR", { month: "2-digit", day: "2-digit" })}</td>
+      <td class="m">${day(s.day)}</td>
       <td class="m">${s.posts}</td><td class="m">${s.crawl_total}</td>
       <td class="m">${(s.vendors || []).join(", ") || "—"}</td></tr>`).join("")}
     </tbody>
@@ -318,7 +374,7 @@ ${snaps.length > 1 ? `
 
 </div>
 <footer><div class="wrap mono">
-  robotncoding.com · 초안 ${drafts.n}편 대기 · 이 문서는 scripts/case-report.mjs 가 DB 에서 생성합니다
+  ${PRIVATE ? "robotncoding.com · " : ""}초안 ${drafts.n}편 대기 · 이 문서는 scripts/case-report.mjs 가 DB 에서 생성합니다
 </div></footer>`;
 
 /**
@@ -329,6 +385,10 @@ ${snaps.length > 1 ? `
 const outArg = process.argv.indexOf("--out");
 if (outArg > 0 && process.argv[outArg + 1]) {
   const file = path.resolve(process.cwd(), process.argv[outArg + 1]);
+  if (PRIVATE && /[\\/]public[\\/]/.test(file)) {
+    console.error("✗ --private 원본은 public 폴더에 쓰지 않습니다.");
+    process.exit(1);
+  }
   const doc = `<!doctype html>
 <html lang="ko">
 <head>

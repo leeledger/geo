@@ -42,7 +42,7 @@ export default function AskForm({ wants, compact }: { wants: string; compact?: b
     return (
       <p className="leaddone">
         <b>받았습니다.</b> 적어 주신 메일로 답장드립니다.
-        홈페이지 주소를 적으셨으면 먼저 재 보고 연락드립니다.
+        홈페이지 주소를 적으셨으면 먼저 진단해 보고 연락드립니다.
       </p>
     );
   }

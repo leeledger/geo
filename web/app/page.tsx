@@ -12,32 +12,36 @@ import { readOps } from "@/lib/ops";
 
 /**
  * 사는 사람 순서로 읽힌다.
- *   이게 뭔데(히어로) → GEO 가 뭔데 → 말만인가(기록) → 뭘 받나 → 해당되나
- *   → 왜 홈페이지만으론 안 되나 → 서비스 → 진행 → 사례 → 리포트가 다른 점
+ *   이게 뭔데(히어로) → GEO 가 뭔데 → 말만인가(기록) → 뭘 받나(실제 기록 세 장) → 해당되나
+ *   → 사이트 점수와 AI 노출은 따로 논다 → 서비스 → 진행 → 사례 → 리포트가 다른 점
  *   → 안 하는 것 → 요금 → 질문 → 신청
  *
- * 09.10 판은 한 칸에 한 문장으로 줄였다가 「내용이 부실하다」는 말을 들었다.
- * 글을 다시 채우되 벽이 되지 않게, 참고한 두 사이트처럼 절마다 그림 한 가지를 붙였다
- * (게이지·코드·비교표·날짜 목록·큰 폼).
+ * 받은 말 셋을 반영했다.
+ *   「추상적이다」 — 설명 대신 실제로 남긴 기록을 싣는다. 질문 원문, 회사별 횟수, 비교 글 제목, 고친 이유.
+ *   「날짜를 특정하지 마라」 — 달력 날짜는 늙는다. 사례는 착수 기준 「N일차」로 적는다.
+ *   「재 본다는 말이 어색하다」 — 묻는다·센다·확인한다·진단한다로 쓴다.
  *
- * 숫자는 세 종류뿐이다. DB 에서 매일 읽는 값, 날짜를 붙인 측정값, 저장소에 이미 적힌 표본값.
+ * 사례 학원은 가린다 — 이름·지역·사이트 주소·글 주소. 조합되면 특정된다.
+ * 시장 숫자의 출처는 probe/data (사이트 진단 34곳 · ERP 질문 12개 × 15회 · 진단 리포트).
+ * 회사 이름은 A·B·C 로 쓴다. 우리 고객이 아니어도 남의 회사 점수를 이름 붙여 걸지 않는다.
  * 구조화 데이터의 FAQ 는 화면의 질문 그대로다.
  */
 const BASE = process.env.NEXT_PUBLIC_SITE_URL || "https://geo-rose-nine.vercel.app";
+const CASE_URL = "/case/academy.html";
 
 const FAQ: [string, string][] = [
   ["직접 하면 안 되나요?",
-   "기술 세팅은 직접 하실 수 있고 그러시길 권합니다. 하루면 됩니다. 어려운 건 매주 AI 4곳에 같은 질문을 여러 번 던져 세는 일과, 경쟁사는 있고 우리만 없는 글을 골라내는 일입니다. 저희가 파는 건 그 둘입니다."],
+   "기술 세팅은 직접 하실 수 있고 그러시길 권합니다. 하루면 됩니다. 어려운 건 AI 4곳에 같은 질문을 여러 번 물어 세는 일과, 경쟁사는 있고 우리만 없는 비교 글을 찾아내는 일입니다. 저희가 파는 건 그 둘입니다."],
   ["얼마나 걸리나요?",
-   "질문마다 웹을 찾아보는 AI 는 2~4주, 미리 학습한 내용으로 답하는 AI 는 2~3개월쯤 걸립니다. 약속이 아니라 지금까지 본 흐름이고, 경쟁이 센 업종은 더 걸립니다."],
+   "사례 학원은 착수 넷째 날 네이버 검색에 사이트가 처음 잡혔고, 여섯째 날 학원 이름 없이 친 지역 검색어에 나오기 시작했습니다. AI 답변에 이름이 붙기까지 얼마나 걸리는지는 아직 모릅니다. 결과가 나오면 사례 기록에 그대로 적습니다."],
   ["성과를 보장하나요?",
-   "안 합니다. 대신 어떤 질문으로, 몇 번, 어느 AI 에서 재는지를 계약서에 적고 시작 전에 지금 숫자를 남깁니다. 두 달 뒤 같은 방법으로 다시 잰 결과를 그대로 드립니다. 「몇 위 보장」을 약속하는 곳이 있으면 어떻게 재는지 물어보세요."],
+   "안 합니다. 대신 어떤 질문을, 어느 AI 에, 몇 번 묻는지를 계약서에 적고 시작할 때 숫자를 남깁니다. 두 달 뒤 같은 방법으로 다시 센 결과를 그대로 드립니다. 「몇 위 보장」을 약속하는 곳이 있으면 몇 번 물어서 나온 숫자인지 물어보세요."],
   ["숫자를 어떻게 믿나요?",
-   "믿어 달라고 하지 않습니다. 질문, 답변 원문, 참고한 주소, 물어본 시각이 전부 남아 있고 요청하시면 그대로 드립니다. 내부 보고에 원문을 붙이셔도 됩니다."],
+   "믿어 달라고 하지 않습니다. 질문, 답변 원문, 답에 붙은 출처 주소, 물어본 시각이 전부 남아 있고 요청하시면 그대로 드립니다. 내부 보고에 원문을 붙이셔도 됩니다."],
   ["SEO 대행사와 뭐가 다른가요?",
-   "SEO 는 검색 결과에서 클릭을 얻는 일이고, 이건 AI 답변 문장 안에 이름이 들어가는 일입니다. AI 가 참고하는 글의 대부분이 자사 사이트 밖에 있어서 그 지면에 들어가는 일이 다릅니다. 기존 SEO 자산은 버리지 않고 그대로 씁니다."],
+   "SEO 는 검색 결과에서 클릭을 얻는 일이고, 이건 AI 답변 문장 안에 이름이 들어가는 일입니다. 저희가 ERP 질문으로 확인해 보니 AI 답에 붙은 출처 중 회사 자기 사이트는 18%였습니다. 나머지 82%는 비교 글과 목록이라 들어가야 할 지면이 다릅니다. 기존 SEO 자산은 그대로 씁니다."],
   ["그만두면 뭐가 남나요?",
-   "사이트를 만들어 드렸다면 도메인·저장소·호스팅 계정이 전부 고객사 명의라 그대로 남습니다. 그동안의 측정 원문과 리포트도 드립니다. 최소 약정이 없어서 한 달 단위로 멈출 수 있습니다."],
+   "사이트를 만들어 드렸다면 도메인·저장소·호스팅 계정이 전부 고객사 명의라 그대로 남습니다. 그동안의 답변 원문과 리포트도 드립니다. 최소 약정이 없어서 한 달 단위로 멈출 수 있습니다."],
 ];
 
 const SCHEMA = {
@@ -49,7 +53,7 @@ const SCHEMA = {
       name: "Cited 사이티드",
       url: BASE,
       description:
-        "손님이 AI 에게 물었을 때 우리 회사 이름이 나오는지 재고, 나오게 만드는 마케팅 대행사입니다. 학원·병원·사무소 규모에 맞춘 GEO 서비스.",
+        "손님이 AI 에게 물었을 때 답변에 회사 이름이 나오는지 확인하고, 나오게 만드는 마케팅 대행사입니다. 학원·병원·사무소 규모에 맞춘 GEO 서비스.",
       areaServed: "KR",
       knowsAbout: ["AEO", "GEO", "AI 검색 최적화", "생성형 엔진 최적화", "AI 인용률 측정"],
     },
@@ -82,34 +86,40 @@ const SCHEMA = {
 
 export const revalidate = 3600;
 
-/** 착수일. 「N일차」를 여기서 센다. */
+/** 착수일. 「N일차」를 여기서 센다. 화면에는 날짜를 내지 않는다. */
 const START = Date.parse("2026-09-05T00:00:00+09:00");
 
 /**
- * 사례 학원 사이트 진단 — probe/data/scans/robotncoding.com.json (09.10 저장).
- * web 배포에는 probe 폴더가 없어 값을 옮겨 적는다. 다시 재면 날짜와 함께 고친다.
+ * 사례 학원 사이트 진단 — probe/data/scans/robotncoding.com.json (착수 6일차 저장).
+ * web 배포에는 probe 폴더가 없어 값을 옮겨 적는다. 다시 진단하면 여기도 고친다.
  * 문단 점수 47 을 뺀 네 개만 고르면 보기 좋은 숫자를 만드는 것이다. 그래서 같이 싣는다.
  */
-const SCAN = {
-  day: "09.10",
-  total: 92,
-  baseline: 83,
-  crawler: 100,
-  schema: 100,
-  chunk: 47,
-  chunkIn: 151,
-  chunkAll: 334,
-};
+const SCAN = { total: 92, baseline: 83, crawler: 100, schema: 100, chunk: 47, chunkIn: 151, chunkAll: 334 };
 
-/** 사례 기록 — public/case/robotncoding.html 의 날짜 그대로 */
+/**
+ * ERP 측정 — probe/data/report.websearch.txt · diagnoses/doto.json.
+ * 질문 12개, 웹 검색을 켠 AI 에 15회. 노출률 × 15 = 횟수.
+ * 「진단한 회사」는 34곳 중 사이트 점수 1위(80점).
+ */
+const ERP_BARS: [string, number, boolean][] = [
+  ["A사", 9, false], ["B사", 8, false], ["C사", 8, false], ["D사", 4, false], ["진단한 회사", 3, true],
+];
+const ERP_DOCS = [
+  "국내 ERP 업체 순위 Top5",
+  "중견·중소기업 ERP 프로그램 비교 가이드",
+  "회사 규모별 ERP 추천",
+];
+
+/** 사례 기록 — 공개 케이스 리포트와 같은 내용. 날짜 대신 일차. */
 const TIMELINE: [string, string, string][] = [
-  ["09.05", "사이트 구축 · 도메인 연결", "AI 크롤러를 이름으로 허용하고 llms.txt 와 구조화 데이터를 붙였습니다. 첫 AI 방문은 그날 오후였습니다."],
-  ["09.05", "블로그 글 32편 이관", "네이버 블로그는 AI 크롤러를 막습니다. 사진 69장까지 막히지 않은 곳으로 옮겼습니다."],
-  ["09.05", "크롤러 방문 기록 설치", "어느 AI 가 언제 몇 쪽 읽었는지 서버에 남습니다. 검색 콘솔에는 안 나오는 값입니다."],
-  ["09.06", "구글 비즈니스 프로필 등록", "대표자 본인인증이 필요해 대행할 수 없는 항목입니다. 열어 주시는 일은 고객 몫입니다."],
-  ["09.06", "학원 목록 사이트 등재 신청", "「송파구 코딩학원」 목록에 빠져 있던 자리입니다."],
-  ["09.08", "네이버 색인 첫 확인", "옮긴 글이 네이버 검색에 잡히기 시작했습니다."],
-  ["09.10", "AI 답변 인용 첫 측정", "학부모 질문 8개에 우리 사이트를 출처로 단 답은 0개. 이게 기준선입니다."],
+  ["1일차", "사이트 구축 · 도메인 연결", "AI 크롤러를 이름으로 허용하고 llms.txt 와 구조화 데이터를 붙였습니다."],
+  ["1일차", "블로그 글 32편 이관", "AI 크롤러를 막는 블로그에서 사진 69장까지 옮겼습니다."],
+  ["1일차", "첫 AI 방문", "주소를 연결한 날 오후 3시 49분. ClaudeBot 이 robots.txt 부터 읽었습니다."],
+  ["2일차", "구글 비즈니스 프로필 등록", "대표자 본인인증이 필요해 대행할 수 없는 항목입니다."],
+  ["2일차", "학원 목록 사이트 등재 신청", "「○○구 코딩학원」 목록에 빠져 있던 자리입니다."],
+  ["4일차", "네이버 검색에 사이트가 처음 잡힘", "옮긴 글이 네이버 검색 결과에 나오기 시작했습니다."],
+  ["6일차", "학원 이름 없이 친 검색어에 첫 노출", "네이버 통합검색에서 「○○구 코딩학원」에 사이트가 나왔습니다."],
+  ["6일차", "플레이스 소개글 188자 → 933자", "네이버 AI 가 화장실 안내만 읽고 학원을 소개하고 있어서입니다."],
 ];
 
 const ICON: Record<string, React.ReactNode> = {
@@ -161,12 +171,12 @@ export default async function Home() {
   const posts = ops.ok && ops.posts.published ? ops.posts.published : 43;
   const claudePages = ops.crawl.vendors.find((v) => /anthropic|claude/i.test(v.vendor))?.pages ?? 43;
   const caseDay = Math.max(1, Math.floor((Date.now() - START) / 86400000) + 1);
-  const serpDay = ops.serp.day ? ops.serp.day.slice(5).replace("-", ".") : "09.10";
 
   // 경쟁 검색어 집계는 lib/ops.ts 한 곳에 둔다. 여기서 또 세면 대시보드와 갈라진다.
   const webWins = ops.serp.rivalWon;
   const webTotal = ops.serp.rivalTotal || 6;
-  const songpaRank = ops.place.find((p) => /송파구/.test(p.query))?.rank ?? 2;
+  // 플레이스는 「구 + 코딩학원」 검색어의 순위. 검색어 자체는 화면에 내지 않는다.
+  const placeRank = ops.place.find((p) => /구 코딩학원$/.test(p.query))?.rank ?? 2;
 
   return (
     <>
@@ -182,15 +192,15 @@ export default async function Home() {
         <div className="wrap">
           <div className="hero-grid">
             <div>
-              <span className="badge"><i />AI 답변 노출 측정 · GEO</span>
+              <span className="badge"><i />AI 답변 노출 · GEO</span>
               <h1>손님이 AI에게 물었을 때<br /><span className="hl">우리 이름이 나옵니까?</span></h1>
               <p className="lede">
-                검색창 맨 위에 AI 답이 먼저 뜹니다. 링크를 누르기 전에 <b>추천 세 곳이 정해집니다.</b>{" "}
-                그 세 곳에 드는지 재고, 들게 만드는 일을 합니다.
+                「마포구에서 임플란트 잘하는 치과 추천해줘」. 이렇게 물으면 AI 는 링크 대신
+                <b> 이름 세 개쯤</b>으로 답합니다. 거기 우리가 있는지 여러 번 물어 세고, 없으면 들어가게 만듭니다.
               </p>
               <ScanForm id="dom-hero" />
               <div className="herolinks">
-                <a href="/case/robotncoding.html">도입 사례 기록 보기 →</a>
+                <a href={CASE_URL}>도입 사례 기록 보기 →</a>
                 <a href="#price">요금 먼저 보기</a>
               </div>
             </div>
@@ -200,11 +210,11 @@ export default async function Home() {
           </div>
 
           <div className="proofbar">
-            <div className="pbh"><i />도입 사례 · 서버가 기록한 값 · 매일 다시 읽습니다</div>
+            <div className="pbh"><i />도입 사례 · 서버가 기록한 값 · 매일 갱신</div>
             <div className="pbgrid">
-              <div className="pb"><b>{caseDay}<small>일차</small></b><span>09.05 착수부터</span></div>
+              <div className="pb"><b>{caseDay}<small>일차</small></b><span>착수일부터 센 날</span></div>
               <div className="pb"><b><Count to={vendors} /><small>곳</small></b><span>다녀간 AI·검색 크롤러</span></div>
-              <div className="pb"><b><Count to={hits} /><small>회</small></b><span>누적 크롤러 방문</span></div>
+              <div className="pb"><b><Count to={hits} /><small>회</small></b><span>크롤러 누적 방문</span></div>
               <div className="pb"><b><Count to={posts} /><small>편</small></b><span>AI 가 읽을 수 있게 된 글</span></div>
             </div>
           </div>
@@ -217,9 +227,10 @@ export default async function Home() {
           <div className="lab">GEO 가 뭔가요</div>
           <h2>검색 결과의 링크가 아니라<br /><span className="hl">답변 문장 안의 이름</span></h2>
           <p className="define">
-            <b>GEO(생성형 엔진 최적화)</b>는 손님이 ChatGPT·Gemini·네이버 AI 브리핑 같은 AI 에게 물었을 때
-            답변 문장 안에 우리 회사 이름이 들어가게 하는 일입니다. SEO 는 검색 결과에서 클릭을 얻는 일입니다.
-            둘은 겹치지만 싸우는 자리가 다릅니다. AI 는 답을 만들 때 <b>홈페이지보다 남이 쓴 비교 글과 목록을 더 많이 참고합니다.</b>
+            ChatGPT 에 「중소기업용 ERP 추천해줘」라고 치면 링크 열 개 대신 회사 이름 몇 개가 문장으로 나옵니다.
+            그 문장에 우리 이름이 들어가게 하는 일이 <b>GEO(생성형 엔진 최적화)</b>입니다.
+            저희가 이런 ERP 질문 12개를 웹 검색을 켠 AI 에 모두 15번 물었더니, 한 답에 회사 이름이 평균 <b>2.9개</b> 나왔고
+            답에 붙은 출처 가운데 <b>회사 자기 사이트는 18%</b>였습니다.
           </p>
 
           <div className="cmpwrap">
@@ -229,14 +240,15 @@ export default async function Home() {
               </thead>
               <tbody>
                 <tr><th scope="row">얻는 것</th><td>결과 목록의 링크 클릭</td><td className="us">답변 문장 안의 이름</td></tr>
-                <tr><th scope="row">자리</th><td>한 화면에 링크 열 개</td><td className="us">답변이 추천하는 보통 세 곳</td></tr>
-                <tr><th scope="row">주로 움직이는 곳</th><td>우리 홈페이지</td><td className="us">남이 쓴 글 · AI 가 참고한 글의 80%</td></tr>
-                <tr><th scope="row">재는 법</th><td>검색해서 순위 확인</td><td className="us">같은 질문을 여러 번 · 몇 번 중 몇 번</td></tr>
+                <tr><th scope="row">한 번에 보이는 수</th><td>링크 10개 안팎</td><td className="us">이름 3개 안팎 · 측정 평균 2.9개</td></tr>
+                <tr><th scope="row">들어가야 할 곳</th><td>우리 홈페이지</td><td className="us">비교 글·목록 · AI 가 붙인 출처의 82%</td></tr>
+                <tr><th scope="row">확인하는 법</th><td>검색해서 순위 한 번</td><td className="us">같은 질문을 여러 번 · 몇 번 중 몇 번</td></tr>
               </tbody>
             </table>
           </div>
           <p className="cmpnote">
-            SEO 가 잘된 사이트가 AI 답변에도 유리한 건 맞습니다. <b>그것만으로는 나머지 80%를 못 건드립니다.</b>{" "}
+            그 측정에서 출처로 가장 많이 붙은 곳은 <b>ERP 업체 순위를 정리한 비교 사이트 한 곳(11번)</b>이었습니다.
+            업체 홈페이지가 아무리 좋아도 그 글에 이름이 없으면 답에서 빠집니다.
             SEO 를 이미 맡긴 곳이 있다면 그건 그대로 두셔도 됩니다.
           </p>
         </div>
@@ -249,18 +261,18 @@ export default async function Home() {
             <div className="lab">말 대신 기록</div>
             <h2>사례 학원 사이트,<br /><span className="hl">7개 항목 중 6개가 90점 넘게</span></h2>
             <p className="sub2">
-              저희 진단기로 {SCAN.day}에 잰 점수입니다. 착수 때 종합 {SCAN.baseline}점이었습니다.
-              홈페이지 주소를 넣으면 같은 7개 항목이 바로 나옵니다.
+              홈페이지 주소를 넣으면 나오는 무료 진단과 같은 7개 항목입니다.
+              착수할 때 종합 {SCAN.baseline}점이던 사이트를 첫 주에 고친 뒤 다시 돌린 결과입니다.
             </p>
             <div className="gauges">
               <Gauge v={SCAN.total} label="종합" note={`착수 때 ${SCAN.baseline}`} delay={0} />
-              <Gauge v={SCAN.crawler} label="AI 크롤러 접근" note="이름으로 허용" delay={120} />
-              <Gauge v={SCAN.schema} label="구조화 데이터" note="오류 0" delay={240} />
+              <Gauge v={SCAN.crawler} label="AI 크롤러 접근" note="봇 이름으로 허용" delay={120} />
+              <Gauge v={SCAN.schema} label="구조화 데이터" note="6쪽 전부 · 오류 0" delay={240} />
               <Gauge v={SCAN.chunk} label="인용할 만한 문단" note={`${SCAN.chunkAll}개 중 ${SCAN.chunkIn}개`} delay={360} />
             </div>
             <p className="proofnote">
-              <b>문단 점수 47은 아직 못 고친 부분입니다.</b> 기준보다 짧은 문단이 {SCAN.chunkAll - SCAN.chunkIn}개, 긴 문단은 0개였습니다.
-              AI 가 잘라 가져가기에 짧다는 뜻입니다. 잘된 칸만 골라 싣지 않습니다.
+              <b>문단 점수 47은 아직 못 고친 부분입니다.</b> 80자가 안 되는 짧은 문단이 {SCAN.chunkAll - SCAN.chunkIn}개였고
+              400자 넘는 문단은 0개였습니다. AI 가 잘라 가져가기엔 짧다는 뜻입니다. 잘된 칸만 골라 싣지 않습니다.
             </p>
           </div>
 
@@ -284,7 +296,7 @@ export default async function Home() {
             <div className="codeft">
               <div className="codelog">
                 <div><span>15:49:01</span><span>ClaudeBot</span><span>/robots.txt</span></div>
-                <div><span>15:49:27</span><span>ClaudeBot</span><span>/blog/seouldae-uiyegwa-hapgyeok</span></div>
+                <div><span>15:49:27</span><span>ClaudeBot</span><span>/blog/(옮긴 글)</span></div>
                 <div><span>+18h</span><span>Googlebot</span><span>/ · /blog · /sitemap.xml</span></div>
                 <div><span>+3d</span><span>Yeti</span><span>/sitemap.xml</span></div>
               </div>
@@ -298,48 +310,68 @@ export default async function Home() {
       <section id="why" className="plain">
         <div className="wrap">
           <div className="lab">맡기면 받는 것</div>
-          <h2>세 가지를<br /><span className="hl">숫자로</span> 받습니다</h2>
+          <h2>리포트에 들어가는 것을<br /><span className="hl">실제 기록</span>으로 보여 드립니다</h2>
+          <p className="sub2">
+            아래 세 장은 저희가 실제로 남긴 기록입니다. 회사 이름만 가렸습니다.
+            앞의 두 장은 ERP 회사 한 곳을 진단한 리포트, 마지막 장은 사례 학원의 작업 기록입니다.
+          </p>
 
           <div className="gets">
             <article className="get">
               <Ico name="count" />
-              <div className="getn">01 · 측정</div>
+              <div className="getn">01 · 몇 번 중 몇 번</div>
               <h3>지금 불리고 있나</h3>
               <p>
-                손님이 쓸 질문 30개를 AI 4곳에 여러 번 묻습니다.
-                20번 물어 3번 나오면 15%. <b>짐작이 아니라 센 숫자</b>입니다.
+                ERP 질문 12개를 15번 물어 회사마다 몇 번 나왔는지 셌습니다.
+                사이트 점수가 34곳 중 가장 높았던 회사는 <b>15번 중 3번</b>이었습니다.
               </p>
               <div className="getb">
-                <span className="wbar" data-reveal="260"><i style={{ ["--w" as string]: "15%" }} /></span>
-                <span>예시 · 20회 중 3회 = 15%</span>
+                <div className="mbars">
+                  {ERP_BARS.map(([name, n, me]) => (
+                    <div className={`mbar${me ? " me" : ""}`} key={name}>
+                      <span>{name}</span>
+                      <span className="t"><i style={{ ["--w" as string]: `${(n / 15) * 100}%` }} /></span>
+                      <b>{n}/15</b>
+                    </div>
+                  ))}
+                </div>
               </div>
             </article>
 
             <article className="get">
               <Ico name="why" />
-              <div className="getn">02 · 원인</div>
+              <div className="getn">02 · 빠진 자리</div>
               <h3>왜 안 나오나</h3>
               <p>
-                둘 중 하나입니다. AI 가 우리 사이트를 <b>못 읽거나</b>, AI 가 참고하는
-                남의 글에 <b>우리가 없거나.</b> 어느 쪽인지 갈라서 고칠 곳 다섯 개를 순서대로 드립니다.
+                AI 가 참고한 ERP 비교 글 14개를 하나씩 열었습니다. A·B·C사는 대부분 들어 있었고
+                <b> 진단한 회사 이름은 한 번도 없었습니다.</b> 사이트가 아니라 이 글들이 문제였습니다.
               </p>
               <div className="getb">
-                <span className="wsplit" data-reveal="360"><i className="a" style={{ ["--w" as string]: "20%" }} /><i className="b" style={{ ["--w" as string]: "80%" }} /></span>
-                <span>AI 가 참고한 글 · 홈페이지 20% · 남의 글 80%</span>
+                <div className="docs">
+                  {ERP_DOCS.map((t) => (
+                    <div className="doc" key={t}>
+                      <span>「{t}」</span>
+                      <span className="yn">A·B·C 있음 · <em>우리 없음</em></span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </article>
 
             <article className="get">
               <Ico name="again" />
-              <div className="getn">03 · 재측정</div>
+              <div className="getn">03 · 고친 이유</div>
               <h3>고친 게 먹혔나</h3>
               <p>
-                시작할 때 숫자를 남기고 <b>두 달 뒤 같은 질문으로 다시 잽니다.</b>{" "}
-                안 올랐으면 안 올랐다고 적습니다. 거절당한 지면도 적습니다.
+                고칠 때마다 무엇을, 왜, 무엇을 기대하는지 적어 둡니다.
+                <b> 같은 질문으로 다시 물었을 때</b> 무엇이 달라졌는지 견줄 기준이 됩니다.
               </p>
               <div className="getb">
-                <span className="wdelta"><span className="d0">시작</span><span className="darrow">→</span><span className="d1">두 달 뒤</span></span>
-                <span>같은 질문 · 같은 AI · 같은 횟수</span>
+                <dl className="rec">
+                  <dt>무엇</dt><dd>네이버 플레이스 소개글 188자 → 933자</dd>
+                  <dt>왜</dt><dd>네이버 AI 가 학원을 「무선 인터넷과 남녀 구분 화장실을 제공합니다」라고 소개하고 있었음</dd>
+                  <dt>기대</dt><dd>무엇을 가르치는 학원인지 답에 들어간다</dd>
+                </dl>
               </div>
             </article>
           </div>
@@ -382,55 +414,53 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* ── 직접 잰 것 ── */}
+      {/* ── 직접 측정한 것 ── */}
       <section className="deep" id="data">
         <div className="wrap">
-          <div className="lab">직접 잰 것 · 국내 26곳</div>
-          <h2>홈페이지를 고쳐서 얻는 몫은<br /><span className="hl">다섯 중 하나</span>였습니다</h2>
+          <div className="lab">직접 측정한 것 · B2B 소프트웨어 34곳</div>
+          <h2>사이트 점수와 AI 노출은<br /><span className="hl">따로 움직였습니다</span></h2>
           <p className="sub2">
-            국내 B2B 사이트 26곳을 점검하고, 실제 구매자가 쓸 질문을 AI 에 던졌습니다.
-            AI 가 답하며 참고한 글 중 자사 홈페이지는 20%. 나머지는 비교 글, 커뮤니티, 업계 목록이었습니다.
+            국내 B2B 소프트웨어 회사 34곳의 사이트를 진단하고, 그중 ERP 회사들은 AI 에 직접 물어 몇 번 나오는지 셌습니다.
           </p>
 
           <div className="facts">
             <div className="fact">
               <div className="stat">
-                <span className="v"><Count to={20} /><small>%</small></span>
-                <span className="bandbar"><i style={{ left: "20%" }} /></span>
-                <span className="c">AI 가 참고한 글 중 홈페이지 몫</span>
+                <span className="v"><Count to={8} /><small> / 15</small></span>
+                <span className="bandbar"><i style={{ left: "53%" }} /></span>
+                <span className="c">사이트 19점 회사의 AI 노출</span>
               </div>
               <div className="t">
-                나머지 80%는 <b>남이 쓴 글</b>에서 왔습니다.
-                홈페이지를 100점으로 만들어도 이 80%는 안 움직입니다.
+                사이트는 AI 가 읽기 어려운 상태였는데 <b>비교 글 14개 중 9개에 이름이 있었습니다.</b>
+                답에는 15번 중 8번 나왔습니다.
               </div>
             </div>
             <div className="fact">
               <div className="stat">
-                <span className="v"><Count to={5} /><small> / 26</small></span>
-                <span className="bandbar"><i style={{ left: "19%" }} /></span>
+                <span className="v"><Count to={7} /><small> / 34</small></span>
+                <span className="bandbar"><i style={{ left: "21%" }} /></span>
                 <span className="c">60점을 넘긴 사이트</span>
               </div>
               <div className="t">
-                <b>업계 1위라는 회사가 30점</b>이었습니다.
-                어려운 기술이 없어서가 아니라 아무도 확인해 본 적이 없어서입니다.
+                절반인 <b>17곳은 40점 아래</b>였습니다. AI 크롤러 접근 점수가 0점인 곳도 있었습니다.
               </div>
             </div>
             <div className="fact">
               <div className="stat">
                 <span className="v"><Count to={28} /><small>%</small></span>
                 <span className="bandbar"><i style={{ left: "28%" }} /></span>
-                <span className="c">다시 물으면 바뀌는 추천</span>
+                <span className="c">다시 물으면 바뀐 추천 목록</span>
               </div>
               <div className="t">
-                같은 질문을 다시 하면 추천 목록의 28%가 바뀝니다.{" "}
-                <b>한 번 재고 「1위」라 적는 건 동전 한 번 던진 것</b>입니다.
+                같은 질문을 한 번 더 했을 때 나온 회사 목록의 28%가 달랐습니다.
+                <b> 한 번 물어보고 「1위」라 적는 건 동전 한 번 던진 것</b>입니다.
               </div>
             </div>
           </div>
 
           <div className="casenote">
-            그래서 일이 둘로 나뉩니다. 사이트를 <b>읽히게</b> 만드는 일과, 남의 글 다섯 곳에 이름을 <b>넣는</b> 일.
-            뒤엣것이 큽니다. 홈페이지만 고쳐 주고 끝내면 점수는 오르는데 답변에는 안 나옵니다.
+            그래서 일이 둘로 나뉩니다. 사이트를 AI 가 <b>읽을 수 있게</b> 만드는 일과, AI 가 참고하는 비교 글·목록에 이름을 <b>넣는</b> 일.
+            사이트 점수가 1위여도 뒤엣것이 없으면 답에 안 나옵니다.
           </div>
         </div>
       </section>
@@ -441,7 +471,7 @@ export default async function Home() {
           <div className="lab">서비스</div>
           <h2>넷 중 <span className="hl">필요한 것만</span> 삽니다</h2>
           <p className="sub2">
-            대부분은 측정부터 시작합니다. 나머지는 재 본 뒤에 정해도 됩니다.
+            대부분은 측정부터 시작합니다. 나머지는 진단해 본 뒤에 정해도 됩니다.
             쓸 만한 사이트가 이미 있으면 구축은 필요 없습니다.
           </p>
           <div className="svcs">
@@ -471,78 +501,71 @@ export default async function Home() {
           <div className="lab">진행</div>
           <h2>두 달을 이렇게 씁니다</h2>
           <p className="sub2">
-            첫 주에 지금 숫자를 남기고, 마지막 주에 같은 방법으로 다시 잽니다. 그 사이가 일입니다.
+            첫 주에 지금 숫자를 남기고, 마지막 주에 같은 질문으로 다시 셉니다. 그 사이가 일입니다.
           </p>
 
           <div className="flow">
             <div className="fstep">
               <div className="fhead"><span className="fnum">1</span><span className="fwhen">1주차</span></div>
-              <h3>지금 숫자를 남깁니다</h3>
-              <p>손님이 쓸 질문 30개를 만들어 AI 4곳에 여러 번 묻습니다. 사이트는 7개 항목으로 점검합니다. 이게 기준선입니다.</p>
-              <div className="chips"><span>질문 30개</span><span>AI 4곳</span><span>7항목 점검</span></div>
+              <h3>지금 상태를 숫자로 남깁니다</h3>
+              <p>손님이 실제로 칠 질문 30개를 만들어 AI 4곳에 여러 번 묻습니다. 학원이면 「○○구 초등 코딩학원 추천」, 치과면 「△△동 임플란트 잘하는 곳」 같은 말입니다.</p>
+              <div className="chips"><span>질문 30개</span><span>AI 4곳</span><span>사이트 7항목 진단</span></div>
             </div>
             <div className="fstep">
               <div className="fhead"><span className="fnum">2</span><span className="fwhen">2~3주차</span></div>
-              <h3>읽히게 만듭니다</h3>
-              <p>크롤러를 이름으로 열고 구조화 데이터를 붙입니다. 서버에 방문 기록 장치를 달면 어느 AI 가 몇 쪽 읽었는지 여기서 처음 보입니다.</p>
+              <h3>AI 가 읽을 수 있게 만듭니다</h3>
+              <p>robots.txt 에 GPTBot·ClaudeBot 을 이름으로 열고 회사 정보를 구조화 데이터로 붙입니다. AI 크롤러를 막는 블로그에만 있던 글은 옮깁니다.</p>
               <div className="chips"><span>robots.txt</span><span>llms.txt</span><span>구조화 데이터</span><span>방문 기록</span></div>
             </div>
             <div className="fstep">
               <div className="fhead"><span className="fnum">3</span><span className="fwhen">4~8주차</span></div>
-              <h3>남의 글에 들어갑니다</h3>
-              <p>AI 가 참고한 글을 거꾸로 찾아 경쟁사는 있고 우리만 없는 다섯 곳을 고릅니다. 등록하고, 요청하고, 틀린 정보를 바로잡습니다.</p>
-              <div className="chips"><span>등재</span><span>정정</span><span>글 1편</span></div>
+              <h3>비교 글·목록에 들어갑니다</h3>
+              <p>AI 답에 붙은 출처를 모아 경쟁사는 있고 우리만 없는 글 다섯 곳을 고릅니다. 목록 사이트에 등재하고, 플레이스 소개글을 채우고, 틀린 정보를 고칩니다.</p>
+              <div className="chips"><span>등재</span><span>소개글</span><span>정정</span><span>글 1편</span></div>
             </div>
             <div className="fstep">
               <div className="fhead"><span className="fnum">4</span><span className="fwhen">8주차</span></div>
-              <h3>같은 질문으로 다시 잽니다</h3>
-              <p>오른 것, 안 오른 것, 거절당한 지면까지 그대로 적습니다. 답변 원문과 참고한 주소를 붙이고 다음 두 달에 뭘 할지 정합니다.</p>
-              <div className="chips"><span>답변 원문 전량</span><span>거절 지면 포함</span></div>
+              <h3>같은 질문으로 다시 셉니다</h3>
+              <p>1단계와 같은 질문, 같은 AI, 같은 횟수로 다시 묻습니다. 오른 것, 안 오른 것, 거절당한 등재까지 적고 다음 두 달에 할 일을 정합니다.</p>
+              <div className="chips"><span>답변 원문 전량</span><span>거절된 곳 포함</span></div>
             </div>
           </div>
-          <p className="flownote">첫 리포트는 <b>착수 후 2주</b>에 나갑니다. 사이트 수정에 고객사 개발팀·외주사를 거쳐야 하면 2단계가 길어집니다.</p>
+          <p className="flownote">
+            첫 리포트는 <b>착수 후 2주</b>에 나갑니다. 플레이스·구글 비즈니스 프로필처럼 대표자 인증이 필요한 곳은
+            사장님이 권한을 열어 주셔야 진행됩니다.
+          </p>
         </div>
       </section>
 
       {/* ── 도입 사례 ── */}
       <section className="deep" id="case">
         <div className="wrap">
-          <div className="lab">도입 사례 · 송파구 코딩·로봇 학원 · {caseDay}일차</div>
+          <div className="lab">도입 사례 · 수도권 코딩·로봇 학원 · {caseDay}일차</div>
           <h2>홈페이지 없이<br />블로그만 있던 학원</h2>
           <p className="sub2">
-            아래 숫자는 <b>서버 기록에서 매일 다시 가져옵니다.</b> 안 오른 숫자도 같은 크기로 싣습니다.
+            학원 이름과 지역은 가렸습니다. 숫자는 <b>서버 기록에서 매일 다시 가져오고</b>, 안 오른 숫자도 같은 크기로 싣습니다.
           </p>
 
           <div className="case">
             <div className="cx hi">
               <div className="cxh">
-                <span className="lab2">경쟁 검색어 · 09.05 → {serpDay}</span>
+                <span className="lab2">경쟁 검색어 · 착수 때 → 지금</span>
                 <span className="cxn">0 → <Count to={webWins} /> / {webTotal}</span>
               </div>
               <p>
-                「송파구 코딩학원」처럼 <b>학원 이름 없이</b> 지역과 업종만 친 검색입니다.
-                시작할 때 하나도 없었고 위쪽은 전부 학원 목록 사이트였습니다.
-                학원 이름을 넣은 검색은 여기 안 셉니다 — 나오는 게 당연해서 성과가 아닙니다.
+                「○○구 코딩학원」처럼 <b>학원 이름 없이</b> 친 검색 {webTotal}개입니다.
+                착수 때는 위쪽이 전부 오늘학교·순위닷 같은 학원 목록 사이트였고 학원 홈페이지는 한 곳도 없었습니다.
+                학원 이름을 넣은 검색은 세지 않습니다. 나오는 게 당연해서입니다.
               </p>
             </div>
             <div className="cx">
               <div className="cxh">
-                <span className="lab2">네이버 플레이스 · 「송파구 코딩학원」</span>
-                <span className="cxn"><Count to={songpaRank} />위</span>
+                <span className="lab2">네이버 플레이스 · 「○○구 코딩학원」</span>
+                <span className="cxn"><Count to={placeRank} />위</span>
               </div>
               <p>
-                학부모가 실제로 보는 자리입니다. 소개글이 188자였고 AI 가 그걸 읽고 학원을 설명하고 있었습니다.
-                933자로 다시 썼습니다.
-              </p>
-            </div>
-            <div className="cx">
-              <div className="cxh">
-                <span className="lab2">AI 가 읽은 비율 · 1일차</span>
-                <span className="cxn"><Count to={91.2} decimals={1} suffix="%" /></span>
-              </div>
-              <p>
-                주소를 연결한 날 AI 가 처음 왔고, 하루 만에 <b>34쪽 중 31쪽</b>을 읽어 갔습니다.
-                검색 콘솔에는 안 나옵니다. 서버에 기록 장치를 달아야 보입니다.
+                네이버 AI 가 이 학원을 <b>「무선 인터넷과 남녀 구분 화장실을 제공합니다」</b>라고 소개하고 있었습니다.
+                소개글 188자가 대부분 의무 게시 안내문이라 AI 가 쓸 문장이 없었습니다. 933자로 다시 썼습니다.
               </p>
             </div>
             <div className="cx">
@@ -551,19 +574,18 @@ export default async function Home() {
                 <span className="cxn"><Count to={vendors} />곳 · <Count to={hits} />회</span>
               </div>
               <p>
-                첫날은 2곳이었습니다. 국내 블로그 플랫폼은 GPTBot·ClaudeBot 을 막아서
-                <b> 쌓아 둔 글 32편이 AI 에겐 없는 글</b>이었습니다. 막히지 않은 곳으로 옮겼습니다.
+                첫날은 구글과 Anthropic 두 곳이었습니다. 네이버 블로그는 GPTBot·ClaudeBot 을 막아서
+                <b> 쌓아 둔 글 32편이 AI 에겐 없는 글</b>이었습니다. 사진 69장까지 막히지 않은 곳으로 옮겼습니다.
               </p>
             </div>
             <div className="cx hi">
               <div className="cxh">
-                <span className="lab2">AI 답변 인용 · 09.10</span>
-                <span className="cxn">0 / 8</span>
+                <span className="lab2">AI 답변 인용</span>
+                <span className="cxn">아직 모름</span>
               </div>
               <p>
-                학부모 질문 8개 중 우리 사이트를 출처로 단 답은 <b>아직 0개</b>입니다.
-                이름이 나온 답이 하나 있었는데 출처가 <b>남의 글</b>이었습니다. 위에서 말한 80%가 이겁니다.
-                2~4주 뒤 더 넓게 다시 잽니다.
+                검색에 올라온 지 며칠 안 돼서 지금 물어보면 AI 가 아직 못 본 상태를 세게 됩니다.
+                <b> 질문 33개를 AI 마다 5번씩 묻는 준비</b>는 끝났습니다. 결과가 0이어도 여기 적습니다.
               </p>
             </div>
           </div>
@@ -585,14 +607,14 @@ export default async function Home() {
               <div className="caselog">
                 <div className="clh">첫날 · 이후 누적</div>
                 <div className="cl mono"><span>15:49:01</span><span>ClaudeBot</span><span>/robots.txt</span></div>
-                <div className="cl mono"><span>15:49:27</span><span>ClaudeBot</span><span>/blog/seouldae-uiyegwa-hapgyeok</span></div>
+                <div className="cl mono"><span>15:49:27</span><span>ClaudeBot</span><span>/blog/(옮긴 글)</span></div>
                 <div className="cl mono"><span>+18h</span><span>Googlebot</span><span>/ · /blog · /sitemap.xml</span></div>
                 <div className="cl mono"><span>+3d</span><span>Yeti</span><span>/sitemap.xml · 네이버 색인</span></div>
                 <div className="cl mono dim"><span>…</span><span>{vendors}곳</span><span>{hits}회 방문 · ClaudeBot {claudePages}쪽</span></div>
               </div>
-              <a className="caselink" href="/case/robotncoding.html">
+              <a className="caselink" href={CASE_URL}>
                 전체 기록 보기
-                <span>날짜·수치 전부 →</span>
+                <span>이름·지역을 가린 원본 →</span>
               </a>
             </div>
           </div>
@@ -605,7 +627,7 @@ export default async function Home() {
           <div className="lab">리포트가 다른 점</div>
           <h2>보기 좋은 숫자를<br />만들지 않습니다</h2>
           <p className="sub2">
-            「AI 가시성 97%」 같은 딱 떨어지는 숫자는 대개 한 번 물어본 결과입니다. 저희 리포트는 이렇게 생겼습니다.
+            「AI 가시성 92%」 같은 딱 떨어지는 숫자는 몇 번 물었는지가 빠져 있기 쉽습니다. 저희 리포트는 이렇게 적습니다.
           </p>
 
           <div className="diff">
@@ -613,13 +635,13 @@ export default async function Home() {
               <div>
                 <h3>몇 번 물었는지 같이 씁니다</h3>
                 <div className="vs">
-                  <div className="them">AI 가시성 92%</div>
-                  <div className="us">62% (150회 · 흔들리는 범위 48~74%)</div>
+                  <div className="them">AI 가시성 62%</div>
+                  <div className="us">62% · 150번 중 93번 · 흔들리는 범위 54~69%</div>
                 </div>
               </div>
               <div className="body">
-                하루 다섯 번 재면 오차가 ±40%p까지 벌어집니다. 많이 물을수록 범위가 좁아지고,
-                그 과정을 그대로 보여드립니다. 아래 버튼을 눌러 보세요. 흐려 보이면 그게 사실입니다.
+                같은 62%라도 5번만 물었다면 실제 값은 <b>24%에서 89% 사이</b> 어디든 될 수 있습니다.
+                물어본 횟수를 늘릴수록 범위가 좁아집니다. 아래 버튼으로 바꿔 보세요.
               </div>
               <Interval />
             </div>
@@ -628,7 +650,7 @@ export default async function Home() {
                 <h3>답변 원문을 드립니다</h3>
                 <div className="vs">
                   <div className="them">대시보드 점수만</div>
-                  <div className="us">질문 · 답변 전문 · 참고한 주소 · 엔진 · 시각</div>
+                  <div className="us">질문 · 답변 전문 · 답에 붙은 출처 · 엔진 · 시각</div>
                 </div>
               </div>
               <div className="body">
@@ -640,12 +662,12 @@ export default async function Home() {
                 <h3>고칠 게 없으면 없다고 합니다</h3>
                 <div className="vs">
                   <div className="them">사이트 80점 → 개선 제안 12건</div>
-                  <div className="us">사이트 80점 → “사이트는 문제가 아닙니다”</div>
+                  <div className="us">사이트 80점 → 「사이트는 됐는데 안 불립니다」</div>
                 </div>
               </div>
               <div className="body">
-                사이트 점수 80점(26곳 중 1위)인데 AI 노출은 25%인 곳이 있었습니다.
-                AI 가 읽는 비교 글 14개 중 어디에도 이름이 없었습니다. 사이트를 더 고쳐도 안 달라집니다.
+                위에서 본 사이트 점수 1위 회사의 실제 진단 결론입니다. 사이트를 더 고치라고 하지 않았습니다.
+                대신 경쟁 3사는 있고 이 회사만 빠진 비교 글 세 곳을 먼저 들어갈 곳으로 적었습니다.
               </div>
             </div>
           </div>
@@ -829,7 +851,7 @@ export default async function Home() {
           <div className="fgrid">
             <div>
               <span className="logo"><span className="mk" aria-hidden="true">[ ]</span>Cited<em>사이티드</em></span>
-              <p className="fdesc">손님이 AI 에게 물었을 때 우리 이름이 나오는지 재고, 나오게 만듭니다.</p>
+              <p className="fdesc">손님이 AI 에게 물었을 때 우리 이름이 나오는지 확인하고, 나오게 만듭니다.</p>
             </div>
             <div>
               <h4>서비스</h4>
@@ -840,7 +862,7 @@ export default async function Home() {
             <div>
               <h4>기록</h4>
               <ul>
-                <li><a href="/case/robotncoding.html">도입 사례 리포트</a></li>
+                <li><a href={CASE_URL}>도입 사례 리포트</a></li>
                 <li><a href="/#geo">GEO 와 SEO 의 차이</a></li>
                 <li><a href="/#how">두 달 진행 순서</a></li>
                 <li><a href="/#price">요금</a></li>
@@ -848,9 +870,8 @@ export default async function Home() {
             </div>
           </div>
           <div className="wm">
-            이 페이지의 숫자(26곳 점검 · 다시 물으면 28% 바뀜 · 홈페이지 몫 20%)는 저희가 직접 잰 값입니다.
-            표본이 아직 크지 않아 확정치가 아니라 <b>대략의 방향</b>으로 봐 주세요.
-            사례의 방문 기록은 서버에 남은 원본 그대로입니다.
+            이 페이지의 시장 숫자(사이트 34곳 진단 · ERP 질문 12개를 AI 에 15번 물은 결과)는 저희가 직접 측정한 값입니다.
+            표본이 작아 <b>대략의 방향</b>으로 봐 주세요. 사례의 방문 기록은 서버에 남은 원본이고, 학원 이름과 지역만 가렸습니다.
           </div>
           <div className="fbottom">
             <span>© 2026 Cited 사이티드</span>
