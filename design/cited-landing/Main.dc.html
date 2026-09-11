@@ -246,7 +246,7 @@
       <div>
         <div class="lab" style="color: {{accent}};"><i></i><span>말 대신 기록</span></div>
         <h2 class="h2">사례 학원 사이트,<br><span style="color: {{accent}};">7개 항목 중 6개가 90점 넘게</span></h2>
-        <p class="sub">홈페이지 주소를 넣으면 나오는 무료 진단과 같은 7개 항목입니다. 착수할 때 종합 83점이던 사이트를 첫 주에 고친 뒤 다시 돌린 결과입니다.</p>
+        <p class="sub">홈페이지 주소를 넣으면 나오는 무료 진단과 같은 7개 항목입니다. 착수 첫날 새로 지은 사이트가 83점이었고, 첫 주에 고친 뒤 다시 돌린 결과입니다.</p>
         <div style="margin-top: 40px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px;">
           <div style="display: flex; flex-direction: column; align-items: center; text-align: center;">
             <div style="width: 112px; height: 112px; border-radius: 50%; background: conic-gradient({{accent}} 0 92%, #E3E9F2 0); display: flex; align-items: center; justify-content: center;"><div style="width: 88px; height: 88px; border-radius: 50%; background: #F4F7FB; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 800; letter-spacing: -0.04em;">92</div></div>
@@ -266,12 +266,12 @@
           <div style="display: flex; flex-direction: column; align-items: center; text-align: center;">
             <div style="width: 112px; height: 112px; border-radius: 50%; background: conic-gradient(#C98A2B 0 47%, #E3E9F2 0); display: flex; align-items: center; justify-content: center;"><div style="width: 88px; height: 88px; border-radius: 50%; background: #F4F7FB; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 800; letter-spacing: -0.04em;">47</div></div>
             <div style="margin-top: 12px; font-size: 15px; font-weight: 700;">인용할 만한 문단</div>
-            <div style="font-size: 13.5px; color: #566378;">334개 중 151개</div>
+            <div style="font-size: 13.5px; color: #566378;">80~400자 151/334</div>
           </div>
         </div>
         <div style="margin-top: 28px; display: flex; gap: 14px; align-items: flex-start; padding: 18px 20px; border-radius: 14px; background: #FFFFFF; border: 1px solid #D9E1EC;">
           <svg width="22" height="22" viewBox="0 0 24 24" style="flex: none; margin-top: 2px; fill: none; stroke: #C98A2B; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v5M12 16.5v.01"></path></svg>
-          <p style="font-size: 15.5px; line-height: 1.75; color: #566378;"><b style="color: #0E1B2E;">문단 점수 47은 아직 못 고친 부분입니다.</b> 80자가 안 되는 짧은 문단이 183개였고 400자 넘는 문단은 0개였습니다. 잘된 칸만 골라 싣지 않습니다.</p>
+          <p style="font-size: 15.5px; line-height: 1.75; color: #566378;"><b style="color: #0E1B2E;">문단 점수 47은 아직 못 고친 부분입니다.</b> 80~400자 범위에 든 문단이 334개 중 151개입니다. AI 가 잘라 가져가기 좋은 길이가 절반이 안 된다는 뜻입니다. 잘된 칸만 골라 싣지 않습니다.</p>
         </div>
       </div>
 
@@ -280,9 +280,9 @@
           <div style="display: flex; gap: 6px;"><span style="width: 10px; height: 10px; border-radius: 50%; background: #FF5F57;"></span><span style="width: 10px; height: 10px; border-radius: 50%; background: #FEBC2E;"></span><span style="width: 10px; height: 10px; border-radius: 50%; background: #28C840;"></span></div>
           <span>robots.txt · 사례 학원</span>
         </div>
-        <div class="mono" style="padding: 20px 22px; font-size: 14px; line-height: 1.85; white-space: pre;">
-          <div style="color: #6F819D;"># AI 크롤러를 User-agent 별로 명시 허용한다.</div>
-          <div style="color: #6F819D;"># 네이버 블로그는 이 봇들을 전부 차단한다.</div>
+        <div class="mono" style="padding: 20px 22px; font-size: 14px; line-height: 1.85;">
+          <div style="color: #6F819D; white-space: pre;"># AI 크롤러를 User-agent 별로 명시 허용한다.</div>
+          <div style="color: #6F819D; white-space: pre;"># 네이버 블로그는 GPTBot·ClaudeBot 같은 AI 크롤러를 막는다.</div>
           <div style="height: 12px;"></div>
           <div><span style="color: #7FB4FF;">User-agent:</span> <span style="color: #8BE0B5;">OAI-SearchBot</span></div>
           <div><span style="color: #7FB4FF;">Allow:</span> /</div>
@@ -293,16 +293,16 @@
           <div><span style="color: #7FB4FF;">User-agent:</span> <span style="color: #8BE0B5;">ClaudeBot</span></div>
           <div><span style="color: #7FB4FF;">Allow:</span> /</div>
           <div style="height: 12px;"></div>
-          <div><span style="color: #7FB4FF;">User-agent:</span> <span style="color: #8BE0B5;">Yeti</span></div>
+          <div><span style="color: #7FB4FF;">User-agent:</span> <span style="color: #8BE0B5;">PerplexityBot</span></div>
           <div><span style="color: #7FB4FF;">Allow:</span> /</div>
           <div style="color: #6F819D;"># … 이하 생략</div>
         </div>
         <div style="padding: 16px 22px 20px; border-top: 1px solid #1E2A40; background: #0F192C;">
           <div class="mono" style="display: grid; grid-template-columns: 76px 110px minmax(0, 1fr); row-gap: 6px; font-size: 13px; color: #8FA0BA;">
-            <span>15:49:01</span><span style="color: #7FB4FF;">ClaudeBot</span><span>/robots.txt</span>
-            <span>15:49:27</span><span style="color: #7FB4FF;">ClaudeBot</span><span>/blog/(옮긴 글)</span>
-            <span>+18h</span><span style="color: #7FB4FF;">Googlebot</span><span>/ · /blog · /sitemap.xml</span>
-            <span>+3d</span><span style="color: #7FB4FF;">Yeti</span><span>/sitemap.xml</span>
+            <span>00:49:01</span><span style="color: #7FB4FF;">ClaudeBot</span><span>/robots.txt</span>
+            <span>00:49:27</span><span style="color: #7FB4FF;">ClaudeBot</span><span>/blog/(옮긴 글)</span>
+            <span>00:59:39</span><span style="color: #7FB4FF;">Googlebot</span><span>/robots.txt</span>
+            <span>+26h</span><span style="color: #7FB4FF;">Yeti</span><span>/</span>
           </div>
           <div style="margin-top: 14px; display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 14px; border-radius: 9px; background: #16A36F; color: #FFFFFF; font-size: 13.5px; font-weight: 700;">
             <svg width="14" height="14" viewBox="0 0 24 24" style="fill: none; stroke: #FFFFFF; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round;"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>
@@ -336,7 +336,7 @@
             <div class="fade">
               <div style="font-size: 14px; font-weight: 600; color: #8592A6;">소프트웨어 회사 진단 리포트 · 회사 이름 가림</div>
               <h3 style="margin-top: 10px; font-size: 30px; font-weight: 800; letter-spacing: -0.035em;">홈페이지 점수 1위 회사가 <span style="color: {{accent}};">15번 중 3번</span></h3>
-              <p style="margin-top: 12px; font-size: 17px; line-height: 1.8; color: #566378;">그 업계 손님이 물어볼 질문을 AI 에게 15번 묻고, 회사마다 이름이 몇 번 나왔는지 셌습니다.</p>
+              <p style="margin-top: 12px; font-size: 17px; line-height: 1.8; color: #566378;">그 업계 손님이 물어볼 질문을 AI 에게 15번 묻고, 회사마다 이름이 몇 번 나왔는지 셌습니다. 15번이라 순위가 아니라 방향으로 봅니다.</p>
               <div style="margin-top: 30px; display: flex; flex-direction: column; gap: 14px;">
                 <sc-for list="{{bars}}" as="b" hint-placeholder-count="5">
                   <div style="display: grid; grid-template-columns: 96px minmax(0, 1fr) 56px; gap: 16px; align-items: center;">
@@ -354,9 +354,9 @@
               <h3 style="margin-top: 10px; font-size: 30px; font-weight: 800; letter-spacing: -0.035em;">비교 글 14개에 <span style="color: #C23B2E;">이름 0번</span></h3>
               <p style="margin-top: 12px; font-size: 17px; line-height: 1.8; color: #566378;">AI 가 답할 때 참고한 비교 글 14개를 하나씩 열어 봤습니다. A·B·C사는 대부분 있었고 이 회사 이름은 한 번도 없었습니다. 고칠 곳은 홈페이지가 아니라 이 글들이었습니다.</p>
               <div style="margin-top: 26px; display: flex; flex-direction: column; gap: 10px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 16px 18px; border-radius: 12px; background: #F4F7FB;"><span style="font-size: 16px; font-weight: 600;">「국내 ERP 업체 순위 Top5」</span><span style="font-size: 14px; color: #566378; white-space: nowrap;">A·B·C 있음 · <b style="color: #C23B2E;">이 회사 없음</b></span></div>
-                <div style="display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 16px 18px; border-radius: 12px; background: #F4F7FB;"><span style="font-size: 16px; font-weight: 600;">「중견·중소기업 ERP 프로그램 비교 가이드」</span><span style="font-size: 14px; color: #566378; white-space: nowrap;">A·B·C 있음 · <b style="color: #C23B2E;">이 회사 없음</b></span></div>
-                <div style="display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 16px 18px; border-radius: 12px; background: #F4F7FB;"><span style="font-size: 16px; font-weight: 600;">「회사 규모별 ERP 추천」</span><span style="font-size: 14px; color: #566378; white-space: nowrap;">A·B·C 있음 · <b style="color: #C23B2E;">이 회사 없음</b></span></div>
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 16px 18px; border-radius: 12px; background: #F4F7FB;"><span style="font-size: 16px; font-weight: 600;">「국내 업체 순위 Top5」</span><span style="font-size: 14px; color: #566378; white-space: nowrap;">A·B·C 있음 · <b style="color: #C23B2E;">이 회사 없음</b></span></div>
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 16px 18px; border-radius: 12px; background: #F4F7FB;"><span style="font-size: 16px; font-weight: 600;">「중견·중소기업 프로그램 비교 가이드」</span><span style="font-size: 14px; color: #566378; white-space: nowrap;">A·B·C 있음 · <b style="color: #C23B2E;">이 회사 없음</b></span></div>
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 16px 18px; border-radius: 12px; background: #F4F7FB;"><span style="font-size: 16px; font-weight: 600;">「회사 규모별 프로그램 추천」</span><span style="font-size: 14px; color: #566378; white-space: nowrap;">A·B·C 있음 · <b style="color: #C23B2E;">이 회사 없음</b></span></div>
               </div>
             </div>
           </sc-if>
@@ -415,7 +415,7 @@
     <div class="wrap">
       <div class="lab" style="color: #6BAEFF;"><i></i><span>직접 측정한 것 · 소프트웨어 회사 34곳</span></div>
       <h2 class="h2">사이트 점수와 AI 노출은<br><span style="color: #6BAEFF;">따로 움직였습니다</span></h2>
-      <p class="sub">국내 소프트웨어 회사 34곳의 홈페이지를 진단했습니다. 그중 한 업계는 AI 에게 직접 물어 회사마다 몇 번 나오는지도 셌습니다.</p>
+      <p class="sub">국내 소프트웨어 회사 34곳의 홈페이지를 진단했습니다. 그중 한 업계는 AI 에게 직접 물어 회사마다 몇 번 나오는지도 셌습니다. 회사마다 15번씩이라 방향으로만 봐 주세요.</p>
 
       <div class="glass" style="margin-top: 48px; padding: 36px 40px;">
         <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 48px;">
@@ -598,7 +598,7 @@
         </div>
         <div class="glass" style="padding: 26px 28px;">
           <div style="display: flex; justify-content: space-between; align-items: baseline; padding-bottom: 16px; border-bottom: 1px solid rgba(255,255,255,0.1);"><span style="font-size: 14.5px; font-weight: 600; color: #AFBDD3;">다녀간 크롤러 · 7일차</span><b style="font-size: 32px; font-weight: 800; color: #6BAEFF; letter-spacing: -0.03em;">8곳 · 565회</b></div>
-          <p style="margin-top: 16px; font-size: 16px; line-height: 1.8; color: #AFBDD3;">첫날은 구글과 Anthropic 두 곳이었습니다. 네이버 블로그는 GPTBot·ClaudeBot 을 막아서 <b style="color: #FFFFFF;">쌓아 둔 글 32편이 AI 에겐 없는 글</b>이었습니다. 사진 69장까지 막히지 않은 곳으로 옮겼습니다.</p>
+          <p style="margin-top: 16px; font-size: 16px; line-height: 1.8; color: #AFBDD3;">처음 한 시간 안에 온 곳은 Anthropic 과 구글 두 곳이었습니다. 네이버 블로그는 GPTBot·ClaudeBot 을 막아서 <b style="color: #FFFFFF;">쌓아 둔 글 32편이 AI 에겐 없는 글</b>이었습니다. 사진 69장까지 막히지 않은 곳으로 옮겼습니다.</p>
         </div>
         <div class="glass" style="padding: 26px 28px; border-color: rgba(107,174,255,0.35); background: rgba(107,174,255,0.08);">
           <div style="display: flex; justify-content: space-between; align-items: baseline; padding-bottom: 16px; border-bottom: 1px solid rgba(255,255,255,0.1);"><span style="font-size: 14.5px; font-weight: 600; color: #AFBDD3;">AI 답변 인용 · 첫 기준선</span><b style="font-size: 32px; font-weight: 800; color: #6BAEFF; letter-spacing: -0.03em;">0 / 8</b></div>
@@ -613,7 +613,8 @@
             <div style="position: absolute; left: 7px; top: 8px; bottom: 8px; width: 2px; background: rgba(107,174,255,0.25);"></div>
             <div style="display: flex; flex-direction: column; gap: 18px;">
               <div style="position: relative;"><span style="position: absolute; left: -26px; top: 6px; width: 12px; height: 12px; border-radius: 50%; background: #6BAEFF; box-shadow: 0 0 0 4px rgba(107,174,255,0.2);"></span><span class="mono" style="font-size: 13px; color: #6BAEFF;">1일차</span><div style="font-size: 16.5px; font-weight: 700; color: #FFFFFF;">사이트 구축 · 도메인 연결</div><div style="font-size: 15px; color: #AFBDD3;">AI 크롤러를 이름으로 허용하고 llms.txt 와 구조화 데이터를 붙였습니다.</div></div>
-              <div style="position: relative;"><span style="position: absolute; left: -26px; top: 6px; width: 12px; height: 12px; border-radius: 50%; background: #6BAEFF;"></span><span class="mono" style="font-size: 13px; color: #6BAEFF;">1일차</span><div style="font-size: 16.5px; font-weight: 700; color: #FFFFFF;">블로그 글 32편 이관 · 첫 AI 방문</div><div style="font-size: 15px; color: #AFBDD3;">주소를 연결한 날 오후 3시 49분. ClaudeBot 이 robots.txt 부터 읽었습니다.</div></div>
+              <div style="position: relative;"><span style="position: absolute; left: -26px; top: 6px; width: 12px; height: 12px; border-radius: 50%; background: #6BAEFF;"></span><span class="mono" style="font-size: 13px; color: #6BAEFF;">1일차</span><div style="font-size: 16.5px; font-weight: 700; color: #FFFFFF;">블로그 글 32편 이관</div><div style="font-size: 15px; color: #AFBDD3;">AI 크롤러를 막는 블로그에서 사진 69장까지 옮겼습니다.</div></div>
+              <div style="position: relative;"><span style="position: absolute; left: -26px; top: 6px; width: 12px; height: 12px; border-radius: 50%; background: #6BAEFF;"></span><span class="mono" style="font-size: 13px; color: #6BAEFF;">2일차</span><div style="font-size: 16.5px; font-weight: 700; color: #FFFFFF;">첫 AI 방문</div><div style="font-size: 15px; color: #AFBDD3;">0시 49분 ClaudeBot 이 robots.txt 부터 읽었고, 10분 뒤 Googlebot 이 왔습니다.</div></div>
               <div style="position: relative;"><span style="position: absolute; left: -26px; top: 6px; width: 12px; height: 12px; border-radius: 50%; background: #6BAEFF;"></span><span class="mono" style="font-size: 13px; color: #6BAEFF;">2일차</span><div style="font-size: 16.5px; font-weight: 700; color: #FFFFFF;">구글 비즈니스 프로필 등록 · 학원 목록 사이트 등재 신청</div><div style="font-size: 15px; color: #AFBDD3;">대표자 본인인증이 필요한 항목은 사장님이 직접 했습니다.</div></div>
               <div style="position: relative;"><span style="position: absolute; left: -26px; top: 6px; width: 12px; height: 12px; border-radius: 50%; background: #6BAEFF;"></span><span class="mono" style="font-size: 13px; color: #6BAEFF;">4일차</span><div style="font-size: 16.5px; font-weight: 700; color: #FFFFFF;">네이버 검색에 사이트가 처음 잡힘</div><div style="font-size: 15px; color: #AFBDD3;">옮긴 글이 네이버 검색 결과에 나오기 시작했습니다.</div></div>
               <div style="position: relative;"><span style="position: absolute; left: -26px; top: 6px; width: 12px; height: 12px; border-radius: 50%; background: #6BAEFF;"></span><span class="mono" style="font-size: 13px; color: #6BAEFF;">6일차</span><div style="font-size: 16.5px; font-weight: 700; color: #FFFFFF;">학원 이름 없이 친 검색어에 첫 노출 · 플레이스 소개글 188자 → 933자</div><div style="font-size: 15px; color: #AFBDD3;">네이버 통합검색 「○○구 코딩학원」에 사이트가 나왔습니다.</div></div>
@@ -624,10 +625,10 @@
           <div style="font-size: 17px; font-weight: 700; color: #FFFFFF; margin-bottom: 14px;">서버가 기록한 실제 방문 로그</div>
           <div style="border-radius: 16px; border: 1px solid rgba(255,255,255,0.12); background: rgba(0,0,0,0.25); overflow: hidden;">
             <div class="mono" style="display: grid; grid-template-columns: 78px 106px minmax(0, 1fr); row-gap: 0; font-size: 13px; color: #AFBDD3;">
-              <span style="padding: 12px 0 12px 18px; border-bottom: 1px solid rgba(255,255,255,0.06); color: #8592A6;">15:49:01</span><span style="padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.06); color: #6BAEFF;">ClaudeBot</span><span style="padding: 12px 18px 12px 0; border-bottom: 1px solid rgba(255,255,255,0.06);">/robots.txt</span>
-              <span style="padding: 12px 0 12px 18px; border-bottom: 1px solid rgba(255,255,255,0.06); color: #8592A6;">15:49:27</span><span style="padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.06); color: #6BAEFF;">ClaudeBot</span><span style="padding: 12px 18px 12px 0; border-bottom: 1px solid rgba(255,255,255,0.06);">/blog/(옮긴 글)</span>
-              <span style="padding: 12px 0 12px 18px; border-bottom: 1px solid rgba(255,255,255,0.06); color: #8592A6;">+18h</span><span style="padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.06); color: #6BAEFF;">Googlebot</span><span style="padding: 12px 18px 12px 0; border-bottom: 1px solid rgba(255,255,255,0.06);">/ · /blog · /sitemap.xml</span>
-              <span style="padding: 12px 0 12px 18px; color: #8592A6;">+3d</span><span style="padding: 12px 0; color: #6BAEFF;">Yeti</span><span style="padding: 12px 18px 12px 0;">/sitemap.xml · 네이버 색인</span>
+              <span style="padding: 12px 0 12px 18px; border-bottom: 1px solid rgba(255,255,255,0.06); color: #8592A6;">00:49:01</span><span style="padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.06); color: #6BAEFF;">ClaudeBot</span><span style="padding: 12px 18px 12px 0; border-bottom: 1px solid rgba(255,255,255,0.06);">/robots.txt</span>
+              <span style="padding: 12px 0 12px 18px; border-bottom: 1px solid rgba(255,255,255,0.06); color: #8592A6;">00:49:27</span><span style="padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.06); color: #6BAEFF;">ClaudeBot</span><span style="padding: 12px 18px 12px 0; border-bottom: 1px solid rgba(255,255,255,0.06);">/blog/(옮긴 글)</span>
+              <span style="padding: 12px 0 12px 18px; border-bottom: 1px solid rgba(255,255,255,0.06); color: #8592A6;">00:59:39</span><span style="padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.06); color: #6BAEFF;">Googlebot</span><span style="padding: 12px 18px 12px 0; border-bottom: 1px solid rgba(255,255,255,0.06);">/robots.txt</span>
+              <span style="padding: 12px 0 12px 18px; color: #8592A6;">+26h</span><span style="padding: 12px 0; color: #6BAEFF;">Yeti</span><span style="padding: 12px 18px 12px 0;">/ · 네이버</span>
             </div>
           </div>
           <div class="press" style="margin-top: 12px; display: flex; justify-content: space-between; align-items: center; padding: 18px 22px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.16); background: rgba(255,255,255,0.05); font-size: 16.5px; font-weight: 700; color: #FFFFFF;"><span>전체 기록 보기</span><span style="font-size: 14px; font-weight: 500; color: #AFBDD3;">이름·지역을 가린 원본 →</span></div>
@@ -641,7 +642,7 @@
     <div class="wrap">
       <div class="lab" style="color: {{accent}};"><i></i><span>리포트가 다른 점</span></div>
       <h2 class="h2">보기 좋은 숫자를<br>만들지 않습니다</h2>
-      <p class="sub">「AI 가시성 92%」 같은 딱 떨어지는 숫자는 몇 번 물었는지가 빠져 있기 쉽습니다. 저희 리포트는 이렇게 적습니다.</p>
+      <p class="sub">「AI 가시성 97%」 같은 딱 떨어지는 숫자는 몇 번 물었는지가 빠져 있기 쉽습니다. 저희 리포트는 이렇게 적습니다.</p>
 
       <div class="card" style="margin-top: 48px; overflow: hidden;">
         <div style="display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 26px 32px; border-bottom: 1px solid #E7ECF3;">
@@ -882,7 +883,7 @@ class Component extends DCLogic {
     const LO = Math.round(lo * 100), HI = Math.round(hi * 100);
     const NOTES = [
       { a: '5번만 물으면 같은 62%라도 실제 값은 ', b: LO + '%에서 ' + HI + '% 사이', c: ' 어디든 될 수 있습니다. 이 숫자로는 아무것도 말할 수 없습니다.' },
-      { a: '20번으로 늘리면 범위가 절반쯤 줄어듭니다. 그래도 ', b: '폭이 ' + span + '%p', c: '라 지난달과 견주기엔 넓습니다.' },
+      { a: '5번일 때 65%p이던 폭이 20번이면 ', b: span + '%p', c: '로 줄어듭니다. 그래도 지난달과 견주기엔 넓습니다.' },
       { a: '50번쯤 되면 「대략 이 정도」라고 말할 수 있습니다. ', b: '여기부터가 보고할 만한 숫자', c: '입니다.' },
       { a: '150번이면 폭이 ', b: span + '%p', c: '까지 좁아집니다. 이 정도라야 지난달과 비교해서 「늘었다」고 말할 수 있습니다.' },
     ];
@@ -902,7 +903,7 @@ class Component extends DCLogic {
 
     // ── 자주 묻는 것 (랜딩 FAQ 그대로)
     const FAQ = [
-      ['직접 하면 안 되나요?', '기술 세팅은 직접 하실 수 있고 그러시길 권합니다. 하루면 됩니다. 어려운 건 AI 4곳에 같은 질문을 여러 번 물어 세는 일과, 경쟁사는 있고 우리만 없는 비교 글을 찾아내는 일입니다. 저희가 파는 건 그 둘입니다.'],
+      ['직접 하면 안 되나요?', '기술 세팅은 직접 하실 수 있고 그러시길 권합니다. 어려운 건 AI 4곳에 같은 질문을 여러 번 물어 세는 일과, 경쟁사는 있고 우리만 없는 비교 글을 찾아내는 일입니다. 저희가 파는 건 그 둘입니다.'],
       ['얼마나 걸리나요?', '사례 학원은 착수 넷째 날 네이버 검색에 사이트가 처음 잡혔고, 여섯째 날 학원 이름 없이 친 지역 검색어에 나오기 시작했습니다. AI 답변에 이름이 붙기까지 얼마나 걸리는지는 아직 모릅니다. 결과가 나오면 사례 기록에 그대로 적습니다.'],
       ['성과를 보장하나요?', '안 합니다. 대신 어떤 질문을, 어느 AI 에, 몇 번 묻는지를 계약서에 적고 시작할 때 숫자를 남깁니다. 두 달 뒤 같은 방법으로 다시 센 결과를 그대로 드립니다.'],
       ['숫자를 어떻게 믿나요?', '믿어 달라고 하지 않습니다. 질문, 답변 원문, 답에 붙은 출처 주소, 물어본 시각이 전부 남아 있고 요청하시면 그대로 드립니다.'],

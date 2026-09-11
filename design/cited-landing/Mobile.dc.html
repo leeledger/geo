@@ -114,7 +114,7 @@
       <sc-if value="{{tab0}}" hint-placeholder-val="{{ true }}">
         <div class="fade">
           <h3 style="font-size: 21px; font-weight: 800; letter-spacing: -0.03em;">홈페이지 점수 1위 회사가 <span style="color: {{accent}};">15번 중 3번</span></h3>
-          <p style="margin-top: 8px; font-size: 15px; line-height: 1.7; color: #566378;">그 업계 손님이 물어볼 질문을 AI 에게 15번 묻고, 회사마다 이름이 몇 번 나왔는지 셌습니다.</p>
+          <p style="margin-top: 8px; font-size: 15px; line-height: 1.7; color: #566378;">그 업계 손님이 물어볼 질문을 AI 에게 15번 묻고, 회사마다 이름이 몇 번 나왔는지 셌습니다. 15번이라 방향으로 봅니다.</p>
           <div style="margin-top: 18px; display: flex; flex-direction: column; gap: 10px;">
             <sc-for list="{{bars}}" as="b" hint-placeholder-count="5">
               <div style="display: grid; grid-template-columns: 62px minmax(0, 1fr) 42px; gap: 10px; align-items: center;">
@@ -131,9 +131,9 @@
           <h3 style="font-size: 21px; font-weight: 800; letter-spacing: -0.03em;">비교 글 14개에 <span style="color: #C23B2E;">이름 0번</span></h3>
           <p style="margin-top: 8px; font-size: 15px; line-height: 1.7; color: #566378;">A·B·C사는 대부분 있었고 이 회사 이름은 한 번도 없었습니다. 고칠 곳은 홈페이지가 아니라 이 글들이었습니다.</p>
           <div style="margin-top: 14px; display: flex; flex-direction: column; gap: 8px; font-size: 14.5px;">
-            <div style="padding: 12px 14px; border-radius: 10px; background: #F4F7FB;"><b>「국내 ERP 업체 순위 Top5」</b><div style="font-size: 13px; color: #566378;">A·B·C 있음 · <b style="color: #C23B2E;">이 회사 없음</b></div></div>
-            <div style="padding: 12px 14px; border-radius: 10px; background: #F4F7FB;"><b>「중견·중소기업 ERP 프로그램 비교 가이드」</b><div style="font-size: 13px; color: #566378;">A·B·C 있음 · <b style="color: #C23B2E;">이 회사 없음</b></div></div>
-            <div style="padding: 12px 14px; border-radius: 10px; background: #F4F7FB;"><b>「회사 규모별 ERP 추천」</b><div style="font-size: 13px; color: #566378;">A·B·C 있음 · <b style="color: #C23B2E;">이 회사 없음</b></div></div>
+            <div style="padding: 12px 14px; border-radius: 10px; background: #F4F7FB;"><b>「국내 업체 순위 Top5」</b><div style="font-size: 13px; color: #566378;">A·B·C 있음 · <b style="color: #C23B2E;">이 회사 없음</b></div></div>
+            <div style="padding: 12px 14px; border-radius: 10px; background: #F4F7FB;"><b>「중견·중소기업 프로그램 비교 가이드」</b><div style="font-size: 13px; color: #566378;">A·B·C 있음 · <b style="color: #C23B2E;">이 회사 없음</b></div></div>
+            <div style="padding: 12px 14px; border-radius: 10px; background: #F4F7FB;"><b>「회사 규모별 프로그램 추천」</b><div style="font-size: 13px; color: #566378;">A·B·C 있음 · <b style="color: #C23B2E;">이 회사 없음</b></div></div>
           </div>
         </div>
       </sc-if>
@@ -187,7 +187,7 @@
     <div class="lab" style="color: {{accent}};"><i></i><span>자주 묻는 것</span></div>
     <h2 class="h2">상담에서 먼저 나오는 질문</h2>
     <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 8px;">
-      <sc-for list="{{faqs}}" as="q" hint-placeholder-count="6">
+      <sc-for list="{{faqs}}" as="q" hint-placeholder-count="4">
         <div style="border-radius: 14px; border: 1px solid {{q.bd}}; overflow: hidden;">
           <button onClick="{{q.pick}}" style="width: 100%; min-height: 56px; text-align: left; padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 15.5px; font-weight: 700;"><span>{{q.q}}</span><span style="flex: none; font-size: 18px; color: {{q.signFg2}};">{{q.sign}}</span></button>
           <sc-if value="{{q.open}}" hint-placeholder-val="{{ false }}"><p class="fade" style="padding: 0 16px 16px; font-size: 14.5px; line-height: 1.75; color: #566378;">{{q.a}}</p></sc-if>
@@ -200,7 +200,7 @@
   <div class="deep">
     <div style="padding: 64px 20px 56px; text-align: center;">
       <h2 class="h2" style="color: #FFFFFF;">홈페이지 주소부터 <span style="color: #6BAEFF;">넣어 보세요</span></h2>
-      <p class="sub" style="color: #AFBDD3;">7개 항목 점수가 바로 나옵니다. 홈페이지가 없어도 됩니다.</p>
+      <p class="sub" style="color: #AFBDD3;">AI 가 읽을 수 있는 상태인지 7개 항목 점수가 바로 나옵니다.</p>
       <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 8px;">
         <div style="height: 54px; border-radius: 13px; background: #FFFFFF; display: flex; align-items: center; padding: 0 16px; font-size: 15px; color: #8592A6;">회사 홈페이지 주소</div>
         <button class="press" style="height: 54px; border-radius: 13px; background: {{accent}}; color: #FFFFFF; font-size: 16px; font-weight: 800;">무료 진단 받기</button>
@@ -267,7 +267,7 @@ class Component extends DCLogic {
       ['직접 하면 안 되나요?', '기술 세팅은 직접 하실 수 있고 그러시길 권합니다. 어려운 건 AI 4곳에 같은 질문을 여러 번 물어 세는 일과, 경쟁사는 있고 우리만 없는 비교 글을 찾아내는 일입니다.'],
       ['얼마나 걸리나요?', '사례 학원은 착수 넷째 날 네이버 검색에 사이트가 처음 잡혔고, 여섯째 날 학원 이름 없이 친 지역 검색어에 나오기 시작했습니다. AI 답변에 이름이 붙기까지는 아직 모릅니다.'],
       ['성과를 보장하나요?', '안 합니다. 대신 어떤 질문을, 어느 AI 에, 몇 번 묻는지를 계약서에 적고 시작할 때 숫자를 남깁니다. 두 달 뒤 같은 방법으로 다시 센 결과를 그대로 드립니다.'],
-      ['그만두면 뭐가 남나요?', '도메인·저장소·호스팅 계정이 전부 고객사 명의라 그대로 남습니다. 최소 약정이 없어서 한 달 단위로 멈출 수 있습니다.'],
+      ['그만두면 뭐가 남나요?', '사이트를 만들어 드렸다면 도메인·저장소·호스팅 계정이 전부 고객사 명의라 그대로 남습니다. 최소 약정이 없어서 한 달 단위로 멈출 수 있습니다.'],
     ];
     const faqs = FAQ.map(([q, a], i) => {
       const open = i === s.faq;

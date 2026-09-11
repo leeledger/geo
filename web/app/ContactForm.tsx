@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 /**
  * 상담 신청 — 긴 폼.
@@ -31,6 +31,14 @@ const CONCERNS = [
 export default function ContactForm() {
   const [f, setF] = useState({ name: "", email: "", phone: "", site: "", competitor: "", referral: "" });
   const [concerns, setConcerns] = useState<string[]>([]);
+  // 요금 계산에서 「이 조건으로 상담 신청」을 누르면 고른 조건이 여기로 온다.
+  // wants 뒤에 붙여 보낸다 — 리드 큐에서 어느 조건을 보고 왔는지 보인다. (60자에서 잘린다)
+  const [plan, setPlan] = useState<string | null>(null);
+  useEffect(() => {
+    const on = (e: Event) => setPlan(String((e as CustomEvent).detail ?? "") || null);
+    window.addEventListener("cited:plan", on);
+    return () => window.removeEventListener("cited:plan", on);
+  }, []);
   const [website, setWebsite] = useState(""); // 허니팟 — 사람에겐 안 보인다
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
@@ -49,7 +57,7 @@ export default function ContactForm() {
       const res = await fetch("/api/lead", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ ...f, company: f.site, concerns, website, wants: "상담" }),
+        body: JSON.stringify({ ...f, company: f.site, concerns, website, wants: plan ? `상담 · ${plan}` : "상담" }),
       });
       const data = await res.json();
       if (!res.ok || data?.error) { setError(data?.error ?? "저장에 실패했습니다."); return; }
@@ -116,6 +124,15 @@ export default function ContactForm() {
         tabIndex={-1} autoComplete="off" aria-hidden="true"
         style={{ position: "absolute", left: -9999, width: 1, height: 1, opacity: 0 }}
       />
+      {plan && (
+        <div className="fld full cplan">
+          <span className="fl">요금 계산에서 고른 조건</span>
+          <div className="cplanrow">
+            <span>{plan}</span>
+            <button type="button" onClick={() => setPlan(null)} disabled={busy}>빼기</button>
+          </div>
+        </div>
+      )}
       {error && <div className="err">{error}</div>}
       <button className="btn" type="submit" disabled={busy}>
         {busy ? "보내는 중" : "상담 신청"}

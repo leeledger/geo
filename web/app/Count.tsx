@@ -7,6 +7,10 @@ import { useEffect, useRef, useState } from "react";
  *
  * 장식으로 쓰면 값싸 보이지만, 이 페이지에서는 숫자가 주장 그 자체라
  * 시선을 거기로 끌어오는 값어치가 있다. 한 번만 돌고 다시 돌지 않는다.
+ *
+ * 서버 렌더에는 진짜 값이 들어간다. 전에는 0 으로 그렸다가 올렸는데,
+ * 스크립트를 안 돌리는 크롤러에게는 「크롤러 0곳 · 0회」로 읽혔다.
+ * 그래서 이미 화면에 보이는 숫자는 건드리지 않고, 아래쪽 숫자만 0 에서 올린다.
  */
 export default function Count({
   to,
@@ -19,7 +23,7 @@ export default function Count({
   suffix?: string;
   duration?: number;
 }) {
-  const [v, setV] = useState(0);
+  const [v, setV] = useState(to);
   const ref = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
@@ -29,6 +33,13 @@ export default function Count({
       setV(to);
       return;
     }
+    const r = el.getBoundingClientRect();
+    if (r.top < window.innerHeight && r.bottom > 0) {
+      setV(to);
+      return;
+    }
+    setV(0);
+    let raf = 0;
     const io = new IntersectionObserver(
       (es) => {
         if (!es[0].isIntersecting) return;
@@ -38,14 +49,14 @@ export default function Count({
           const k = Math.min((now - t0) / duration, 1);
           // ease-out cubic — 끝에서 부드럽게 멈춘다
           setV(to * (1 - Math.pow(1 - k, 3)));
-          if (k < 1) requestAnimationFrame(tick);
+          if (k < 1) raf = requestAnimationFrame(tick);
         };
-        requestAnimationFrame(tick);
+        raf = requestAnimationFrame(tick);
       },
       { threshold: 0.5 },
     );
     io.observe(el);
-    return () => io.disconnect();
+    return () => { io.disconnect(); cancelAnimationFrame(raf); };
   }, [to, duration]);
 
   return (

@@ -5,12 +5,12 @@ import { useEffect } from "react";
 /**
  * 스크롤 인터랙션.
  *
- * 장식이 아니라 시연이다. 신뢰구간 그래프는 화면에 들어올 때 막대가 위아래로
- * 좁혀지며 그려진다 — "많이 물어볼수록 답이 또렷해진다"는 주장을 글로 읽는 대신
- * 눈으로 보게 하는 것이 목적이다.
+ * 장식이 아니라 시연이다. 게이지와 막대가 화면에 들어올 때 차오른다 —
+ * 숫자를 글로 읽는 대신 눈으로 보게 하는 것이 목적이다.
  *
  * 스크립트가 실행되지 않아도 최종 상태로 보인다. 애니메이션은 얹는 것이지
- * 내용을 대신하지 않는다.
+ * 내용을 대신하지 않는다. 그래서 「비워 두기」는 스크립트가 돌 때만 붙는
+ * html.rv 아래에서만 한다.
  */
 export default function Reveal() {
   useEffect(() => {
@@ -20,6 +20,7 @@ export default function Reveal() {
       els.forEach((el) => el.classList.add("in"));
       return;
     }
+    document.documentElement.classList.add("rv");
     const io = new IntersectionObserver(
       (entries) => {
         entries.forEach((e) => {

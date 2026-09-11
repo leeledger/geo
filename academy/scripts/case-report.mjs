@@ -287,7 +287,7 @@ ${crawl.length ? `
     </tbody>
   </table></div>
   <div class="box"><p>
-    <b>첫 방문 ${d(firstHit)}.</b> 도메인 연결 당일입니다.
+    <b>첫 방문 ${d(firstHit)}.</b> 도메인을 연결한 다음 날 새벽입니다.
     ${crawl.some((r) => r.vendor === "anthropic")
       ? "ClaudeBot 이 robots.txt 를 먼저 읽고 이관한 블로그 글을 가져갔습니다."
       : ""}
