@@ -202,6 +202,23 @@ Decisions made:
 Reviewer findings: Must Fix 3 + Should Fix 다수 → 반영. 남긴 것 2건은 위 Decisions
 Deploy: confirmed 2026-09-12 — 아이로그 커밋 cfbe688. 운영에서 없는 리포트 id 403(이전 404), 홈·가이드 200
 
+### 후속 — 아이로그 색인 알림과 죽은 분기 정리 — COMPLETE
+*Date: 2026-09-12*
+
+브리핑이 아이로그 노출 경쟁 0/6 · 브랜드 0/3 을 계속 찍는다. 글이 없어서가 아니라 색인이 안 됐다.
+robots.txt 는 봇을 다 허용하고 사이트맵에 10쪽이 다 올라 있다 — 알리지를 않았다.
+
+- IndexNow 로 10쪽 전부 알렸다. Bing 200 · Naver 200 (키 파일 확인 후 전송)
+- 구글은 IndexNow 에 참여하지 않아 Search Console 경로로 따로 요청
+- `lib/services/attendance-service.ts` — Richard 가 남긴 `if (result)` 죽은 분기 제거.
+  `result` 는 바로 위에서 객체 리터럴로 만들어 항상 참이었다. 안쪽을 한 단 끌어올렸을 뿐 동작은 그대로다
+
+Decisions made:
+- **KG-2(체험 만료)는 구현하지 않고 남긴다.** 지금 만료 검사를 켜면 `trial_ends_at` 이 없는 기존 학원이
+  한꺼번에 잠긴다. 쓰고 있는 학원을 말없이 막는 일이라 코드로 정할 일이 아니다 — 원장이 기준을 정하면 넣는다
+- `tools/bing-webmaster-look.mjs` 는 이름과 달리 빙 웹마스터 지표를 보지 않는다. 사이트를 직접 열어 찍을 뿐이다.
+  빙 색인 확인에 쓰지 말 것
+
 ---
 
 ## Known Gaps
