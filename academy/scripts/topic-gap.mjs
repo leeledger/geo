@@ -56,8 +56,9 @@ for (const query of lost) {
   });
   if (hit.length) {
     covered++;
-    console.log(`  ○ ${query}`);
-    hit.slice(0, 2).forEach((t) => console.log(`      ← ${t.title}`));
+    console.log(`  ○ ${query}  (겨냥 ${hit.length}개)`);
+    hit.slice(0, 3).forEach((t) => console.log(`      ← ${t.title}`));
+    if (hit.length > 3) console.log(`      … 그 밖 ${hit.length - 3}개`);
   } else {
     console.log(`  ✗ ${query.padEnd(22)} 겨냥하는 주제 없음  (핵심어: ${keys.join(" ")})`);
   }
