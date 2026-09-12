@@ -98,8 +98,10 @@ const 공급자 = (() => {
     // Groq 무료 목록은 전부 오픈웨이트라 한국어에서 같은 자리에서 무너진다.
     // Cerebras·OpenRouter 무료도 결국 같은 모델을 얹은 것이라 돌려봐야 같다.
     // 제미나이는 종류가 다르다 — 프런티어 모델인데 무료 한도가 있고 한국어가 강하다.
-    // 모델 이름은 자주 바뀐다. 거절당하면 WRITER_MODEL 로 넘긴다 (gemini-2.5-pro 등).
-    const model = process.env.WRITER_MODEL || "gemini-2.5-flash";
+    // 모델 이름은 자주 바뀐다. 2.5-flash 는 신규 사용자에게 닫혔다 —
+    // 404 본문이 「gemini-3.6-flash 를 쓰라」고 직접 알려줬다(2026-09-12).
+    // 또 막히면 그때도 응답 본문에 후속 이름이 적혀 온다. WRITER_MODEL 로 넘기면 된다.
+    const model = process.env.WRITER_MODEL || "gemini-3.6-flash";
     return {
       이름: "gemini",
       key: process.env.GEMINI_API_KEY,
@@ -302,7 +304,8 @@ const main = async () => {
     body: JSON.stringify(공급자.요청(prompt, 공급자.최대토큰)),
   });
   if (!res.ok) {
-    console.log("생성 실패:", res.status, (await res.text()).slice(0, 200));
+    // 200자에서 끊어 「어느 모델을 쓰라」는 지시가 잘려 나갔다. 오류는 끝까지 읽혀야 쓸모가 있다.
+    console.log("생성 실패:", res.status, (await res.text()).slice(0, 400));
     process.exitCode = 1;
     return;
   }
