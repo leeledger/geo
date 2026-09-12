@@ -50,7 +50,13 @@ const CLIENT = 1;
 const 공급자 = (() => {
   const pick =
     process.env.WRITER_PROVIDER ||
-    (process.env.ANTHROPIC_API_KEY ? "anthropic" : process.env.GROQ_API_KEY ? "groq" : null);
+    (process.env.ANTHROPIC_API_KEY
+      ? "anthropic"
+      : process.env.GEMINI_API_KEY
+        ? "gemini"
+        : process.env.GROQ_API_KEY
+          ? "groq"
+          : null);
 
   if (pick === "groq") {
     return {
@@ -72,6 +78,7 @@ const 공급자 = (() => {
         return m.content || m.reasoning || "";
       },
       끊겼나: (d) => d.choices?.[0]?.finish_reason === "length",
+      요청: (p, 최대) => ({ model: 공급자.model, max_tokens: 최대, messages: [{ role: "user", content: p }] }),
     };
   }
   if (pick === "anthropic") {
@@ -84,6 +91,30 @@ const 공급자 = (() => {
       headers: (k) => ({ "content-type": "application/json", "x-api-key": k, "anthropic-version": "2023-06-01" }),
       text: (d) => (d.content ?? []).map((c) => c.text ?? "").join(""),
       끊겼나: (d) => d.stop_reason === "max_tokens",
+      요청: (p, 최대) => ({ model: 공급자.model, max_tokens: 최대, messages: [{ role: "user", content: p }] }),
+    };
+  }
+  if (pick === "gemini") {
+    // Groq 무료 목록은 전부 오픈웨이트라 한국어에서 같은 자리에서 무너진다.
+    // Cerebras·OpenRouter 무료도 결국 같은 모델을 얹은 것이라 돌려봐야 같다.
+    // 제미나이는 종류가 다르다 — 프런티어 모델인데 무료 한도가 있고 한국어가 강하다.
+    // 모델 이름은 자주 바뀐다. 거절당하면 WRITER_MODEL 로 넘긴다 (gemini-2.5-pro 등).
+    const model = process.env.WRITER_MODEL || "gemini-2.5-flash";
+    return {
+      이름: "gemini",
+      key: process.env.GEMINI_API_KEY,
+      url: `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+      model,
+      // 2.5 는 생각한 토큰도 이 한도에 같이 센다. 넉넉히 준다.
+      최대토큰: Number(process.env.WRITER_MAX_TOKENS) || 12000,
+      headers: (k) => ({ "content-type": "application/json", "x-goog-api-key": k }),
+      // JSON 으로만 답하라고 못을 박을 수 있다. qwen 이 깨뜨린 그 자리를 막아 준다.
+      요청: (p, 최대) => ({
+        contents: [{ parts: [{ text: p }] }],
+        generationConfig: { maxOutputTokens: 최대, responseMimeType: "application/json" },
+      }),
+      text: (d) => (d.candidates?.[0]?.content?.parts ?? []).map((x) => x.text ?? "").join(""),
+      끊겼나: (d) => d.candidates?.[0]?.finishReason === "MAX_TOKENS",
     };
   }
   return null;
@@ -254,9 +285,10 @@ const main = async () => {
   }
 
   if (!공급자?.key) {
-    console.log("\n키가 없습니다. 초안을 쓰지 못합니다. 둘 중 하나를 GitHub Secrets 에 넣으면 주 1회 자동으로 돕니다.");
-    console.log("  GROQ_API_KEY       무료 한도가 있어 0원으로 시작할 수 있습니다. 한국어 맵시는 떨어집니다");
+    console.log("\n키가 없습니다. 초안을 쓰지 못합니다. 하나만 GitHub Secrets 에 넣으면 주 1회 자동으로 돕니다.");
+    console.log("  GEMINI_API_KEY     무료 한도 있음. 무료 중에 한국어가 제일 낫다 (aistudio.google.com)");
     console.log("  ANTHROPIC_API_KEY  월 4편 기준 4,037~8,187원 (api-cost.mjs)");
+    console.log("  GROQ_API_KEY       무료지만 오픈웨이트뿐이라 한국어가 깨진다 (2026-09-12 측정, BUILD-LOG)");
     console.log("어느 쪽이든 초안까지입니다. 발행 전 사실 확인은 사람이 합니다.");
     process.exitCode = 78; // 설정 없음 — 실패와 구분한다
     return;
@@ -267,11 +299,7 @@ const main = async () => {
     method: "POST",
     headers: 공급자.headers(공급자.key),
     // 두 쪽 다 OpenAI 계열 필드를 받는다. max_tokens 이름도 같다.
-    body: JSON.stringify({
-      model: 공급자.model,
-      max_tokens: 공급자.최대토큰,
-      messages: [{ role: "user", content: prompt }],
-    }),
+    body: JSON.stringify(공급자.요청(prompt, 공급자.최대토큰)),
   });
   if (!res.ok) {
     console.log("생성 실패:", res.status, (await res.text()).slice(0, 200));

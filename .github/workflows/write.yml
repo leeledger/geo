@@ -39,7 +39,8 @@ jobs:
         id: write
         working-directory: academy
         env:
-          # 둘 중 아무거나 있으면 쓴다. Groq 은 무료 한도가 있어 0원으로 시작할 수 있다.
+          # 아무거나 있으면 쓴다. 우선순위는 anthropic → gemini → groq.
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           WRITER_PROVIDER: ${{ vars.WRITER_PROVIDER }}
