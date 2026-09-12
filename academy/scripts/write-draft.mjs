@@ -168,8 +168,11 @@ const main = async () => {
     body: JSON.stringify(공급자.요청(prompt, 공급자.최대토큰)),
   });
   if (!res.ok) {
-    // 200자에서 끊어 「어느 모델을 쓰라」는 지시가 잘려 나갔다. 오류는 끝까지 읽혀야 쓸모가 있다.
-    console.log("생성 실패:", res.status, (await res.text()).slice(0, 400));
+    // 끊어 찍어 두 번 답을 잘라 먹었다 — 404 는 쓸 모델 이름을, 429 는 어느 한도인지를
+    // 본문에 담아 준다. 오류는 끝까지 읽혀야 쓸모가 있다. 길어야 몇 줄이다.
+    const 오류본문 = await res.text();
+    console.log("생성 실패:", res.status);
+    console.log(오류본문.slice(0, 2000));
     process.exitCode = 1;
     return;
   }

@@ -130,7 +130,17 @@ const main = async () => {
     body: JSON.stringify(공급자.요청(prompt, 공급자.최대토큰, { 검색: true })),
   });
   if (!res.ok) {
-    console.log("생성 실패:", res.status, (await res.text()).slice(0, 400));
+    // 오류를 끊어 찍어 두 번이나 답을 잘라 먹었다 — 404 는 쓸 모델 이름을,
+    // 429 는 어느 한도인지(분당인지 일일인지)와 재시도 간격을 본문에 담아 준다.
+    // 오류는 끝까지 읽혀야 쓸모가 있다. 길어야 몇 줄이다.
+    const 본문 = await res.text();
+    console.log("생성 실패:", res.status);
+    console.log(본문.slice(0, 2000));
+    if (res.status === 429) {
+      const 간격 = /"retryDelay"\s*:\s*"([^"]+)"/.exec(본문)?.[1];
+      console.log(`\n무료 한도에 걸렸습니다.${간격 ? ` 재시도 간격 ${간격}.` : ""}`);
+      console.log("분당 한도면 잠시 뒤 되고, 일일 한도면 내일 풀립니다. 위 quotaId 를 보세요.");
+    }
     process.exitCode = 1;
     return;
   }
