@@ -57,9 +57,21 @@ const 공급자 = (() => {
       이름: "groq",
       key: process.env.GROQ_API_KEY,
       url: "https://api.groq.com/openai/v1/chat/completions",
-      model: process.env.WRITER_MODEL || "moonshotai/kimi-k2-instruct",
+      // 무료 한도표(2026-09-12 확인)에 글쓰기로 쓸 만한 건 넷뿐이다.
+      // gpt-oss-120b 120B · gpt-oss-20b 20B · qwen3.8-27b 27B — 셋 다 8K TPM.
+      // groq/compound 는 70K TPM 이지만 도구를 스스로 부르는 에이전트형이라
+      // 「JSON 하나만」이 안 지켜질 수 있다. 제일 큰 것을 기본으로 둔다.
+      // 한국어가 뻣뻣하면 WRITER_MODEL=qwen/qwen3.8-27b 로 바꿔 재 본다.
+      model: process.env.WRITER_MODEL || "openai/gpt-oss-120b",
+      // TPM 8,000 은 프롬프트와 출력을 합쳐서 센다. 프롬프트가 2.4천자(≈1.5K 토큰)라
+      // 출력은 6,000 까지가 한계다. 본문 2,800자면 출력만 4천 토큰 가까이 나온다.
+      최대토큰: Number(process.env.WRITER_MAX_TOKENS) || 6000,
       headers: (k) => ({ "content-type": "application/json", authorization: `Bearer ${k}` }),
-      text: (d) => d.choices?.[0]?.message?.content ?? "",
+      text: (d) => {
+        const m = d.choices?.[0]?.message ?? {};
+        return m.content || m.reasoning || "";
+      },
+      끊겼나: (d) => d.choices?.[0]?.finish_reason === "length",
     };
   }
   if (pick === "anthropic") {
@@ -68,8 +80,10 @@ const 공급자 = (() => {
       key: process.env.ANTHROPIC_API_KEY,
       url: "https://api.anthropic.com/v1/messages",
       model: process.env.WRITER_MODEL || "claude-opus-5",
+      최대토큰: Number(process.env.WRITER_MAX_TOKENS) || 6000,
       headers: (k) => ({ "content-type": "application/json", "x-api-key": k, "anthropic-version": "2023-06-01" }),
       text: (d) => (d.content ?? []).map((c) => c.text ?? "").join(""),
+      끊겼나: (d) => d.stop_reason === "max_tokens",
     };
   }
   return null;
@@ -210,7 +224,7 @@ const main = async () => {
     // 두 쪽 다 OpenAI 계열 필드를 받는다. max_tokens 이름도 같다.
     body: JSON.stringify({
       model: 공급자.model,
-      max_tokens: 4000,
+      max_tokens: 공급자.최대토큰,
       messages: [{ role: "user", content: prompt }],
     }),
   });
@@ -221,7 +235,18 @@ const main = async () => {
   }
   const data = await res.json();
   const text = 공급자.text(data);
-  const json = text.slice(text.indexOf("{"), text.lastIndexOf("}") + 1);
+
+  // 상한에 걸려 잘리면 JSON 이 깨진다. 그때 「JSON 으로 안 왔습니다」라고만 찍으면
+  // 모델이 이상한 줄 알고 엉뚱한 데를 뒤지게 된다. 잘린 건 잘렸다고 말한다.
+  if (공급자.끊겼나?.(data)) {
+    console.log(`\n출력이 상한(${공급자.최대토큰} 토큰)에 걸려 잘렸습니다. 글이 끝까지 안 나왔습니다.`);
+    console.log("WRITER_MAX_TOKENS 를 올리세요. 단 Groq 무료는 프롬프트까지 합쳐 분당 8,000 토큰입니다.");
+    process.exitCode = 1;
+    return;
+  }
+
+  const 껍질벗김 = text.replace(/```(?:json)?/g, "");
+  const json = 껍질벗김.slice(껍질벗김.indexOf("{"), 껍질벗김.lastIndexOf("}") + 1);
   let post;
   try {
     post = JSON.parse(json);
