@@ -1,29 +1,30 @@
 /**
- * 주간 글 초안을 스스로 쓴다.
+ * 관점 글 초안을 스스로 쓴다. 바깥 소식으로 여는 뉴스 글은 write-news.mjs 가 쓴다.
  *
- * 고리의 빈자리를 메운다. 지금 자동으로 도는 넷(정찰·노출측정·스냅샷·브리핑)은
+ * 고리의 빈자리를 메운다. 자동으로 도는 넷(정찰·노출측정·스냅샷·브리핑)은
  * 전부 「재는 일」이다. 「쓰는 일」에는 담당이 없어서 사람이 멈추면 발행도 멈춘다.
  *
  * 순서
  *   1. 주제를 고른다   — topics.json 에서 안 쓴 것 중, 지고 있는 검색어를 겨냥하는 것 우선
- *   2. 근거를 모은다   — who-wins(그 자리에서 무엇이 이기는가) · 기존 글(겹치는 주장) · 측정 숫자
- *   3. 초안을 쓴다     — Claude. 금지 표현은 slop-check 가 잡는 것과 같은 목록을 미리 준다
- *   4. 스스로 검사한다 — slop-check 규칙으로 1차 거름. 걸리면 한 번 고쳐 쓴다
+ *   2. 근거를 모은다   — 기존 글(겹치는 주장) · 지고 있는 검색어
+ *   3. 초안을 쓴다     — 금지 표현은 slop-check 가 잡는 것과 같은 목록을 미리 준다
+ *   4. 스스로 검사한다 — 짜임새를 본다. 어휘는 slop-check 가 뒤에서 본다
  *   5. 초안으로 넣는다 — published=false. 발행은 사람이 한다
  *
  * 발행까지 자동으로 하지 않는다. CLAUDE.md 의 「사람만 할 수 있는 일 — 발행 전 사실 확인」이고,
  * 지어낸 문장 하나가 다른 문서와 어긋나면 레퍼런스 전체가 죽는다.
  * 그래서 이 스크립트는 「사실 확인이 필요한 문장」을 따로 뽑아 같이 남긴다.
  *
- *   node scripts/write-draft.mjs            주제를 골라 초안까지
- *   node scripts/write-draft.mjs --dry      고른 주제와 프롬프트만 보고 멈춘다 (키 없이 됨)
+ *   node scripts/write-draft.mjs                주제를 골라 초안까지
+ *   node scripts/write-draft.mjs --dry          고른 주제와 프롬프트만 보고 멈춘다 (키 없이 됨)
  *   node scripts/write-draft.mjs --topic <id>   주제를 직접 지정
  *
- * 모델은 키가 있는 쪽을 쓴다. GROQ_API_KEY 든 ANTHROPIC_API_KEY 든 된다.
- * 둘 다 있으면 WRITER_PROVIDER=groq|anthropic, 모델은 WRITER_MODEL 로 바꾼다.
+ * 모델은 키가 있는 쪽을 쓴다 (anthropic → gemini → groq).
+ * WRITER_PROVIDER·WRITER_MODEL·WRITER_MAX_TOKENS 로 바꾼다.
  */
 import fs from "node:fs";
 import { Pool } from "pg";
+import { 공급자만들기, 금지, 지어내기금지, 파싱, 공통짜임새 } from "./writer-common.mjs";
 
 for (const l of fs.readFileSync(new URL("../.env.local", import.meta.url), "utf8").split(/\r?\n/)) {
   const m = /^([A-Z_]+)=(.*)$/.exec(l);
@@ -35,110 +36,12 @@ const DRY = process.argv.includes("--dry");
 const TI = process.argv.indexOf("--topic");
 const WANT = TI >= 0 ? process.argv[TI + 1] : null;
 const CLIENT = 1;
-
-/**
- * 어느 모델로 쓰는가. 키가 있는 쪽을 쓴다. 둘 다 있으면 WRITER_PROVIDER 로 고른다.
- *
- * 이 일은 모델을 크게 타지 않는다 — 프롬프트 1.5K 토큰, 출력 4K, 주 1편.
- * 갈리는 건 난이도가 아니라 「안 쓰는 능력」이다. slop-check 가 잡는 8종을 안 쓰고
- * 확인된 숫자 밖으로 안 나가는 것. 그건 돌려 보고 재면 된다.
- *
- * Groq 은 무료 한도가 있어 0원으로 시작할 수 있다. 초안은 어차피 사람이 사실 확인을
- * 하고 나가니, 문장이 뻣뻣해도 레퍼런스가 다치는 길은 막혀 있다.
- * 모델 이름은 자주 바뀐다. 거절당하면 Groq 문서에서 확인해 WRITER_MODEL 로 넘긴다.
- */
-const 공급자 = (() => {
-  const pick =
-    process.env.WRITER_PROVIDER ||
-    (process.env.ANTHROPIC_API_KEY
-      ? "anthropic"
-      : process.env.GEMINI_API_KEY
-        ? "gemini"
-        : process.env.GROQ_API_KEY
-          ? "groq"
-          : null);
-
-  if (pick === "groq") {
-    return {
-      이름: "groq",
-      key: process.env.GROQ_API_KEY,
-      url: "https://api.groq.com/openai/v1/chat/completions",
-      // 무료 한도표(2026-09-12 확인)에 글쓰기로 쓸 만한 건 넷뿐이다.
-      // gpt-oss-120b 120B · gpt-oss-20b 20B · qwen3.8-27b 27B — 셋 다 8K TPM.
-      // groq/compound 는 70K TPM 이지만 도구를 스스로 부르는 에이전트형이라
-      // 「JSON 하나만」이 안 지켜질 수 있다. 제일 큰 것을 기본으로 둔다.
-      // 한국어가 뻣뻣하면 WRITER_MODEL=qwen/qwen3.8-27b 로 바꿔 재 본다.
-      model: process.env.WRITER_MODEL || "openai/gpt-oss-120b",
-      // TPM 8,000 은 프롬프트와 출력을 합쳐서 센다. 프롬프트가 2.4천자(≈1.5K 토큰)라
-      // 출력은 6,000 까지가 한계다. 본문 2,800자면 출력만 4천 토큰 가까이 나온다.
-      최대토큰: Number(process.env.WRITER_MAX_TOKENS) || 6000,
-      headers: (k) => ({ "content-type": "application/json", authorization: `Bearer ${k}` }),
-      text: (d) => {
-        const m = d.choices?.[0]?.message ?? {};
-        return m.content || m.reasoning || "";
-      },
-      끊겼나: (d) => d.choices?.[0]?.finish_reason === "length",
-      요청: (p, 최대) => ({ model: 공급자.model, max_tokens: 최대, messages: [{ role: "user", content: p }] }),
-    };
-  }
-  if (pick === "anthropic") {
-    return {
-      이름: "anthropic",
-      key: process.env.ANTHROPIC_API_KEY,
-      url: "https://api.anthropic.com/v1/messages",
-      model: process.env.WRITER_MODEL || "claude-opus-5",
-      최대토큰: Number(process.env.WRITER_MAX_TOKENS) || 6000,
-      headers: (k) => ({ "content-type": "application/json", "x-api-key": k, "anthropic-version": "2023-06-01" }),
-      text: (d) => (d.content ?? []).map((c) => c.text ?? "").join(""),
-      끊겼나: (d) => d.stop_reason === "max_tokens",
-      요청: (p, 최대) => ({ model: 공급자.model, max_tokens: 최대, messages: [{ role: "user", content: p }] }),
-    };
-  }
-  if (pick === "gemini") {
-    // Groq 무료 목록은 전부 오픈웨이트라 한국어에서 같은 자리에서 무너진다.
-    // Cerebras·OpenRouter 무료도 결국 같은 모델을 얹은 것이라 돌려봐야 같다.
-    // 제미나이는 종류가 다르다 — 프런티어 모델인데 무료 한도가 있고 한국어가 강하다.
-    // 모델 이름은 자주 바뀐다. 2.5-flash 는 신규 사용자에게 닫혔다 —
-    // 404 본문이 「gemini-3.6-flash 를 쓰라」고 직접 알려줬다(2026-09-12).
-    // 또 막히면 그때도 응답 본문에 후속 이름이 적혀 온다. WRITER_MODEL 로 넘기면 된다.
-    const model = process.env.WRITER_MODEL || "gemini-3.6-flash";
-    return {
-      이름: "gemini",
-      key: process.env.GEMINI_API_KEY,
-      url: `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
-      model,
-      // 2.5 는 생각한 토큰도 이 한도에 같이 센다. 넉넉히 준다.
-      최대토큰: Number(process.env.WRITER_MAX_TOKENS) || 12000,
-      headers: (k) => ({ "content-type": "application/json", "x-goog-api-key": k }),
-      // JSON 으로만 답하라고 못을 박을 수 있다. qwen 이 깨뜨린 그 자리를 막아 준다.
-      요청: (p, 최대) => ({
-        contents: [{ parts: [{ text: p }] }],
-        generationConfig: { maxOutputTokens: 최대, responseMimeType: "application/json" },
-      }),
-      text: (d) => (d.candidates?.[0]?.content?.parts ?? []).map((x) => x.text ?? "").join(""),
-      끊겼나: (d) => d.candidates?.[0]?.finishReason === "MAX_TOKENS",
-    };
-  }
-  return null;
-})();
+const 공급자 = 공급자만들기();
 
 const u = new URL(process.env.DATABASE_URL);
 u.searchParams.delete("sslmode");
 const pool = new Pool({ connectionString: u.toString(), ssl: { rejectUnauthorized: false } });
 const q = (sql, p = []) => pool.query(sql, p).then((r) => r.rows);
-
-/** slop-check 가 잡는 것과 같은 목록. 사후에 잡느니 미리 안 쓰게 한다. */
-const 금지 = [
-  "「오늘은 ~에 대해 알아보겠습니다」 같은 서론. 첫 문장부터 본론으로",
-  "「먼저 / 다음으로 / 마지막으로」로 순서를 까는 것",
-  "「정말 중요합니다」 「매우 유익합니다」 같은 빈 강조",
-  "「~라고 할 수 있습니다」 「~인 것 같습니다」 로 흐리게 닫기",
-  "「다양한」 「여러 가지」 「많은」 — 숫자를 알면 숫자를 쓴다",
-  "「놀라운」 「혁신적인」 「필수적인」 같은 과장",
-  "양쪽 다 맞다는 양비론. 어느 쪽인지 말한다",
-  "검색하면 아무나 쓸 수 있는 일반론",
-  "「~하는 것이 바람직하다」 「~하는 것이 현명하다」 같은 훈계조 닫기",
-];
 
 const 규칙 = [
   "제목은 학부모가 검색창에 치는 말 그대로. 「꼭 확인해야 할 3가지」 같은 기사 제목은 안 된다",
@@ -153,43 +56,6 @@ const 규칙 = [
   "동네 검색어를 겨냥한 글이면 지역 이름(송파·잠실·석촌)이 본문에 실제로 들어가야 한다. " +
     "억지로 끼우면 티가 난다 — 통학 거리나 상담에서 나오는 맥락에 자연스럽게 둔다",
 ];
-
-/**
- * 지어내기를 막는 자리. 규칙 목록에 한 줄로 끼워 두면 모델이 흘려 넘긴다.
- * 실제로 그랬다 — 「확인된 숫자만」이라고 썼는데 없는 설문을 만들어 왔다(2026-09-12, gpt-oss-120b).
- * 구멍을 남겨 두면 채운다. 그래서 「모르면 이렇게 써라」까지 준다.
- */
-const 지어내기금지 = [
-  "확인된 숫자 밖의 숫자는 한 개도 쓰지 않는다. 반 인원·비율·기간·가격 전부.",
-  "설문·조사·통계를 만들어 내지 않는다. 우리는 설문을 한 적이 없다.",
-  "겪지 않은 수업 장면을 겪은 것처럼 쓰지 않는다. 어떤 교구를 쓰는지 너는 모른다.",
-  "모르는 것은 모른다고 쓴다. 숫자로 채우지 말고 판단 기준만 준다.",
-  "  나쁜 예: 「8명 이하가 적당하다」 「응답자의 40%가 그만뒀다」",
-  "  좋은 예: 「한 반 인원을 물어보세요. 몇 명부터 질문이 밀리는지도 같이 물으면 답이 분명해집니다」",
-  "주제의 「각도」가 상담에서 들은 이야기를 요구해도, 너에게 그 기록이 없으면 지어내지 말고 학부모가 직접 확인할 방법으로 바꿔 쓴다.",
-];
-
-/**
- * 모델이 본문에 진짜 줄바꿈을 넣어 보내면 그건 JSON 이 아니다.
- * 마크다운 본문을 JSON 문자열에 담으라고 시키면 자주 이런다 (qwen3.8-27b, 2026-09-12).
- * 모델 탓이 아니라 파서가 약한 것이다. 따옴표 안인지 밖인지만 따라가며 고친다.
- */
-const 줄바꿈고치기 = (s) => {
-  let out = "";
-  let 따옴표안 = false;
-  let 이스케이프 = false;
-  for (const ch of s) {
-    if (이스케이프) { out += ch; 이스케이프 = false; continue; }
-    if (ch === "\\") { out += ch; 이스케이프 = true; continue; }
-    if (ch === '"') { 따옴표안 = !따옴표안; out += ch; continue; }
-    if (따옴표안 && (ch === "\n" || ch === "\r" || ch === "\t")) {
-      out += ch === "\n" ? "\\n" : ch === "\r" ? "\\r" : "\\t";
-      continue;
-    }
-    out += ch;
-  }
-  return out;
-};
 
 const main = async () => {
   // ── 1. 주제
@@ -243,10 +109,6 @@ const main = async () => {
     [CLIENT],
   ).catch(() => []);
 
-  // 「확인된 숫자」로 공개 글 수와 크롤러 방문 수를 줬더니 그걸 글 소재로 썼다 —
-  // 「공개한 43편의 글에서… 크롤러가 누적 659회 방문하는 동안에도」(gemini-3.6-flash, 2026-09-12).
-  // 학부모에게는 아무 뜻이 없는 숫자다. 쓸 수 있는 숫자를 주면 쓴다. 그래서 안 준다.
-
   const prompt = [
     "너는 송파구에서 코딩·로봇 학원을 운영하는 원장이다. 학부모가 읽을 글을 직접 쓴다.",
     "광고가 아니라 판단 기준을 주는 글이다. 읽고 나서 우리 학원에 안 와도 도움이 됐으면 그걸로 됐다.",
@@ -256,14 +118,18 @@ const main = async () => {
     `# 지켜야 할 것\n- ${규칙.join("\n- ")}`,
     "",
     "# 절대 지어내지 않는다 (이걸 어기면 글을 통째로 버린다)\n" +
-      지어내기금지.map((s) => (s.startsWith("  ") ? s : `- ${s}`)).join("\n"),
+      지어내기금지.map((s) => `- ${s}`).join("\n"),
     "",
     `# 쓰면 안 되는 것 (하나라도 있으면 광고로 분류된다)\n- ${금지.join("\n- ")}`,
     "",
+    // 「확인된 숫자」로 공개 글 수와 크롤러 방문 수를 줬더니 그걸 글 소재로 썼다 —
+    // 「공개한 43편의 글에서… 크롤러가 누적 659회 방문하는 동안에도」(gemini-3.6-flash, 2026-09-12).
+    // 쓸 수 있는 숫자를 주면 쓴다. 그래서 안 준다. 바깥 사실을 놓고 쓰는 글은 write-news.mjs 다.
     "# 쓸 수 있는 숫자\n" +
       "- 없다. 이 글에 쓸 수 있는 숫자는 하나도 없다. 숫자를 쓰지 마라.\n" +
-      "- 공개한 글 수나 크롤러 방문 수 같은 블로그 운영 지표는 학부모에게 아무 뜻이 없다. 절대 쓰지 마라.\n" +
-      "- 이 블로그나 이 글 자체를 이야깃거리로 삼지 마라. 학부모는 학원을 고르러 왔다.",
+      "- 반 인원·비율·기간·가격 전부. 모르면 판단 기준만 준다.\n" +
+      "  나쁜 예: 「8명 이하가 적당하다」 「응답자의 40%가 그만뒀다」\n" +
+      "  좋은 예: 「한 반 인원을 물어보세요. 몇 명부터 질문이 밀리는지도 같이 물으면 답이 분명해집니다」",
     "",
     `# 이미 쓴 글 (주장이 겹치면 안 된다)\n${기존글.map((p) => `- ${p.title} — ${p.summary ?? ""}`).join("\n")}`,
     "",
@@ -281,7 +147,7 @@ const main = async () => {
     console.log(`  쓸 모델: ${공급자 ? `${공급자.model} (${공급자.이름})` : "없음 — 키가 하나도 없습니다"}`);
     console.log(`\n── 프롬프트 (${prompt.length}자) ──\n`);
     console.log(prompt);
-    console.log("\n--dry 라 여기서 멈춥니다. 실제 생성은 GROQ_API_KEY 나 ANTHROPIC_API_KEY 가 있어야 합니다.");
+    console.log("\n--dry 라 여기서 멈춥니다. 실제 생성은 키가 있어야 합니다.");
     return;
   }
 
@@ -299,7 +165,6 @@ const main = async () => {
   const res = await fetch(공급자.url, {
     method: "POST",
     headers: 공급자.headers(공급자.key),
-    // 두 쪽 다 OpenAI 계열 필드를 받는다. max_tokens 이름도 같다.
     body: JSON.stringify(공급자.요청(prompt, 공급자.최대토큰)),
   });
   if (!res.ok) {
@@ -320,48 +185,25 @@ const main = async () => {
     return;
   }
 
-  const 껍질벗김 = text.replace(/```(?:json)?/g, "");
-  const json = 껍질벗김.slice(껍질벗김.indexOf("{"), 껍질벗김.lastIndexOf("}") + 1);
-  let post;
-  try {
-    post = JSON.parse(json);
-  } catch {
-    try {
-      post = JSON.parse(줄바꿈고치기(json));
-      console.log("  (본문에 진짜 줄바꿈이 들어와 고쳐 읽었습니다)");
-    } catch (e) {
-      // 앞 200자만 찍으면 원인을 못 짚는다. 잘렸는지 깨졌는지부터 갈라야 한다.
-      console.log("JSON 으로 안 왔습니다:", e.message.slice(0, 80));
-      console.log(`  끝난 이유: ${data.choices?.[0]?.finish_reason ?? data.stop_reason ?? "?"} · 받은 길이 ${text.length}자`);
-      console.log("  앞:", text.slice(0, 110).replace(/\s+/g, " "));
-      console.log("  뒤:", text.slice(-110).replace(/\s+/g, " "));
-      process.exitCode = 1;
-      return;
-    }
+  const { post, 고쳐읽음, 오류 } = 파싱(text);
+  if (오류) {
+    // 앞 200자만 찍으면 원인을 못 짚는다. 잘렸는지 깨졌는지부터 갈라야 한다.
+    console.log("JSON 으로 안 왔습니다:", 오류);
+    console.log(`  끝난 이유: ${data.candidates?.[0]?.finishReason ?? data.choices?.[0]?.finish_reason ?? data.stop_reason ?? "?"} · 받은 길이 ${text.length}자`);
+    console.log("  앞:", text.slice(0, 110).replace(/\s+/g, " "));
+    console.log("  뒤:", text.slice(-110).replace(/\s+/g, " "));
+    process.exitCode = 1;
+    return;
   }
+  if (고쳐읽음) console.log("  (본문에 진짜 줄바꿈이 들어와 고쳐 읽었습니다)");
 
   // 스스로 검사한다. 어휘는 slop-check 가 뒤에서 보고, 여기서는 짜임새를 본다.
   // 넣기는 넣되 무엇이 모자란지 같이 남긴다 — 사람이 고칠지 다시 돌릴지 정한다.
   const 본문 = post.body ?? "";
-  const 흠 = [];
+  const 흠 = 공통짜임새(본문);
   // 하한만 보고 상한을 안 봐서 4,255자짜리를 「걸린 데 없음」으로 통과시켰다(2026-09-12, qwen3.8-27b).
   if (본문.length < 1800) 흠.push(`본문 ${본문.length}자 — 1,800자에 못 미칩니다. 판단 기준이 모자랍니다`);
   if (본문.length > 2800) 흠.push(`본문 ${본문.length}자 — 2,800자를 넘었습니다. 늘어지면 잘라 인용하기가 나빠집니다`);
-  if (/^#+\s*\*\*/m.test(본문)) 흠.push("소제목에 ** 를 겹쳐 썼습니다");
-
-  // 한국어만 쓰는 모델이 아니면 한자·영어가 새어 나온다.
-  // qwen3.8-27b 이 「최대几名까지」 「화면을转播하는」 「Instead, 부장님이」를 뱉었다(2026-09-12).
-  // 사람이 읽으면 바로 보이는데 어휘 검사에는 안 걸린다. 기계로 잡히는 건 기계가 잡는다.
-  const 한자 = 본문.match(/[一-鿿]+/g);
-  if (한자) 흠.push(`한자가 섞였습니다: ${[...new Set(한자)].slice(0, 5).join(" ")}`);
-  const 영어 = 본문.match(/(?<=[가-힣\s])(?:Instead|However|Therefore|Moreover|Furthermore|or|and|but)(?=[\s,.])/g);
-  if (영어) 흠.push(`영어가 섞였습니다: ${[...new Set(영어)].slice(0, 5).join(" ")}`);
-  if (/##\s*\**\s*(마무리|결론|정리)/.test(본문)) 흠.push("「마무리」 문단 — 앞에서 한 말을 다시 합니다");
-  // 「마무리」라는 이름만 피하면 이 정규식을 빠져나간다. 실제로 「기록으로 증명되는 판단의 가치」로
-  // 되살아났고, 거기에 크롤러 방문 수까지 끌어다 썼다. 지표를 들먹이는 쪽을 따로 잡는다.
-  if (/크롤러|색인 로봇|누적 \d+\s*회|공개한 \d+\s*편|본 블로그/.test(본문)) {
-    흠.push("블로그 운영 지표(크롤러 방문·글 수)를 본문에 썼습니다 — 학부모에게는 뜻이 없는 숫자입니다");
-  }
   // 지역이 없으면 동네 검색어에서 안 잡힌다. topic-gap 이 내내 지적해 온 것이다.
   const 동네주제 = /송파|잠실|석촌|가락/.test(`${고른것.title} ${(고른것.tags ?? []).join(" ")}`);
   if (동네주제 && !/송파|잠실|석촌|가락|헬리오/.test(본문)) {
@@ -382,7 +224,7 @@ const main = async () => {
   // 정작 방금 쓴 초안은 건너뛴다 — 「0편에서 걸림」이 이 글 얘기인 줄 알게 된다.
   if (process.env.GITHUB_OUTPUT) fs.appendFileSync(process.env.GITHUB_OUTPUT, `slug=${slug}\n`);
 
-  console.log(`\n초안으로 넣었습니다: ${post.title} (${(post.body ?? "").length}자)`);
+  console.log(`\n초안으로 넣었습니다: ${post.title} (${본문.length}자)`);
   console.log("발행은 사람이 합니다. 확인이 필요한 문장:");
   for (const s of post.확인필요 ?? []) console.log("  ·", s);
   if (흠.length) {

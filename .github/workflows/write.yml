@@ -3,11 +3,16 @@
 # 자동으로 도는 넷(정찰·노출측정·스냅샷·브리핑)은 전부 「재는 일」이었다.
 # 「쓰는 일」에 담당이 없어서 사람이 멈추면 발행도 멈췄다. 그 자리를 메운다.
 #
+# 두 갈래가 있다.
+#   news   바깥 사실로 여는 글. 제도 변경·대회 일정·공식 발표. 검색 근거를 달고 출처를 남긴다
+#   draft  관점 글. 주제 은행에서 고른다. 숫자를 쓰지 않는다
+# 기본은 news 다 — 관점 글은 학원 이름을 안 써도 홍보 틀이 되기 쉽다.
+#
 # 발행까지 하지 않는다. 초안으로만 넣는다 —
 # CLAUDE.md 의 「사람만 할 수 있는 일 · 발행 전 사실 확인」이고,
 # 지어낸 문장 하나가 다른 문서와 어긋나면 레퍼런스 전체가 죽는다.
 #
-# ANTHROPIC_API_KEY 가 없으면 종료코드 78 로 건너뛴다. 실패로 표시하지 않는다 —
+# 키가 없으면 종료코드 78 로 건너뛴다. 실패로 표시하지 않는다 —
 # 매주 빨간불이 뜨면 진짜 고장났을 때 아무도 안 본다.
 name: write
 
@@ -15,6 +20,12 @@ on:
   schedule:
     - cron: "7 21 * * 0"   # 월요일 06:07 KST — 정찰(06:37) 보다 앞에 둔다
   workflow_dispatch:
+    inputs:
+      mode:
+        description: "news = 바깥 소식(검색 근거) · draft = 관점 글"
+        type: choice
+        options: [news, draft]
+        default: news
 
 jobs:
   write:
@@ -40,17 +51,23 @@ jobs:
         working-directory: academy
         env:
           # 아무거나 있으면 쓴다. 우선순위는 anthropic → gemini → groq.
+          # 단 news 는 검색 근거가 필요해서 제미나이가 있어야 돈다.
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           WRITER_PROVIDER: ${{ vars.WRITER_PROVIDER }}
           WRITER_MODEL: ${{ vars.WRITER_MODEL }}
+          MODE: ${{ inputs.mode || 'news' }}
         run: |
           set +e
-          node scripts/write-draft.mjs
+          if [ "$MODE" = "draft" ]; then
+            node scripts/write-draft.mjs
+          else
+            node scripts/write-news.mjs
+          fi
           code=$?
           if [ "$code" = "78" ]; then
-            echo "::notice::GROQ_API_KEY 나 ANTHROPIC_API_KEY 가 없어 건너뜁니다. Secrets 에 하나만 넣으면 매주 초안이 나옵니다."
+            echo "::notice::키가 없어 건너뜁니다. GEMINI_API_KEY 를 Secrets 에 넣으면 매주 초안이 나옵니다."
             exit 0
           fi
           exit $code
