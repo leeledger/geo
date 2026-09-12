@@ -14,14 +14,27 @@
 - **색인 알림** — IndexNow 로 아이로그 10쪽·학원 45쪽. Bing·네이버 둘 다 200
 - **보안** — `.browser-profile/`(네이버·구글 로그인 쿠키 18MB)이 저장소 루트에 추적되지 않은 채 있었다. 67e96e1 로 막았다
 
-## 다음 행동 (브라우저 로그인이 끝나는 대로)
+## 다음 행동 (로그인이 저장돼야 시작된다)
 
-원장이 `node tools/open-session.mjs` 로 로그인 중이다. **이 도구들은 전부 `.browser-profile` 을 쓴다 — 세션이 열려 있는 동안 같이 돌리면 충돌한다.** 끝난 뒤 순서대로:
+**9.12 오전 시도는 로그인이 저장되지 않아 못 했다.** `open-session.mjs` 는 「✓ 네이버 로그인 확인」을 찍었지만,
+창을 닫은 뒤 `check-session.mjs` 는 구글·네이버 둘 다 「로그아웃」이라고 한다(쿠키는 15개 남았다).
+**「로그인 상태 유지」를 켜지 않으면 창을 닫을 때 세션이 사라진다** — open-session 이 띄우는 경고 그대로다.
+다시 할 때는 그 체크박스를 켜고, 끝나면 `node tools/check-session.mjs` 로 ✓ 두 개를 먼저 확인한다.
+
+도구는 전부 `.browser-profile` 을 배타적으로 잡는다 — 병렬로 돌리면 프로필 잠금에 걸린다. 한 번에 하나씩:
+
+```
+export MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL="*"   # Git Bash 면 반드시 (아래 주의)
+```
 
 1. `node tools/naver-sa-add-site.mjs https://ilog.ai.kr --verify` — 소유확인. 메타태그(`103285c0…acda13b`)는 운영 HTML 에서 확인했다. 캡차가 뜨면 사람이 10초
 2. `node tools/naver-sa-submit.mjs https://ilog.ai.kr sitemap /sitemap.xml` — 사이트맵 200·10쪽 확인함
 3. `node tools/naver-sa-submit.mjs https://robotncoding.com rss /rss.xml` — RSS 200·40건 확인함. 학원은 소유확인은 됐는데 제출이 비어 있었다(Yeti 커버리지 2.2% 의 원인)
 4. `node tools/submit-gsc.mjs --client ilog` — 구글은 IndexNow 에 참여하지 않는다. 로그인 없으면 여기서 멈춘다
+
+**주의 — 2·3번이 사용법만 찍으면 로그인 문제가 아니다.** Git Bash 가 `/sitemap.xml` 을
+`C:/Program Files/Git/sitemap.xml` 로 바꿔 인자 검사에서 걸린 것이다. 위 `export` 를 빠뜨린 것 (9.12 에 당했다).
+스크린샷은 `SHOT_DIR` 로 스크래치패드에 보낸다 — 기본값이 `cwd` 라 저장소 루트에 PNG 가 쌓인다.
 
 ---
 

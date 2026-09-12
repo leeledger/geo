@@ -93,6 +93,9 @@ probe/
 
 - **Bash 히어독이 백슬래시를 먹는다.** 정규식·이스케이프가 든 파일은 Write 로 쓴다
 - **`grep -c` 는 0건일 때 종료코드 1.** `&&` 로 이으면 뒤가 통째로 안 돈다
+- **Git Bash(MSYS)가 `/` 로 시작하는 인자를 윈도 경로로 바꾼다.** `node x.mjs /sitemap.xml` 이
+  `C:/Program Files/Git/sitemap.xml` 로 들어가 도구가 사용법만 찍고 끝난다. 로그인이 안 된 걸로 착각하기 쉽다.
+  앞에 `MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL="*"` 를 붙인다
 - **CSS `transform` 은 속성 하나.** 애니메이션이 `translateX(-50%)` 를 덮어쓴다
 - **한글은 `word-break: keep-all`** 이 없으면 단어 중간에서 끊긴다
 - **파일을 넘긴 것과 저장된 것은 다르다.** 업로드 후 화면을 다시 읽어 확인한다
