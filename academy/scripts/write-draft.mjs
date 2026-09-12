@@ -136,6 +136,28 @@ const 지어내기금지 = [
   "주제의 「각도」가 상담에서 들은 이야기를 요구해도, 너에게 그 기록이 없으면 지어내지 말고 학부모가 직접 확인할 방법으로 바꿔 쓴다.",
 ];
 
+/**
+ * 모델이 본문에 진짜 줄바꿈을 넣어 보내면 그건 JSON 이 아니다.
+ * 마크다운 본문을 JSON 문자열에 담으라고 시키면 자주 이런다 (qwen3.8-27b, 2026-09-12).
+ * 모델 탓이 아니라 파서가 약한 것이다. 따옴표 안인지 밖인지만 따라가며 고친다.
+ */
+const 줄바꿈고치기 = (s) => {
+  let out = "";
+  let 따옴표안 = false;
+  let 이스케이프 = false;
+  for (const ch of s) {
+    if (이스케이프) { out += ch; 이스케이프 = false; continue; }
+    if (ch === "\\") { out += ch; 이스케이프 = true; continue; }
+    if (ch === '"') { 따옴표안 = !따옴표안; out += ch; continue; }
+    if (따옴표안 && (ch === "\n" || ch === "\r" || ch === "\t")) {
+      out += ch === "\n" ? "\\n" : ch === "\r" ? "\\r" : "\\t";
+      continue;
+    }
+    out += ch;
+  }
+  return out;
+};
+
 const main = async () => {
   // ── 1. 주제
   const bank = JSON.parse(fs.readFileSync(new URL("../content/topics.json", import.meta.url), "utf8"));
@@ -274,9 +296,18 @@ const main = async () => {
   try {
     post = JSON.parse(json);
   } catch {
-    console.log("JSON 으로 안 왔습니다. 앞부분:", text.slice(0, 200));
-    process.exitCode = 1;
-    return;
+    try {
+      post = JSON.parse(줄바꿈고치기(json));
+      console.log("  (본문에 진짜 줄바꿈이 들어와 고쳐 읽었습니다)");
+    } catch (e) {
+      // 앞 200자만 찍으면 원인을 못 짚는다. 잘렸는지 깨졌는지부터 갈라야 한다.
+      console.log("JSON 으로 안 왔습니다:", e.message.slice(0, 80));
+      console.log(`  끝난 이유: ${data.choices?.[0]?.finish_reason ?? data.stop_reason ?? "?"} · 받은 길이 ${text.length}자`);
+      console.log("  앞:", text.slice(0, 110).replace(/\s+/g, " "));
+      console.log("  뒤:", text.slice(-110).replace(/\s+/g, " "));
+      process.exitCode = 1;
+      return;
+    }
   }
 
   // 스스로 검사한다. 어휘는 slop-check 가 뒤에서 보고, 여기서는 짜임새를 본다.
