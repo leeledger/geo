@@ -60,23 +60,44 @@ const PLAN = {
     alt: "수업이 끝나면 무엇이 남는가. 만든 화면과 아이의 소감, 선생님 코멘트가 합쳐져 학습 성장 리포트가 된다. 태도, 집중력, 학습 의지, 이해력, 표현력, 창의성 여섯 영역을 기록하고 점수는 매기지 않는다.",
     before: "## 점수를 매기지 않는 이유",
   },
+  // 한 글에 두 장. 척추(다섯 단계)와 제일 날카로운 대목(채점 기준)에 하나씩 둔다.
+  "koding-kurikyulleom-sunseo": [
+    {
+      file: "five-stages",
+      alt: "코딩 커리큘럼 다섯 단계. 1단계 컴퓨팅 사고력 기초는 초등 1~4학년이 엔트리와 스크래치 주니어로 순차와 반복과 조건을 익힌다. 2단계 알고리즘과 창의 융합은 초등 3~6학년이 아두이노와 마이크로비트로 정렬과 탐색을 배운다. 3단계 텍스트 기반 프로그래밍은 초등 5학년 이상이 파이썬 문법과 자연어 코딩을 한다. 4단계 알고리즘 강화는 진학과 대회를 보고 동적 계획법과 그래프를 다룬다. 5단계는 AI와 사물인터넷과 데이터와 앱을 팀으로 만든다. 넘어가는 기준은 학년이 아니라 자기가 만든 것을 말로 설명할 수 있는가이다.",
+      before: "## 언제 다음 단계로 넘어가나",
+    },
+    {
+      file: "grading-shift",
+      alt: "채점 기준이 바뀌었다. 예전에는 정답 코드와 일치하는가를 봤고, 답안지와 한 글자도 안 틀리게 쓴 아이가 잘한 아이였다. 지금은 실제로 작동했는가를 본다. 로봇이 목적지까지 갔는가, 만든 프로그램이 끝까지 돌았는가를 본다. AI가 코드를 써 주는 시대에는 이 차이가 더 벌어진다.",
+      before: "## 하지 마셔야 할 것",
+    },
+  ],
 };
 
 let done = 0;
-for (const [slug, p] of Object.entries(PLAN)) {
+// 한 글에 여러 장이 필요할 때가 있다. 값이 배열이면 여러 장으로 본다.
+for (const [slug, spec] of Object.entries(PLAN)) {
+  const 계획들 = Array.isArray(spec) ? spec : [spec];
   const { rows } = await pool.query(`select body from academy.posts where slug = $1`, [slug]);
   if (!rows[0]) { console.log(`  ${slug} — 글이 없습니다`); continue; }
 
   let body = rows[0].body;
-  if (body.includes(`/${p.file}.svg`)) { console.log(`  ${slug} — 이미 있습니다`); continue; }
+  let 바뀜 = false;
 
-  const img = `![${p.alt}](/blog/${slug}/${p.file}.svg)`;
-  if (p.before && body.includes(p.before)) {
-    body = body.replace(p.before, `${img}\n\n${p.before}`);
-  } else {
-    console.log(`  ${slug} — 「${p.before}」 를 못 찾아 맨 뒤에 붙입니다`);
-    body = `${body}\n\n${img}`;
+  for (const p of 계획들) {
+    if (body.includes(`/${p.file}.svg`)) { console.log(`  ${slug}/${p.file} — 이미 있습니다`); continue; }
+
+    const img = `![${p.alt}](/blog/${slug}/${p.file}.svg)`;
+    if (p.before && body.includes(p.before)) {
+      body = body.replace(p.before, `${img}\n\n${p.before}`);
+    } else {
+      console.log(`  ${slug}/${p.file} — 「${p.before}」 를 못 찾아 맨 뒤에 붙입니다`);
+      body = `${body}\n\n${img}`;
+    }
+    바뀜 = true;
   }
+  if (!바뀜) continue;
 
   await pool.query(
     `update academy.posts set body = $1, updated_at = now() where slug = $2`, [body, slug]);

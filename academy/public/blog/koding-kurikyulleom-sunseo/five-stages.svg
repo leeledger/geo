@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 520" width="960" height="520" role="img"
+     aria-label="코딩 커리큘럼 다섯 단계. 1단계 컴퓨팅 사고력 기초는 초등 1~4학년이 엔트리와 스크래치 주니어로 순차와 반복과 조건을 익힌다. 2단계 알고리즘과 창의 융합은 초등 3~6학년이 아두이노와 마이크로비트로 정렬과 탐색을 배우고 센서를 붙인다. 3단계 텍스트 기반 프로그래밍은 초등 5학년 이상이 파이썬 문법과 자연어 코딩을 한다. 4단계 알고리즘 강화는 진학과 대회를 보고 동적 계획법과 그래프를 다룬다. 5단계 진로 체험과 융합 프로젝트는 AI와 사물인터넷과 데이터와 앱을 팀으로 만든다. 넘어가는 기준은 학년이 아니라 자기가 만든 것을 말로 설명할 수 있는가이다.">
+  <defs>
+    <linearGradient id="sbg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0E131C"/><stop offset="1" stop-color="#0B0F16"/>
+    </linearGradient>
+  </defs>
+  <rect width="960" height="520" fill="url(#sbg)"/>
+
+  <text x="480" y="44" text-anchor="middle" font-family="'IBM Plex Mono',ui-monospace,monospace"
+        font-size="12" letter-spacing="2.5" fill="#8A94A6">다섯 단계로 나눈 이유</text>
+
+  <g font-family="'Noto Sans KR',system-ui,sans-serif">
+
+    <!-- 1단계 -->
+    <rect x="56" y="86" width="848" height="66" rx="10" fill="#12181F" stroke="#232C38"/>
+    <rect x="72" y="101" width="36" height="36" rx="8" fill="#1A222C" stroke="#2B3646"/>
+    <text x="90" y="125" text-anchor="middle" font-family="'IBM Plex Mono',ui-monospace,monospace"
+          font-size="15" font-weight="700" fill="#8A94A6">1</text>
+    <text x="126" y="116" font-size="17" font-weight="800" fill="#D7DEE8">컴퓨팅 사고력 기초</text>
+    <text x="126" y="138" font-size="13" fill="#6B7688">순차 · 반복 · 조건, 변수와 함수, 안 되는 걸 고쳐 보기</text>
+    <text x="888" y="114" text-anchor="end" font-size="13" fill="#8A94A6">초등 1~4학년</text>
+    <text x="888" y="136" text-anchor="end" font-size="12" fill="#4E5867">엔트리 · code.org · 스크래치 주니어</text>
+
+    <!-- 2단계 -->
+    <rect x="56" y="164" width="848" height="66" rx="10" fill="#12181F" stroke="#232C38"/>
+    <rect x="72" y="179" width="36" height="36" rx="8" fill="#1A222C" stroke="#2B3646"/>
+    <text x="90" y="203" text-anchor="middle" font-family="'IBM Plex Mono',ui-monospace,monospace"
+          font-size="15" font-weight="700" fill="#8A94A6">2</text>
+    <text x="126" y="194" font-size="17" font-weight="800" fill="#D7DEE8">알고리즘과 창의 융합</text>
+    <text x="126" y="216" font-size="13" fill="#6B7688">정렬 · 탐색, 센서를 붙여 화면 밖에서도 돌아가게</text>
+    <text x="888" y="192" text-anchor="end" font-size="13" fill="#8A94A6">초등 3~6학년</text>
+    <text x="888" y="214" text-anchor="end" font-size="12" fill="#4E5867">엔트리 고급 · 아두이노 · 마이크로비트</text>
+
+    <!-- 3단계 — 파이썬으로 넘어가는 자리. 글의 중심이라 강조한다 -->
+    <rect x="56" y="242" width="848" height="66" rx="10" fill="#111C1B" stroke="#24413C"/>
+    <rect x="72" y="257" width="36" height="36" rx="8" fill="#14231F" stroke="#2C4A43"/>
+    <text x="90" y="281" text-anchor="middle" font-family="'IBM Plex Mono',ui-monospace,monospace"
+          font-size="15" font-weight="700" fill="#3DD6C4">3</text>
+    <text x="126" y="272" font-size="17" font-weight="800" fill="#DDEDE9">텍스트 기반 프로그래밍</text>
+    <text x="126" y="294" font-size="13" fill="#7FA79F">파이썬 문법, 자연어 코딩 — 한국어로 적어 코드를 받아 본다</text>
+    <text x="888" y="270" text-anchor="end" font-size="13" fill="#3DD6C4">초등 5학년 이상</text>
+    <text x="888" y="292" text-anchor="end" font-size="12" fill="#5E837C">IDLE · PyCharm Edu · Turtle · Pygame</text>
+
+    <!-- 4단계 -->
+    <rect x="56" y="320" width="848" height="66" rx="10" fill="#12181F" stroke="#232C38"/>
+    <rect x="72" y="335" width="36" height="36" rx="8" fill="#1A222C" stroke="#2B3646"/>
+    <text x="90" y="359" text-anchor="middle" font-family="'IBM Plex Mono',ui-monospace,monospace"
+          font-size="15" font-weight="700" fill="#8A94A6">4</text>
+    <text x="126" y="350" font-size="17" font-weight="800" fill="#D7DEE8">알고리즘 강화</text>
+    <text x="126" y="372" font-size="13" fill="#6B7688">동적 계획법, 그래프, 기출 유형 분석</text>
+    <text x="888" y="348" text-anchor="end" font-size="13" fill="#8A94A6">진학 · 대회</text>
+
+    <!-- 5단계 -->
+    <rect x="56" y="398" width="848" height="66" rx="10" fill="#12181F" stroke="#232C38"/>
+    <rect x="72" y="413" width="36" height="36" rx="8" fill="#1A222C" stroke="#2B3646"/>
+    <text x="90" y="437" text-anchor="middle" font-family="'IBM Plex Mono',ui-monospace,monospace"
+          font-size="15" font-weight="700" fill="#8A94A6">5</text>
+    <text x="126" y="428" font-size="17" font-weight="800" fill="#D7DEE8">진로 체험과 융합 프로젝트</text>
+    <text x="126" y="450" font-size="13" fill="#6B7688">AI · 사물인터넷 · 데이터 분석 · 앱, 팀으로 만든다</text>
+    <text x="888" y="426" text-anchor="end" font-size="13" fill="#8A94A6">포트폴리오</text>
+  </g>
+
+  <text x="480" y="497" text-anchor="middle" font-family="'Noto Sans KR',system-ui,sans-serif"
+        font-size="14" fill="#3DD6C4">넘어가는 기준은 학년이 아니다 — 자기가 만든 걸 말로 설명할 수 있는가</text>
+</svg>
