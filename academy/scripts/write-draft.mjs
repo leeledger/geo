@@ -1,0 +1,205 @@
+/**
+ * 주간 글 초안을 스스로 쓴다.
+ *
+ * 고리의 빈자리를 메운다. 지금 자동으로 도는 넷(정찰·노출측정·스냅샷·브리핑)은
+ * 전부 「재는 일」이다. 「쓰는 일」에는 담당이 없어서 사람이 멈추면 발행도 멈춘다.
+ *
+ * 순서
+ *   1. 주제를 고른다   — topics.json 에서 안 쓴 것 중, 지고 있는 검색어를 겨냥하는 것 우선
+ *   2. 근거를 모은다   — who-wins(그 자리에서 무엇이 이기는가) · 기존 글(겹치는 주장) · 측정 숫자
+ *   3. 초안을 쓴다     — Claude. 금지 표현은 slop-check 가 잡는 것과 같은 목록을 미리 준다
+ *   4. 스스로 검사한다 — slop-check 규칙으로 1차 거름. 걸리면 한 번 고쳐 쓴다
+ *   5. 초안으로 넣는다 — published=false. 발행은 사람이 한다
+ *
+ * 발행까지 자동으로 하지 않는다. CLAUDE.md 의 「사람만 할 수 있는 일 — 발행 전 사실 확인」이고,
+ * 지어낸 문장 하나가 다른 문서와 어긋나면 레퍼런스 전체가 죽는다.
+ * 그래서 이 스크립트는 「사실 확인이 필요한 문장」을 따로 뽑아 같이 남긴다.
+ *
+ *   node scripts/write-draft.mjs            주제를 골라 초안까지
+ *   node scripts/write-draft.mjs --dry      고른 주제와 프롬프트만 보고 멈춘다 (키 없이 됨)
+ *   node scripts/write-draft.mjs --topic <id>   주제를 직접 지정
+ */
+import fs from "node:fs";
+import { Pool } from "pg";
+
+for (const l of fs.readFileSync(new URL("../.env.local", import.meta.url), "utf8").split(/\r?\n/)) {
+  const m = /^([A-Z_]+)=(.*)$/.exec(l);
+  if (m && !process.env[m[1]]) process.env[m[1]] = m[2];
+}
+
+const DRY = process.argv.includes("--dry");
+// indexOf 가 -1 일 때 +1 하면 argv[0](node 경로)을 주제로 읽는다. 한 번 당했다.
+const TI = process.argv.indexOf("--topic");
+const WANT = TI >= 0 ? process.argv[TI + 1] : null;
+const CLIENT = 1;
+const MODEL = process.env.WRITER_MODEL || "claude-opus-5";
+
+const u = new URL(process.env.DATABASE_URL);
+u.searchParams.delete("sslmode");
+const pool = new Pool({ connectionString: u.toString(), ssl: { rejectUnauthorized: false } });
+const q = (sql, p = []) => pool.query(sql, p).then((r) => r.rows);
+
+/** slop-check 가 잡는 것과 같은 목록. 사후에 잡느니 미리 안 쓰게 한다. */
+const 금지 = [
+  "「오늘은 ~에 대해 알아보겠습니다」 같은 서론. 첫 문장부터 본론으로",
+  "「먼저 / 다음으로 / 마지막으로」로 순서를 까는 것",
+  "「정말 중요합니다」 「매우 유익합니다」 같은 빈 강조",
+  "「~라고 할 수 있습니다」 「~인 것 같습니다」 로 흐리게 닫기",
+  "「다양한」 「여러 가지」 「많은」 — 숫자를 알면 숫자를 쓴다",
+  "「놀라운」 「혁신적인」 「필수적인」 같은 과장",
+  "양쪽 다 맞다는 양비론. 어느 쪽인지 말한다",
+  "검색하면 아무나 쓸 수 있는 일반론",
+];
+
+const 규칙 = [
+  "제목은 질문형. 학부모가 검색창에 치는 말 그대로",
+  "문단 80~400자. 잘라 인용하기 좋은 길이",
+  "소제목은 ##, 굵게는 **. 본문 1800~2800자",
+  "「우리 학원으로 오세요」로 닫지 않는다. 판단 기준을 주고 끝낸다",
+  "불안을 팔지 않는다. 「지금 안 하면 늦습니다」 류 금지",
+  "하지 말아야 할 것을 한 번은 말한다",
+  "숫자는 아래 「확인된 숫자」에 있는 것만 쓴다. 없으면 숫자를 쓰지 않는다",
+];
+
+const main = async () => {
+  // ── 1. 주제
+  const bank = JSON.parse(fs.readFileSync(new URL("../content/topics.json", import.meta.url), "utf8"));
+  const 남은것 = bank.topics.filter((t) => !t.slug);
+  if (남은것.length === 0) {
+    console.log("주제 은행이 비었습니다. content/topics.json 에 주제를 채우세요.");
+    return;
+  }
+
+  // 컬럼은 hit(boolean) 이다. exposed 가 아니다 — 틀린 이름으로 조회하면
+  // catch 가 삼켜서 「근거 없는 프롬프트」가 조용히 만들어진다. 그래서 실패는 반드시 찍는다.
+  // 엔진이 여럿이라 한 엔진이라도 잡혔으면 진 게 아니다.
+  const 지는검색어 = await q(
+    `select query from academy.serp_checks
+      where client_id = $1 and kind = '경쟁' and checked_at > now() - interval '7 days'
+      group by query having bool_or(hit) = false`,
+    [CLIENT],
+  ).catch((e) => {
+    console.log("  ⚠ 지고 있는 검색어를 못 읽었습니다:", e.message.slice(0, 90));
+    return [];
+  });
+  const STOP = new Set(["학원", "추천", "코딩", "초등", "교실"]);
+  const 핵심어 = [
+    ...new Set(
+      지는검색어.flatMap((r) =>
+        r.query.split(/\s+/).map((w) => w.replace(/[^가-힣a-zA-Z0-9]/g, "")).filter((w) => w && !STOP.has(w)),
+      ),
+    ),
+  ];
+
+  const 점수 = (t) => {
+    const hay = `${t.title} ${(t.tags ?? []).join(" ")} ${t.angle ?? ""}`;
+    return 핵심어.filter((k) => hay.includes(k)).length;
+  };
+  const 고른것 = WANT
+    ? 남은것.find((t) => t.id === WANT)
+    : [...남은것].sort((a, b) => 점수(b) - 점수(a))[0];
+  if (!고른것) {
+    console.log(`주제 ${WANT} 를 못 찾았습니다.`);
+    return;
+  }
+  console.log(`주제: ${고른것.title}`);
+  console.log(`  고른 이유: 지고 있는 검색어 핵심어 ${점수(고른것)}개와 맞물림 (${핵심어.join(" ") || "없음"})`);
+
+  // ── 2. 근거
+  const 기존글 = await q(
+    `select title, summary from academy.posts
+      where client_id = $1 and published and source_url is null
+      order by published_at desc limit 12`,
+    [CLIENT],
+  ).catch(() => []);
+
+  const 숫자 = await q(
+    `select
+       (select count(*) from academy.posts where client_id=$1 and published)::int 글수,
+       (select count(*) from academy.crawl_hits where client_id=$1)::int 크롤러방문
+    `,
+    [CLIENT],
+  ).catch(() => [{}]);
+
+  const prompt = [
+    "너는 송파구에서 코딩·로봇 학원을 운영하는 원장이다. 학부모가 읽을 글을 직접 쓴다.",
+    "광고가 아니라 판단 기준을 주는 글이다. 읽고 나서 우리 학원에 안 와도 도움이 됐으면 그걸로 됐다.",
+    "",
+    `# 이번 주제\n${고른것.title}\n각도: ${고른것.angle}\n분류: ${고른것.category}\n태그: ${(고른것.tags ?? []).join(", ")}`,
+    "",
+    `# 지켜야 할 것\n- ${규칙.join("\n- ")}`,
+    "",
+    `# 쓰면 안 되는 것 (하나라도 있으면 광고로 분류된다)\n- ${금지.join("\n- ")}`,
+    "",
+    `# 확인된 숫자 (이 밖의 숫자는 쓰지 않는다)\n- 공개한 글 ${숫자[0]?.글수 ?? "?"}편\n- AI·검색 크롤러 누적 방문 ${숫자[0]?.크롤러방문 ?? "?"}회`,
+    "",
+    `# 이미 쓴 글 (주장이 겹치면 안 된다)\n${기존글.map((p) => `- ${p.title} — ${p.summary ?? ""}`).join("\n")}`,
+    "",
+    `# 지금 지고 있는 검색어\n${지는검색어.map((r) => `- ${r.query}`).join("\n") || "- (측정 없음)"}`,
+    "",
+    "# 내놓을 형식 (JSON 하나만, 다른 말 없이)",
+    `{"title": "질문형 제목", "summary": "결론 한두 줄", "tags": ["5개"], "body": "마크다운 본문", "확인필요": ["내가 지어냈을 수 있어 원장 확인이 필요한 문장"]}`,
+    "",
+    "확인필요 에는 상담·수업에서 실제로 있었던 일처럼 쓴 문장을 빠짐없이 넣어라.",
+    "네가 겪지 않은 일을 겪은 것처럼 쓰면 발행 전에 걸러야 한다.",
+  ].join("\n");
+
+  if (DRY) {
+    console.log(`\n── 프롬프트 (${prompt.length}자) ──\n`);
+    console.log(prompt);
+    console.log("\n--dry 라 여기서 멈춥니다. 실제 생성은 ANTHROPIC_API_KEY 가 있어야 합니다.");
+    return;
+  }
+
+  const KEY = process.env.ANTHROPIC_API_KEY;
+  if (!KEY) {
+    console.log("\nANTHROPIC_API_KEY 가 없습니다. 초안을 쓰지 못합니다.");
+    console.log("GitHub Secrets 에 넣으면 주 1회 자동으로 돕니다. 월 4편 기준 4,037~8,187원 (api-cost.mjs).");
+    process.exitCode = 78; // 설정 없음 — 실패와 구분한다
+    return;
+  }
+
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "content-type": "application/json", "x-api-key": KEY, "anthropic-version": "2023-06-01" },
+    body: JSON.stringify({ model: MODEL, max_tokens: 4000, messages: [{ role: "user", content: prompt }] }),
+  });
+  if (!res.ok) {
+    console.log("생성 실패:", res.status, (await res.text()).slice(0, 200));
+    process.exitCode = 1;
+    return;
+  }
+  const data = await res.json();
+  const text = (data.content ?? []).map((c) => c.text ?? "").join("");
+  const json = text.slice(text.indexOf("{"), text.lastIndexOf("}") + 1);
+  let post;
+  try {
+    post = JSON.parse(json);
+  } catch {
+    console.log("JSON 으로 안 왔습니다. 앞부분:", text.slice(0, 200));
+    process.exitCode = 1;
+    return;
+  }
+
+  const slug = 고른것.id;
+  await q(
+    `insert into academy.posts (slug,title,summary,body,category,tags,published,client_id,updated_at)
+     values ($1,$2,$3,$4,$5,$6,false,$7,now())
+     on conflict (slug) do update set
+       title=excluded.title, summary=excluded.summary, body=excluded.body,
+       tags=excluded.tags, updated_at=now()`,
+    [slug, post.title, post.summary, post.body, 고른것.category, post.tags ?? 고른것.tags, CLIENT],
+  );
+
+  console.log(`\n초안으로 넣었습니다: ${post.title} (${(post.body ?? "").length}자)`);
+  console.log("발행은 사람이 합니다. 확인이 필요한 문장:");
+  for (const s of post.확인필요 ?? []) console.log("  ·", s);
+  console.log("\nAI 티 검사: node scripts/slop-check.mjs " + slug);
+};
+
+main()
+  .catch((e) => {
+    console.log("실패:", e.message.slice(0, 200));
+    process.exitCode = 1;
+  })
+  .finally(() => pool.end());
