@@ -21,6 +21,15 @@ const page = ctx.pages()[0] ?? (await ctx.newPage());
 const CHECKS = [
   { name: "Google Search Console", url: "https://search.google.com/search-console", bad: /accounts\.google\.com|search-console\/about|\/welcome/ },
   { name: "네이버 서치어드바이저", url: "https://searchadvisor.naver.com/console/board", bad: /nid\.naver\.com/ },
+  // 서치어드바이저와 블로그는 세션이 따로 논다. 서치어드바이저가 로그아웃이어도
+  // 블로그 글쓰기는 멀쩡히 되는 일이 실제로 있었다(2026-09-12).
+  // 그걸 「네이버 로그아웃」으로 읽고 발행을 포기해 원장에게 재로그인을 두 번 요청했다.
+  // 이관이 걸린 자리는 이쪽이므로 발행 도구가 실제로 여는 주소를 그대로 본다.
+  {
+    name: "네이버 블로그 글쓰기",
+    url: `https://blog.naver.com/${process.env.NAVER_BLOG_ID || "force11"}?Redirect=Write`,
+    bad: /nid\.naver\.com/,
+  },
 ];
 
 for (const c of CHECKS) {
