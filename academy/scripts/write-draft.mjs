@@ -266,6 +266,10 @@ const main = async () => {
     [slug, post.title, post.summary, post.body, 고른것.category, post.tags ?? 고른것.tags, CLIENT],
   );
 
+  // Actions 가 이 슬러그로 AI 티 검사를 돌린다. 안 넘기면 발행된 글만 보고
+  // 정작 방금 쓴 초안은 건너뛴다 — 「0편에서 걸림」이 이 글 얘기인 줄 알게 된다.
+  if (process.env.GITHUB_OUTPUT) fs.appendFileSync(process.env.GITHUB_OUTPUT, `slug=${slug}\n`);
+
   console.log(`\n초안으로 넣었습니다: ${post.title} (${(post.body ?? "").length}자)`);
   console.log("발행은 사람이 합니다. 확인이 필요한 문장:");
   for (const s of post.확인필요 ?? []) console.log("  ·", s);
