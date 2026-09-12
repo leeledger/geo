@@ -391,8 +391,38 @@ if (DRY) {
 await F.getByRole("button", { name: /^발행$/ }).last().click({ timeout: 10000 });
 await page.waitForTimeout(13000);
 
-console.log("\n주소:", page.url().slice(0, 110));
-console.log(!/PostWriteForm/.test(page.url()) ? "✓ 발행된 것으로 보입니다" : "화면이 그대로입니다 — 확인 필요");
+const 끝주소 = page.url();
+console.log("\n주소:", 끝주소.slice(0, 110));
+const 발행됨 = !/PostWriteForm/.test(끝주소);
+console.log(발행됨 ? "✓ 발행된 것으로 보입니다" : "화면이 그대로입니다 — 확인 필요");
+
+// 여기서 DB 에 적어야 한다. 안 적으면 이 글이 계속 「안 된 것」으로 잡혀서
+// 다음 이관 때 또 올라가고, 같은 내용 두 벌이 네이버 검색에서 서로 갉아먹는다.
+// 여태 이 로직이 없어서 사람이 손으로 적고 있었다 — 한 번 빠뜨리면 중복이다.
+if (발행됨) {
+  const logNo = /\/(\d{6,})(?:[?#]|$)/.exec(끝주소)?.[1] ?? /logNo=(\d{6,})/.exec(끝주소)?.[1];
+  if (!logNo) {
+    console.log("  ⚠ 주소에서 글 번호를 못 뽑았습니다. 손으로 적어야 합니다:");
+    console.log(`     update academy.posts set naver_log_no='<번호>', naver_at=now() where slug='${slug}';`);
+  } else {
+    // 위쪽 풀은 글을 읽자마자 닫는다. 브라우저 작업이 몇 분이라 연결을 붙잡고 있으면
+    // Neon 이 유휴로 끊는다. 그래서 적을 때만 잠깐 새로 연다.
+    const du = new URL(process.env.DATABASE_URL);
+    du.searchParams.delete("sslmode");
+    const 기록풀 = new Pool({
+      connectionString: du.toString(),
+      ssl: { rejectUnauthorized: process.env.DATABASE_SSL_INSECURE !== "true" },
+    });
+    const r = await 기록풀.query(
+      `update academy.posts set naver_log_no = $1, naver_at = now()
+        where slug = $2 and naver_log_no is null`,
+      [logNo, slug],
+    ).catch((e) => { console.log("  ⚠ 기록 실패:", e.message.slice(0, 80)); return null; });
+    await 기록풀.end().catch(() => {});
+    if (r?.rowCount) console.log(`  기록했습니다: naver_log_no=${logNo}`);
+    else if (r) console.log(`  이미 기록돼 있습니다 (덮어쓰지 않았습니다). 고쳐 쓰려면 --update 를 쓰세요`);
+  }
+}
 
 await page.waitForTimeout(20000);
 await ctx.close();
