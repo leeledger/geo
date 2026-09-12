@@ -110,11 +110,15 @@ const 금지 = [
 const 규칙 = [
   "제목은 학부모가 검색창에 치는 말 그대로. 「꼭 확인해야 할 3가지」 같은 기사 제목은 안 된다",
   "문단 80~400자. 잘라 인용하기 좋은 길이",
-  "소제목은 ##, 굵게는 **. 본문 1800~2800자를 반드시 채운다",
+  "소제목은 ## 만. 소제목에 ** 를 겹쳐 쓰지 않는다. 굵게는 본문 안에서만",
+  "본문 1800~2800자를 반드시 채운다. 짧으면 판단 기준이 모자란 것이다",
   "「우리 학원으로 오세요」로 닫지 않는다. 판단 기준을 주고 끝낸다",
   "불안을 팔지 않는다. 「지금 안 하면 늦습니다」 류 금지",
   "하지 말아야 할 것을 한 번은 말한다",
   "목록은 진짜 나열일 때만. 체크리스트로 닫지 않는다",
+  "「마무리」 「결론」 문단으로 닫지 않는다. 앞에서 한 말을 다시 하는 자리다",
+  "동네 검색어를 겨냥한 글이면 지역 이름(송파·잠실·석촌)이 본문에 실제로 들어가야 한다. " +
+    "억지로 끼우면 티가 난다 — 통학 거리나 상담에서 나오는 맥락에 자연스럽게 둔다",
 ];
 
 /**
@@ -275,6 +279,19 @@ const main = async () => {
     return;
   }
 
+  // 스스로 검사한다. 어휘는 slop-check 가 뒤에서 보고, 여기서는 짜임새를 본다.
+  // 넣기는 넣되 무엇이 모자란지 같이 남긴다 — 사람이 고칠지 다시 돌릴지 정한다.
+  const 본문 = post.body ?? "";
+  const 흠 = [];
+  if (본문.length < 1800) 흠.push(`본문 ${본문.length}자 — 1,800자에 못 미칩니다. 판단 기준이 모자랍니다`);
+  if (/^#+\s*\*\*/m.test(본문)) 흠.push("소제목에 ** 를 겹쳐 썼습니다");
+  if (/##\s*\**\s*(마무리|결론|정리)/.test(본문)) 흠.push("「마무리」 문단 — 앞에서 한 말을 다시 합니다");
+  // 지역이 없으면 동네 검색어에서 안 잡힌다. topic-gap 이 내내 지적해 온 것이다.
+  const 동네주제 = /송파|잠실|석촌|가락/.test(`${고른것.title} ${(고른것.tags ?? []).join(" ")}`);
+  if (동네주제 && !/송파|잠실|석촌|가락|헬리오/.test(본문)) {
+    흠.push("본문에 지역이 한 번도 안 나옵니다 — 동네 검색어를 겨냥한 글인데 지역이 없으면 안 잡힙니다");
+  }
+
   const slug = 고른것.id;
   await q(
     `insert into academy.posts (slug,title,summary,body,category,tags,published,client_id,updated_at)
@@ -292,7 +309,16 @@ const main = async () => {
   console.log(`\n초안으로 넣었습니다: ${post.title} (${(post.body ?? "").length}자)`);
   console.log("발행은 사람이 합니다. 확인이 필요한 문장:");
   for (const s of post.확인필요 ?? []) console.log("  ·", s);
-  console.log("\nAI 티 검사: node scripts/slop-check.mjs " + slug);
+  if (흠.length) {
+    console.log("\n짜임새에서 걸린 것:");
+    for (const h of 흠) console.log("  ✗", h);
+  } else {
+    console.log("\n짜임새는 걸린 데가 없습니다.");
+  }
+
+  console.log("\n어휘 검사: node scripts/slop-check.mjs " + slug);
+  console.log("숫자 검사: node scripts/fact-check.mjs " + slug);
+  console.log("본문 읽기: node scripts/draft-peek.mjs " + slug);
 };
 
 main()
