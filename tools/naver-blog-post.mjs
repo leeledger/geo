@@ -30,6 +30,7 @@
  */
 import { chromium } from "playwright";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import { Pool } from "pg";
 
@@ -80,7 +81,11 @@ const post = rows[0];
 const LOCAL = ["송파코딩학원", "석촌동코딩학원", "잠실코딩학원", "코딩학원추천"];
 const TAGS = [...new Set([...post.tags, ...LOCAL])].slice(0, 30);
 
-const IMGDIR = path.resolve("../academy/public/blog", slug);
+// path.resolve 는 실행 위치(cwd) 기준이다. 이 도구는 .browser-profile 이 저장소 루트에 있어서
+// 루트에서 돌리는데, 그러면 C:/dev/academy/... 를 뒤져 그림을 못 찾는다.
+// 게다가 조용히 「그림 없음」으로 넘어가서 사진 0장짜리 글이 그대로 올라간다.
+// 60행처럼 파일 위치 기준으로 잡으면 어디서 돌리든 맞는다.
+const IMGDIR = fileURLToPath(new URL(`../academy/public/blog/${slug}/`, import.meta.url));
 
 const PARA_BREAK = /\n\s*\n/;
 
