@@ -38,13 +38,17 @@ jobs:
       - name: 초안 쓰기
         working-directory: academy
         env:
+          # 둘 중 아무거나 있으면 쓴다. Groq 은 무료 한도가 있어 0원으로 시작할 수 있다.
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          WRITER_PROVIDER: ${{ vars.WRITER_PROVIDER }}
+          WRITER_MODEL: ${{ vars.WRITER_MODEL }}
         run: |
           set +e
           node scripts/write-draft.mjs
           code=$?
           if [ "$code" = "78" ]; then
-            echo "::notice::ANTHROPIC_API_KEY 가 없어 건너뜁니다. Secrets 에 넣으면 매주 초안이 나옵니다."
+            echo "::notice::GROQ_API_KEY 나 ANTHROPIC_API_KEY 가 없어 건너뜁니다. Secrets 에 하나만 넣으면 매주 초안이 나옵니다."
             exit 0
           fi
           exit $code

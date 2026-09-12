@@ -18,6 +18,9 @@
  *   node scripts/write-draft.mjs            주제를 골라 초안까지
  *   node scripts/write-draft.mjs --dry      고른 주제와 프롬프트만 보고 멈춘다 (키 없이 됨)
  *   node scripts/write-draft.mjs --topic <id>   주제를 직접 지정
+ *
+ * 모델은 키가 있는 쪽을 쓴다. GROQ_API_KEY 든 ANTHROPIC_API_KEY 든 된다.
+ * 둘 다 있으면 WRITER_PROVIDER=groq|anthropic, 모델은 WRITER_MODEL 로 바꾼다.
  */
 import fs from "node:fs";
 import { Pool } from "pg";
@@ -32,7 +35,45 @@ const DRY = process.argv.includes("--dry");
 const TI = process.argv.indexOf("--topic");
 const WANT = TI >= 0 ? process.argv[TI + 1] : null;
 const CLIENT = 1;
-const MODEL = process.env.WRITER_MODEL || "claude-opus-5";
+
+/**
+ * 어느 모델로 쓰는가. 키가 있는 쪽을 쓴다. 둘 다 있으면 WRITER_PROVIDER 로 고른다.
+ *
+ * 이 일은 모델을 크게 타지 않는다 — 프롬프트 1.5K 토큰, 출력 4K, 주 1편.
+ * 갈리는 건 난이도가 아니라 「안 쓰는 능력」이다. slop-check 가 잡는 8종을 안 쓰고
+ * 확인된 숫자 밖으로 안 나가는 것. 그건 돌려 보고 재면 된다.
+ *
+ * Groq 은 무료 한도가 있어 0원으로 시작할 수 있다. 초안은 어차피 사람이 사실 확인을
+ * 하고 나가니, 문장이 뻣뻣해도 레퍼런스가 다치는 길은 막혀 있다.
+ * 모델 이름은 자주 바뀐다. 거절당하면 Groq 문서에서 확인해 WRITER_MODEL 로 넘긴다.
+ */
+const 공급자 = (() => {
+  const pick =
+    process.env.WRITER_PROVIDER ||
+    (process.env.ANTHROPIC_API_KEY ? "anthropic" : process.env.GROQ_API_KEY ? "groq" : null);
+
+  if (pick === "groq") {
+    return {
+      이름: "groq",
+      key: process.env.GROQ_API_KEY,
+      url: "https://api.groq.com/openai/v1/chat/completions",
+      model: process.env.WRITER_MODEL || "moonshotai/kimi-k2-instruct",
+      headers: (k) => ({ "content-type": "application/json", authorization: `Bearer ${k}` }),
+      text: (d) => d.choices?.[0]?.message?.content ?? "",
+    };
+  }
+  if (pick === "anthropic") {
+    return {
+      이름: "anthropic",
+      key: process.env.ANTHROPIC_API_KEY,
+      url: "https://api.anthropic.com/v1/messages",
+      model: process.env.WRITER_MODEL || "claude-opus-5",
+      headers: (k) => ({ "content-type": "application/json", "x-api-key": k, "anthropic-version": "2023-06-01" }),
+      text: (d) => (d.content ?? []).map((c) => c.text ?? "").join(""),
+    };
+  }
+  return null;
+})();
 
 const u = new URL(process.env.DATABASE_URL);
 u.searchParams.delete("sslmode");
@@ -145,24 +186,33 @@ const main = async () => {
   ].join("\n");
 
   if (DRY) {
+    // 키가 없어도 어느 쪽으로 붙을지는 여기서 확인된다. 호출은 안 한다.
+    console.log(`  쓸 모델: ${공급자 ? `${공급자.model} (${공급자.이름})` : "없음 — 키가 하나도 없습니다"}`);
     console.log(`\n── 프롬프트 (${prompt.length}자) ──\n`);
     console.log(prompt);
-    console.log("\n--dry 라 여기서 멈춥니다. 실제 생성은 ANTHROPIC_API_KEY 가 있어야 합니다.");
+    console.log("\n--dry 라 여기서 멈춥니다. 실제 생성은 GROQ_API_KEY 나 ANTHROPIC_API_KEY 가 있어야 합니다.");
     return;
   }
 
-  const KEY = process.env.ANTHROPIC_API_KEY;
-  if (!KEY) {
-    console.log("\nANTHROPIC_API_KEY 가 없습니다. 초안을 쓰지 못합니다.");
-    console.log("GitHub Secrets 에 넣으면 주 1회 자동으로 돕니다. 월 4편 기준 4,037~8,187원 (api-cost.mjs).");
+  if (!공급자?.key) {
+    console.log("\n키가 없습니다. 초안을 쓰지 못합니다. 둘 중 하나를 GitHub Secrets 에 넣으면 주 1회 자동으로 돕니다.");
+    console.log("  GROQ_API_KEY       무료 한도가 있어 0원으로 시작할 수 있습니다. 한국어 맵시는 떨어집니다");
+    console.log("  ANTHROPIC_API_KEY  월 4편 기준 4,037~8,187원 (api-cost.mjs)");
+    console.log("어느 쪽이든 초안까지입니다. 발행 전 사실 확인은 사람이 합니다.");
     process.exitCode = 78; // 설정 없음 — 실패와 구분한다
     return;
   }
+  console.log(`  쓰는 모델: ${공급자.model} (${공급자.이름})`);
 
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
+  const res = await fetch(공급자.url, {
     method: "POST",
-    headers: { "content-type": "application/json", "x-api-key": KEY, "anthropic-version": "2023-06-01" },
-    body: JSON.stringify({ model: MODEL, max_tokens: 4000, messages: [{ role: "user", content: prompt }] }),
+    headers: 공급자.headers(공급자.key),
+    // 두 쪽 다 OpenAI 계열 필드를 받는다. max_tokens 이름도 같다.
+    body: JSON.stringify({
+      model: 공급자.model,
+      max_tokens: 4000,
+      messages: [{ role: "user", content: prompt }],
+    }),
   });
   if (!res.ok) {
     console.log("생성 실패:", res.status, (await res.text()).slice(0, 200));
@@ -170,7 +220,7 @@ const main = async () => {
     return;
   }
   const data = await res.json();
-  const text = (data.content ?? []).map((c) => c.text ?? "").join("");
+  const text = 공급자.text(data);
   const json = text.slice(text.indexOf("{"), text.lastIndexOf("}") + 1);
   let post;
   try {
