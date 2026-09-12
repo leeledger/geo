@@ -115,6 +115,30 @@ for (const c of clients) {
   }
 
   /**
+   * 4-1. 쓴 글이 네이버로 안 넘어가는가.
+   *
+   * 네이버는 AI 크롤러를 막으니 거기 올린 글은 AI 에게는 없는 글이다.
+   * 그래도 네이버로 들어오는 학부모가 있어서 옮긴다.
+   *
+   * 밀린 재고 전체로 매일 울면 무뎌진다 — 최근에 쓴 글이 안 넘어간 것만 본다.
+   * 재고 수는 설명에만 적어 규모를 알린다.
+   */
+  const [nv] = await q(`
+    select count(*) filter (where naver_log_no is null)::int fresh,
+           (select count(*) filter (where naver_log_no is null)
+              from academy.posts where published and client_id = $1)::int backlog
+      from academy.posts
+     where published and client_id = $1
+       and published_at > now() - interval '14 days'`, P).catch(() => [{}]);
+  if (nv?.fresh > 0) {
+    report(`naver-${c.slug}`, "샘",
+      `${c.name} — 최근 2주에 쓴 글 ${nv.fresh}편이 네이버에 없습니다`,
+      "네이버 검색으로 들어오는 학부모는 사이트 글을 못 봅니다. " +
+      `안 넘어간 글은 다 합쳐 ${nv.backlog}편입니다.`,
+      "node tools/naver-blog-post.mjs <슬러그> — 네이버 로그인 세션이 먼저 필요합니다.");
+  }
+
+  /**
    * 5. 크롤러가 끊겼는가.
    *
    * 「0건」에는 두 가지가 섞여 있다 — 끊긴 것과, 애초에 안 재는 것.
