@@ -27,7 +27,6 @@ if (!slug) {
 const u = new URL(process.env.DATABASE_URL);
 u.searchParams.delete("sslmode");
 const pool = new Pool({ connectionString: u.toString(), ssl: { rejectUnauthorized: false } });
-const CLIENT = Number(process.env.CLIENT_ID ?? 1);
 
 const { rows } = await pool.query(
   `select title, body from academy.posts where slug = $1`, [slug],
@@ -38,16 +37,13 @@ if (!rows.length) {
   process.exit(1);
 }
 
-// 쓸 수 있는 숫자. write-draft 가 프롬프트에 넣어 주는 것과 같은 출처다.
-const { rows: 잰것 } = await pool.query(
-  `select
-     (select count(*) from academy.posts where client_id=$1 and published)::int 글수,
-     (select count(*) from academy.crawl_hits where client_id=$1)::int 크롤러방문`,
-  [CLIENT],
-);
 await pool.end();
 
-const 허용 = new Set(Object.values(잰것[0] ?? {}).map(String));
+// 쓸 수 있는 숫자는 없다. write-draft 프롬프트가 「숫자를 쓰지 마라」로 바뀌었다 —
+// 공개 글 수와 크롤러 방문 수를 줬더니 그걸 글 소재로 썼기 때문이다(2026-09-12).
+// 여기도 같이 비운다. 안 그러면 43·659 가 되살아나도 이 도구가 통과시킨다.
+// 초안에 숫자가 있으면 하나도 빠짐없이 사람 앞에 놓는다.
+const 허용 = new Set();
 const body = rows[0].body ?? "";
 
 console.log(rows[0].title);
