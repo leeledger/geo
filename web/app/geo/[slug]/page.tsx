@@ -122,10 +122,11 @@ export default async function GuidePage({ params }: Props) {
       <section className="deep">
         <div className="wrap narrow">
           <div className="lab">직접 잰 숫자</div>
-          <div className="does">
+          {/* .do 를 쓰면 어두운 배경에서 제목이 안 보이고 배지가 두 줄로 깨진다. 전용 .fact 를 쓴다. */}
+          <div className="gfacts">
             {g.facts.map((f) => (
-              <div className="do" key={f.k + f.v}>
-                <span className="mono dn">{f.v}</span>
+              <div className="gfact" key={f.k + f.v}>
+                <span className="mono gfv">{f.v}</span>
                 <div>
                   <b>{f.k}</b>
                   <p>{f.d}</p>
