@@ -12,6 +12,7 @@ import PriceCalc from "./PriceCalc";
 import FlowSteps from "./FlowSteps";
 import Faq from "./Faq";
 import { SERVICES } from "@/lib/services";
+import { GUIDES } from "@/lib/guides";
 import { readOps } from "@/lib/ops";
 import "./landing.css";
 
@@ -633,6 +634,31 @@ export default async function Home() {
                 </div>
               ))}
             </div>
+          </div>
+        </section>
+
+        {/* ── 더 읽을 것 ──
+            랜딩에 본문을 다 옮기면 지난주에 반으로 줄인 것이 도로아미타불이다.
+            대신 가는 길을 놓는다. 검색어를 먹는 자리는 랜딩이 아니라 이 페이지들이다. */}
+        <section id="guides" className="lp-sec lp-white">
+          <div className="wrap">
+            <div className="lp-lab">더 읽을 것</div>
+            <h2 className="lp-h2">궁금한 것만 골라<br /><span className="hl">따로 읽으셔도 됩니다</span></h2>
+            <p className="lp-sub">
+              상담에서 자주 나오는 다섯 가지를 따로 적었습니다.
+              남의 시장 전망이나 출처를 확인하지 못한 통계는 빼고, 저희가 직접 잰 숫자만 실었습니다.
+            </p>
+            <div className="lp-nots">
+              {GUIDES.map((g) => (
+                <Link className="lp-card flat lp-hov" key={g.slug} href={`/geo/${g.slug}`}>
+                  <h3>{g.title}</h3>
+                  <p>{g.short}</p>
+                </Link>
+              ))}
+            </div>
+            <p className="lp-note" style={{ marginTop: 20 }}>
+              <Link href="/geo" style={{ color: "#B5760A", fontWeight: 700 }}>가이드 전체 보기 →</Link>
+            </p>
           </div>
         </section>
 

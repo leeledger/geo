@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { SERVICES } from "@/lib/services";
+import { GUIDES } from "@/lib/guides";
 
 /**
  * 사이트맵이 아예 없었다. GEO 를 파는 사이트에 사이트맵이 없으면
@@ -16,6 +17,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${BASE}/services`, lastModified: now, changeFrequency: "monthly", priority: 0.8 },
     ...SERVICES.map((s) => ({
       url: `${BASE}/services/${s.slug}`,
+      lastModified: now,
+      changeFrequency: "monthly" as const,
+      priority: 0.7,
+    })),
+    { url: `${BASE}/geo`, lastModified: now, changeFrequency: "monthly", priority: 0.8 },
+    ...GUIDES.map((g) => ({
+      url: `${BASE}/geo/${g.slug}`,
       lastModified: now,
       changeFrequency: "monthly" as const,
       priority: 0.7,

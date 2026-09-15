@@ -13,6 +13,7 @@ export default function SiteNav({ tone }: { tone?: "deep" }) {
         </Link>
         <span className="links">
           <Link href="/#geo">GEO란</Link>
+          <Link href="/geo">가이드</Link>
           <Link href="/services">서비스</Link>
           <Link href="/#price">요금</Link>
           <Link href="/#how">진행</Link>
