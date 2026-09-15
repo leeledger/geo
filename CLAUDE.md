@@ -114,6 +114,9 @@ probe/
   GitHub Actions 러너에서 UTC 로 찍힌다. 첫 크롤러 방문 00:49(KST)가 「오후 3시 49분」으로 랜딩·리포트에 나가 있었다
 - **고객사를 추가하면 `academy/clients.mjs` 에 한 덩어리 넣는다.** 표에 client_id 만 만들고 스크립트를 안 고치면
   아무도 안 잰다 — 아이로그가 하루 넘게 그랬다
+- **저장소 경로의 `&` 가 npx 껍데기를 깨뜨린다.** `AGO&GEO` 의 `&` 가 cmd 에서 명령 구분자로 먹혀
+  `npx tsc` 가 `C:\dev\typescript\bin\tsc` 를 찾는다. 껍데기를 건너뛰고 `node ./node_modules/typescript/bin/tsc`
+  로 부르면 된다. `npx vercel` 처럼 멀쩡히 도는 것도 있어서 npx 전체를 의심하면 헛짚는다
 - **학원 사이트는 `git push` 로 배포되지 않는다.** `academy/` 에서 `npx vercel --prod --yes` 를 직접 돌린다.
   글은 DB 에서 읽어 배포 없이 바로 반영되니 여태 몰랐다. `public/blog/*.svg` 도해를 처음 넣고서야 드러났다 —
   본문에 이미지 태그는 떴는데 파일이 404 였고, 배포 목록의 마지막이 이틀 전이었다
