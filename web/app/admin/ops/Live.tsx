@@ -25,28 +25,32 @@ export default function Live({ slots }: { slots: Slot[] }) {
   // 서버 렌더 때는 자리만 잡아 둔다 (하이드레이션 불일치 방지)
   if (!now) return <div className="ops-live"><div className="ops-clock mono">--:--:--</div></div>;
 
-  const mins = now.getHours() * 60 + now.getMinutes();
-  const dow = now.getDay();
+  const kst = new Date(now.getTime() + 9 * 3600000);
+  const mins = kst.getUTCHours() * 60 + kst.getUTCMinutes();
+  const dow = kst.getUTCDay();
 
   const parsed = slots.map((s) => {
     const [h, m] = s.at.split(":").map(Number);
     return { ...s, mins: h * 60 + m };
   });
 
-  const today = parsed.filter((s) => s.dow === undefined || s.dow === dow);
-  const next = today.find((s) => s.mins > mins) ?? today[0];
-  const gap = next ? (next.mins > mins ? next.mins - mins : 24 * 60 - mins + next.mins) : 0;
+  const upcoming = Array.from({ length: 8 }, (_, days) => parsed
+    .filter((s) => s.dow === undefined || s.dow === (dow + days) % 7)
+    .map((s) => ({ ...s, gap: days * 1440 + s.mins - mins })))
+    .flat().filter((s) => s.gap > 0).sort((a, b) => a.gap - b.gap);
+  const next = upcoming[0];
+  const gap = next?.gap ?? 0;
 
   return (
     <div className="ops-live">
       <div className="ops-clock mono">
-        {String(now.getHours()).padStart(2, "0")}:
-        {String(now.getMinutes()).padStart(2, "0")}:
-        {String(now.getSeconds()).padStart(2, "0")}
+        {String(kst.getUTCHours()).padStart(2, "0")}:
+        {String(kst.getUTCMinutes()).padStart(2, "0")}:
+        {String(kst.getUTCSeconds()).padStart(2, "0")}
       </div>
       {next && (
         <div className="ops-next">
-          다음 근무 <b>{next.name}</b>
+          다음 예정 <b>{next.name}</b>
           <span className="mono"> {next.at}</span>
           <span className="ops-gap">{Math.floor(gap / 60)}시간 {gap % 60}분 뒤</span>
         </div>
