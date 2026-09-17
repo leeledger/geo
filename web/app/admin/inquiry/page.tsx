@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { listInquiries, inquirySummary, SOURCES } from "@/lib/inquiries";
 import { addInquiry, resolveInquiry } from "@/lib/inquiry-actions";
 import Link from "next/link";
+import { listClients } from "@/lib/ops";
 /** 로그인 뒤 돌아올 자리 */
 const HERE = "/admin/inquiry";
 
@@ -96,11 +97,13 @@ const fmt = (d: string) =>
 
 export default async function InquiryPage({
   searchParams,
-}: { searchParams: Promise<{ key?: string }> }) {
-  const { key } = await searchParams;
+}: { searchParams: Promise<{ key?: string; c?: string }> }) {
+  const { key, c } = await searchParams;
   if (!(await isAdmin(key))) redirect("/admin/login?to=" + encodeURIComponent(HERE));
 
-  const [rows, sum] = await Promise.all([listInquiries(), inquirySummary()]);
+  const clients = await listClients();
+  const client = clients.find(x => x.slug === c) ?? clients[0];
+  const [rows, sum] = await Promise.all([listInquiries(60, client?.id), inquirySummary(client?.id)]);
   const m = sum[0];
   const unresolved = rows.filter((r) => r.enrolled === null);
   const today = new Date().toISOString().slice(0, 10);
@@ -115,6 +118,9 @@ export default async function InquiryPage({
           상담 첫 마디에 이걸 묻고 한 줄 남깁니다. 30초면 됩니다.
         </p>
         <Link className="back" href="/admin/ops">← 운영 현황</Link>
+        <div style={{display:"flex",gap:8,flexWrap:"wrap",marginTop:14}}>
+          {clients.map(x => <Link key={x.id} href={`/admin/inquiry?c=${x.slug}`} style={{padding:"6px 11px",border:"1px solid var(--line)",borderRadius:999,textDecoration:"none",fontSize:12,color:x.id===client?.id?"var(--acc)":"var(--mut)"}}>{x.name}</Link>)}
+        </div>
 
         <div className="inq-sum">
           <div className="inq-s">
@@ -151,6 +157,7 @@ export default async function InquiryPage({
 
         <h2>새 문의</h2>
         <form className="inq-f" action={addInquiry}>
+          <input type="hidden" name="client_id" value={client?.id ?? 1} />
           <label>어떻게 알고 오셨나</label>
           <div className="pick">
             {SOURCES.map((s, i) => (

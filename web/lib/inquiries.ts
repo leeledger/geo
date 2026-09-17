@@ -55,12 +55,14 @@ export type Summary = {
   enrolled: number;
 };
 
-export async function listInquiries(limit = 60): Promise<Inquiry[]> {
+export async function listInquiries(limit = 60, clientId?: number): Promise<Inquiry[]> {
   try {
     const { rows } = await inqPool().query(
       `select id, day::text, source, said, channel, grade, enrolled, note
-         from academy.inquiries order by day desc, created_at desc limit $1`,
-      [limit],
+         from academy.inquiries
+        where ($2::int is null or client_id = $2)
+        order by day desc, created_at desc limit $1`,
+      [limit, clientId ?? null],
     );
     return rows as Inquiry[];
   } catch {

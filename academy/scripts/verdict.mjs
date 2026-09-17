@@ -1,12 +1,16 @@
 /** 로봇&코딩학원 자사 실증 사례가 어디까지 증명됐는지 한 장으로 판정한다. */
 import fs from "node:fs";
 import { Pool } from "pg";
+import { bySlug } from "../clients.mjs";
 
 for (const l of fs.readFileSync(new URL("../.env.local", import.meta.url), "utf8").split(/\r?\n/)) {
   const m = /^([A-Z_]+)=(.*)$/.exec(l);
   if (m && !process.env[m[1]]) process.env[m[1]] = m[2];
 }
-const CLIENT_ID = 1;
+const ci = process.argv.indexOf("--client");
+const selected = bySlug(ci >= 0 ? process.argv[ci + 1] : "robotncoding");
+if (!selected) throw new Error(`고객사 없음: ${process.argv[ci + 1]}`);
+const CLIENT_ID = selected.id;
 const u = new URL(process.env.DATABASE_URL);
 u.searchParams.delete("sslmode");
 const pool = new Pool({ connectionString: u.toString(), ssl: { rejectUnauthorized: process.env.DATABASE_SSL_INSECURE !== "true" } });
@@ -14,8 +18,8 @@ const q = async (s, p = []) => (await pool.query(s, p)).rows;
 const has = async (t) => (await q(`select to_regclass('academy.${t}') r`))[0].r !== null;
 
 console.log("════════════════════════════════════════════════");
-console.log("  로봇&코딩학원 자사 실증 사례 판정");
-console.log("  대표가 직접 운영하는 학원에서 수행한 사례입니다");
+console.log(`  ${selected.name} 서비스 결과 판정`);
+console.log(`  ${selected.domain} · 고객사별 기록만 집계합니다`);
 console.log("════════════════════════════════════════════════");
 
 console.log("\n【 1. AI 답변에 인용되는가 】 ← 판매하는 결과");

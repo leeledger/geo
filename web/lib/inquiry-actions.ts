@@ -16,8 +16,8 @@ export async function addInquiry(form: FormData) {
   if (!src) return;
 
   await inqPool().query(
-    `insert into academy.inquiries (day, source, said, channel, grade, enrolled, note)
-     values (coalesce($1::date, current_date), $2, $3, $4, $5, $6, $7)`,
+    `insert into academy.inquiries (day, source, said, channel, grade, enrolled, note, client_id)
+     values (coalesce($1::date, current_date), $2, $3, $4, $5, $6, $7, $8)`,
     [
       String(form.get("day") ?? "") || null,
       src,
@@ -26,6 +26,7 @@ export async function addInquiry(form: FormData) {
       String(form.get("grade") ?? ""),
       form.get("enrolled") === "yes" ? true : form.get("enrolled") === "no" ? false : null,
       String(form.get("note") ?? "").slice(0, 300),
+      Number(form.get("client_id") ?? 1),
     ],
   );
   revalidatePath("/admin/inquiry");
