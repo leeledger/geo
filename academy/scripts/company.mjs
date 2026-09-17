@@ -347,7 +347,7 @@ const EXEC = {
       return { status: "사람 대기", evidence: `${오늘()} 검토 대기 초안 ${d.n}편이 있어 새로 쓰지 않음`,
         error: "초안을 사실 확인하고 발행하면 주 1편이 이어집니다", link: `${ADMIN}/admin/drafts` };
     }
-    if (c.id !== 1) return { status: "사람 대기", error: "이 고객사는 사이트 글을 우리가 올리지 않습니다 (clients.mjs publishes=false)" };
+    if (!c.conf?.publishes || c.id !== 1) return { status: "사람 대기", error: "이 고객사는 사이트 글을 우리가 올리지 않습니다 (clients.mjs publishes=false)" };
     let r = 실행(["scripts/write-news.mjs"]);
     if (!/DRAFT_SLUG=|초안으로 넣었습니다/.test(r.out)) r = 실행(["scripts/write-draft.mjs"]);
     const slug = /DRAFT_SLUG=(\S+)/.exec(r.out)?.[1];
@@ -355,6 +355,11 @@ const EXEC = {
   },
 
   async "question-draft"(t, c) {
+    // write-draft 는 로봇&코딩학원(1번) 글만 쓴다. 다른 고객사 주제로 돌리면 학원 블로그에 남의 글이 들어간다(2026-09-17 아이로그 일감 5건)
+    if (!c.conf?.publishes || c.id !== 1) {
+      return { status: "사람 대기", evidence: `${오늘()} 이 고객사 사이트 글은 우리가 올리지 않음 — 주제만 넘김`,
+        error: `${c.name} 전달 파일로 쓸 주제입니다: 「${t.payload.question}」 (고객사 저장소에서 작업)` };
+    }
     const [d] = await q(`select count(*)::int n from academy.posts where client_id=$1 and not published`, [c.id]);
     if (d.n >= 3) return { status: "대기", nextTry: 뒤(12), evidence: `${오늘()} 검토 대기 초안 ${d.n}편 — 발행이 밀려 미룸` };
     const p = t.payload;
