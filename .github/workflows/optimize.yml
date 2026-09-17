@@ -8,7 +8,7 @@
 #
 # 발행은 하지 않는다. 초안까지다. 발행되면 다음 날 루프가 알아채 판정 창을 연다.
 #
-# 필요한 시크릿: DATABASE_URL, OPENROUTER_API_KEY (원장이 Vercel robotcoding 에 넣고 GitHub Secrets 로 옮긴다)
+# 필요한 시크릿: DATABASE_URL, LLM_PROXY_URL, LLM_PROXY_TOKEN — OpenRouter 키는 Vercel(geo)에만 있고 /api/llm 이 중계한다 (tools/set-llm-proxy.mjs)
 # GEMINI_API_KEY·GROQ_API_KEY 는 무료 한도에 막혀 있다(2026-09-17). 있으면 시도만 한다
 name: optimize
 
@@ -41,7 +41,8 @@ jobs:
         continue-on-error: true
         working-directory: academy
         env:
-          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          LLM_PROXY_URL: ${{ secrets.LLM_PROXY_URL }}
+          LLM_PROXY_TOKEN: ${{ secrets.LLM_PROXY_TOKEN }}
           OPENROUTER_MODEL: ${{ vars.OPENROUTER_MODEL }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
@@ -52,7 +53,8 @@ jobs:
       - name: 판정 · 고르기 · 행동
         working-directory: academy
         env:
-          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          LLM_PROXY_URL: ${{ secrets.LLM_PROXY_URL }}
+          LLM_PROXY_TOKEN: ${{ secrets.LLM_PROXY_TOKEN }}
           OPENROUTER_MODEL: ${{ vars.OPENROUTER_MODEL }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}

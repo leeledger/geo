@@ -8,11 +8,22 @@
  * 관점 글은 숫자를 쓰면 안 되고, 뉴스 글은 출처만 있으면 써야 한다.
  */
 
+/**
+ * OpenRouter 로 가는 길. 키가 Vercel 에 Sensitive 로만 있어 Actions 는 사이티드 중계(/api/llm)를 거친다.
+ * 로컬에 키가 있으면 바로 간다.
+ */
+export const 오픈라우터 = () =>
+  process.env.LLM_PROXY_URL && process.env.LLM_PROXY_TOKEN
+    ? { url: process.env.LLM_PROXY_URL, key: process.env.LLM_PROXY_TOKEN }
+    : process.env.OPENROUTER_API_KEY
+      ? { url: "https://openrouter.ai/api/v1/chat/completions", key: process.env.OPENROUTER_API_KEY }
+      : null;
+
 /** 어느 모델로 쓰는가. 키가 있는 쪽을 쓴다. 우선순위 openrouter → anthropic → gemini → groq. */
 export const 공급자만들기 = () => {
   const pick =
     process.env.WRITER_PROVIDER ||
-    (process.env.OPENROUTER_API_KEY
+    (오픈라우터()
       ? "openrouter"
       : process.env.ANTHROPIC_API_KEY
       ? "anthropic"
@@ -50,8 +61,8 @@ export const 공급자만들기 = () => {
     const model = process.env.WRITER_MODEL || process.env.OPENROUTER_MODEL || "stealth/union-alpha";
     return {
       이름: "openrouter",
-      key: process.env.OPENROUTER_API_KEY,
-      url: "https://openrouter.ai/api/v1/chat/completions",
+      key: 오픈라우터()?.key,
+      url: 오픈라우터()?.url,
       model,
       검색가능: true,
       최대토큰: Number(process.env.WRITER_MAX_TOKENS) || 12000,

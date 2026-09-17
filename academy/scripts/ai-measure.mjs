@@ -17,6 +17,7 @@
  */
 import fs from "node:fs";
 import { Pool } from "pg";
+import { 오픈라우터 } from "./writer-common.mjs";
 
 for (const l of fs.readFileSync(new URL("../.env.local", import.meta.url), "utf8").split(/\r?\n/)) {
   const m = /^([A-Z_]+)=(.*)$/.exec(l);
@@ -43,11 +44,12 @@ const ENGINES = [
     // 원장 결정(2026-09-17). 모델 0원, 웹 검색(Exa)은 요청당 $0.007 크레딧
     engine: "openrouter",
     method: "api-openrouter-web-exa",
-    key: process.env.OPENROUTER_API_KEY,
+    key: 오픈라우터()?.key,
+    url: 오픈라우터()?.url,
     model: process.env.OPENROUTER_MODEL || "stealth/union-alpha",
     gap: 3000,
     ask: async (e, text) => {
-      const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      const res = await fetch(e.url, {
         method: "POST",
         headers: { "content-type": "application/json", authorization: `Bearer ${e.key}`, "x-title": "cited-ai-measure" },
         body: JSON.stringify({
