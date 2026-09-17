@@ -483,7 +483,7 @@ const 근무 = async (clients) => {
       else res = { ...res, status: "대기", nextTry: res.nextTry ?? 뒤(n === 1 ? 1 : 6) };
     }
     await 상태(t.id, res.status, res);
-    const ok = !/실패/.test(`${res.error ?? ""} ${res.status}`);
+    const ok = !/실패/.test(`${res.error ?? ""} ${res.status} ${res.evidence ?? ""}`);
     await 활동(t.client_id, t.agent, t.title, ok, `${res.status} · ${(res.evidence ?? res.error ?? "").trim().slice(0, 300)}`, t.id);
     console.log(`    → ${res.status} ${(res.evidence ?? "").trim()} ${res.error ? `| ${res.error}` : ""}`);
   }

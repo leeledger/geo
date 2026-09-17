@@ -436,7 +436,7 @@ Decisions made:
 - 원장 결정(2026-09-17): 측정·초안 모델을 OpenRouter `stealth/union-alpha` 로. 모델 0원, 웹 검색 플러그인(Exa)은 요청당 $0.007 크레딧(openrouter.ai 문서). 키는 원장이 Vercel `robotcoding` Production 에 `OPENROUTER_API_KEY` 로 넣고, Arch 가 `vercel env pull` → `gh secret set` 으로 GitHub Secrets 에 옮긴다(값은 화면에 안 찍고 임시 파일은 지운다). 키를 바꾸면 이 복사를 다시 해야 한다
 - 수정(2026-09-17): 원장이 키를 Vercel **geo** 프로젝트에 Sensitive 로 넣어 `env pull` 로 값이 안 나온다. 복사 대신 `web/app/api/llm/route.ts` 중계를 만들었다 — Bearer `LLM_PROXY_TOKEN`, 무료 모델(`stealth/*`·`:free`)만, max_tokens ≤ 16000. Actions 는 `LLM_PROXY_URL`·`LLM_PROXY_TOKEN` 으로 부른다. 비밀 값 쓰기는 권한 규칙에 막혀 원장이 `node tools/set-llm-proxy.mjs` 로 넣고 geo 를 재배포한다
 
-### Step 8 — 에이전트 회사: 카드의 「다음 행동」을 실제로 실행 — IN REVIEW
+### Step 8 — 에이전트 회사: 카드의 「다음 행동」을 실제로 실행 — COMPLETE
 *Date: 2026-09-17*
 
 원장 지적: "대시보드에 살펴볼 일이 나와 있는데 왜 자동으로 안 하냐 · 알아서 운영되는 AI 에이전트 회사를 만들어라 · 초안이 있다는데 볼 수가 없다".
@@ -462,3 +462,7 @@ Known Gaps
 - KG-8a: `slop-check.mjs` 의 순서 연결어 검사 정규식이 문자열 안 `\s` 라 사실상 안 잡힘 (기존 코드)
 - KG-8b: `/admin/drafts?key=` 옛 토큰으로 들어오면 화면은 보이지만 버튼(서버 액션)은 쿠키 인증이라 거절됨
 - KG-8c: who-wins LLM 결과의 검색어·도메인을 원본 출력과 대조하지 않음
+- Richard 2차: 네이버 중복 두 경로·「했어요」가 logNo 없이 닫음·뉴스 초안 거짓 완료 → 수정. 3차 통과 (Step 8 is clear)
+- 실제 동작 확인(22:28 실행): 헬리오시티 초안 AI 티 1종을 LLM 이 다듬고 가드(숫자·소제목·링크 동일) 통과 → 적용, 원문 보관. who-wins·crawl-push 실행 중 확인
+- Deploy: geo 자동 배포, /admin/drafts·/admin/ops 307(로그인), /api/llm 405(GET) 확인
+- 로컬 에이전트는 첫 실행이 내일 12:40 (지금 돌리면 원장 사용 중인 PC 에 브라우저 창이 뜬다)
