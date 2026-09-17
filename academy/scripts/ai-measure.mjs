@@ -93,6 +93,23 @@ const ENGINES = [
   },
 ];
 
+/** 이 키로 부를 수 있는 모델 목록에서 대안을 고른다. 이름을 박아 두면 또 닫힌다 */
+const 다른모델 = async (e) => {
+  if (e.engine === "gemini") {
+    const d = await fetch("https://generativelanguage.googleapis.com/v1beta/models?pageSize=200", { headers: { "x-goog-api-key": e.key } })
+      .then((r) => r.json()).catch(() => ({}));
+    const names = (d.models ?? [])
+      .filter((m) => (m.supportedGenerationMethods ?? []).includes("generateContent"))
+      .map((m) => m.name.replace(/^models\//, ""))
+      .filter((n) => /^gemini-[\d.]+-flash(-lite)?$/.test(n) && n !== e.model);
+    console.log(`    이 키로 보이는 flash 모델: ${names.join(", ") || "없음"}`);
+    // 새 판부터, 같은 판이면 lite 를 뒤에
+    return names.sort((a, b) => b.localeCompare(a, "en", { numeric: true })).slice(0, 4);
+  }
+  if (e.engine === "groq-compound") return ["groq/compound-mini"].filter((m) => m !== e.model);
+  return [];
+};
+
 const u = new URL(process.env.DATABASE_URL);
 u.searchParams.delete("sslmode");
 const pool = new Pool({ connectionString: u.toString(), ssl: { rejectUnauthorized: process.env.DATABASE_SSL_INSECURE !== "true" } });
@@ -153,8 +170,28 @@ const main = async () => {
         마지막오류 = `${r.status} ${r.error.replace(/\s+/g, " ").slice(0, 300)}`;
         // 429 본문은 어느 한도(분당·일일·무료 등급)인지를, 404 는 쓸 모델 이름을 담아 온다. 첫 실패는 끝까지 찍는다
         console.log(`  ✗ ${e.engine} ${x.prompt_id} ${fail === 1 ? `${r.status} ${r.error.replace(/\s+/g, " ")}` : 마지막오류.slice(0, 160)}`);
+        // 모델마다 무료 한도가 따로다. 막히면 같은 키로 되는 다른 모델을 한 번 찾아본다
+        if ([404, 413, 429].includes(r.status) && ok === 0 && !e.probed) {
+          e.probed = true;
+          const 대안 = await 다른모델(e);
+          for (const m of 대안) {
+            const 원래 = e.model;
+            e.model = m;
+            const t = await e.ask(e, x.text).catch((err) => ({ status: 0, error: err.message }));
+            console.log(`    대안 모델 ${m}: ${t.error ? `${t.status} ${t.error.replace(/\s+/g, " ").slice(0, 140)}` : "성공"}`);
+            if (!t.error) { r = t; break; }
+            e.model = 원래;
+            await 쉼(e.gap);
+          }
+          if (!r.error) {
+            fail--;
+            요약.push(`${e.engine}: 기본 모델이 막혀 ${e.model} 로 쟀습니다 (MEASURE_* 변수로 고정 가능)`);
+          }
+        }
+      }
+      if (r.error) {
         // 한도·키·모델 문제는 나머지 질문도 똑같이 막힌다. 계속 두드리지 않는다
-        if ([400, 401, 403, 404, 429].includes(r.status)) break;
+        if ([400, 401, 403, 404, 413, 429].includes(r.status)) break;
         await 쉼(e.gap);
         continue;
       }
