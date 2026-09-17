@@ -456,7 +456,11 @@ const EXEC = {
 const 근무 = async (clients) => {
   // 멈춘 실행 중 일감 되살리기 (러너가 죽으면 실행 중으로 남는다)
   await q(`update geo.agent_tasks set status='대기', evidence = left(evidence || E'\n' || '실행 중 멈춰 되돌림', 4000)
-            where status='실행 중' and updated_at < now() - interval '90 minutes'`);
+            where status='실행 중' and kind <> 'naver-attempt' and updated_at < now() - interval '90 minutes'`);
+  // 네이버 이관 시도가 멈췄으면 올라갔는지 모른다. 다시 돌리지 말고 원장에게 확인을 받는다
+  await q(`update geo.agent_tasks set status='사람 대기', updated_at=now(),
+              last_error='로컬 에이전트가 이관 중에 멈췄습니다. 네이버 블로그에 올라갔는지 확인해 주세요.'
+            where status='실행 중' and kind = 'naver-attempt' and updated_at < now() - interval '3 hours'`);
   // 집는 순간 실행 중으로 바꾼다. 두 러너가 겹쳐도 같은 일감을 둘이 집지 않게
   const todo = await q(
     `update geo.agent_tasks set status='실행 중', updated_at=now()

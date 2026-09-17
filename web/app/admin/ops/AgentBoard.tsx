@@ -1,5 +1,5 @@
 import type { Ops } from "@/lib/ops";
-import { finishTask } from "@/lib/task-actions";
+import { finishTask, resolveNaverAttempt } from "@/lib/task-actions";
 import "./agent-board.css";
 
 type Status = "attention" | "review" | "recorded" | "unknown";
@@ -142,7 +142,14 @@ export default function AgentBoard({ data: d, clientName }: { data: Ops; clientN
             {humanTasks.map((t) => (
               <li key={t.id}>
                 <div><b>{t.title}</b><span>{NAME[t.agent] ?? t.agent} · {t.error || t.detail}</span></div>
-                {t.link ? <a href={t.link.replace(/^https:\/\/geo-rose-nine\.vercel\.app/, "")}>{t.link.includes("/admin/drafts") ? "읽고 발행하기" : "열기"} →</a>
+                {t.kind === "naver-attempt"
+                  ? <form action={resolveNaverAttempt} className="staff-naver">
+                      <input type="hidden" name="id" value={t.id} />
+                      <input name="logNo" placeholder="네이버 글 번호 또는 주소" aria-label="네이버 글 번호" />
+                      <button type="submit" name="outcome" value="posted" className="staff-done">올라가 있음</button>
+                      <button type="submit" name="outcome" value="retry" className="staff-done alt">안 올라감 · 다시</button>
+                    </form>
+                  : t.link ? <a href={t.link.replace(/^https:\/\/geo-rose-nine\.vercel\.app/, "")}>{t.link.includes("/admin/drafts") ? "읽고 발행하기" : "열기"} →</a>
                   : <form action={finishTask}><input type="hidden" name="id" value={t.id} /><button type="submit" className="staff-done">했어요</button></form>}
               </li>
             ))}

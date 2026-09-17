@@ -189,15 +189,22 @@ const main = async () => {
     ? post.slug
     : `news-${new Date().toISOString().slice(0, 10)}`;
 
-  await q(
+  const 넣음 = await q(
     `insert into academy.posts (slug,title,summary,body,category,tags,published,client_id,updated_at)
      values ($1,$2,$3,$4,$5,$6,false,$7,now())
      on conflict (slug) do update set
        title=excluded.title, summary=excluded.summary, body=excluded.body,
        tags=excluded.tags, updated_at=now()
-     where not academy.posts.published`,
+     where not academy.posts.published
+     returning slug`,
     [slug, post.title, post.summary, 본문, "교육관점", post.tags ?? [], CLIENT],
   );
+  if (!넣음.length) {
+    // 발행된 글과 슬러그가 겹쳤다. 초안이 안 생겼는데 생긴 것처럼 찍으면 회사 루프가 거짓 완료를 적는다
+    console.log(`\n발행된 글과 슬러그(${slug})가 겹쳐 초안을 넣지 않았습니다.`);
+    process.exitCode = 1;
+    return;
+  }
   // 회사 루프(company.mjs)가 이 줄로 초안이 생겼는지 안다
   console.log(`DRAFT_SLUG=${slug}`);
 

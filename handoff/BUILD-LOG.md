@@ -435,3 +435,30 @@ Decisions made:
 - KG-7a: 자동 AI 측정용 유료 키 없음 (위). 결정 대기: 제미나이 결제 연결 / OpenAI 키 추가 / Anthropic 키 추가
 - 원장 결정(2026-09-17): 측정·초안 모델을 OpenRouter `stealth/union-alpha` 로. 모델 0원, 웹 검색 플러그인(Exa)은 요청당 $0.007 크레딧(openrouter.ai 문서). 키는 원장이 Vercel `robotcoding` Production 에 `OPENROUTER_API_KEY` 로 넣고, Arch 가 `vercel env pull` → `gh secret set` 으로 GitHub Secrets 에 옮긴다(값은 화면에 안 찍고 임시 파일은 지운다). 키를 바꾸면 이 복사를 다시 해야 한다
 - 수정(2026-09-17): 원장이 키를 Vercel **geo** 프로젝트에 Sensitive 로 넣어 `env pull` 로 값이 안 나온다. 복사 대신 `web/app/api/llm/route.ts` 중계를 만들었다 — Bearer `LLM_PROXY_TOKEN`, 무료 모델(`stealth/*`·`:free`)만, max_tokens ≤ 16000. Actions 는 `LLM_PROXY_URL`·`LLM_PROXY_TOKEN` 으로 부른다. 비밀 값 쓰기는 권한 규칙에 막혀 원장이 `node tools/set-llm-proxy.mjs` 로 넣고 geo 를 재배포한다
+
+### Step 8 — 에이전트 회사: 카드의 「다음 행동」을 실제로 실행 — IN REVIEW
+*Date: 2026-09-17*
+
+원장 지적: "대시보드에 살펴볼 일이 나와 있는데 왜 자동으로 안 하냐 · 알아서 운영되는 AI 에이전트 회사를 만들어라 · 초안이 있다는데 볼 수가 없다".
+원인: 카드는 DB 숫자로 문장을 고를 뿐 그 문장을 집어 실행하는 곳이 없었다. 정찰 이슈 6건이 일주일 열려 있었고 write.yml 실패(9/13)가 화면에 안 보였다.
+
+- `geo.agent_tasks`(일감)·`geo.agent_activity`(실제 활동)·`academy.posts.review_notes`
+- `company.yml` 매시 23분 → `company.mjs`: 출근 기록(GitHub 실행→활동) · 계획(정찰·초안·문의·리드·작업 실패→일감, 읽기에 성공한 신호원만 닫음) · 실행(최대 3건, 원자적 집기)
+  - 운영: 실패 작업 재실행→재실패 시 실패 단계 기록 후 사람 대기 · 사이트 점검 · 재진단
+  - 측정: 노출 재측정 · 브랜드 방어(IndexNow, 3회 뒤 사람) · who-wins + LLM 분류 → 겨냥 초안 일감 / 등재 필요(사람)
+  - 콘텐츠: 주간 초안(미발행 있으면 사람 대기) · 질문 겨냥 초안(미발행 3편 이상이면 미룸) · 초안 AI 티 검사·LLM 다듬기
+  - 유통: 발행 알림(IndexNow → 구글 요청·네이버 이관 로컬 일감) · 크롤러 미수집 쪽 IndexNow(주 1회, 3회 뒤 사람)
+  - 성과: 상담 결과·리드는 사람 대기 + 링크
+- `tools/local-agent.mjs` — 원장 PC 작업 스케줄러 「Cited Local Agent」 매일 12:40·19:10 (등록 완료). 네이버 이관(시도 기록 선기록 → 모호하면 사람 확인, 중복 게시 방지)·구글 색인 요청. 로그인 풀리면 「로그인 필요」 사람 대기
+- `/admin/drafts` — 초안 읽기·사실 확인 목록·AI 티·직접 수정·발행(→유통 일감)·버리기·다듬기 전 원문 보기/되돌리기
+- `/admin/ops` 카드 — 일감 표와 활동 기록을 읽음. 「원장님이 하실 일」 목록(링크 또는 「했어요」)
+- 결정: LLM 다듬기는 숫자 multiset·소제목·링크 동일, 길이 0.9~1.15, 동시 수정 없음일 때만 자동 적용하고 원문 보관 (사실 변경 차단 + 원장 되돌리기)
+- 결정: 사이티드 자체 일감(작업 실패 등)은 client_id=1 에 둔다 (client_id not null)
+- 결정: 발행은 여전히 사람만 (CLAUDE.md 절대 규칙)
+- 첫 실행(run 35226173757): write.yml 실패 재실행, 초안 2편 검사 → 사람 대기
+- Richard 1차: 필수 4건(발행 알림 즉시 닫힘·신호원 실패 시 전부 닫힘·LLM 사실 보호·네이버 중복) → 수정
+
+Known Gaps
+- KG-8a: `slop-check.mjs` 의 순서 연결어 검사 정규식이 문자열 안 `\s` 라 사실상 안 잡힘 (기존 코드)
+- KG-8b: `/admin/drafts?key=` 옛 토큰으로 들어오면 화면은 보이지만 버튼(서버 액션)은 쿠키 인증이라 거절됨
+- KG-8c: who-wins LLM 결과의 검색어·도메인을 원본 출력과 대조하지 않음

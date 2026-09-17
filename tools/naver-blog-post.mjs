@@ -388,6 +388,8 @@ if (DRY) {
   process.exit(0);
 }
 
+// 로컬 에이전트가 이 줄로 「발행을 눌렀을 수 있다」를 안다. 이 뒤에 죽으면 중복 게시를 막으려고 사람 확인으로 돌린다
+console.log("발행 버튼을 누릅니다");
 await F.getByRole("button", { name: /^발행$/ }).last().click({ timeout: 10000 });
 await page.waitForTimeout(13000);
 

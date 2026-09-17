@@ -111,7 +111,8 @@ try {
       [`naver-attempt-${p.slug}`, `네이버 이관 시도: ${p.title}`, JSON.stringify({ sticky: true, slug: p.slug })]);
     const r = 돌리기("naver-blog-post.mjs", [p.slug], 15);
     const [after] = await q(`select naver_log_no from academy.posts where slug=$1`, [p.slug]);
-    const 발행했을수도 = /발행된 것으로 보입니다|화면이 그대로입니다|글 번호를 못 뽑았습니다|ETIMEDOUT|timed out|SIGTERM/i.test(r.out);
+    // 발행 버튼을 누르기 직전에 찍는 줄이 있으면 올라갔을 수 있다. 시간 초과도 어디서 죽었는지 모르니 같은 취급
+    const 발행했을수도 = /발행 버튼을 누릅니다|ETIMEDOUT|timed out|SIGTERM/i.test(r.out);
     if (after?.naver_log_no) {
       await q(`update geo.agent_tasks set status='완료', done_at=now(), updated_at=now() where id=$1`, [attempt.id]);
     } else if (발행했을수도) {
