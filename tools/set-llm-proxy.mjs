@@ -23,5 +23,8 @@ run("npx vercel env add LLM_PROXY_TOKEN production", web, token);
 run("gh secret set LLM_PROXY_TOKEN", root, token);
 run("gh secret set LLM_PROXY_URL", root, "https://geo-rose-nine.vercel.app/api/llm");
 // 환경변수는 새 배포부터 읽힌다. OPENROUTER_API_KEY 도 이 배포에서 처음 읽힌다
-run("npx vercel --prod --yes", web);
+// geo 의 Root Directory 가 web 이라 저장소 루트에서 프로젝트를 지정해 올린다. web 안에서 돌리면 web/web 을 찾는다
+process.env.VERCEL_ORG_ID = "team_MzcL6JOfHV8vy0lPrPOqMODP";
+process.env.VERCEL_PROJECT_ID = "prj_lOaeEBbMy19hlb6ooP46f7idRWYN";
+run("npx vercel --prod --yes", root);
 console.log("\n끝났습니다. Claude 에게 「토큰 넣었어」라고 말하면 루프를 돌려 확인합니다.");
