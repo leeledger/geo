@@ -17,7 +17,7 @@
  */
 import fs from "node:fs";
 import { Pool } from "pg";
-import { 오픈라우터 } from "./writer-common.mjs";
+import { 오픈라우터, 재시도 } from "./writer-common.mjs";
 
 for (const l of fs.readFileSync(new URL("../.env.local", import.meta.url), "utf8").split(/\r?\n/)) {
   const m = /^([A-Z_]+)=(.*)$/.exec(l);
@@ -49,7 +49,7 @@ const ENGINES = [
     model: process.env.OPENROUTER_MODEL || "stealth/union-alpha",
     gap: 3000,
     ask: async (e, text) => {
-      const res = await fetch(e.url, {
+      const res = await 재시도(e.url, {
         method: "POST",
         headers: { "content-type": "application/json", authorization: `Bearer ${e.key}`, "x-title": "cited-ai-measure" },
         body: JSON.stringify({
@@ -178,6 +178,9 @@ const main = async () => {
   const 요약 = [];
   for (const e of ENGINES) {
     if (ONLY && e.engine !== ONLY) continue;
+    // 제미나이·groq 무료 키는 한도에 막혀 있다(2026-09-17). OpenRouter 가 있으면 매일 헛두드리지 않는다.
+    // 결제를 켜면 MEASURE_ALL_ENGINES=1 로 다시 같이 잰다
+    if (!ONLY && e.engine !== "openrouter" && 오픈라우터() && process.env.MEASURE_ALL_ENGINES !== "1") continue;
     if (!e.key) {
       요약.push(`${e.engine}: 키 없음 — 건너뜀`);
       continue;

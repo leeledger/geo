@@ -19,6 +19,20 @@ export const 오픈라우터 = () =>
       ? { url: "https://openrouter.ai/api/v1/chat/completions", key: process.env.OPENROUTER_API_KEY }
       : null;
 
+/**
+ * 429·5xx 는 기다렸다 다시 부른다. Union Alpha 는 공용 풀이라 「잠시 뒤 재시도」 429 가 자주 온다
+ * (2026-09-17 첫 실행에서 4번째 질문과 초안이 이걸로 멈췄다). 20·40·80초
+ */
+export const 재시도 = async (url, opts, 횟수 = 3) => {
+  for (let i = 0; ; i++) {
+    const res = await fetch(url, opts);
+    if (!(res.status === 429 || res.status >= 500) || i >= 횟수) return res;
+    const 초 = 20 * 2 ** i;
+    console.log(`  (${res.status} — ${초}초 기다렸다 다시 부릅니다 ${i + 1}/${횟수})`);
+    await new Promise((r) => setTimeout(r, 초 * 1000));
+  }
+};
+
 /** 어느 모델로 쓰는가. 키가 있는 쪽을 쓴다. 우선순위 openrouter → anthropic → gemini → groq. */
 export const 공급자만들기 = () => {
   const pick =

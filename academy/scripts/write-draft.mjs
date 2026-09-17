@@ -24,7 +24,7 @@
  */
 import fs from "node:fs";
 import { Pool } from "pg";
-import { 공급자만들기, 금지, 지어내기금지, 파싱, 공통짜임새 } from "./writer-common.mjs";
+import { 공급자만들기, 금지, 지어내기금지, 파싱, 공통짜임새, 재시도 } from "./writer-common.mjs";
 
 for (const l of fs.readFileSync(new URL("../.env.local", import.meta.url), "utf8").split(/\r?\n/)) {
   const m = /^([A-Z_]+)=(.*)$/.exec(l);
@@ -182,7 +182,7 @@ const main = async () => {
   }
   console.log(`  쓰는 모델: ${공급자.model} (${공급자.이름})`);
 
-  const res = await fetch(공급자.url, {
+  const res = await 재시도(공급자.url, {
     method: "POST",
     headers: 공급자.headers(공급자.key),
     body: JSON.stringify(공급자.요청(prompt, 공급자.최대토큰)),

@@ -48,7 +48,7 @@ const STAGE_ORDER = { local: 0, brand: 1, problem: 2, consider: 3 };
 /** 노드 스크립트를 셸 없이 부른다. Git Bash 경로 변환·& 문제를 피한다 */
 const 실행 = (args) => {
   try {
-    return { ok: true, out: execFileSync(process.execPath, args, { cwd: fileURLToPath(new URL("..", import.meta.url)), encoding: "utf8", timeout: 240000, env: process.env }) };
+    return { ok: true, out: execFileSync(process.execPath, args, { cwd: fileURLToPath(new URL("..", import.meta.url)), encoding: "utf8", timeout: 600000, env: process.env }) };
   } catch (e) {
     return { ok: false, out: `${e.stdout ?? ""}${e.stderr ?? ""}${e.message}` };
   }
