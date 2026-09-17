@@ -70,6 +70,15 @@ export type Ops = {
     engines: string;
     history: { day: string; status: string; kind: string | null; verdict: string; note: string }[];
   };
+  /**
+   * 에이전트 회사(academy/scripts/company.mjs)가 실제로 집어 간 일감과 한 일.
+   * 카드의 「다음 행동」 문장이 아니라 실행 기록이다. 표가 없으면 ok=false.
+   */
+  company: {
+    ok: boolean;
+    tasks: { id: number; agent: string; kind: string; status: string; title: string; detail: string; evidence: string; error: string; link: string | null; updatedAt: string; doneAt: string | null }[];
+    activity: { agent: string; action: string; ok: boolean; summary: string; at: string; runUrl: string | null }[];
+  };
   recent: { title: string; slug: string; at: string }[];
   firstSeen: { engine: string; query: string; day: string }[];
   /**
@@ -216,6 +225,7 @@ export async function readOps(client?: Client): Promise<Ops> {
     ai: { day: null, engine: null, method: null, prompts: 0, cited: 0, mentioned: 0, rounds: 0, comparable: false },
     sales: { scans30d: 0, leads30d: 0, newLeads: 0, unresolvedInquiries: 0, scanToLeadPct: 0 },
     agentLoop: { day: null, status: "기록 없음", diagnosis: "실행 기록 없음", action: "오늘의 개선 루프를 실행합니다.", evidence: "", startedAt: null, completedAt: null, engines: "", history: [] },
+    company: { ok: false, tasks: [], activity: [] },
     recent: [],
     firstSeen: [],
     lastAt: { content: null, deliver: null, crawler: null, measure: null, next: null },
@@ -326,6 +336,23 @@ export async function readOps(client?: Client): Promise<Ops> {
       };
     } catch (e) { console.error("agent_runs 읽기 실패", e); }
 
+    let company = empty.company;
+    try {
+      const tasks = await q(`select id, agent, kind, status, title, detail, evidence, last_error, link,
+               updated_at::text as updated, done_at::text as done
+          from geo.agent_tasks
+         where client_id=${c.id} and (status not in ('완료','닫힘') or done_at > now() - interval '48 hours')
+         order by case status when '사람 대기' then 0 when '실행 중' then 1 when '실패' then 2 when '대기' then 3 when '로컬 대기' then 4 when '관찰' then 5 else 6 end, priority, updated_at desc
+         limit 120`);
+      const activity = await q(`select agent, action, ok, summary, at::text as at, run_url
+          from geo.agent_activity where client_id=${c.id} or client_id is null order by at desc limit 80`);
+      company = {
+        ok: true,
+        tasks: tasks.map((t) => ({ id: Number(t.id), agent: t.agent, kind: t.kind, status: t.status, title: t.title, detail: t.detail, evidence: t.evidence, error: t.last_error, link: t.link, updatedAt: t.updated, doneAt: t.done })),
+        activity: activity.map((a) => ({ agent: a.agent, action: a.action, ok: a.ok, summary: a.summary, at: a.at, runUrl: a.run_url })),
+      };
+    } catch (e) { console.error("agent_tasks 읽기 실패", e); }
+
     const recent = await q(`
       select title, slug, published_at::text at from ${S}.posts
        where ${ME} and published order by published_at desc limit 5`);
@@ -392,6 +419,7 @@ export async function readOps(client?: Client): Promise<Ops> {
       ai,
       sales,
       agentLoop,
+      company,
       recent: recent.map((r) => ({ title: r.title, slug: r.slug, at: r.at })),
       firstSeen: firstSeen.map((r) => ({ engine: r.engine, query: r.query, day: r.first_day })),
     };

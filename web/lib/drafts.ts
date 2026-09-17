@@ -8,7 +8,7 @@ export type Draft = {
   id: number; slug: string; title: string; summary: string; body: string; category: string;
   tags: string[]; clientId: number; clientName: string; domain: string;
   createdAt: string; updatedAt: string;
-  notes: { 확인필요?: string[]; 짜임새?: string[]; AI티?: { why: string; sample: string[] }[]; 모델?: string; 질문?: string | null; 경쟁출처?: string[]; 다듬음?: string };
+  notes: { 확인필요?: string[]; 짜임새?: string[]; AI티?: { why: string; sample: string[] }[]; 모델?: string; 질문?: string | null; 경쟁출처?: string[]; 다듬음?: string; 원문?: string };
   task: { status: string; evidence: string } | null;
 };
 

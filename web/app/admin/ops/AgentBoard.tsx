@@ -1,4 +1,5 @@
 import type { Ops } from "@/lib/ops";
+import { finishTask } from "@/lib/task-actions";
 import "./agent-board.css";
 
 type Status = "attention" | "review" | "recorded" | "unknown";
@@ -73,24 +74,83 @@ export default function AgentBoard({ data: d, clientName }: { data: Ops; clientN
       last: null, lastLabel: "미처리 리드", metric: String(d.sales.newLeads), metricLabel: "지금 처리할 리드", jobs: "무료 진단 전환 · 리드 후속 · 문의 유입 확인 · 등록·계약 결과 기록",
     },
   ];
-  const agents = roles.map((a) => d.ok ? a : {
+  /**
+   * 회사 루프의 실제 일감·활동을 카드에 덮어 쓴다.
+   * 전에는 숫자를 보고 문장만 골랐다 — 그 문장을 실행하는 곳이 없어서 원장이 「왜 자동으로 안 하냐」고 물었다.
+   * 이제 카드는 「일감 표에 무엇이 있고, 마지막으로 실제로 무엇을 했나」를 보여 준다.
+   */
+  const W = d.company;
+  const hoursAgo = (s: string) => (Date.now() - new Date(s).getTime()) / 3600000;
+  const lastLine = (s: string) => s.trim().split("\n").filter(Boolean).at(-1) ?? "";
+  const withWork = roles.map((a) => {
+    if (!W.ok) return { ...a, queue: null as null | { run: number; wait: number; human: number; local: number; watch: number }, acts: [] as typeof W.activity };
+    const ts = W.tasks.filter((t) => t.agent === a.id && t.status !== "완료" && t.status !== "닫힘");
+    const acts = W.activity.filter((x) => x.agent === a.id);
+    const act = acts[0];
+    const by = (s: string) => ts.filter((t) => t.status === s);
+    const run = by("실행 중")[0], fail = by("실패"), wait = by("대기"), human = by("사람 대기"), local = by("로컬 대기"), watch = by("관찰");
+    const queue = { run: by("실행 중").length, wait: wait.length + fail.length, human: human.length, local: local.length, watch: watch.length };
+    const top = run ?? fail[0] ?? human[0] ?? wait[0] ?? local[0] ?? watch[0];
+    const recent = act && hoursAgo(act.at) < 26;
+    if (a.id === "improve") {
+      return { ...a, queue, acts, last: act?.at ?? a.last, lastLabel: act ? `마지막 실제 활동 (${act.ok ? "성공" : "실패"})` : a.lastLabel };
+    }
+    return {
+      ...a, queue, acts,
+      status: (human.length || fail.length ? "attention" : recent || watch.length || wait.length ? "recorded" : "review") as Status,
+      headline: run ? `일하는 중: ${run.title}`
+        : fail.length ? `재시도 대기: ${fail[0].title}`
+        : human.length ? `원장님 확인 ${human.length}건: ${human[0].title}`
+        : wait.length ? `다음 일 ${wait.length}건: ${wait[0].title}`
+        : local.length ? `PC 에서 할 일 ${local.length}건: ${local[0].title}`
+        : act ? `최근 한 일: ${act.action}` : "아직 실행 기록이 없습니다",
+      reason: top ? (lastLine(top.evidence) || top.detail) : act ? act.summary : a.reason,
+      next: !top ? (act ? "새 신호가 생기면 매시 23분 회사 루프가 일감을 만듭니다." : a.next)
+        : top.status === "사람 대기" ? `원장님 할 일 — ${top.error || top.detail}`
+        : top.status === "로컬 대기" ? "원장 PC 의 로컬 에이전트가 12:40·19:10 에 처리합니다 (PC 가 켜져 있어야 합니다)."
+        : top.status === "관찰" ? `조치를 끝내고 효과를 기다리는 중 · 다음 확인 후 필요하면 다시 합니다.`
+        : "매시 23분 회사 루프가 집어 갑니다.",
+      last: act?.at ?? null, lastLabel: act ? `마지막 실제 활동 (${act.ok ? "성공" : "실패"})` : "실제 활동 기록 없음",
+    };
+  });
+  const agents = withWork.map((a) => d.ok ? a : {
     ...a, status: "unknown" as Status, headline: "데이터를 읽지 못했습니다",
     reason: "최근 상태와 성과를 확인할 수 없습니다. 0건이나 정상 상태로 표시하지 않습니다.",
     next: "데이터 연결을 확인한 뒤 다시 조회합니다.", last: null, metric: "—",
   });
   const attention = agents.filter((a) => a.status === "attention" || a.status === "review");
+  const humanTasks = W.tasks.filter((t) => t.status === "사람 대기");
+  const localTasks = W.tasks.filter((t) => t.status === "로컬 대기");
+  const working = W.tasks.filter((t) => t.status === "실행 중" || t.status === "대기" || t.status === "실패").length;
+  const NAME: Record<string, string> = Object.fromEntries(roles.map((r) => [r.id, r.name]));
   return (
     <section className="staff-board" aria-labelledby="staff-title">
       <div className="staff-heading">
-        <div><p className="staff-eyebrow">TEAM OVERVIEW</p><h2 id="staff-title">직원별 업무 현황</h2><p>{clientName} · 기록을 바탕으로 정리한 상태</p></div>
+        <div><p className="staff-eyebrow">TEAM OVERVIEW</p><h2 id="staff-title">직원별 업무 현황</h2><p>{clientName} · 일감 표와 실제 활동 기록</p></div>
         <span className="staff-refresh">5분마다 갱신 · 한국 시각</span>
       </div>
       <div className="staff-summary">
-        <div><span className="staff-summary-label">지금 살펴볼 일</span><strong>{!d.ok ? "상태를 확인할 수 없습니다" : attention.length ? `${attention.length}개 담당 업무에 확인할 일이 있습니다` : "담당별 기록을 확인했습니다"}</strong><p>카드에서 확인한 사실과 다음 행동을 함께 읽어 주세요.</p>{d.ok && attention.length > 0 && <nav className="staff-priorities" aria-label="확인할 담당 업무">{attention.map((a) => <a key={a.id} href={`#staff-${a.id}`}>{a.name} 확인 ↓</a>)}</nav>}</div>
-        <div className="staff-count"><b>{d.ok ? attention.length : "—"}</b><span>확인·검토</span></div>
-        <div className="staff-count"><b>{d.ok ? agents.filter((a) => a.status === "recorded").length : "—"}</b><span>기록 확인</span></div>
+        <div><span className="staff-summary-label">지금 살펴볼 일</span><strong>{!d.ok ? "상태를 확인할 수 없습니다" : humanTasks.length ? `원장님이 하실 일 ${humanTasks.length}건` : attention.length ? `${attention.length}개 담당 업무에 확인할 일이 있습니다` : "에이전트들이 스스로 처리 중입니다"}</strong><p>{W.ok ? `자동으로 처리할 일감 ${working}건 · PC 에서 할 일 ${localTasks.length}건` : "회사 루프 기록을 아직 읽지 못했습니다."}</p>{d.ok && attention.length > 0 && <nav className="staff-priorities" aria-label="확인할 담당 업무">{attention.map((a) => <a key={a.id} href={`#staff-${a.id}`}>{a.name} 확인 ↓</a>)}</nav>}</div>
+        <div className="staff-count"><b>{d.ok ? humanTasks.length : "—"}</b><span>원장님 할 일</span></div>
+        <div className="staff-count"><b>{d.ok && W.ok ? working : "—"}</b><span>자동 처리 중</span></div>
       </div>
-      <p className="staff-caveat">개선 담당은 실행 원장을 직접 읽습니다. 다른 담당 카드는 저장된 성과와 확인할 일을 보여 줍니다.</p>
+
+      {W.ok && humanTasks.length > 0 && (
+        <div className="staff-todo" aria-label="원장님이 하실 일">
+          <h3>원장님이 하실 일</h3>
+          <ol>
+            {humanTasks.map((t) => (
+              <li key={t.id}>
+                <div><b>{t.title}</b><span>{NAME[t.agent] ?? t.agent} · {t.error || t.detail}</span></div>
+                {t.link ? <a href={t.link.replace(/^https:\/\/geo-rose-nine\.vercel\.app/, "")}>{t.link.includes("/admin/drafts") ? "읽고 발행하기" : "열기"} →</a>
+                  : <form action={finishTask}><input type="hidden" name="id" value={t.id} /><button type="submit" className="staff-done">했어요</button></form>}
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
+
+      <p className="staff-caveat">카드는 일감 표(geo.agent_tasks)와 실제 활동 기록(geo.agent_activity)을 읽습니다. 회사 루프는 매시 23분, 개선 루프는 매일 07:05, 로그인이 필요한 일은 원장 PC 에서 12:40·19:10 에 돕니다.</p>
       <div className="staff-grid">
         {agents.map((a) => (
           <article key={a.id} className={`staff-card ${a.status}`} id={`staff-${a.id}`}>
@@ -98,8 +158,12 @@ export default function AgentBoard({ data: d, clientName }: { data: Ops; clientN
             <p className="staff-role">{a.role}</p>
             <div className="staff-finding"><h4>{a.headline}</h4><p>{a.reason}</p></div>
             <div className="staff-action"><span>다음 행동</span><p>{a.next}</p></div>
+            {a.queue && <div className="staff-queue"><span>자동 대기 <b>{a.queue.wait + a.queue.run}</b></span><span>관찰 <b>{a.queue.watch}</b></span><span>원장님 <b>{a.queue.human}</b></span><span>PC <b>{a.queue.local}</b></span></div>}
             <div className="staff-evidence"><div><span>{a.lastLabel}</span><time>{d.ok ? stamp(a.last) : "확인 불가"}</time></div><div><span>{a.metricLabel}</span><strong>{a.metric}</strong></div></div>
-            <details><summary>담당 업무 보기</summary><p>{a.jobs}</p></details>
+            <details><summary>최근 활동 · 담당 업무</summary>
+              {a.acts.length > 0 && <ul className="staff-acts">{a.acts.slice(0, 6).map((x, i) => <li key={i} className={x.ok ? "" : "bad"}><time>{stamp(x.at)}</time> {x.action}{x.summary ? ` — ${x.summary}` : ""}{x.runUrl?.startsWith("http") && <> · <a href={x.runUrl} target="_blank" rel="noreferrer">로그</a></>}</li>)}</ul>}
+              <p>{a.jobs}</p>
+            </details>
           </article>
         ))}
       </div>

@@ -4,3 +4,5 @@ node_modules
 
 # 프로브 스크린샷
 *.png
+.local-agent.lock
+local-agent.log

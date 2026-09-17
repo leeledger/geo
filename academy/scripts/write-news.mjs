@@ -194,9 +194,12 @@ const main = async () => {
      values ($1,$2,$3,$4,$5,$6,false,$7,now())
      on conflict (slug) do update set
        title=excluded.title, summary=excluded.summary, body=excluded.body,
-       tags=excluded.tags, updated_at=now()`,
+       tags=excluded.tags, updated_at=now()
+     where not academy.posts.published`,
     [slug, post.title, post.summary, 본문, "교육관점", post.tags ?? [], CLIENT],
   );
+  // 회사 루프(company.mjs)가 이 줄로 초안이 생겼는지 안다
+  console.log(`DRAFT_SLUG=${slug}`);
 
   if (process.env.GITHUB_OUTPUT) fs.appendFileSync(process.env.GITHUB_OUTPUT, `slug=${slug}\n`);
 

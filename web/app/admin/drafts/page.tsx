@@ -2,7 +2,7 @@ import { isAdmin } from "@/lib/admin-auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { listDrafts } from "@/lib/drafts";
-import { saveDraft, publishDraft, discardDraft } from "@/lib/draft-actions";
+import { saveDraft, publishDraft, discardDraft, revertDraft } from "@/lib/draft-actions";
 
 const HERE = "/admin/drafts";
 export const dynamic = "force-dynamic";
@@ -133,6 +133,13 @@ export default async function DraftsPage({ searchParams }: { searchParams: Promi
                   : <p className="okk">{d.task?.evidence?.includes("AI 티") ? "걸린 표현 없음" : "콘텐츠 담당이 아직 검사하지 않았습니다 (매시 실행)"}</p>}
                 {흠.length > 0 && <><h3>짜임새</h3><ul>{흠.map((s, i) => <li key={i}>{s}</li>)}</ul></>}
                 {n.다듬음 && <p className="okk" style={{ marginTop: 8 }}>{n.다듬음}</p>}
+                {n.원문 && (
+                  <details style={{ marginTop: 8 }}>
+                    <summary style={{ cursor: "pointer", fontSize: 13, color: "var(--ink2)" }}>다듬기 전 원문 보기</summary>
+                    <div className="dr-body" style={{ padding: "6px 0" }} dangerouslySetInnerHTML={{ __html: render(n.원문) }} />
+                    <form action={revertDraft}><input type="hidden" name="slug" value={d.slug} /><button type="submit">원문으로 되돌리기</button></form>
+                  </details>
+                )}
               </div>
 
               <div className="dr-body" dangerouslySetInnerHTML={{ __html: render(d.body) }} />

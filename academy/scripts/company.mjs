@@ -39,7 +39,7 @@ for (const l of fs.readFileSync(new URL("../.env.local", import.meta.url), "utf8
 }
 
 const PLAN_ONLY = process.argv.includes("--plan");
-const MAX = Number(process.argv[process.argv.indexOf("--max") + 1]) || 4;
+const MAX = Number(process.argv[process.argv.indexOf("--max") + 1]) || 3;
 const BUDGET_MS = 40 * 60 * 1000;
 const START = Date.now();
 const ADMIN = process.env.ADMIN_BASE_URL || "https://geo-rose-nine.vercel.app";
@@ -124,6 +124,10 @@ const 일감 = async (t) => {
          when geo.agent_tasks.status = '완료' and geo.agent_tasks.done_at < now() - make_interval(hours => $11) then $9
          when geo.agent_tasks.status = '관찰' and geo.agent_tasks.next_try_at <= now() then $9
          else geo.agent_tasks.status end,
+       -- 새로 열린 일은 시도 횟수를 0 부터. 관찰에서 돌아온 일은 그대로 센다(주기마다 한 번씩 쌓여 사람에게 넘길 때를 정한다)
+       attempts = case when geo.agent_tasks.status = '닫힘'
+                         or (geo.agent_tasks.status = '완료' and geo.agent_tasks.done_at < now() - make_interval(hours => $11)) then 0
+                       else geo.agent_tasks.attempts end,
        next_try_at = case when geo.agent_tasks.status in ('닫힘') then now() else geo.agent_tasks.next_try_at end`,
     [t.client_id, t.agent, t.kind, t.key, t.title, t.detail ?? "", JSON.stringify(t.payload ?? {}), t.priority ?? 50, status, t.link ?? null, t.cooldownH ?? 24],
   );
@@ -155,9 +159,10 @@ const gh = async (path, init = {}) => {
 
 const 출근기록 = async () => {
   const latest = {};
+  let ok = true;
   for (const [file, agent] of Object.entries(WORKFLOWS)) {
     const d = await gh(`/actions/workflows/${file}/runs?per_page=5`);
-    if (!d || d.__error) { console.log(`  ⚠ ${file} 실행 기록을 못 읽음 ${d?.__error ?? "(GH_TOKEN 없음)"}`); continue; }
+    if (!d || d.__error) { ok = false; console.log(`  ⚠ ${file} 실행 기록을 못 읽음 ${d?.__error ?? "(GH_TOKEN 없음)"}`); continue; }
     const runs = (d.workflow_runs ?? []).filter((r) => r.status === "completed");
     latest[file] = runs[0] ?? null;
     for (const r of runs.reverse()) {
@@ -168,18 +173,22 @@ const 출근기록 = async () => {
         [HOUSE, agent, `자동 작업 ${file.replace(".yml", "")}`, ok, `${r.event} · ${r.conclusion}`, r.html_url, r.updated_at]);
     }
   }
-  return latest;
+  return { latest, ok };
 };
 
 // ─────────────────────────────────────────── 2. 계획
-const 계획 = async (clients, latestRuns) => {
+const 계획 = async (clients, { latest: latestRuns, ok: ghOk }) => {
   const bySlug = Object.fromEntries(clients.map((c) => [c.slug, c]));
+  // 신호원을 못 읽었는데 「신호가 사라졌다」고 닫으면 다음 시간에 대기로 다시 열려 쿨다운을 건너뛴다.
+  // 그래서 읽기에 성공한 신호원의 일감만 닫는다
+  const 읽음 = new Set(["drafts"]);
+  if (ghOk) 읽음.add("gh");
 
   // 정찰 신호
   const sc = 실행(["scripts/scout.mjs", "--json"], 5 * 60 * 1000);
   let found = [];
-  try { found = JSON.parse(sc.out.slice(sc.out.indexOf("["))); }
-  catch { console.log("  ⚠ 정찰 결과를 못 읽음", 끝(sc.out, 200)); }
+  try { found = JSON.parse(sc.out.slice(sc.out.indexOf("["))); if (sc.ok && Array.isArray(found)) 읽음.add("scout"); }
+  catch { found = []; console.log("  ⚠ 정찰 결과를 못 읽음 — 정찰 일감은 닫지 않음", 끝(sc.out, 200)); }
   for (const f of found) {
     const [prefix, ...rest] = f.key.split("-");
     const slug = prefix === "cov" ? rest.slice(0, -1).join("-") : rest.join("-");
@@ -212,12 +221,14 @@ const 계획 = async (clients, latestRuns) => {
   }
 
   // 상담 결과 미입력 · 새 리드
-  for (const r of await q(`select client_id, count(*)::int n from academy.inquiries where enrolled is null group by client_id`).catch(() => [])) {
+  const inq = await q(`select client_id, count(*)::int n from academy.inquiries where enrolled is null group by client_id`).catch(() => null);
+  const [lead] = await q(`select count(*)::int n from geo.leads where coalesce(status,'new')='new'`).catch(() => [null]);
+  if (inq && lead) 읽음.add("db");
+  for (const r of inq ?? []) {
     await 일감({ client_id: r.client_id, agent: "sales", kind: "human", key: "inquiry-result", priority: 20, status: "사람 대기",
       title: `상담 결과 미입력 ${r.n}건`, detail: "등록했는지 안 했는지를 적어야 노출이 매출로 이어지는지 압니다. 30초면 됩니다.",
       link: `${ADMIN}/admin/inquiry?c=${r.client_id}` });
   }
-  const [lead] = await q(`select count(*)::int n from geo.leads where coalesce(status,'new')='new'`).catch(() => [{ n: 0 }]);
   if (lead?.n > 0) {
     await 일감({ client_id: HOUSE, agent: "sales", kind: "human", key: "lead-new", priority: 10, status: "사람 대기",
       title: `연락 안 한 리드 ${lead.n}건`, detail: "진단을 받고 연락처를 남긴 사람입니다. 하루 안에 연락해야 식지 않습니다.", link: `${ADMIN}/admin` });
@@ -232,7 +243,12 @@ const 계획 = async (clients, latestRuns) => {
 
   // 신호가 사라진 일감은 닫는다. 발행 후 알리기처럼 신호 없이 만든 일감(sticky)은 손대지 않는다
   const open = await q(`select id, client_id, dedupe_key, title from geo.agent_tasks
-    where status in ('대기','관찰','사람 대기','로컬 대기','실패') and not coalesce((payload->>'sticky')::boolean, false)`);
+    where status in ('대기','관찰','사람 대기','로컬 대기','실패') and not coalesce((payload->>'sticky')::boolean, false)
+      and (case when dedupe_key like 'wf-%' then 'gh'
+                when dedupe_key like 'review-%' then 'drafts'
+                when dedupe_key in ('inquiry-result', 'lead-new') then 'db'
+                when dedupe_key like 'login-%' then 'local'
+                else 'scout' end) = any($1)`, [[...읽음]]);
   for (const t of open) {
     if (본키.has(`${t.client_id}:${t.dedupe_key}`)) continue;
     await 상태(t.id, "닫힘", { evidence: `${오늘()} 신호가 사라져 닫음` });
@@ -349,7 +365,7 @@ const EXEC = {
 
   async review(t) {
     const slug = t.payload.slug;
-    const [post] = await q(`select slug, body, published, coalesce(review_notes,'{}'::jsonb) notes from academy.posts where slug=$1`, [slug]);
+    const [post] = await q(`select slug, body, published, updated_at::text as updated, coalesce(review_notes,'{}'::jsonb) notes from academy.posts where slug=$1`, [slug]);
     if (!post || post.published) return { status: "닫힘", evidence: `${오늘()} 이미 발행됐거나 없음` };
     const 검사 = () => {
       const r = 실행(["scripts/slop-check.mjs", slug], 2 * 60 * 1000);
@@ -359,26 +375,34 @@ const EXEC = {
     const notes = { ...post.notes, AI티: 티 };
     let 다듬음 = "";
     if (티.length && !post.notes.다듬음) {
-      const 숫자 = (s) => new Set(s.match(/\d+/g) ?? []);
+      // 사실이 바뀌면 안 된다. 숫자(개수까지)·소제목·링크가 원문과 똑같을 때만 채택하고, 원문은 notes 에 남겨 되돌릴 수 있게 한다
+      const 숫자들 = (s) => (s.match(/\d+/g) ?? []).sort().join(",");
+      const 소제목 = (s) => (s.match(/^#{1,4}\s+.*$/gm) ?? []).map((x) => x.trim()).join("\n");
+      const 링크 = (s) => (s.match(/\]\(([^)]+)\)/g) ?? []).sort().join("\n");
       const ans = await 물어보기([
-        "아래 마크다운 글에서 지적된 표현만 고쳐라. 내용·사실·주장·순서·소제목은 바꾸지 마라. 새 사실이나 숫자를 넣지 마라.",
-        "고칠 때는 문장을 짧게 끊고, 빈 강조·흐린 마무리·훈계조 대신 구체적인 판단으로 바꾼다. 못 바꾸겠으면 그 문장을 지운다.",
+        "아래 마크다운 글에서 지적된 표현이 든 문장만 고쳐 써라. 내용·사실·주장·순서·소제목·링크·숫자는 그대로 둔다. 문장을 지우지 마라.",
+        "고칠 때는 문장을 짧게 끊고, 빈 강조·흐린 마무리·훈계조 대신 구체적인 판단으로 바꾼다.",
         `지적된 표현: ${티.map((x) => `${x.why}(${x.sample.join(", ")})`).join(" / ")}`,
         '형식: {"body":"고친 전체 마크다운"}',
         "",
         post.body,
       ].join("\n"), 12000);
       const body = ans.json?.body;
-      const 새숫자 = body ? [...숫자(body)].filter((n) => !숫자(post.body).has(n)) : [];
       if (!body) 다듬음 = `다듬기 실패: ${ans.error ?? "본문 없음"}`;
-      else if (body.length < post.body.length * 0.8 || body.length > post.body.length * 1.15) 다듬음 = `다듬기 결과를 버림: 길이가 ${post.body.length}→${body.length}자로 너무 바뀜`;
-      else if (새숫자.length) 다듬음 = `다듬기 결과를 버림: 없던 숫자 ${새숫자.join(", ")} 가 생김`;
+      else if (body.length < post.body.length * 0.9 || body.length > post.body.length * 1.15) 다듬음 = `다듬기 결과를 버림: 길이가 ${post.body.length}→${body.length}자로 너무 바뀜`;
+      else if (숫자들(body) !== 숫자들(post.body)) 다듬음 = "다듬기 결과를 버림: 숫자가 원문과 달라짐";
+      else if (소제목(body) !== 소제목(post.body) || 링크(body) !== 링크(post.body)) 다듬음 = "다듬기 결과를 버림: 소제목이나 링크가 바뀜";
       else {
-        await q(`update academy.posts set body=$2, updated_at=now() where slug=$1 and not published`, [slug, body]);
-        const 전 = 티.length;
-        티 = 검사();
-        다듬음 = `콘텐츠 담당이 AI 티 표현을 다듬음 (걸린 종류 ${전}→${티.length}). 사실은 원문 그대로인지 확인해 주세요.`;
-        notes.AI티 = 티;
+        // 모델이 쓰는 동안 원장이 검토 화면에서 고쳤으면 덮어쓰지 않는다
+        const upd = await q(`update academy.posts set body=$2, updated_at=now() where slug=$1 and not published and updated_at=$3::timestamptz returning slug`, [slug, body, post.updated]);
+        if (!upd.length) 다듬음 = "다듬기 결과를 버림: 그사이 본문이 고쳐짐";
+        else {
+          notes.원문 = post.body;
+          const 전 = 티.length;
+          티 = 검사();
+          다듬음 = `콘텐츠 담당이 AI 티 표현만 다듬음 (걸린 종류 ${전}→${티.length}). 숫자·소제목·링크는 원문과 같음을 확인했습니다. 원문은 검토 화면에서 볼 수 있습니다.`;
+          notes.AI티 = 티;
+        }
       }
       // 모델 호출이 실패한 건 「다듬음」으로 굳히지 않는다 — 다음 실행에서 다시 해 본다
       if (!다듬음.startsWith("다듬기 실패")) notes.다듬음 = 다듬음;
@@ -433,14 +457,17 @@ const 근무 = async (clients) => {
   // 멈춘 실행 중 일감 되살리기 (러너가 죽으면 실행 중으로 남는다)
   await q(`update geo.agent_tasks set status='대기', evidence = left(evidence || E'\n' || '실행 중 멈춰 되돌림', 4000)
             where status='실행 중' and updated_at < now() - interval '90 minutes'`);
+  // 집는 순간 실행 중으로 바꾼다. 두 러너가 겹쳐도 같은 일감을 둘이 집지 않게
   const todo = await q(
-    `select * from geo.agent_tasks where status='대기' and next_try_at <= now() and kind = any($1)
-      order by priority, next_try_at limit $2`, [Object.keys(EXEC), MAX]);
+    `update geo.agent_tasks set status='실행 중', updated_at=now()
+      where id in (select id from geo.agent_tasks where status='대기' and next_try_at <= now() and kind = any($1)
+                    order by priority, next_try_at limit $2 for update skip locked)
+      returning *`, [Object.keys(EXEC), MAX]);
+  todo.sort((a, b) => a.priority - b.priority);
   console.log(`\n── 실행할 일감 ${todo.length}건`);
   for (const t of todo) {
     if (Date.now() - START > BUDGET_MS) { console.log("  시간 예산 소진 — 다음 실행으로"); break; }
     const c = clientOf(clients, t.client_id);
-    await 상태(t.id, "실행 중");
     console.log(`  ▶ [${t.agent}] ${t.title}`);
     let res;
     try { res = await EXEC[t.kind](t, c, clients); }

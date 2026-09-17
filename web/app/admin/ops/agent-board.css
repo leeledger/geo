@@ -35,3 +35,14 @@
 .ops-disclosure{margin:28px 0;border:1px solid var(--line);border-radius:14px;padding:18px 20px}.ops-disclosure>summary{cursor:pointer;font-size:14px;font-weight:700;color:var(--ink2)}
 @media(max-width:760px){.staff-grid{grid-template-columns:1fr}.staff-heading{align-items:start;flex-direction:column}.staff-summary{gap:15px;padding:20px}.staff-summary>div:first-child{grid-column:1/-1}.staff-summary{grid-template-columns:1fr 1fr}.staff-count{border-left:0;border-top:1px solid #35434e;padding:14px 0 0;text-align:left}.staff-card{padding:19px}.staff-finding{min-height:0}}
 @media(prefers-reduced-motion:reduce){.staff-board *{animation:none!important;transition:none!important}}
+.staff-todo{margin:16px 0 4px;background:#1d1a14;border:1px solid #5c4a2a;border-radius:14px;padding:18px 20px}
+.ops .staff-todo h3{font-size:14px;margin:0 0 10px;color:#F0CE87}
+.staff-todo ol{margin:0;padding:0;list-style:none;display:grid;gap:8px}
+.staff-todo li{display:flex;gap:14px;align-items:center;justify-content:space-between;background:#141a22;border:1px solid #2e3947;border-radius:10px;padding:11px 14px}
+.staff-todo li div{min-width:0}.staff-todo b{display:block;font-size:13.5px;line-height:1.5}
+.staff-todo li span{display:block;font-size:12px;color:var(--ink2);line-height:1.6;overflow-wrap:anywhere}
+.staff-todo a{flex-shrink:0;font-size:12.5px;font-weight:700;color:#1a1204;background:var(--acc);border-radius:8px;padding:7px 11px;text-decoration:none;white-space:nowrap}
+.staff-queue{display:flex;flex-wrap:wrap;gap:6px;margin:-6px 0 16px}.staff-queue span{font-size:11px;color:var(--mut);background:#101820;border:1px solid #26323e;border-radius:6px;padding:4px 8px}.staff-queue b{color:var(--ink);font-weight:700;margin-left:3px}
+.staff-acts{margin:10px 0 0;padding-left:16px;font-size:11.5px;color:var(--ink2);line-height:1.7}.staff-acts li.bad{color:#FFC3A8}.staff-acts time{color:var(--mut)}.staff-acts a{color:var(--cool)}
+@media(max-width:760px){.staff-todo li{flex-direction:column;align-items:stretch}.staff-todo a{text-align:center}}
+.staff-done{font:inherit;font-size:12.5px;font-weight:700;color:#1a1204;background:var(--cool);border:0;border-radius:8px;padding:7px 11px;cursor:pointer;white-space:nowrap}
