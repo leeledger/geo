@@ -150,6 +150,14 @@ create table if not exists geo.agent_runs (
   started_at timestamptz not null default now(), completed_at timestamptz,
   unique(client_id, run_day, trigger)
 );
+-- 루프가 무엇을 겨냥해 무엇을 했고 먹혔는지 (academy/scripts/daily-agent.mjs 가 만든다)
+alter table geo.agent_runs add column if not exists target_prompt text;
+alter table geo.agent_runs add column if not exists action_kind text;
+alter table geo.agent_runs add column if not exists target_slug text;
+alter table geo.agent_runs add column if not exists verdict text not null default '판정 전';
+alter table geo.agent_runs add column if not exists verdict_note text not null default '';
+alter table geo.agent_runs add column if not exists effective_on date;
+alter table geo.agent_runs add column if not exists judged_at timestamptz;
 alter table geo.agent_runs enable row level security;
 
 -- 영업용 뷰 — 점수가 낮을수록 후킹이 강하다

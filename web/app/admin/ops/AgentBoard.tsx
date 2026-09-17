@@ -18,12 +18,19 @@ export default function AgentBoard({ data: d, clientName }: { data: Ops; clientN
     last: string | null; lastLabel: string; metric: string; metricLabel: string; jobs: string;
   }[] = [
     {
-      id: "improve", name: "개선 담당", initials: "개", role: "AI 답변의 미언급 원인을 고르고 실제 수정까지 닫습니다", mode: "매일 07:20 에이전트 실행",
-      status: d.agentLoop.status === "완료" ? "recorded" : d.agentLoop.day ? "attention" : "review",
-      headline: d.agentLoop.status === "완료" ? "오늘 개선 행동을 완료했습니다" : d.agentLoop.day ? "오늘의 병목을 골랐습니다" : "개선 실행 기록이 없습니다",
-      reason: d.agentLoop.diagnosis,
+      id: "improve", name: "개선 담당", initials: "개", role: "AI 답변에서 안 불린 질문을 골라 행동하고 효과를 잽니다", mode: "매일 07:05 GitHub 자동 실행",
+      status: !d.agentLoop.day ? "review" : d.agentLoop.day !== today || d.agentLoop.status === "실패" || d.agentLoop.status === "사람 대기" ? "attention" : "recorded",
+      headline: !d.agentLoop.day ? "개선 실행 기록이 없습니다"
+        : d.agentLoop.day !== today ? `오늘 실행 기록이 없습니다 (마지막 ${d.agentLoop.day})`
+        : d.agentLoop.status === "실패" ? "오늘 루프가 실패했습니다"
+        : d.agentLoop.status === "사람 대기" ? "사람이 할 일에서 막혀 있습니다"
+        : "오늘 행동을 실행했습니다",
+      reason: d.agentLoop.diagnosis + (d.agentLoop.evidence ? ` · 근거: ${d.agentLoop.evidence}` : ""),
       next: d.agentLoop.action,
-      last: d.agentLoop.completedAt, lastLabel: "마지막 실행 완료", metric: d.agentLoop.status, metricLabel: "오늘 실행 상태", jobs: "AI 질문 측정 · 미언급 원인 분석 · 사이트/지면 수정 · 색인 요청 · 동일 조건 재측정",
+      last: d.agentLoop.startedAt, lastLabel: "마지막 실행",
+      metric: d.agentLoop.engines || d.agentLoop.status, metricLabel: d.agentLoop.engines ? "그날 자동 측정 적중 (API · 소비자 화면 아님)" : "실행 상태",
+      jobs: "AI 질문 20개 자동 측정 → 지난 행동 효과 판정 → 질문 하나 고르기 → 색인 알림·초안 작성·경쟁 출처 분석 → 원장 기록. 발행은 사람이 합니다. 최근 기록: " +
+        (d.agentLoop.history.map((h) => `${h.day} ${h.kind ?? "-"} ${h.status}${h.verdict !== "판정 전" ? ` → ${h.verdict}${h.note ? ` (${h.note})` : ""}` : ""}`).join(" / ") || "없음"),
     },
     {
       id: "ops", name: "운영 담당", initials: "운", role: "전체 흐름을 살피고 우선순위를 정합니다", mode: "3시간마다 자동 점검",

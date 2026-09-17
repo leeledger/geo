@@ -1,50 +1,22 @@
-# Review Feedback — Steps 3~8 (배포 후 검토)
-*Written by Reviewer. Read by Builder and Architect.*
-Date: 2026-09-12
-Ready for Builder: NO → **Must Fix 3건은 같은 날 반영·배포함 (Arch)**
+# Review Feedback — Step 7 매일 AI 추천 개선 루프 (재검토)
+Date: 2026-09-17
+Ready for Builder: YES
+Verdict: PASS
 
-롤백은 권하지 않는다. 되돌리면 KG-12(미승인 리포트 토큰 발급)·KG-15(잔액 음수)·KG-16(크레딧만 빠지는 기출 분석)이 도로 열린다.
+## Must Fix
+없음. 1차 검토의 1~5 모두 반영 확인. `node --check` 두 파일 통과.
 
-## Must Fix → 반영 완료
-1. `lib/services/attendance-service.ts` — 잔액 예약 뒤 발신번호가 없으면 환원 없이 실패. 발신번호 미등록 학원은 등원마다 19원씩 잃는다 → **발신번호 확인을 예약보다 앞으로** ✔
-2. `lib/services/message-service.ts` — 예약과 솔라피 호출 사이의 `MessageRepository.insert` 가 던지면 환원·로그 없이 잔액만 사라진다. 게다가 청구서 도구는 「차감되지 않았습니다」라고 답한다 → **insert 를 try/catch 로 감싸 환원 후 실패 반환** ✔
-3. `app/api/exams/route.ts` — 차감은 `deductAiCredit`(무제한 학원은 차감 안 함), 환불은 무조건 100P → 무제한 패스 학원에 없던 크레딧이 생긴다 → **실제 차감된 경우에만 환불**(`isUnlimited` 확인) ✔
+1. IndexNow 거짓 완료 — daily-agent.mjs:97-101 `색인알림()` 이 종료코드 0 과 「접수됨」 출력을 함께 본다. 발행 확인(141)·기존 글 재알림(302) 두 경로 모두 사용. 해결.
+2. 사다리 건너뜀 — daily-agent.mjs:267 `질문:` 라벨, 315 `continue 질문`. 대기 초안이 있으면 offsite 로 안 넘어가고 다음 질문으로. 해결.
+3. 미발행 초안 영구 잠금 — daily-agent.mjs:148-153 14일 지나면 verdict='미처리'('초안 14일 미발행'), 글은 유지. 같은 실행의 `r.verdict` 도 바꿔 `열림`·`대기초안` 계산에서 빠진다. 해결.
+4. 홈 fetch 실패를 사람 일로 기록 — daily-agent.mjs:275-283 `fetched=false` 면 status 실패 + exitCode 1. 실패 행은 `열림` 에서 빠진다. 해결. 판정 단계의 entity 재확인(157-167)도 fetched·ok 둘 다 요구 — 맞다.
+5. groq 본문 URL 인용 — ai-measure.mjs:80-91 cited 는 executed_tools 에서만, 본문 URL 은 raw.answer_urls(170). 해결.
 
-## Should Fix → 반영
-- 잔액 부족 문구를 예약 실패 후 다시 읽은 값으로 ✔
-- 발송 실패 시 이력 cost 0 (출결·단체 양쪽, `updateAfterSend` 에 cost 파라미터 추가) ✔
-- 환원 금액은 `reservedCost` 사용 (폴백에서 `cost` 가 바뀐다) ✔
-- 폴백 차액으로 잔액이 음수가 되면 경고 로그 ✔
-- 없는 리포트 id 도 403 (존재 여부 노출 차단) ✔
-- `ReportViewClient` 의 `student_id` 필드 선언 제거 (allowlist 에서 빠졌다) ✔
-- `claude-client` mime 판별이 PDF 를 jpeg 로 보내던 것 → 명확한 오류로 막음 ✔
-- 기출 분석 결과 문항 0개면 실패로 보고 환불 ✔
+## Should Fix
+- daily-agent.mjs:87 — `--id` 뒤 값이 숫자가 아니면 NaN 이 거짓으로 읽혀 조용히 오늘 행을 닫는다. `--id` 가 있는데 숫자가 아니면 오류로 끝내는 편이 안전하다. 막지 않는다.
 
-## Should Fix → 남김
-- `lib/services/attendance-service.ts` `if (result)` 죽은 분기 — 항상 참이라 돈이 새지 않는다. 다음에 이 파일을 만질 때 정리
-
-## Should Fix → 반영 (후속)
-- 랜딩의 AI 단가 표기 — 「1P=1원」 기준을 요금 블록 두 곳에 한 줄씩 붙였다
-
-## 유령 환불 점검 (Richard 요청) — 완료
-`ai_credit_logs` 를 훑었다. 컬럼은 `type·amount·description` 이다(`reason` 없음).
-
-- **기출 분석 경로: 깨끗하다.** 환불 이력 0건. 「기출문제 AI 분석」은 차감(`use`) 2건뿐
-- **자동채점 경로에서 1건 나왔다.** 2026-05-22, 무제한 패스 학원에 `charge +120P` 「자동채점 실패 환불」.
-  다만 `grading-service.ts:116,120` 에 이미 `wasCharged` 가드가 있다 — 그 가드가 붙기 전의 기록이다.
-  학원 하나가 낸 적 없는 120P 를 갖고 있다(약 120원). 회수하지 않는다. 기록만 남긴다
-- 그 환불을 부른 실패 원인은 Claude API 오용이었다 — 「assistant prefill 미지원」 400.
-  이것도 이미 고쳐져 있다(`claude-client.ts:776,887` 은 user 메시지만 보낸다)
-
-배포 이후의 유령 환불은 없다. 무제한 패스 학원에 들어간 환불은 위 1건이 전부다.
-
-## Escalate to Architect → Arch 결정
-- **Groq 모델 목록을 코드에 박는 문제** → 지금은 박아 두되, `AGENT_MODEL` 환경변수도 허용 목록 검사를 거치게 했다(환경변수에 단종 모델이 들어가면 폴백까지 죽던 것). 기동 시 `/models` 조회는 넣지 않았다 — 매 요청 지연·호출 실패 시 동작이 불분명해진다. 대신 모델이 죽으면 챗이 멈추므로, 정찰(scout)에 「에이전트 챗 응답 실패」 규칙을 넣는 것을 다음 후보로 남긴다
-- **KG-17 환불 정책** — 사람이 요청하는 환불(충전 잔액·이용권 중도 해지) 기준은 여전히 없다. 원장이 정해야 약관에 넣는다
+## Escalate to Architect
+없음. offsite 14일 반복, 겹침 0.4 기준, 발행 경로 알림 실패 시 완료 유지, --dry DDL 은 Arch 결정으로 수용.
 
 ## Cleared
-- Step 5 — 토큰 발급 승인 확인, 판정식 일치, 길이 확인 + `timingSafeEqual`, 만료값 없는 토큰 차단, allowlist 가 보기 화면·PDF 출력부가 쓰는 필드를 모두 포함
-- Step 6 — 약관의 「예상 문제·재출제는 이용권과 무관하게 차감」이 코드(`deductAiCreditForced`)와 일치, 재출제 20P 일치, 「평생」 제거·KST 표기
-- Step 3 — 설정 화면 19·24·61원이 `message-cost` 계산과 일치, 수납 발송이 「보냈다」고 하지 않음, 플랫폼 발신번호 폴백 제거
-- Step 4 — 랜딩 숫자 전부 출처 있음(unitCost·credit-costs·AiCreditCharge), 지어낸 숫자 0건, 특허·「평생 무료」 0건
-- Step 8 — 조건부 UPDATE + RETURNING 으로 동시 발송에 음수 없음. 충전·관리자 경로는 무관
+Step 7 전체(ai-measure·daily-agent·write-draft·optimize.yml·ops.ts·AgentBoard·schema.sql)와 Must Fix 1~5 반영분을 검토했고 통과.

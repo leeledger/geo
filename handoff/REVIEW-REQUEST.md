@@ -1,38 +1,27 @@
-# Review Request — Step 3 (재작업)
-*Bob 이 짓다가 세션 한도로 중단 → Arch 가 마무리. Read by Reviewer.*
+# Review Request — Step 7 매일 AI 추천 개선 루프
+*Builder → Reviewer. 브리프: handoff/ARCHITECT-BRIEF.md (Step 7)*
 
-Ready for Review: YES — 배포는 끝났다(커밋 26de039). 리뷰어 한도가 풀리면 `git show 26de039` 로 다시 본다.
+## 바뀐 파일
+- `academy/scripts/ai-measure.mjs` (새) — 승인 질문 20개를 gemini(google_search)·groq/compound 에 묻고 `academy.ai_measurements` 에 적재
+- `academy/scripts/daily-agent.mjs` (재작성) — 판정 → 고르기 → 행동(entity/content/offsite) → `geo.agent_runs` 원장
+- `academy/scripts/write-draft.mjs` — `--question/--stage/--sources` 모드, 기존 글 덮어쓰기 금지, `DRAFT_SLUG=` 출력
+- `.github/workflows/optimize.yml` — 측정 → 루프. 측정 실패는 끝에서 빨간불
+- `web/lib/ops.ts`, `web/app/admin/ops/AgentBoard.tsx` — `day` 예약어 별칭 오류 수정(카드가 원장을 못 읽던 원인), 최근 7줄·엔진별 측정 표시
+- `web/db/schema.sql` — agent_runs 칸 추가
 
-저장소 `C:\dev\자동피드백생성기`. `npx tsc --noEmit -p .` 0건, `npm run build` 통과, 운영 200.
+## 확인한 것
+- `node --check` 3개 통과, `tsc --noEmit` 통과
+- `daily-agent.mjs --dry` (측정 0건) → 「최근 7일 자동 AI 측정이 없습니다」 실패 경로, DB 행 안 씀 (단 `alter table add column if not exists` DDL 은 돈다)
+- `ai-measure.mjs` 키 없음 → 종료코드 78
+- `write-draft.mjs --dry --question ...` 프롬프트에 질문·경쟁 출처 들어감
 
-## Must Fix 1 — 여러 건 문자 결과가 원장 화면에 안 보이던 것
-`lib/agent/tools.ts` `sendSmsToParents`
-- 실패 사유를 둘로만 묶는다: `sent.error === '잔액 부족' ? '잔액 부족' : '발송 실패'` — 솔라피·네트워크 오류 원문이 화면에 안 나간다
-- 결과 한 줄에 차감액과 사유별 건수: 「SMS 발송 결과: 3명 성공, 2명 실패(잔액 부족 2) · 발송 잔액에서 72원 차감」
-- `successCount === 0` 이면 `result` 대신 `error` → 화면·학습 기록이 실패로 남는다 (`app/api/agent/chat/route.ts` `success = !parsed.error`)
+## 못 한 것 (로컬에 API 키 없음)
+- 실제 gemini/groq 응답 모양 — push 후 workflow_dispatch 로 확인 예정
+- 초안 작성 → slop-check → 원장 경로 실제 실행
 
-## Must Fix 2 — 청구서 문자 실패 시 JSON 원문 노출
-- `app/api/agent/chat/route.ts` 확인 응답: `parsed.result || parsed.message || parsed.error || toolResult`
-- `lib/agent/tools.ts` `sendTuitionInvoice`
-  - `sendOneMessage` 를 try/catch 로 감싸 던지는 오류는 「처리 중 오류」로 (원문 노출 금지)
-  - 실패: 「○○ 학생 청구서 문자를 보내지 못했습니다 — 발송 잔액이 부족합니다. 발송 잔액은 차감되지 않았습니다.」
-  - 성공: 「… 발송 완료 (번호) · 발송 잔액에서 24원 차감」
-
-## Should Fix (전부 반영)
-- `lib/repositories/message-repository.ts` — `MESSAGE_TYPES.TUITION = 'tuition'`
-- `app/dashboard/messages/history/page.tsx` — `tuition` 라벨 「수납」 + 필터 항목
-- `app/dashboard/settings/page.tsx` — 「건당 61원」 3곳을 `unitCost('LMS')` 로
-- KG-15(잔액 확인·차감 경쟁 조건)는 기록만 — 발송 경로 전체에 걸린 문제라 따로 잡는다
-
-## Arch 결정 반영
-- `send_sms` 확인 문구에 인원·최대 총액: 「받는 사람 12명 · 발송 잔액에서 건당 24원(90바이트 넘으면 61원) — 최대 732원」
-- 세는 쿼리는 실제 발송과 같은 조건(`academy_id` 바인딩, `is_active`, `parent_phone` 있음, `student_ids` 있으면 `= ANY`). `buildConfirmMessage` 는 async, 호출부에서 `await`. 쿼리가 실패하면 0명으로 보고 인원 문구만 생략(확인은 막지 않는다)
-
-## Arch 자체 점검
-- `sendSMS`·`SOLAPI_SENDER` 직접 호출 0건(grep), 발신번호는 `getAcademyMessagingConfig().senderPhone` 만
-- 집계는 `sendOneMessage().success`, 합계는 성공 건 `cost` 만
-- 확인·발송 쿼리 모두 `academy_id` 파라미터 바인딩
-- 배포 후 운영 `/` 200, `/auth/login` 200 (실제 문자 발송 시험은 하지 않았다 — 돈이 나간다)
-
-## Open
-- 에이전트 대량 발송에 건당 대기(50ms)가 없다. `processBatch` 에는 있다 — 필요하면 다음 단계
+## 봐 줄 곳
+- 날짜: KST 로 run_day·measured_on 을 명시했는지, UTC 로 새는 곳
+- 같은 날 재실행 시 초안 중복 방지(`todayRun`)
+- 「실패」「사람 대기」「판정 전」 상태가 질문을 영원히 잠그는 경로
+- 브랜드 질문 적중 규칙, 「똑똑한 로봇&코딩」 제외 정규식
+- 지어낸 결과를 원장에 적는 경로가 없는지 (실행 안 했는데 완료)

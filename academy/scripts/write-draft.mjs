@@ -35,6 +35,14 @@ const DRY = process.argv.includes("--dry");
 // indexOf 가 -1 일 때 +1 하면 argv[0](node 경로)을 주제로 읽는다. 한 번 당했다.
 const TI = process.argv.indexOf("--topic");
 const WANT = TI >= 0 ? process.argv[TI + 1] : null;
+// 개선 루프(daily-agent.mjs)가 AI 답변에서 안 불린 질문을 겨냥해 부른다. 주제 은행을 안 쓴다
+const 인자 = (name) => {
+  const i = process.argv.indexOf(name);
+  return i >= 0 ? process.argv[i + 1] : null;
+};
+const QUESTION = 인자("--question");
+const STAGE = 인자("--stage") ?? "problem";
+const SOURCES = (인자("--sources") ?? "").split(",").map((s) => s.trim()).filter(Boolean);
 const CLIENT = 1;
 const 공급자 = 공급자만들기();
 
@@ -61,7 +69,7 @@ const main = async () => {
   // ── 1. 주제
   const bank = JSON.parse(fs.readFileSync(new URL("../content/topics.json", import.meta.url), "utf8"));
   const 남은것 = bank.topics.filter((t) => !t.slug);
-  if (남은것.length === 0) {
+  if (!QUESTION && 남은것.length === 0) {
     console.log("주제 은행이 비었습니다. content/topics.json 에 주제를 채우세요.");
     return;
   }
@@ -91,9 +99,19 @@ const main = async () => {
     const hay = `${t.title} ${(t.tags ?? []).join(" ")} ${t.angle ?? ""}`;
     return 핵심어.filter((k) => hay.includes(k)).length;
   };
-  const 고른것 = WANT
-    ? 남은것.find((t) => t.id === WANT)
-    : [...남은것].sort((a, b) => 점수(b) - 점수(a))[0];
+  const 고른것 = QUESTION
+    ? {
+        id: null,
+        title: QUESTION,
+        angle: "학부모가 AI 에게 이 질문을 그대로 했는데 우리 사이트가 답에 안 나왔다. " +
+          "이 질문에 곧장 답하는 글이어야 한다. 첫 문단에서 질문에 대한 판단을 먼저 말한다." +
+          (SOURCES.length ? ` 대신 인용된 곳: ${SOURCES.join(", ")} — 그들이 못 주는 판단 기준을 준다. 베끼지 않는다.` : ""),
+        category: STAGE === "local" || STAGE === "brand" ? "학부모안내" : "교육관점",
+        tags: [],
+      }
+    : WANT
+      ? 남은것.find((t) => t.id === WANT)
+      : [...남은것].sort((a, b) => 점수(b) - 점수(a))[0];
   if (!고른것) {
     console.log(`주제 ${WANT} 를 못 찾았습니다.`);
     return;
@@ -136,7 +154,9 @@ const main = async () => {
     `# 지금 지고 있는 검색어\n${지는검색어.map((r) => `- ${r.query}`).join("\n") || "- (측정 없음)"}`,
     "",
     "# 내놓을 형식 (JSON 하나만, 다른 말 없이)",
-    `{"title": "질문형 제목", "summary": "결론 한두 줄", "tags": ["5개"], "body": "마크다운 본문", "확인필요": ["내가 지어냈을 수 있어 원장 확인이 필요한 문장"]}`,
+    QUESTION
+      ? `{"title": "질문형 제목", "slug": "제목을 로마자로 옮긴 주소. 소문자·숫자·하이픈만, 60자 이하 (예: koding-hagwon-goreugi)", "summary": "결론 한두 줄", "tags": ["5개"], "body": "마크다운 본문", "확인필요": ["내가 지어냈을 수 있어 원장 확인이 필요한 문장"]}`
+      : `{"title": "질문형 제목", "summary": "결론 한두 줄", "tags": ["5개"], "body": "마크다운 본문", "확인필요": ["내가 지어냈을 수 있어 원장 확인이 필요한 문장"]}`,
     "",
     "확인필요 에는 상담·수업에서 실제로 있었던 일처럼 쓴 문장을 빠짐없이 넣어라.",
     "네가 겪지 않은 일을 겪은 것처럼 쓰면 발행 전에 걸러야 한다.",
@@ -213,15 +233,30 @@ const main = async () => {
     흠.push("본문에 지역이 한 번도 안 나옵니다 — 동네 검색어를 겨냥한 글인데 지역이 없으면 안 잡힙니다");
   }
 
-  const slug = 고른것.id;
-  await q(
-    `insert into academy.posts (slug,title,summary,body,category,tags,published,client_id,updated_at)
-     values ($1,$2,$3,$4,$5,$6,false,$7,now())
-     on conflict (slug) do update set
-       title=excluded.title, summary=excluded.summary, body=excluded.body,
-       tags=excluded.tags, updated_at=now()`,
-    [slug, post.title, post.summary, post.body, 고른것.category, post.tags ?? 고른것.tags, CLIENT],
-  );
+  let slug = 고른것.id;
+  if (QUESTION) {
+    // 질문 모드는 기존 글을 절대 덮어쓰지 않는다. 겹치면 뒤에 번호를 붙인다
+    const 기본 = /^[a-z0-9]+(-[a-z0-9]+)*$/.test(post.slug ?? "") && post.slug.length <= 60
+      ? post.slug
+      : `ai-question-${new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" }).replace(/-/g, "")}`;
+    slug = 기본;
+    for (let n = 2; (await q(`select 1 from academy.posts where slug=$1`, [slug])).length; n++) slug = `${기본}-${n}`;
+    await q(
+      `insert into academy.posts (slug,title,summary,body,category,tags,published,client_id,updated_at)
+       values ($1,$2,$3,$4,$5,$6,false,$7,now())`,
+      [slug, post.title, post.summary, post.body, 고른것.category, post.tags ?? [], CLIENT],
+    );
+  } else {
+    await q(
+      `insert into academy.posts (slug,title,summary,body,category,tags,published,client_id,updated_at)
+       values ($1,$2,$3,$4,$5,$6,false,$7,now())
+       on conflict (slug) do update set
+         title=excluded.title, summary=excluded.summary, body=excluded.body,
+         tags=excluded.tags, updated_at=now()`,
+      [slug, post.title, post.summary, post.body, 고른것.category, post.tags ?? 고른것.tags, CLIENT],
+    );
+  }
+  console.log(`DRAFT_SLUG=${slug}`);
 
   // Actions 가 이 슬러그로 AI 티 검사를 돌린다. 안 넘기면 발행된 글만 보고
   // 정작 방금 쓴 초안은 건너뛴다 — 「0편에서 걸림」이 이 글 얘기인 줄 알게 된다.

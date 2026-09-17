@@ -1,12 +1,25 @@
+# 매일 AI 추천 개선 루프 — 사람·세션 없이 돈다
+#
+# 전에는 병목 문장 하나를 DB 에 적고 실행은 Codex 예약에 맡겼다.
+# Codex 한도가 끝나자 아무도 실행하지 않았다. 적기만 하는 담당은 담당이 아니다.
+#
+#   측정  승인 질문 20개를 제미나이(구글 검색 근거)·groq compound 에 묻고 답·출처 적재
+#   루프  지난 행동 효과 판정 → 질문 하나 고르기 → 행동 실행(색인 알림·초안·출처 분석) → 원장
+#
+# 발행은 하지 않는다. 초안까지다. 발행되면 다음 날 루프가 알아채 판정 창을 연다.
+#
+# 필요한 시크릿: DATABASE_URL, GEMINI_API_KEY (GROQ_API_KEY 는 있으면 엔진 하나 더)
 name: optimize
+
 on:
   schedule:
-    - cron: "5 22 * * *" # 07:05 KST
+    - cron: "5 22 * * *" # 07:05 KST — serp(07:41) 보다 앞
   workflow_dispatch: {}
+
 jobs:
-  decide:
+  loop:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -14,10 +27,37 @@ jobs:
           node-version: "22"
       - run: npm install pg --no-save --silent
         working-directory: academy
-      - name: 오늘의 병목과 행동 한 가지 결정
+
+      - name: 환경 준비
         working-directory: academy
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: printf 'DATABASE_URL=%s\n' "$DATABASE_URL" > .env.local
+
+      # 한 엔진이 막혀도 루프는 돈다. 어제까지의 측정으로도 판정·행동은 할 수 있다
+      - name: AI 답변 측정
+        id: measure
+        continue-on-error: true
+        working-directory: academy
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          MEASURE_GEMINI_MODEL: ${{ vars.MEASURE_GEMINI_MODEL }}
+          MEASURE_GROQ_MODEL: ${{ vars.MEASURE_GROQ_MODEL }}
+        run: node scripts/ai-measure.mjs
+
+      - name: 판정 · 고르기 · 행동
+        working-directory: academy
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          WRITER_PROVIDER: ${{ vars.WRITER_PROVIDER }}
+          WRITER_MODEL: ${{ vars.WRITER_MODEL }}
+        run: node scripts/daily-agent.mjs
+
+      # 측정이 실패했는데 루프가 어제 자료로 돌았으면 초록불로 끝난다. 그러면 아무도 안 본다
+      - name: 측정 실패 표시
+        if: steps.measure.outcome == 'failure'
         run: |
-          printf 'DATABASE_URL=%s\n' "$DATABASE_URL" > .env.local
-          node scripts/daily-agent.mjs
+          echo "::error::AI 답변 측정이 실패했습니다. 'AI 답변 측정' 단계 로그를 보세요."
+          exit 1

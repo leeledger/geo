@@ -63,7 +63,13 @@ export type Ops = {
     unresolvedInquiries: number;
     scanToLeadPct: number;
   };
-  agentLoop: { day: string | null; status: string; diagnosis: string; action: string; evidence: string; completedAt: string | null };
+  agentLoop: {
+    day: string | null; status: string; diagnosis: string; action: string; evidence: string;
+    startedAt: string | null; completedAt: string | null;
+    /** 그날 엔진별 자동 측정 적중 (예: "gemini 2/20 · groq-compound 0/20") */
+    engines: string;
+    history: { day: string; status: string; kind: string | null; verdict: string; note: string }[];
+  };
   recent: { title: string; slug: string; at: string }[];
   firstSeen: { engine: string; query: string; day: string }[];
   /**
@@ -209,7 +215,7 @@ export async function readOps(client?: Client): Promise<Ops> {
     place: [],
     ai: { day: null, engine: null, method: null, prompts: 0, cited: 0, mentioned: 0, rounds: 0, comparable: false },
     sales: { scans30d: 0, leads30d: 0, newLeads: 0, unresolvedInquiries: 0, scanToLeadPct: 0 },
-    agentLoop: { day: null, status: "기록 없음", diagnosis: "실행 기록 없음", action: "오늘의 개선 루프를 실행합니다.", evidence: "", completedAt: null },
+    agentLoop: { day: null, status: "기록 없음", diagnosis: "실행 기록 없음", action: "오늘의 개선 루프를 실행합니다.", evidence: "", startedAt: null, completedAt: null, engines: "", history: [] },
     recent: [],
     firstSeen: [],
     lastAt: { content: null, deliver: null, crawler: null, measure: null, next: null },
@@ -304,10 +310,21 @@ export async function readOps(client?: Client): Promise<Ops> {
     } catch { /* 영업 표가 아직 없으면 0으로 둔다 */ }
     let agentLoop = empty.agentLoop;
     try {
-      const [r] = await q(`select run_day::text day,status,diagnosis,action,evidence,completed_at::text completed
-        from geo.agent_runs where client_id=${c.id} order by run_day desc,started_at desc limit 1`);
-      if (r) agentLoop = { day:r.day,status:r.status,diagnosis:r.diagnosis,action:r.action,evidence:r.evidence,completedAt:r.completed };
-    } catch { /* 원장 생성 전 */ }
+      // run_day::text day 로 썼다가 예약어 문법 오류를 catch 가 삼켜 카드가 늘 「기록 없음」이었다. as 를 붙인다
+      const runs = await q(`select run_day::text as run_day, status, diagnosis, action, evidence,
+               started_at::text as started, completed_at::text as completed,
+               coalesce(facts->>'engines','') as engines,
+               to_jsonb(r) ->> 'action_kind' as kind,
+               coalesce(to_jsonb(r) ->> 'verdict', '판정 전') as verdict,
+               coalesce(to_jsonb(r) ->> 'verdict_note', '') as note
+          from geo.agent_runs r where client_id=${c.id} order by run_day desc, started_at desc limit 7`);
+      const [r] = runs;
+      if (r) agentLoop = {
+        day: r.run_day, status: r.status, diagnosis: r.diagnosis, action: r.action, evidence: r.evidence,
+        startedAt: r.started, completedAt: r.completed, engines: r.engines,
+        history: runs.map((x) => ({ day: x.run_day, status: x.status, kind: x.kind, verdict: x.verdict, note: x.note })),
+      };
+    } catch (e) { console.error("agent_runs 읽기 실패", e); }
 
     const recent = await q(`
       select title, slug, published_at::text at from ${S}.posts

@@ -3,49 +3,45 @@
 
 ---
 
-## Step 6 — 아이로그 약관·결제 화면을 실제 요금 구조에 맞춘다 (KG-1, 무제한 패스 범위)
+## Step 7 — 매일 AI 추천 개선 루프를 사람·세션 없이 돌게 한다
 
-저장소: `C:\dev\자동피드백생성기` (아이로그, main 작업 트리).
+### 지금 문제 (Arch 확인, 2026-09-17)
+- `optimize.yml` + `daily-agent.mjs` 는 DB 숫자로 병목 문장 하나를 **적기만** 한다. 실행은 Codex heartbeat 에 넘겼는데 Codex 사용 한도가 끝나 아무도 안 한다
+- AI 답변을 자동으로 재는 장치가 없다. 기준선은 수동 8건(09.10)·2건(09.17)뿐
+- 대시보드 `개선 담당` 카드가 원장을 못 읽는다 — `web/lib/ops.ts:307` `run_day::text day` 에서 `day` 가 예약어라 문법 오류, `catch` 가 삼킨다
+- `run_day` 기본값이 DB `current_date`(UTC). 07:05 KST 실행이면 전날 날짜로 찍힌다
+- GitHub Secrets 에 `GEMINI_API_KEY`·`GROQ_API_KEY` 가 있다. 제미나이는 `google_search` 근거 검색이 되고 출처가 응답에 온다(`writer-common.mjs`)
 
-### 지금 문제 (Arch 확인, 2026-09-12)
-- **약관 제6조**(`app/terms/page.tsx:115-128`) 「학생 수 기반의 종량제」「선불 30일 이용권」「납부 지연 시 이용 제한」 — 코드와 다르다. 실제: 기본 관리 무료(`app/api/students/limit-check/route.ts:4-15`, `lib/auth-helpers.ts:11-19`), 학부모 알림은 건당 선불 발송 잔액 차감(`lib/services/attendance-service.ts:17-20,215`), AI 는 크레딧 차감(`lib/ai/credit-costs.ts`) 또는 월 정액 AI 무제한 이용권(`components/billing/AiCreditCharge.tsx:83-88`, `app/api/billing/confirm/route.ts:67`). 제9조·탈퇴 조항에도 「요금 납부를 지연한 경우」(:210), 「미납 요금이 있는 경우 탈퇴 전에 정산」(:228)
-- **결제 화면**(`components/billing/AiCreditCharge.tsx`)
-  - `:114` 예상 문제 잔액 환산을 `/ 300`, `:147` 「예상 문제 생성 건당 300P」, `:151` 「문항 재출제 건당 50P」 — deprecated 단가. 실제는 문항당 20P, 재출제 20P(`credit-costs.ts:9-13`, `app/api/exams/route.ts:148,270-271`)
-  - `:283` 무제한 이용권 「한 달간 횟수 제한 없이 AI 기능을 자유롭게」 — 예상 문제 출제·재출제는 패스와 무관하게 차감(`lib/ai/billing.ts:8-9`, `deductAiCreditForced`)
-  - `:121` 만료일이 없으면 「무제한 활성 (~평생)」 — 증명할 수 없는 영구 표기
+### 루프 (매일 07:05 KST, GitHub Actions)
+1. **측정** `academy/scripts/ai-measure.mjs` — 승인 질문 20개를 API 엔진에 그대로 묻는다
+   - gemini(`google_search` 켬), groq(`groq/compound`, 웹 검색 내장). 키 없는 엔진은 건너뛰고 그렇게 적는다
+   - `academy.ai_measurements` 에 `collection_method` = `api-gemini-google-search` / `api-groq-compound`, `prompt_id` = `q{position}`, KST 날짜. 같은 날 같은 질문은 다시 안 묻는다
+   - 언급: `로봇&코딩`·`로봇앤코딩`·`robotncoding` (단 「똑똑한 로봇&코딩」은 다른 곳 — 제외). 인용: 출처 도메인이 `robotncoding.com`
+   - 소비자 ChatGPT 화면이 아니다. 방법이 다르다는 걸 이름에 남기고 다른 방법과 합산하지 않는다
+2. **판정** 끝난 행동의 효과를 잰다 — 기준일 전 14일 vs 기준일+7일 이후. 양쪽 표본 5 이상일 때만. 기준일은 글이면 발행일, 색인이면 완료일
+   - 적중 = 인용 또는 언급(브랜드 질문은 인용 또는 답에 `석촌` 이 있을 때만 — 질문에 이름이 들어 있어 따라 말하기 때문)
+   - 후 적중률이 전보다 20%p 이상 높고 적중 2회 이상 → `효과 있음`, 아니면 `효과 없음`. 기준일 35일 지나도 표본 모자라면 `표본 부족`
+3. **고르기** 최근 7일 적중률 50% 미만 질문 중 열린 행동이 없는 것. 우선순위 local → brand → problem → consider, 같으면 적중률 낮은 순
+4. **행동** 질문 단계별 사다리에서 `효과 없음` 이 안 난 첫 칸
+   - brand: `entity` → `content` → `offsite` / 나머지: `content` → `offsite`
+   - `entity` (자동) 홈 JSON-LD 에 주소가 있나 가져와 본다. 있으면 통과로 적고 다음 칸. 없으면 `사람 대기`(코드 수정)
+   - `content` 발행된 글 중 질문 핵심어 2개 이상 겹치는 글이 있으면 그 글에 IndexNow → `완료`(기준일 오늘). 없으면 `write-draft.mjs --question` 으로 초안 → `사람 대기`(발행 전 사실 확인). **미발행 자동 초안이 이미 있으면 새로 안 쓴다** — 쌓이기만 한다
+   - 이전에 `사람 대기` 였던 글이 발행됐으면 그날 IndexNow 하고 `완료`(기준일 = 발행일)
+   - `offsite` 경쟁 출처 상위 도메인을 적고 `사람 대기`(외부 지면 등록은 로그인이 필요)
+5. **원장** `geo.agent_runs` 에 하루 한 줄: 진단·행동·근거·대상 질문·행동 종류·대상 글·판정. 실행 안 한 걸 했다고 적지 않는다
 
-### Decisions (원장 위임으로 Arch 결정, 2026-09-12)
-- 무제한 패스에서 예상 문제 출제·재출제 제외는 **의도한 정책으로 둔다**(billing.ts 주석이 명시). 대신 결제 화면·약관에 분명히 적는다
-- 결제 화면 단가·환산은 `AI_COSTS` 상수에서 가져온다(이미 클라이언트 안전 파일). 예상 문제는 「문항당 20P」「약 N문항」, 재출제 「문항당 20P」
-- `:283` 문구 → 「한 달간 수업 피드백·리포트·기출 분석을 횟수 제한 없이 씁니다. 예상 문제 출제·재출제는 문항당 20P 가 따로 차감됩니다.」(뜻이 같으면 문장은 다듬어도 됨)
-- `:121` 만료일 없음 → 「무제한 활성」만 (날짜 괄호 없이)
-- **약관 개정** (이용자에게 유리한 변경):
-  - 제5조 서비스 목록은 그대로 두되 「학생 출결 기록 및 학부모 알림 발송」「AI 영어 시험 출제」를 더한다(코드에 있는 기능만)
-  - 제6조를 바꾼다:
-    1. 학생 정보·출결 기록·반 관리 등 기본 관리 기능은 학생 수와 관계없이 무료로 제공합니다.
-    2. 학부모 알림(알림톡·문자) 발송은 건당 요금이 부과되며, 이용자가 미리 충전한 발송 잔액에서 차감됩니다. 건당 요금은 서비스 화면에 표시합니다.
-    3. AI 기능은 기능별로 정한 AI 크레딧이 차감되거나, 월 정액 AI 무제한 이용권으로 이용할 수 있습니다. 이용권 요금은 재원생 수 구간에 따르며 결제일부터 1개월간 적용됩니다. 예상 문제 출제·재출제는 이용권과 관계없이 크레딧이 차감됩니다. 기능별 단가는 서비스 화면에 표시합니다.
-    4. 충전과 이용권 결제는 선불입니다. 잔액이 부족하면 해당 발송·AI 기능이 실행되지 않습니다.
-  - 「요금 납부를 지연한 경우」(:210)와 「미납 요금이 있는 경우 탈퇴 전에 정산」(:228)은 선불 구조와 맞지 않아 삭제
-  - 환불 조항은 **새로 만들지 않는다** — 근거가 되는 환불 정책이 코드·문서에 없다(지어내지 않는다). Known Gap 으로
-  - 부칙: 「본 약관은 2025년 12월 18일부터 시행됩니다.」를 남기고 「개정 약관은 2026년 9월 19일부터 시행됩니다. (2026년 9월 12일 공지)」를 더한다 — 제3조의 공지 절차에 맞춰 7일 전 공지
-  - 약관 페이지 맨 위에 개정 안내 한 줄: 「2026년 9월 12일 약관 제5조·제6조를 실제 요금 구조에 맞게 개정했습니다. 2026년 9월 19일부터 시행합니다.」 (앱에 공지사항 기능이 코드에서 확인되지 않아, 약관 화면 자체에 공지)
+### 스키마 (agent_runs 에 칸 추가, 스크립트가 `add column if not exists`)
+`target_prompt text`, `action_kind text`, `target_slug text`, `verdict text not null default '판정 전'`, `verdict_note text not null default ''`, `effective_on date`, `judged_at timestamptz`
 
 ### Build Order
-1. `components/billing/AiCreditCharge.tsx` — `:111-114` 환산, `:133-152` 단가표, `:283` 이용권 문구, `:121` 평생 표기
-2. `app/terms/page.tsx` — 개정 안내, 제5조 항목, 제6조, `:210`, `:228`, 부칙
-3. `npm run build`
+1. `academy/scripts/ai-measure.mjs` (새 파일)
+2. `academy/scripts/write-draft.mjs` — `--question <text> --stage <stage> --sources <csv>` 모드. 주제 은행 대신 질문을 겨냥. slug 는 모델이 로마자로 주고 형식·중복 검사, 기존 글 덮어쓰기 금지. `DRAFT_SLUG=` 한 줄 출력
+3. `academy/scripts/daily-agent.mjs` — 위 2~5. `--complete` 는 유지. `--dry` 는 DB 에 안 쓰고 판단만 찍는다
+4. `.github/workflows/optimize.yml` — 측정 → 루프, 키 전달, 요약을 `GITHUB_STEP_SUMMARY` 로
+5. `web/lib/ops.ts`·`AgentBoard.tsx` — 별칭 수정, 최근 원장 7줄·엔진별 최신 자동 측정 표시
+6. `web/db/schema.sql` 동기화, `next build`, 수동 실행 1회로 확인
 
 ### Flags
-- Flag: 결제·차감 로직은 바꾸지 않는다. 화면 문구와 약관만
-- Flag: 개인정보처리방침은 이번 범위 밖
-- Flag: 커밋·푸시·배포 금지
-
-### Definition of Done
-- [ ] 결제 화면에 300P·50P(예상 문제·재출제)·「평생」 없음, 단가가 `AI_COSTS` 에서 옴
-- [ ] 이용권 문구에 예상 문제 별도 차감이 보임
-- [ ] 약관 제6조가 위 네 항, 납부 지연·미납 정산 문구 없음, 부칙·상단 개정 안내
-- [ ] `npm run build` 성공
-
-### Known Gaps 로 넘길 것
-- 환불 정책 부재 (충전 잔액·이용권 환불 기준)
+- 발행은 자동으로 하지 않는다 (CLAUDE.md 「발행 전 사실 확인」)
+- 측정 수치를 소비자 화면 결과로 부르지 않는다
+- 한 엔진 실패가 루프 전체를 멈추지 않게. 전 엔진 실패면 측정 단계 실패로 표시
