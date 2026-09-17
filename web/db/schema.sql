@@ -77,6 +77,70 @@ create table if not exists geo.outreach_targets (
 create index if not exists outreach_status_idx on geo.outreach_targets(status, priority, updated_at);
 alter table geo.outreach_targets enable row level security;
 
+-- 30일 유료 파일럿의 계약·측정·납품 원장
+create table if not exists geo.clients (
+  id serial primary key, slug text not null unique, name text not null, domain text,
+  alias text, status text not null default 'active', started_on date not null default current_date,
+  schema_name text not null default 'academy', note text, relation text not null default '외부',
+  created_at timestamptz not null default now()
+);
+alter table geo.clients add column if not exists relation text not null default '외부';
+create table if not exists geo.pilots (
+  id uuid primary key default gen_random_uuid(),
+  client_id int not null references geo.clients(id),
+  outreach_target_id uuid references geo.outreach_targets(id),
+  price int not null default 390000,
+  payment_ref text,
+  contact_name text,
+  contact_email text,
+  contact_phone text,
+  receipt_type text,
+  terms_evidence text,
+  paid_at timestamptz,
+  started_on date not null,
+  ends_on date not null,
+  status text not null default '준비',
+  inquiry_key uuid not null default gen_random_uuid() unique,
+  terms_accepted_at timestamptz,
+  created_at timestamptz not null default now(),
+  unique(client_id)
+);
+alter table geo.pilots add column if not exists inquiry_key uuid default gen_random_uuid();
+alter table geo.pilots add column if not exists contact_name text;
+alter table geo.pilots add column if not exists contact_email text;
+alter table geo.pilots add column if not exists contact_phone text;
+alter table geo.pilots add column if not exists receipt_type text;
+alter table geo.pilots add column if not exists terms_evidence text;
+create unique index if not exists pilots_inquiry_key_idx on geo.pilots(inquiry_key);
+create table if not exists geo.pilot_questions (
+  id bigserial primary key, pilot_id uuid not null references geo.pilots(id) on delete cascade,
+  position int not null, stage text not null, text text not null, approved boolean not null default false,
+  unique(pilot_id, position)
+);
+create table if not exists geo.pilot_tasks (
+  id bigserial primary key, pilot_id uuid not null references geo.pilots(id) on delete cascade,
+  code text not null, title text not null, owner text not null default '사이티드',
+  due_on date not null, status text not null default '대기', evidence text not null default '',
+  completed_at timestamptz, unique(pilot_id, code)
+);
+create table if not exists geo.local_audits (
+  id bigserial primary key, pilot_id uuid not null references geo.pilots(id) on delete cascade,
+  source text not null, field text not null, observed text not null default '',
+  verdict text not null default '미확인', recommendation text not null default '',
+  updated_at timestamptz not null default now(), unique(pilot_id, source, field)
+);
+create table if not exists geo.content_approvals (
+  id bigserial primary key, pilot_id uuid not null references geo.pilots(id) on delete cascade,
+  title text not null default '', draft_url text, published_url text,
+  status text not null default '주제 선정', customer_note text not null default '',
+  approved_at timestamptz, published_at timestamptz, updated_at timestamptz not null default now()
+);
+alter table geo.pilots enable row level security;
+alter table geo.pilot_questions enable row level security;
+alter table geo.pilot_tasks enable row level security;
+alter table geo.local_audits enable row level security;
+alter table geo.content_approvals enable row level security;
+
 -- 영업용 뷰 — 점수가 낮을수록 후킹이 강하다
 create or replace view geo.lead_queue as
 select l.id, l.created_at, l.email, l.company, l.phone, l.wants, l.status,

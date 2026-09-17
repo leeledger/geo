@@ -200,6 +200,7 @@ export default async function OpsPage({
         </div>
         <div style={{ marginTop: 14, display: "flex", gap: 10, flexWrap: "wrap" }}>
           <Link href="/admin/outreach" style={{ color: "var(--acc)", fontSize: 13, textDecoration: "none", border: "1px solid var(--line)", borderRadius: 8, padding: "8px 12px" }}>첫 고객 영업판 →</Link>
+          <Link href="/admin/pilots" style={{ color: "var(--cool)", fontSize: 13, textDecoration: "none", border: "1px solid var(--line)", borderRadius: 8, padding: "8px 12px" }}>유료 파일럿 납품 →</Link>
           <Link href="/admin/inquiry" style={{ color: "var(--ink2)", fontSize: 13, textDecoration: "none", border: "1px solid var(--line)", borderRadius: 8, padding: "8px 12px" }}>상담 유입 기록 →</Link>
         </div>
 

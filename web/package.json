@@ -7,7 +7,8 @@
     "build": "node ./node_modules/next/dist/bin/next build",
     "start": "node ./node_modules/next/dist/bin/next start",
     "setup-db": "node scripts/setup-db.mjs",
-    "setup-outreach": "node scripts/setup-outreach.mjs"
+    "setup-outreach": "node scripts/setup-outreach.mjs",
+    "test-pilot": "node scripts/pilot-roundtrip.mjs"
   },
   "dependencies": {
     "next": "^16.3.4",

@@ -11,7 +11,6 @@
 import fs from "node:fs";
 import path from "node:path";
 import { Pool } from "pg";
-import { bySlug } from "../clients.mjs";
 
 for (const l of fs.readFileSync(new URL("../.env.local", import.meta.url), "utf8").split(/\r?\n/)) {
   const m = /^([A-Z_]+)=(.*)$/.exec(l);
@@ -20,8 +19,7 @@ for (const l of fs.readFileSync(new URL("../.env.local", import.meta.url), "utf8
 
 let args = process.argv.slice(2);
 const ci = args.indexOf("--client");
-const client = bySlug(ci >= 0 ? args[ci + 1] : "robotncoding");
-if (!client) throw new Error(`고객사 없음: ${args[ci + 1]}`);
+const clientSlug = ci >= 0 ? args[ci + 1] : "robotncoding";
 if (ci >= 0) args = args.filter((_, i) => i !== ci && i !== ci + 1);
 if (!args[0]) throw new Error("사용법: node scripts/import-ai-measurements.mjs <json|jsonl> [--client slug]");
 
@@ -57,18 +55,18 @@ if (Array.isArray(parsed)) {
   meta = {};
 } else {
   meta = parsed;
-  rows = (parsed.runs ?? []).map((r, n) => ({
-    measured_on: parsed.day,
-    collection_method: parsed.engine ?? "manual",
+  rows = (parsed.runs ?? parsed.entries ?? []).map((r, n) => ({
+    measured_on: parsed.day ?? (parsed.collected_at ?? new Date().toISOString()).slice(0,10),
+    collection_method: parsed.collection_method ?? "manual",
     engine: parsed.engine ?? "manual",
     model: parsed.model ?? null,
     prompt_id: r.prompt_id ?? `manual-${r.i ?? n}`,
     stage: r.stage ?? null,
-    prompt_text: r.prompt,
+    prompt_text: r.prompt ?? r.prompt_text ?? r.prompt_id,
     attempt: r.attempt ?? 1,
     citations: (r.sources ?? []).map((domain) => ({ domain })),
-    mentioned: Boolean(r.mentioned_us),
-    cited: Boolean(r.cited_us),
+    mentioned: Boolean(r.mentioned_us) || String(r.text ?? "").toLowerCase().includes(client.name.toLowerCase()),
+    cited: Boolean(r.cited_us) || (r.sources ?? []).some((x) => normalizeDomain(x).endsWith(client.domain)),
     note: r.note ?? null,
     raw: r,
   }));
@@ -77,6 +75,8 @@ if (Array.isArray(parsed)) {
 const u = new URL(process.env.DATABASE_URL);
 u.searchParams.delete("sslmode");
 const pool = new Pool({ connectionString: u.toString(), ssl: { rejectUnauthorized: process.env.DATABASE_SSL_INSECURE !== "true" } });
+const { rows: [client] } = await pool.query(`select id,slug,name,domain from geo.clients where slug=$1`, [clientSlug]);
+if (!client) { await pool.end(); throw new Error(`고객사 없음: ${clientSlug}`); }
 
 await pool.query(`
   create table if not exists academy.ai_measurements (
