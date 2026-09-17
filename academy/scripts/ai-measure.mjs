@@ -40,6 +40,36 @@ const 도메인 = (s) => {
 
 const ENGINES = [
   {
+    // 원장 결정(2026-09-17). 모델 0원, 웹 검색(Exa)은 요청당 $0.007 크레딧
+    engine: "openrouter",
+    method: "api-openrouter-web-exa",
+    key: process.env.OPENROUTER_API_KEY,
+    model: process.env.OPENROUTER_MODEL || "stealth/union-alpha",
+    gap: 3000,
+    ask: async (e, text) => {
+      const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: { "content-type": "application/json", authorization: `Bearer ${e.key}`, "x-title": "cited-ai-measure" },
+        body: JSON.stringify({
+          model: e.model,
+          messages: [{ role: "user", content: text }],
+          plugins: [{ id: "web", engine: "exa", max_results: 5 }],
+        }),
+      });
+      if (!res.ok) return { status: res.status, error: (await res.text()).slice(0, 3000) };
+      const d = await res.json();
+      // 200 안에 오류가 오기도 한다
+      if (d.error) return { status: d.error.code ?? 0, error: JSON.stringify(d.error).slice(0, 3000) };
+      const m = d.choices?.[0]?.message ?? {};
+      // 인용은 검색 결과 주석에서만 센다. 본문 URL 은 따라 쓴 것일 수 있다
+      const citations = (m.annotations ?? [])
+        .filter((a) => a.type === "url_citation" && a.url_citation?.url)
+        .map((a) => ({ domain: 도메인(a.url_citation.url), title: a.url_citation.title ?? "", url: a.url_citation.url }));
+      const answerUrls = (m.content ?? "").match(/https?:\/\/[^\s)\]>"']+/g) ?? [];
+      return { answer: m.content ?? "", citations, answerUrls };
+    },
+  },
+  {
     engine: "gemini",
     method: "api-gemini-google-search",
     key: process.env.GEMINI_API_KEY,

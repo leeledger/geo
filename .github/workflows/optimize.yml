@@ -8,7 +8,8 @@
 #
 # 발행은 하지 않는다. 초안까지다. 발행되면 다음 날 루프가 알아채 판정 창을 연다.
 #
-# 필요한 시크릿: DATABASE_URL, GEMINI_API_KEY (GROQ_API_KEY 는 있으면 엔진 하나 더)
+# 필요한 시크릿: DATABASE_URL, OPENROUTER_API_KEY (원장이 Vercel robotcoding 에 넣고 GitHub Secrets 로 옮긴다)
+# GEMINI_API_KEY·GROQ_API_KEY 는 무료 한도에 막혀 있다(2026-09-17). 있으면 시도만 한다
 name: optimize
 
 on:
@@ -40,6 +41,8 @@ jobs:
         continue-on-error: true
         working-directory: academy
         env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          OPENROUTER_MODEL: ${{ vars.OPENROUTER_MODEL }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           MEASURE_GEMINI_MODEL: ${{ vars.MEASURE_GEMINI_MODEL }}
@@ -49,6 +52,8 @@ jobs:
       - name: 판정 · 고르기 · 행동
         working-directory: academy
         env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          OPENROUTER_MODEL: ${{ vars.OPENROUTER_MODEL }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           WRITER_PROVIDER: ${{ vars.WRITER_PROVIDER }}

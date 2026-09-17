@@ -433,3 +433,4 @@ Decisions made:
 
 ### Known Gaps
 - KG-7a: 자동 AI 측정용 유료 키 없음 (위). 결정 대기: 제미나이 결제 연결 / OpenAI 키 추가 / Anthropic 키 추가
+- 원장 결정(2026-09-17): 측정·초안 모델을 OpenRouter `stealth/union-alpha` 로. 모델 0원, 웹 검색 플러그인(Exa)은 요청당 $0.007 크레딧(openrouter.ai 문서). 키는 원장이 Vercel `robotcoding` Production 에 `OPENROUTER_API_KEY` 로 넣고, Arch 가 `vercel env pull` → `gh secret set` 으로 GitHub Secrets 에 옮긴다(값은 화면에 안 찍고 임시 파일은 지운다). 키를 바꾸면 이 복사를 다시 해야 한다
