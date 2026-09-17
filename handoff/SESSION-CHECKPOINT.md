@@ -3,7 +3,17 @@
 
 ---
 
-## Where We Stopped (2026-09-17 갱신)
+## Where We Stopped (2026-09-17 23시 갱신) — 에이전트 회사 가동
+
+- 대시보드 카드가 문구만 띄우던 구조를 일감 표(geo.agent_tasks)와 실제 활동(geo.agent_activity)으로 바꿨다
+- company.yml 매시 23분: 정찰·초안·문의·리드·작업 실패 → 일감 → 실행 (운영·측정·콘텐츠·유통·성과). 개선 루프는 optimize.yml 07:05
+- 원장 PC 작업 스케줄러 「Cited Local Agent」 12:40·19:10: 네이버 이관·구글 색인 요청 (첫 실행 9/18 12:40, 실동작 미확인)
+- /admin/drafts 초안 검토·발행, /admin/ops 「원장님이 하실 일」
+- LLM: OpenRouter stealth/union-alpha. 키는 Vercel geo 에만 있고 /api/llm 이 중계 (LLM_PROXY_TOKEN)
+- 원장 대기: 초안 3편 사실 확인·발행, 상담 결과 2건, 아이로그 등재 2건
+- 다음 세션: tools/local-agent.log 와 company 실행 결과 확인, 아이로그 주제 일감(사람 대기)을 전달 파일로 처리
+
+## 이전 (2026-09-17 낮)
 
 후속으로 영업·상담 마감 고리를 구현했다.
 
