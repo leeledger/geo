@@ -1,0 +1,46 @@
+# 에이전트 회사 — 매시간 일감을 만들고 실제로 실행한다
+#
+# 대시보드 카드의 「다음 행동」을 가져가 실행하는 자리다 (academy/scripts/company.mjs).
+# 로그인한 브라우저가 필요한 일(네이버 이관·구글 색인 요청)은 원장 PC 의 tools/local-agent.mjs 가 한다.
+#
+# 필요한 시크릿: DATABASE_URL, LLM_PROXY_URL, LLM_PROXY_TOKEN
+name: company
+
+on:
+  schedule:
+    - cron: "23 * * * *"
+  workflow_dispatch: {}
+
+# 한 시간 안에 안 끝나면 다음 실행은 기다린다. 같은 일감을 둘이 집지 않게
+concurrency:
+  group: company
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  actions: write   # 실패한 작업 다시 돌리기
+
+jobs:
+  work:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm install pg --no-save --silent
+        working-directory: academy
+      - name: 환경 준비
+        working-directory: academy
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: printf 'DATABASE_URL=%s\n' "$DATABASE_URL" > .env.local
+      - name: 출근 · 계획 · 실행
+        working-directory: academy
+        env:
+          GH_TOKEN: ${{ github.token }}
+          LLM_PROXY_URL: ${{ secrets.LLM_PROXY_URL }}
+          LLM_PROXY_TOKEN: ${{ secrets.LLM_PROXY_TOKEN }}
+          OPENROUTER_MODEL: ${{ vars.OPENROUTER_MODEL }}
+        run: node scripts/company.mjs

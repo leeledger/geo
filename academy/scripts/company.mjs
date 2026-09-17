@@ -1,0 +1,483 @@
+/**
+ * 에이전트 회사 — 매시간 일감을 만들고, 집어 가고, 실행하고, 기록한다.
+ *
+ * 전에는 대시보드 카드가 DB 숫자를 보고 「다음 행동」 문장을 골라 띄우기만 했다.
+ * 그 문장을 가져가 실행하는 곳이 없어서 정찰 이슈 6건이 일주일 동안 열려 있었고,
+ * 주간 초안이 실패해도 아무도 몰랐다(2026-09-17 원장 지적).
+ *
+ * 한 번 돌 때
+ *   1. 출근 기록   GitHub 자동 작업들의 최근 실행을 담당별 활동으로 옮긴다 (누가 실제로 일했나)
+ *   2. 계획        신호(정찰·초안·문의·리드·작업 실패)마다 일감을 만든다. 신호가 사라지면 닫는다
+ *   3. 실행        대기 중인 일감을 우선순위대로 집어 실제로 한다. 실패하면 간격을 늘려 다시 한다
+ *
+ * 담당
+ *   ops      운영   작업 실패 재실행·원인 기록, 사이트 점검, 재진단
+ *   measure  측정   노출 재측정, 브랜드 방어, 지는 검색어에서 누가 이기는지 분석
+ *   content  콘텐츠 주간 초안, 질문 겨냥 초안, 초안 AI 티 검사·다듬기
+ *   deliver  유통   색인 알림, 크롤러가 안 읽은 쪽 밀기 (로그인이 필요한 이관·구글 요청은 local-agent)
+ *   sales    성과   상담 결과·리드 후속은 사람 일로 올린다
+ *   improve  개선   daily-agent.mjs 가 따로 돈다 (optimize.yml)
+ *
+ * 사람만 할 수 있는 일(발행 전 사실 확인·로그인·상담 결과)은 「사람 대기」로 올리고 할 곳의 주소를 단다.
+ * 로그인한 브라우저가 필요한 일은 「로컬 대기」— tools/local-agent.mjs 가 원장 PC 에서 집어 간다.
+ *
+ *   node scripts/company.mjs              계획 + 실행
+ *   node scripts/company.mjs --plan       계획만
+ *   node scripts/company.mjs --max 2      이번에 실행할 일감 수
+ */
+import fs from "node:fs";
+import crypto from "node:crypto";
+import { execFileSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
+import { Pool } from "pg";
+import { CLIENTS as CLIENT_CONF } from "../clients.mjs";
+import { 오픈라우터, 재시도 } from "./writer-common.mjs";
+
+for (const l of fs.readFileSync(new URL("../.env.local", import.meta.url), "utf8").split(/\r?\n/)) {
+  const m = /^([A-Z_]+)=(.*)$/.exec(l);
+  if (m && !process.env[m[1]]) process.env[m[1]] = m[2];
+}
+
+const PLAN_ONLY = process.argv.includes("--plan");
+const MAX = Number(process.argv[process.argv.indexOf("--max") + 1]) || 4;
+const BUDGET_MS = 40 * 60 * 1000;
+const START = Date.now();
+const ADMIN = process.env.ADMIN_BASE_URL || "https://geo-rose-nine.vercel.app";
+const REPO = process.env.GITHUB_REPOSITORY || "leeledger/geo";
+const RUN_URL = process.env.GITHUB_RUN_ID ? `${process.env.GITHUB_SERVER_URL}/${REPO}/actions/runs/${process.env.GITHUB_RUN_ID}` : null;
+const HOUSE = 1; // 사이티드 자체 일(작업 실패 등)은 첫 고객사 칸에 둔다 — client_id 가 not null 이다
+
+const u = new URL(process.env.DATABASE_URL);
+u.searchParams.delete("sslmode");
+const pool = new Pool({ connectionString: u.toString(), ssl: { rejectUnauthorized: process.env.DATABASE_SSL_INSECURE !== "true" } });
+const q = (s, p = []) => pool.query(s, p).then((r) => r.rows);
+const ROOT = fileURLToPath(new URL("..", import.meta.url));
+
+const 실행 = (args, timeout = 15 * 60 * 1000) => {
+  try {
+    return { ok: true, out: execFileSync(process.execPath, args, { cwd: ROOT, encoding: "utf8", timeout, env: process.env, maxBuffer: 20 * 1024 * 1024 }) };
+  } catch (e) {
+    return { ok: false, out: `${e.stdout ?? ""}${e.stderr ?? ""}\n${e.message}` };
+  }
+};
+const 끝 = (s, n = 400) => String(s ?? "").replace(/\s+/g, " ").trim().slice(-n);
+
+const 활동 = (clientId, agent, action, ok, summary, taskId = null, runUrl = RUN_URL) =>
+  q(`insert into geo.agent_activity (client_id, agent, action, ok, summary, task_id, run_url) values ($1,$2,$3,$4,$5,$6,$7)`,
+    [clientId, agent, action, ok, String(summary).slice(0, 1000), taskId, runUrl]).catch((e) => console.log("  ⚠ 활동 기록 실패", e.message));
+
+// ─────────────────────────────────────────── LLM (OpenRouter 중계)
+const 물어보기 = async (prompt, maxTokens = 6000) => {
+  const or = 오픈라우터();
+  if (!or) return { error: "OpenRouter 설정 없음" };
+  const res = await 재시도(or.url, {
+    method: "POST",
+    headers: { "content-type": "application/json", authorization: `Bearer ${or.key}` },
+    body: JSON.stringify({
+      model: process.env.OPENROUTER_MODEL || "stealth/union-alpha",
+      max_tokens: maxTokens,
+      messages: [{ role: "user", content: prompt }],
+      response_format: { type: "json_object" },
+    }),
+  }).catch((e) => ({ ok: false, status: 0, text: async () => e.message }));
+  if (!res.ok) return { error: `${res.status} ${끝(await res.text(), 300)}` };
+  const d = await res.json();
+  const text = d.choices?.[0]?.message?.content ?? "";
+  const m = /\{[\s\S]*\}/.exec(text.replace(/^```(json)?|```$/gm, ""));
+  try { return { json: JSON.parse(m?.[0] ?? "") }; }
+  catch { return { error: `JSON 아님: ${text.slice(0, 200)}` }; }
+};
+
+// ─────────────────────────────────────────── 일감 표
+const ensure = async () => {
+  await q(`create table if not exists geo.agent_tasks (id bigserial primary key, client_id int not null references geo.clients(id),
+    agent text not null, kind text not null, dedupe_key text not null, title text not null, detail text not null default '',
+    payload jsonb not null default '{}'::jsonb, status text not null default '대기', priority int not null default 50,
+    attempts int not null default 0, evidence text not null default '', last_error text not null default '', link text,
+    next_try_at timestamptz not null default now(), created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now(), done_at timestamptz, unique (client_id, dedupe_key))`);
+  await q(`create table if not exists geo.agent_activity (id bigserial primary key, client_id int references geo.clients(id),
+    agent text not null, action text not null, ok boolean not null, summary text not null default '', task_id bigint,
+    run_url text, at timestamptz not null default now())`);
+  await q(`alter table academy.posts add column if not exists review_notes jsonb not null default '{}'::jsonb`);
+};
+
+const 본키 = new Set(); // 이번 계획에서 신호가 살아 있는 일감
+/**
+ * 일감을 만든다. 이미 있으면 내용만 갱신하고 상태는 이렇게 다룬다
+ *   닫힘            신호가 다시 떴으니 대기로
+ *   완료            cooldownH 가 지났으면 대기로 (고쳤는데 신호가 남았다 = 다시 할 일)
+ *   관찰            next_try_at 이 지났으면 대기로
+ *   나머지          그대로 (실행 중·사람 대기·로컬 대기·실패는 실행기가 정한다)
+ */
+const 일감 = async (t) => {
+  본키.add(`${t.client_id}:${t.key}`);
+  const status = t.status ?? "대기";
+  await q(
+    `insert into geo.agent_tasks (client_id, agent, kind, dedupe_key, title, detail, payload, priority, status, link)
+     values ($1,$2,$3,$4,$5,$6,$7::jsonb,$8,$9,$10)
+     on conflict (client_id, dedupe_key) do update set
+       title = excluded.title, detail = excluded.detail, payload = geo.agent_tasks.payload || excluded.payload,
+       priority = excluded.priority, link = coalesce(excluded.link, geo.agent_tasks.link), updated_at = now(),
+       status = case
+         when geo.agent_tasks.status = '닫힘' then $9
+         when geo.agent_tasks.status = '완료' and geo.agent_tasks.done_at < now() - make_interval(hours => $11) then $9
+         when geo.agent_tasks.status = '관찰' and geo.agent_tasks.next_try_at <= now() then $9
+         else geo.agent_tasks.status end,
+       next_try_at = case when geo.agent_tasks.status in ('닫힘') then now() else geo.agent_tasks.next_try_at end`,
+    [t.client_id, t.agent, t.kind, t.key, t.title, t.detail ?? "", JSON.stringify(t.payload ?? {}), t.priority ?? 50, status, t.link ?? null, t.cooldownH ?? 24],
+  );
+};
+
+const 상태 = (id, status, patch = {}) =>
+  q(`update geo.agent_tasks set status=$2, updated_at=now(),
+       evidence = case when $3::text = '' then evidence else left(evidence || E'\n' || $3, 4000) end,
+       last_error = coalesce($4, last_error), next_try_at = coalesce($5::timestamptz, next_try_at),
+       done_at = case when $2 in ('완료','닫힘') then now() else done_at end,
+       link = coalesce($6, link), attempts = attempts + $7
+     where id=$1`,
+    [id, status, patch.evidence ?? "", patch.error ?? null, patch.nextTry ?? null, patch.link ?? null, patch.attempt ? 1 : 0]);
+
+const 뒤 = (h) => new Date(Date.now() + h * 3600 * 1000).toISOString();
+const 오늘 = () => new Date().toLocaleString("sv-SE", { timeZone: "Asia/Seoul" }).slice(0, 16);
+
+// ─────────────────────────────────────────── 1. 출근 기록
+const WORKFLOWS = { "watch.yml": "ops", "scout.yml": "ops", "serp.yml": "measure", "snapshot.yml": "deliver", "write.yml": "content", "optimize.yml": "improve" };
+const gh = async (path, init = {}) => {
+  if (!process.env.GH_TOKEN) return null;
+  const r = await fetch(`https://api.github.com/repos/${REPO}${path}`, {
+    ...init, headers: { authorization: `Bearer ${process.env.GH_TOKEN}`, accept: "application/vnd.github+json", ...(init.headers ?? {}) },
+  }).catch(() => null);
+  if (!r) return null;
+  if (r.status === 201 || r.status === 204) return {};
+  return r.ok ? r.json() : { __error: `${r.status} ${끝(await r.text(), 200)}` };
+};
+
+const 출근기록 = async () => {
+  const latest = {};
+  for (const [file, agent] of Object.entries(WORKFLOWS)) {
+    const d = await gh(`/actions/workflows/${file}/runs?per_page=5`);
+    if (!d || d.__error) { console.log(`  ⚠ ${file} 실행 기록을 못 읽음 ${d?.__error ?? "(GH_TOKEN 없음)"}`); continue; }
+    const runs = (d.workflow_runs ?? []).filter((r) => r.status === "completed");
+    latest[file] = runs[0] ?? null;
+    for (const r of runs.reverse()) {
+      const [seen] = await q(`select 1 from geo.agent_activity where run_url=$1 limit 1`, [r.html_url]);
+      if (seen) continue;
+      const ok = r.conclusion === "success";
+      await q(`insert into geo.agent_activity (client_id, agent, action, ok, summary, run_url, at) values ($1,$2,$3,$4,$5,$6,$7)`,
+        [HOUSE, agent, `자동 작업 ${file.replace(".yml", "")}`, ok, `${r.event} · ${r.conclusion}`, r.html_url, r.updated_at]);
+    }
+  }
+  return latest;
+};
+
+// ─────────────────────────────────────────── 2. 계획
+const 계획 = async (clients, latestRuns) => {
+  const bySlug = Object.fromEntries(clients.map((c) => [c.slug, c]));
+
+  // 정찰 신호
+  const sc = 실행(["scripts/scout.mjs", "--json"], 5 * 60 * 1000);
+  let found = [];
+  try { found = JSON.parse(sc.out.slice(sc.out.indexOf("["))); }
+  catch { console.log("  ⚠ 정찰 결과를 못 읽음", 끝(sc.out, 200)); }
+  for (const f of found) {
+    const [prefix, ...rest] = f.key.split("-");
+    const slug = prefix === "cov" ? rest.slice(0, -1).join("-") : rest.join("-");
+    const c = bySlug[slug] ?? bySlug.robotncoding;
+    const base = { client_id: c.id, title: f.what, detail: `${f.why}\n할 일: ${f.todo}` };
+    const vendor = prefix === "cov" ? rest.at(-1) : null;
+    const map = {
+      cov: { agent: "deliver", kind: "crawl-push", key: f.key, priority: 40, payload: { vendor }, cooldownH: 24 * 7 },
+      brand: { agent: "measure", kind: "brand-defense", key: f.key, priority: 10 },
+      rival: { agent: "measure", kind: "who-wins", key: f.key, priority: 30, cooldownH: 24 * 7 },
+      publish: { agent: "content", kind: "weekly-draft", key: f.key, priority: 20, cooldownH: 24 * 3 },
+      naver: { agent: "deliver", kind: "naver-transfer", key: f.key, priority: 40, status: "로컬 대기" },
+      crawl: { agent: "ops", kind: "site-check", key: f.key, priority: 5, cooldownH: 6 },
+      baseline: { agent: "ops", kind: "rescan", key: `rescan-${slug}`, priority: 45, cooldownH: 24 * 3 },
+      rescan: { agent: "ops", kind: "rescan", key: `rescan-${slug}`, priority: 45, cooldownH: 24 * 3 },
+      nomeasure: { agent: "measure", kind: "check-index", key: f.key, priority: 15 },
+      notracker: { agent: "ops", kind: "human", key: f.key, priority: 60, status: "사람 대기" },
+      inquiry: { agent: "sales", kind: "human", key: f.key, priority: 20, status: "사람 대기", link: `${ADMIN}/admin/inquiry` },
+      lead: { agent: "sales", kind: "human", key: f.key, priority: 50, status: "사람 대기", link: `${ADMIN}/admin` },
+    }[prefix];
+    if (!map) { console.log(`  ⚠ 모르는 정찰 신호 ${f.key} — 운영 담당 사람 대기로`); }
+    await 일감({ ...base, ...(map ?? { agent: "ops", kind: "human", key: f.key, priority: 50, status: "사람 대기" }) });
+  }
+
+  // 초안 — 검토 화면에서 읽고 발행할 일
+  for (const p of await q(`select slug, title, client_id from academy.posts where not published order by created_at`)) {
+    await 일감({ client_id: p.client_id, agent: "content", kind: "review", key: `review-${p.slug}`, priority: 15,
+      title: `초안 검토: ${p.title}`, detail: "AI 티를 검사하고 다듬은 뒤, 사실 확인·발행을 원장에게 넘깁니다.",
+      payload: { slug: p.slug }, link: `${ADMIN}/admin/drafts#${p.slug}` });
+  }
+
+  // 상담 결과 미입력 · 새 리드
+  for (const r of await q(`select client_id, count(*)::int n from academy.inquiries where enrolled is null group by client_id`).catch(() => [])) {
+    await 일감({ client_id: r.client_id, agent: "sales", kind: "human", key: "inquiry-result", priority: 20, status: "사람 대기",
+      title: `상담 결과 미입력 ${r.n}건`, detail: "등록했는지 안 했는지를 적어야 노출이 매출로 이어지는지 압니다. 30초면 됩니다.",
+      link: `${ADMIN}/admin/inquiry?c=${r.client_id}` });
+  }
+  const [lead] = await q(`select count(*)::int n from geo.leads where coalesce(status,'new')='new'`).catch(() => [{ n: 0 }]);
+  if (lead?.n > 0) {
+    await 일감({ client_id: HOUSE, agent: "sales", kind: "human", key: "lead-new", priority: 10, status: "사람 대기",
+      title: `연락 안 한 리드 ${lead.n}건`, detail: "진단을 받고 연락처를 남긴 사람입니다. 하루 안에 연락해야 식지 않습니다.", link: `${ADMIN}/admin` });
+  }
+
+  // 자동 작업 실패
+  for (const [file, run] of Object.entries(latestRuns)) {
+    if (!run || run.conclusion === "success" || run.conclusion === "skipped" || run.conclusion === "cancelled") continue;
+    await 일감({ client_id: HOUSE, agent: "ops", kind: "workflow-failed", key: `wf-${file}`, priority: 5, cooldownH: 1,
+      title: `자동 작업 실패: ${file}`, detail: `마지막 실행이 ${run.conclusion} 입니다.`, payload: { file, run_id: run.id, url: run.html_url }, link: run.html_url });
+  }
+
+  // 신호가 사라진 일감은 닫는다. 발행 후 알리기처럼 신호 없이 만든 일감(sticky)은 손대지 않는다
+  const open = await q(`select id, client_id, dedupe_key, title from geo.agent_tasks
+    where status in ('대기','관찰','사람 대기','로컬 대기','실패') and not coalesce((payload->>'sticky')::boolean, false)`);
+  for (const t of open) {
+    if (본키.has(`${t.client_id}:${t.dedupe_key}`)) continue;
+    await 상태(t.id, "닫힘", { evidence: `${오늘()} 신호가 사라져 닫음` });
+    await 활동(t.client_id, "ops", "일감 닫음", true, `신호 사라짐: ${t.title}`, t.id);
+  }
+};
+
+// ─────────────────────────────────────────── 3. 실행기
+const clientOf = (clients, id) => clients.find((c) => c.id === id);
+
+const EXEC = {
+  // ── 운영
+  async "workflow-failed"(t) {
+    const { run_id, file } = t.payload;
+    if (t.attempts === 0) {
+      const r = await gh(`/actions/runs/${run_id}/rerun-failed-jobs`, { method: "POST" });
+      if (r && !r.__error) return { status: "관찰", nextTry: 뒤(2), evidence: `${오늘()} 실패한 잡을 다시 돌림`, attempt: true };
+      return { status: "관찰", nextTry: 뒤(2), evidence: `${오늘()} 재실행 요청 실패 ${r?.__error ?? "GH_TOKEN 없음"}`, attempt: true };
+    }
+    const jobs = await gh(`/actions/runs/${run_id}/jobs`);
+    const steps = (jobs?.jobs ?? []).flatMap((j) => (j.steps ?? []).filter((s) => s.conclusion === "failure").map((s) => `${j.name} › ${s.name}`));
+    return {
+      status: "사람 대기", attempt: true,
+      evidence: `${오늘()} 다시 돌려도 실패. 실패한 단계: ${steps.join(", ") || "확인 못함"}`,
+      error: `Claude 세션에서 코드를 고쳐야 합니다 — ${file}`,
+    };
+  },
+
+  async "site-check"(t, c) {
+    const home = await fetch(`https://${c.domain}/`).then((r) => r.status).catch((e) => `오류 ${e.message}`);
+    const robots = await fetch(`https://${c.domain}/robots.txt`).then(async (r) => `${r.status} ${/Disallow:\s*\/\s*$/m.test(await r.text()) ? "전체 차단 줄 있음" : ""}`).catch((e) => `오류 ${e.message}`);
+    const ok = home === 200 && String(robots).startsWith("200") && !String(robots).includes("차단");
+    return ok
+      ? { status: "관찰", nextTry: 뒤(6), evidence: `${오늘()} 홈 ${home} · robots ${robots} — 사이트는 정상. 크롤러 쪽 공백으로 봄` }
+      : { status: "사람 대기", evidence: `${오늘()} 홈 ${home} · robots ${robots}`, error: "사이트 응답 이상 — 배포·도메인 확인 필요" };
+  },
+
+  async rescan(t, c) {
+    const r = 실행(["scripts/rescan.mjs", "--client", c.slug]);
+    return r.ok ? { status: "완료", evidence: `${오늘()} 재진단 ${끝(r.out, 160)}` } : { status: "실패", error: 끝(r.out), attempt: true };
+  },
+
+  // ── 측정
+  async "check-index"() {
+    const r = 실행(["scripts/check-index.mjs"]);
+    return r.ok ? { status: "완료", evidence: `${오늘()} 노출 재측정 ${끝(r.out, 160)}` } : { status: "실패", error: 끝(r.out), attempt: true };
+  },
+
+  async "brand-defense"(t, c) {
+    const idx = 실행(["scripts/indexnow.mjs", "--client", c.slug, "/"]);
+    const sent = idx.ok && /접수됨/.test(idx.out);
+    if (t.attempts >= 3) {
+      return { status: "사람 대기", attempt: true, evidence: `${오늘()} 색인 알림 ${sent ? "접수" : "실패"} · 3회 밀어도 이름 검색에 안 나옴`,
+        error: "구글 서치콘솔 색인 요청과 네이버 플레이스·서치어드바이저 등록 상태를 확인해야 합니다 (로그인 필요)" };
+    }
+    return { status: "관찰", nextTry: 뒤(24), attempt: true, evidence: `${오늘()} 홈 색인 알림 ${sent ? "접수" : "실패"} — 내일 측정에서 다시 봄` };
+  },
+
+  async "who-wins"(t, c, clients) {
+    const r = 실행(["scripts/who-wins.mjs", "--client", c.slug], 10 * 60 * 1000);
+    if (!r.ok || r.out.length < 200) return { status: "실패", attempt: true, error: `이기는 지면을 못 가져옴 ${끝(r.out, 200)}` };
+    const ans = await 물어보기([
+      "너는 지역 학원의 검색 노출을 맡은 분석가다. 아래는 네이버 웹문서에서 우리가 안 나오는 검색어마다 무엇이 이기고 있는지다.",
+      `우리: ${c.name} (${c.domain})`,
+      "검색어마다 하나를 골라라:",
+      '- "content": 블로그·칼럼·비교글이 이기는 자리. 우리 사이트에 그 검색어에 곧장 답하는 글을 쓰면 겨룰 수 있다',
+      '- "listing": 학원 목록·지도·플랫폼(예: 학원 정보 모음, 지도, 카페)이 이기는 자리. 글이 아니라 그곳에 등재돼야 한다',
+      "지어내지 마라. 출력에 없는 사이트를 적지 마라.",
+      '형식: {"items":[{"query":"검색어","action":"content|listing","question":"학부모가 실제로 칠 질문형 문장","targets":["이기는 도메인"],"reason":"한 줄"}]}',
+      "",
+      r.out.slice(-12000),
+    ].join("\n"));
+    if (ans.error) return { status: "실패", attempt: true, error: `분석 실패: ${ans.error}` };
+    const made = [];
+    for (const it of ans.json.items ?? []) {
+      if (!it?.query) continue;
+      const h = crypto.createHash("sha1").update(it.query).digest("hex").slice(0, 10);
+      if (it.action === "listing") {
+        await 일감({ client_id: c.id, agent: "deliver", kind: "listing", key: `listing-${h}`, priority: 35, status: "사람 대기",
+          title: `등재 필요: 「${it.query}」`, detail: `${it.reason ?? ""}\n이기는 곳: ${(it.targets ?? []).join(", ")}. 등록·수정은 업체 로그인이 필요합니다.`,
+          payload: { sticky: true, query: it.query, targets: it.targets ?? [] } });
+      } else {
+        await 일감({ client_id: c.id, agent: "content", kind: "question-draft", key: `qdraft-${h}`, priority: 35,
+          title: `겨냥 초안: 「${it.question || it.query}」`, detail: `${it.reason ?? ""}\n이기는 곳: ${(it.targets ?? []).join(", ")}`,
+          payload: { sticky: true, question: it.question || it.query, stage: "local", sources: it.targets ?? [] } });
+      }
+      made.push(`${it.query}→${it.action}`);
+    }
+    return { status: "관찰", nextTry: 뒤(24 * 7), evidence: `${오늘()} 분석: ${made.join(" · ") || "만든 일감 없음"}` };
+  },
+
+  // ── 콘텐츠
+  async "weekly-draft"(t, c) {
+    const [d] = await q(`select count(*)::int n from academy.posts where client_id=$1 and not published`, [c.id]);
+    if (d.n > 0) {
+      return { status: "사람 대기", evidence: `${오늘()} 검토 대기 초안 ${d.n}편이 있어 새로 쓰지 않음`,
+        error: "초안을 사실 확인하고 발행하면 주 1편이 이어집니다", link: `${ADMIN}/admin/drafts` };
+    }
+    if (c.id !== 1) return { status: "사람 대기", error: "이 고객사는 사이트 글을 우리가 올리지 않습니다 (clients.mjs publishes=false)" };
+    let r = 실행(["scripts/write-news.mjs"]);
+    if (!/DRAFT_SLUG=|초안으로 넣었습니다/.test(r.out)) r = 실행(["scripts/write-draft.mjs"]);
+    const slug = /DRAFT_SLUG=(\S+)/.exec(r.out)?.[1];
+    return slug ? { status: "완료", evidence: `${오늘()} 초안 작성 /blog/${slug}` } : { status: "실패", attempt: true, error: 끝(r.out) };
+  },
+
+  async "question-draft"(t, c) {
+    const [d] = await q(`select count(*)::int n from academy.posts where client_id=$1 and not published`, [c.id]);
+    if (d.n >= 3) return { status: "대기", nextTry: 뒤(12), evidence: `${오늘()} 검토 대기 초안 ${d.n}편 — 발행이 밀려 미룸` };
+    const p = t.payload;
+    const r = 실행(["scripts/write-draft.mjs", "--question", p.question, "--stage", p.stage ?? "local", "--sources", (p.sources ?? []).join(",")]);
+    const slug = /DRAFT_SLUG=(\S+)/.exec(r.out)?.[1];
+    return slug ? { status: "완료", evidence: `${오늘()} 초안 /blog/${slug}`, link: `${ADMIN}/admin/drafts#${slug}` } : { status: "실패", attempt: true, error: 끝(r.out) };
+  },
+
+  async review(t) {
+    const slug = t.payload.slug;
+    const [post] = await q(`select slug, body, published, coalesce(review_notes,'{}'::jsonb) notes from academy.posts where slug=$1`, [slug]);
+    if (!post || post.published) return { status: "닫힘", evidence: `${오늘()} 이미 발행됐거나 없음` };
+    const 검사 = () => {
+      const r = 실행(["scripts/slop-check.mjs", slug], 2 * 60 * 1000);
+      return [...r.out.matchAll(/^\s{4}(.+?) (\d+)곳 — (.+)$/gm)].map((m) => ({ why: m[1], sample: m[3].split(", ") }));
+    };
+    let 티 = 검사();
+    const notes = { ...post.notes, AI티: 티 };
+    let 다듬음 = "";
+    if (티.length && !post.notes.다듬음) {
+      const 숫자 = (s) => new Set(s.match(/\d+/g) ?? []);
+      const ans = await 물어보기([
+        "아래 마크다운 글에서 지적된 표현만 고쳐라. 내용·사실·주장·순서·소제목은 바꾸지 마라. 새 사실이나 숫자를 넣지 마라.",
+        "고칠 때는 문장을 짧게 끊고, 빈 강조·흐린 마무리·훈계조 대신 구체적인 판단으로 바꾼다. 못 바꾸겠으면 그 문장을 지운다.",
+        `지적된 표현: ${티.map((x) => `${x.why}(${x.sample.join(", ")})`).join(" / ")}`,
+        '형식: {"body":"고친 전체 마크다운"}',
+        "",
+        post.body,
+      ].join("\n"), 12000);
+      const body = ans.json?.body;
+      const 새숫자 = body ? [...숫자(body)].filter((n) => !숫자(post.body).has(n)) : [];
+      if (!body) 다듬음 = `다듬기 실패: ${ans.error ?? "본문 없음"}`;
+      else if (body.length < post.body.length * 0.8 || body.length > post.body.length * 1.15) 다듬음 = `다듬기 결과를 버림: 길이가 ${post.body.length}→${body.length}자로 너무 바뀜`;
+      else if (새숫자.length) 다듬음 = `다듬기 결과를 버림: 없던 숫자 ${새숫자.join(", ")} 가 생김`;
+      else {
+        await q(`update academy.posts set body=$2, updated_at=now() where slug=$1 and not published`, [slug, body]);
+        const 전 = 티.length;
+        티 = 검사();
+        다듬음 = `콘텐츠 담당이 AI 티 표현을 다듬음 (걸린 종류 ${전}→${티.length}). 사실은 원문 그대로인지 확인해 주세요.`;
+        notes.AI티 = 티;
+      }
+      // 모델 호출이 실패한 건 「다듬음」으로 굳히지 않는다 — 다음 실행에서 다시 해 본다
+      if (!다듬음.startsWith("다듬기 실패")) notes.다듬음 = 다듬음;
+    }
+    await q(`update academy.posts set review_notes=$2::jsonb where slug=$1`, [slug, JSON.stringify(notes)]);
+    if (다듬음.startsWith("다듬기 실패") && t.attempts < 2) {
+      return { status: "실패", attempt: true, evidence: `${오늘()} AI 티 ${티.length}종 · ${다듬음}`, error: 다듬음 };
+    }
+    return { status: "사람 대기", link: `${ADMIN}/admin/drafts#${slug}`,
+      evidence: `${오늘()} AI 티 검사 ${티.length ? `걸림 ${티.length}종` : "걸린 표현 없음"}${다듬음 ? ` · ${다듬음}` : ""}`,
+      error: "사실 확인 후 발행 (검토 화면에서 한 번에)" };
+  },
+
+  // ── 유통
+  async announce(t, c) {
+    const slug = t.payload.slug;
+    const r = 실행(["scripts/indexnow.mjs", "--client", c.slug, `/blog/${slug}`, "/blog", "/"]);
+    const sent = r.ok && /접수됨/.test(r.out);
+    if (!sent) return { status: "실패", attempt: true, nextTry: 뒤(1), error: `IndexNow ${끝(r.out, 200)}` };
+    await 일감({ client_id: c.id, agent: "deliver", kind: "gsc-submit", key: `gsc-${slug}`, priority: 30, status: "로컬 대기",
+      title: `구글 색인 요청: /blog/${slug}`, detail: "서치콘솔 로그인 창이 필요해 원장 PC 의 local-agent 가 합니다.",
+      payload: { sticky: true, url: `https://${c.domain}/blog/${slug}` } });
+    await 일감({ client_id: c.id, agent: "deliver", kind: "naver-transfer", key: `naver-post-${slug}`, priority: 30, status: "로컬 대기",
+      title: `네이버 이관: /blog/${slug}`, detail: "네이버 블로그 로그인 창이 필요해 원장 PC 의 local-agent 가 합니다.",
+      payload: { sticky: true, slug } });
+    return { status: "완료", evidence: `${오늘()} IndexNow 접수 (Bing·Naver) · 구글 요청과 네이버 이관을 로컬 일감으로 넘김` };
+  },
+
+  async "crawl-push"(t, c) {
+    const vendor = t.payload.vendor;
+    const miss = await q(
+      `with pages as (select path from academy.site_pages where client_id=$1
+                      union select '/blog/' || slug from academy.posts where client_id=$1 and published)
+       select path from pages p
+        where not exists (select 1 from academy.crawl_hits h where h.client_id=$1 and h.vendor=$2 and h.path=p.path)
+        order by path limit 100`, [c.id, vendor]);
+    if (!miss.length) return { status: "완료", evidence: `${오늘()} ${vendor} 가 안 읽은 쪽이 없음` };
+    if (t.attempts >= 3) {
+      const how = { openai: "Bing Webmaster Tools 에서 URL 제출 (OpenAI 는 빙 색인에 기댑니다)", naver: "네이버 서치어드바이저 수집 요청·사이트맵 제출 (캡차가 떠 사람 몫)", google: "서치콘솔 사이트맵·색인 요청", anthropic: "외부 링크를 늘리는 수밖에 없습니다" }[vendor] ?? "robots·링크 구조 점검";
+      return { status: "사람 대기", attempt: true, evidence: `${오늘()} 3주 동안 IndexNow 로 밀어도 ${vendor} 미수집 ${miss.length}쪽`, error: how };
+    }
+    const r = 실행(["scripts/indexnow.mjs", "--client", c.slug, ...miss.map((m) => m.path)]);
+    const sent = r.ok && /접수됨/.test(r.out);
+    return sent
+      ? { status: "관찰", nextTry: 뒤(24 * 7), attempt: true, evidence: `${오늘()} ${vendor} 미수집 ${miss.length}쪽을 IndexNow 로 알림 — 7일 뒤 커버리지 다시 봄` }
+      : { status: "실패", attempt: true, nextTry: 뒤(6), error: `IndexNow ${끝(r.out, 200)}` };
+  },
+};
+
+// ─────────────────────────────────────────── 실행 루프
+const 근무 = async (clients) => {
+  // 멈춘 실행 중 일감 되살리기 (러너가 죽으면 실행 중으로 남는다)
+  await q(`update geo.agent_tasks set status='대기', evidence = left(evidence || E'\n' || '실행 중 멈춰 되돌림', 4000)
+            where status='실행 중' and updated_at < now() - interval '90 minutes'`);
+  const todo = await q(
+    `select * from geo.agent_tasks where status='대기' and next_try_at <= now() and kind = any($1)
+      order by priority, next_try_at limit $2`, [Object.keys(EXEC), MAX]);
+  console.log(`\n── 실행할 일감 ${todo.length}건`);
+  for (const t of todo) {
+    if (Date.now() - START > BUDGET_MS) { console.log("  시간 예산 소진 — 다음 실행으로"); break; }
+    const c = clientOf(clients, t.client_id);
+    await 상태(t.id, "실행 중");
+    console.log(`  ▶ [${t.agent}] ${t.title}`);
+    let res;
+    try { res = await EXEC[t.kind](t, c, clients); }
+    catch (e) { res = { status: "실패", error: e.message, attempt: true }; }
+    // 실패는 간격을 늘려 다시. 세 번 넘으면 사람에게 (코드 고칠 일일 가능성이 크다)
+    if (res.status === "실패") {
+      const n = t.attempts + 1;
+      if (n >= 3) res = { ...res, status: "사람 대기", error: `3번 실패 — ${res.error ?? ""}` };
+      else res = { ...res, status: "대기", nextTry: res.nextTry ?? 뒤(n === 1 ? 1 : 6) };
+    }
+    await 상태(t.id, res.status, res);
+    const ok = !/실패/.test(`${res.error ?? ""} ${res.status}`);
+    await 활동(t.client_id, t.agent, t.title, ok, `${res.status} · ${(res.evidence ?? res.error ?? "").trim().slice(0, 300)}`, t.id);
+    console.log(`    → ${res.status} ${(res.evidence ?? "").trim()} ${res.error ? `| ${res.error}` : ""}`);
+  }
+};
+
+const main = async () => {
+  await ensure();
+  const clients = (await q(`select id, slug, name, domain from geo.clients where coalesce(status,'') <> 'ended' order by id`)
+    .catch(() => q(`select id, slug, name, domain from geo.clients order by id`)))
+    .map((c) => ({ ...c, conf: CLIENT_CONF.find((x) => x.id === c.id) }));
+
+  console.log(`에이전트 회사 · ${오늘()} KST`);
+  const latest = await 출근기록();
+  await 계획(clients, latest);
+  const [s] = await q(`select count(*) filter (where status='대기')::int wait, count(*) filter (where status='사람 대기')::int human,
+      count(*) filter (where status='로컬 대기')::int local, count(*) filter (where status='관찰')::int watch from geo.agent_tasks`);
+  console.log(`  일감: 대기 ${s.wait} · 관찰 ${s.watch} · 사람 대기 ${s.human} · 로컬 대기 ${s.local}`);
+  if (!PLAN_ONLY) await 근무(clients);
+  await 활동(HOUSE, "ops", "회사 루프", true, `대기 ${s.wait} · 관찰 ${s.watch} · 사람 대기 ${s.human} · 로컬 대기 ${s.local}`);
+  if (process.env.GITHUB_STEP_SUMMARY) {
+    const rows = await q(`select agent, status, title from geo.agent_tasks where status not in ('완료','닫힘') order by priority`);
+    fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `### 에이전트 회사 ${오늘()}\n` + rows.map((r) => `- [${r.agent}] ${r.status} · ${r.title}`).join("\n") + "\n");
+  }
+};
+
+main()
+  .catch((e) => { console.log("실패:", e.stack ?? e.message); process.exitCode = 1; })
+  .finally(() => pool.end());

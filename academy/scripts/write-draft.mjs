@@ -256,6 +256,11 @@ const main = async () => {
       [slug, post.title, post.summary, post.body, 고른것.category, post.tags ?? 고른것.tags, CLIENT],
     );
   }
+  // 검토 화면(/admin/drafts)이 읽는다. 콘솔에만 찍으면 원장은 볼 길이 없다
+  await q(
+    `update academy.posts set review_notes = $2::jsonb where slug = $1 and not published`,
+    [slug, JSON.stringify({ 확인필요: post.확인필요 ?? [], 짜임새: 흠, 모델: 공급자.model, 질문: QUESTION ?? null, 경쟁출처: SOURCES, 쓴날: new Date().toISOString() })],
+  ).catch((e) => console.log("  ⚠ 검토 메모를 못 남겼습니다:", e.message));
   console.log(`DRAFT_SLUG=${slug}`);
 
   // Actions 가 이 슬러그로 AI 티 검사를 돌린다. 안 넘기면 발행된 글만 보고
