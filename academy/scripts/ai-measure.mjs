@@ -52,7 +52,7 @@ const ENGINES = [
         headers: { "content-type": "application/json", "x-goog-api-key": e.key },
         body: JSON.stringify({ contents: [{ parts: [{ text }] }], tools: [{ google_search: {} }] }),
       });
-      if (!res.ok) return { status: res.status, error: (await res.text()).slice(0, 600) };
+      if (!res.ok) return { status: res.status, error: (await res.text()).slice(0, 3000) };
       const d = await res.json();
       const answer = (d.candidates?.[0]?.content?.parts ?? []).map((p) => p.text ?? "").join("");
       // 근거 조각의 uri 는 구글 중계 주소다. 제목 자리에 원래 도메인이 온다
@@ -74,7 +74,7 @@ const ENGINES = [
         headers: { "content-type": "application/json", authorization: `Bearer ${e.key}` },
         body: JSON.stringify({ model: e.model, messages: [{ role: "user", content: text }] }),
       });
-      if (!res.ok) return { status: res.status, error: (await res.text()).slice(0, 600) };
+      if (!res.ok) return { status: res.status, error: (await res.text()).slice(0, 3000) };
       const d = await res.json();
       const m = d.choices?.[0]?.message ?? {};
       // 검색 결과 모양이 판마다 조금씩 달라 url 을 가진 것은 전부 줍는다.
@@ -151,7 +151,8 @@ const main = async () => {
       if (r.error) {
         fail++;
         마지막오류 = `${r.status} ${r.error.replace(/\s+/g, " ").slice(0, 300)}`;
-        console.log(`  ✗ ${e.engine} ${x.prompt_id} ${마지막오류.slice(0, 160)}`);
+        // 429 본문은 어느 한도(분당·일일·무료 등급)인지를, 404 는 쓸 모델 이름을 담아 온다. 첫 실패는 끝까지 찍는다
+        console.log(`  ✗ ${e.engine} ${x.prompt_id} ${fail === 1 ? `${r.status} ${r.error.replace(/\s+/g, " ")}` : 마지막오류.slice(0, 160)}`);
         // 한도·키·모델 문제는 나머지 질문도 똑같이 막힌다. 계속 두드리지 않는다
         if ([400, 401, 403, 404, 429].includes(r.status)) break;
         await 쉼(e.gap);
