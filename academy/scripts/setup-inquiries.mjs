@@ -43,6 +43,7 @@ await pool.query(`
   )`);
 
 await pool.query(`create index if not exists inquiries_day_idx on academy.inquiries (day desc)`);
+await pool.query(`alter table academy.inquiries add column if not exists client_id int not null default 1`);
 
 /** 유입 경로는 몇 가지로 고정한다. 자유 입력만 두면 나중에 셀 수가 없다. */
 await pool.query(`
@@ -53,9 +54,10 @@ await pool.query(`
     count(*) filter (where source in ('네이버검색','구글검색','AI'))::int as from_search,
     count(*) filter (where source = 'AI')::int                 as from_ai,
     count(*) filter (where source = '소개')::int               as from_word,
-    count(*) filter (where enrolled)::int                      as enrolled
+    count(*) filter (where enrolled)::int                      as enrolled,
+    client_id
   from academy.inquiries
-  group by 1 order by 1 desc`);
+  group by 1, 7 order by 1 desc, 7`);
 
 const { rows } = await pool.query(`select count(*)::int n from academy.inquiries`);
 console.log(`academy.inquiries 준비됨 · 지금 ${rows[0].n}건`);

@@ -68,11 +68,18 @@ export async function listInquiries(limit = 60): Promise<Inquiry[]> {
   }
 }
 
-export async function inquirySummary(): Promise<Summary[]> {
+export async function inquirySummary(clientId?: number): Promise<Summary[]> {
   try {
     const { rows } = await inqPool().query(
-      `select month::text, total, from_search, from_ai, enrolled
-         from academy.inquiry_summary limit 6`,
+      `select date_trunc('month', day)::date::text as month,
+              count(*)::int as total,
+              count(*) filter (where source in ('네이버검색','구글검색','AI'))::int as from_search,
+              count(*) filter (where source = 'AI')::int as from_ai,
+              count(*) filter (where enrolled)::int as enrolled
+         from academy.inquiries
+        where ($1::int is null or client_id = $1)
+        group by 1 order by 1 desc limit 6`,
+      [clientId ?? null],
     );
     return rows.map((r) => ({
       month: r.month,

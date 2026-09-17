@@ -29,6 +29,7 @@ for (const l of fs.readFileSync(new URL("../.env.local", import.meta.url), "utf8
 
 const PRIVATE = process.argv.includes("--private");
 const START = new Date("2026-09-05T00:00:00+09:00");
+const CLIENT_ID = 1;
 
 const u = new URL(process.env.DATABASE_URL);
 u.searchParams.delete("sslmode");
@@ -39,28 +40,44 @@ const pool = new Pool({
 
 // ── 데이터 수집
 const [posts] = (await pool.query(
-  `select count(*)::int n, coalesce(sum(length(body)),0)::int chars from academy.published_posts`,
+  `select count(*)::int n, coalesce(sum(length(body)),0)::int chars
+     from academy.posts where client_id=$1 and published`, [CLIENT_ID],
 )).rows;
 const [drafts] = (await pool.query(
-  `select count(*)::int n from academy.posts where not published`,
+  `select count(*)::int n from academy.posts where client_id=$1 and not published`, [CLIENT_ID],
 )).rows;
-const crawl = (await pool.query(`select * from academy.crawl_summary`)).rows;
+const crawl = (await pool.query(`
+  select bot, vendor, count(*)::int hits, count(distinct path)::int pages,
+         min(seen_at) first_seen, max(seen_at) last_seen
+    from academy.crawl_hits where client_id=$1
+   group by bot, vendor order by max(seen_at) desc`, [CLIENT_ID])).rows;
 const firstHit = (await pool.query(
-  `select min(seen_at) t from academy.crawl_hits`,
+  `select min(seen_at) t from academy.crawl_hits where client_id=$1`, [CLIENT_ID],
 )).rows[0]?.t;
 const snaps = (await pool.query(
   `select day, posts, crawl_total, vendors from academy.snapshots order by day`,
 )).rows;
 const hitPaths = (await pool.query(
-  `select path, count(*)::int n from academy.crawl_hits group by path order by n desc limit 6`,
+  `select path, count(*)::int n from academy.crawl_hits where client_id=$1 group by path order by n desc limit 6`, [CLIENT_ID],
 )).rows;
+
+let aiRounds = [];
+try {
+  aiRounds = (await pool.query(`
+    select measured_on::text as measured_day, collection_method, engine,
+           count(*)::int n, count(*) filter (where cited)::int cited,
+           count(*) filter (where mentioned and not cited)::int mentioned
+      from academy.ai_measurements where client_id=$1
+     group by measured_on, collection_method, engine order by measured_on`, [CLIENT_ID])).rows;
+} catch { /* 이전 배포에서는 표가 없을 수 있다 */ }
 
 // 검색 노출 — 오늘 상태와, 각 질의가 처음 잡힌 날
 // 하루에 두 번 돌면 같은 질의가 두 줄 들어온다. 질의마다 한 줄, 걸린 쪽을 남긴다.
 const serpRaw = (await pool.query(
   `select engine, kind, query, hit, rank from academy.serp_checks
-    where day = (select max(day) from academy.serp_checks)
+    where client_id=$1 and day = (select max(day) from academy.serp_checks where client_id=$1)
     order by engine, kind desc, query`,
+  [CLIENT_ID],
 )).rows;
 const serpBy = new Map();
 for (const r of serpRaw) {
@@ -71,7 +88,7 @@ for (const r of serpRaw) {
 const serp = [...serpBy.values()];
 const serpFirst = (await pool.query(
   `select engine, query, min(day) d from academy.serp_checks
-    where hit group by engine, query order by min(day), engine`,
+    where client_id=$1 and hit group by engine, query order by min(day), engine`, [CLIENT_ID],
 )).rows;
 
 // 사이트 점수 (probe 측정 결과)
@@ -145,7 +162,7 @@ const TODO = [
   ["엔진별 인용률 측정", "색인이 잡힌 뒤에 센다. 지금 세면 전 엔진 0% 가 나올 것이 뻔하다."],
 ];
 
-const TITLE = PRIVATE ? "로봇&amp;코딩학원 · AI 노출 리포트" : "도입 사례 · 수도권 코딩·로봇 학원 · AI 노출 리포트";
+const TITLE = PRIVATE ? "로봇&amp;코딩학원 · AI 노출 리포트" : "자사 실증 기록 · 수도권 코딩·로봇 학원 · AI 노출 리포트";
 const rivalHit = serp.some((r) => r.hit && r.kind === "경쟁");
 /** 엔진이 셋이다. 전에는 「naver 가 아니면 Bing」이라 통합검색 노출이 Bing 으로 찍혔다. */
 const ENG = { naver: "네이버 웹문서", naver_all: "네이버 통합검색", bing: "Bing" };
@@ -212,12 +229,12 @@ footer{padding:40px 0 68px;margin-top:42px;border-top:1px solid var(--line);colo
 </style>
 
 <header><div class="wrap">
-  <div class="eb">Case Study · 진행중</div>
+  <div class="eb">Self-run pilot · 진행중</div>
   <h1>${TITLE}</h1>
   <p class="dek">
     ${PRIVATE
       ? `서울 송파구 석촌동 코딩·로봇·AI 학원. 착수 <b>2026년 9월 5일</b>. 생성 시각 ${d(new Date())}.`
-      : `수도권의 코딩·로봇 교육 학원입니다. <b>학원 이름·지역·사이트 주소·경쟁 학원은 가렸습니다.</b>
+      : `운영자가 직접 운영하는 코딩·로봇 교육 학원에서 수행한 자사 실증입니다. <b>학원 이름·지역·사이트 주소·경쟁 학원은 가렸습니다.</b>
     날짜는 착수일을 1일차로 셉니다. 착수 ${nth(new Date())}일차에 갱신했습니다.`}
     이 문서는 <b>DB 에서 자동 생성</b>되며, 아직 확인되지 않은 것은 확인되지 않았다고 적습니다.
   </p>
@@ -342,11 +359,11 @@ ${serpFirst.length ? `
   <h2><span class="n">06</span>아직 모르는 것</h2>
   <p class="sub">케이스 스터디에서 이 항목을 빼면 신뢰를 잃습니다.</p>
   <div class="box">
-    <p><b>AI 인용은 기준선 한 번만 셌습니다 — 0 / 8.</b>
-    검색을 켠 AI 한 곳에 학부모 질문 8개를 한 번씩 물었고, 이 학원 사이트를 출처로 단 답은 없었습니다.
-    학원 이름이 나온 답 2개의 출처는 오늘학교·순위닷 같은 학원 목록 사이트였습니다.
-    엔진 하나에 한 번씩이라 비율로 말할 수는 없습니다. 넓은 측정(33개 질문 &times; 5회 반복)은
-    ${serp.some((r) => r.hit) ? "검색에 올라온 지 며칠 안 돼서, 색인이 더 잡힌 뒤에 돌립니다." : "색인이 확인된 뒤에 돌립니다."}</p>
+    <p><b>AI 답변 측정은 ${aiRounds.length ? `${aiRounds.length}회차가 있습니다` : "아직 없습니다"}.</b>
+    ${aiRounds.length ? aiRounds.map((r) => `${day(r.measured_day)} ${esc(r.engine)}: 사이트 인용 ${r.cited}/${r.n}, 출처 없이 이름만 언급 ${r.mentioned}/${r.n}`).join("<br>") : "같은 질문과 조건으로 기준선을 먼저 남겨야 합니다."}
+    ${aiRounds.length === 1 ? "기준선 한 번뿐이므로 개선률을 말할 수 없습니다." : "측정 방법이 같을 때만 전후를 비교합니다."}
+    첫 기준선에서 학원 이름이 나온 답의 출처는 오늘학교·순위닷 같은 학원 목록 사이트였습니다.
+    현재 ChatGPT 부분 측정에서는 공식 사이트 직접 링크가 1건 확인됐습니다. 엔진과 표본이 달라 성과 비율로 합치지 않습니다.</p>
     <p><b>이 케이스에는 약점이 있습니다.</b> 학원 대표가 곧 이 프로젝트의 의뢰인이라
     사이트를 즉시 고칠 수 있었습니다. 실제 고객사는 도메인 권한·개발팀·결재 라인이 있어
     같은 작업에 몇 주가 걸립니다. <b>다음 고객사에서 시험할 것은 기술이 아니라 리드타임입니다.</b></p>

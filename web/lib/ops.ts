@@ -46,6 +46,16 @@ export type Ops = {
     brandLost: string[];
   };
   place: { query: string; rank: number }[];
+  ai: {
+    day: string | null;
+    engine: string | null;
+    method: string | null;
+    prompts: number;
+    cited: number;
+    mentioned: number;
+    rounds: number;
+    comparable: boolean;
+  };
   recent: { title: string; slug: string; at: string }[];
   firstSeen: { engine: string; query: string; day: string }[];
   /**
@@ -189,6 +199,7 @@ export async function readOps(client?: Client): Promise<Ops> {
     crawl: { last24h: 0, vendors: [], totalPages: 0 },
     serp: { day: null, hits: [], total: 0, rivalWon: 0, rivalTotal: 0, brandLost: [] },
     place: [],
+    ai: { day: null, engine: null, method: null, prompts: 0, cited: 0, mentioned: 0, rounds: 0, comparable: false },
     recent: [],
     firstSeen: [],
     lastAt: { content: null, deliver: null, crawler: null, measure: null, next: null },
@@ -238,6 +249,29 @@ export async function readOps(client?: Client): Promise<Ops> {
        where ${ME} and rank is not null
          and day = (select max(day) from ${S}.place_checks where ${ME})
        order by rank`);
+
+    let ai = empty.ai;
+    try {
+      const rounds = await q(`
+        select measured_on::text as measured_day, collection_method, engine,
+               count(*)::int prompts,
+               count(*) filter (where cited)::int cited,
+               count(*) filter (where mentioned and not cited)::int mentioned
+          from academy.ai_measurements where ${ME}
+         group by measured_on, collection_method, engine order by measured_on desc`);
+      const comparable = rounds.some((r) => rounds.some((x) =>
+        x !== r && x.engine === r.engine && x.collection_method === r.collection_method));
+      if (rounds[0]) ai = {
+        day: rounds[0].measured_day,
+        engine: rounds[0].engine,
+        method: rounds[0].collection_method,
+        prompts: rounds[0].prompts,
+        cited: rounds[0].cited,
+        mentioned: rounds[0].mentioned,
+        rounds: rounds.length,
+        comparable,
+      };
+    } catch { /* 아직 측정 표가 없는 고객사는 0건으로 보인다 */ }
 
     const recent = await q(`
       select title, slug, published_at::text at from ${S}.posts
@@ -302,6 +336,7 @@ export async function readOps(client?: Client): Promise<Ops> {
         next: seen?.next ? new Date(seen.next).toISOString() : null,
       },
       place: place.map((r) => ({ query: r.query, rank: r.rank })),
+      ai,
       recent: recent.map((r) => ({ title: r.title, slug: r.slug, at: r.at })),
       firstSeen: firstSeen.map((r) => ({ engine: r.engine, query: r.query, day: r.first_day })),
     };

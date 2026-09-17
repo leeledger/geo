@@ -177,7 +177,7 @@ export default async function OpsPage({
   const clients = await listClients();
   const client = clients.find((x) => x.slug === want) ?? clients[0] ?? null;
 
-  const [d, inq] = await Promise.all([readOps(client ?? undefined), inquirySummary()]);
+  const [d, inq] = await Promise.all([readOps(client ?? undefined), inquirySummary(client?.id)]);
   const im = inq[0];
   // 「최고 커버리지」는 듣기 좋은 숫자였다. 실제로 손봐야 하는 건 제일 낮은 쪽이다 —
   // google 95% 옆에 openai 15% 가 있으면 문제는 openai 다.
@@ -241,6 +241,13 @@ export default async function OpsPage({
         <p className="sub">에이전트의 실행 상태와 구분해서 보는 측정 결과입니다.</p>
         {d.ok && <>
         <div className="ops-kpis">
+          <div className={`ops-kpi ${d.ai.comparable && d.ai.cited > 0 ? "ok" : "warn"}`}>
+            <div className="v">{d.ai.cited}<small> / {d.ai.prompts}</small></div>
+            <div className="k">
+              AI 답변의 자사 사이트 인용 · {fmtDay(d.ai.day)}
+              <em>{!d.ai.comparable ? "같은 엔진·방법 재측정 필요 · 서로 다른 회차는 개선률로 합치지 않음" : `${d.ai.engine} · ${d.ai.method}`}</em>
+            </div>
+          </div>
           <div className={`ops-kpi ${d.posts.sinceDays === null ? "" : d.posts.sinceDays <= 7 ? "ok" : "warn"}`}>
             <div className="v">{d.posts.published}<small>편</small></div>
             <div className="k">발행 · 마지막 {d.posts.sinceDays ?? "?"}일 전</div>

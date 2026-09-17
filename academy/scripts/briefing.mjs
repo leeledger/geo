@@ -137,10 +137,16 @@ if (place.length) {
 // ── 문의 ─────────────────────────────────────────
 line("\n【 문의 】");
 try {
-  const [im] = await q(`select * from academy.inquiry_summary limit 1`);
+  const [im] = await q(`
+    select count(*)::int total,
+           count(*) filter (where source in ('네이버검색','구글검색','AI'))::int from_search,
+           count(*) filter (where source = 'AI')::int from_ai,
+           count(*) filter (where enrolled)::int enrolled
+      from academy.inquiries
+     where client_id = $1 and day >= date_trunc('month', current_date)`, [HOME.id]);
   const recent = await q(`
     select day::text d, source, said from academy.inquiries
-     where day > current_date - 7 order by day desc limit 5`);
+     where client_id = $1 and day > current_date - 7 order by day desc limit 5`, [HOME.id]);
   if (!im || im.total === 0) {
     line("  이번 달 0건");
     todo.push("문의 기록이 비어 있습니다 — 상담 때 한 줄씩. /admin/inquiry");

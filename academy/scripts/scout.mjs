@@ -71,11 +71,13 @@ for (const c of clients) {
 
   // ── 2. 우리 이름인데 안 나오는가 (브랜드 방어)
   const brandMiss = await q(`
-    select query, array_agg(distinct engine) engines
+    select query,
+           array_agg(distinct engine) filter (where not hit) engines
       from academy.serp_checks
-     where client_id = $1 and kind = '브랜드' and not hit
+     where client_id = $1 and kind = '브랜드'
        and day = (select max(day) from academy.serp_checks where client_id = $1)
-     group by query`, P).catch(() => []);
+     group by query
+    having not bool_or(hit)`, P).catch(() => []);
   if (brandMiss.length) {
     report(`brand-${c.slug}`, "막힘",
       `${c.name} — 우리 이름으로 검색해도 안 나옵니다`,

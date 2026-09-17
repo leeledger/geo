@@ -121,14 +121,14 @@ export default async function Brief() {
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
       <div className="brf-top">
         <div>
-          <h2 className="brf-title">오늘 한 일 · {md(b.open.day)} 마감분</h2>
+          <h2 className="brf-title">오늘의 운영 기록 · {md(b.open.day)}</h2>
           <p className="brf-range">
-            {md(b.closed.day)} {b.cutoff} ~ {md(b.open.day)} {b.cutoff}
-            <span className="brf-state">진행 중 · 마감까지 {left(b.open.end)}</span>
+            집계 범위 {md(b.closed.day)} {b.cutoff} ~ {md(b.open.day)} {b.cutoff}
+            <span className="brf-state">자동 저장까지 {left(b.open.end)}</span>
           </p>
         </div>
         <form action={setCutoff} className="brf-cut">
-          <label htmlFor="brf-cutoff">마감 시각</label>
+          <label htmlFor="brf-cutoff">하루 기록 저장 시각</label>
           <input id="brf-cutoff" type="time" name="cutoff" defaultValue={b.cutoff} step={60} required />
           <button type="submit">저장</button>
         </form>
@@ -140,15 +140,15 @@ export default async function Brief() {
         <p className="brf-none">DB 를 못 읽었습니다.</p>
       )}
 
-      <h3 className="brf-pasth">지난 마감 브리핑</h3>
-      {b.history.length === 0 && <p className="brf-none">아직 마감된 날이 없습니다.</p>}
+      <h3 className="brf-pasth">저장된 지난 운영 기록</h3>
+      {b.history.length === 0 && <p className="brf-none">아직 저장된 기록이 없습니다.</p>}
       {b.history.map((h, i) => (
         // 방금 끝난 하루는 펼쳐 둔다. 마감 직후에 열면 그게 「오늘 한 일」이다.
         <details className="brf-day" key={h.day} open={i === 0 && h.day === b.closed.day}>
           <summary>
-            <b>{md(h.day)} 마감</b>
+            <b>{md(h.day)} 운영 기록</b>
             <span>
-              {h.status === "closed" ? "기록 굳음" : "DB 몫만 방금 셈 · 커밋·실행 기록은 GitHub 이 3시간 안에 굳힘"}
+              {h.status === "closed" ? "저장 완료" : "DB 기록 집계됨 · 코드 변경과 자동 실행 기록은 3시간 안에 추가됨"}
               {h.facts ? ` · 손댄 일 ${h.facts.clients.reduce((n, c) => n + c.work.length, 0)}건` : ""}
               {h.extras?.commits ? ` · 커밋 ${h.extras.commits.length}건` : ""}
             </span>

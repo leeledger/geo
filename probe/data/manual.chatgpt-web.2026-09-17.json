@@ -1,0 +1,36 @@
+{
+  "engine": "chatgpt-web-logged-out",
+  "model": "ChatGPT consumer web (model not disclosed)",
+  "set": "academy-songpa-partial",
+  "day": "2026-09-17",
+  "note": "ChatGPT 비로그인 소비자 화면에서 검색이 실제 실행된 답변을 수동 측정했다. 브라우저 자동화가 연속 새 대화 전환에서 불안정해 8개 기준선 중 지역 질문 2개만 완료했다. 2026-09-10 Claude Code WebSearch 기준선과 엔진·표본이 달라 전후 개선률로 합치지 않는다.",
+  "measure": "답변 본문에 학원명이 언급됐는가, 답변의 직접 링크에 robotncoding.com이 포함됐는가",
+  "runs": [
+    {
+      "prompt_id": "loc01",
+      "stage": "local",
+      "attempt": 1,
+      "prompt": "서울 송파구에서 초등학생 코딩학원 좀 추천해줘. 가능한 경우 근거 출처 링크도 함께 알려줘.",
+      "mentioned_us": true,
+      "cited_us": false,
+      "sources": ["schoolmap.co.kr", "academy.prompie.com", "learns.academy"],
+      "note": "추천 목록에 로봇&코딩학원이 포함됐지만 학원 설명의 근거는 제3자 학원 목록이었다. 자사 사이트 직접 링크는 없었다."
+    },
+    {
+      "prompt_id": "loc02",
+      "stage": "local",
+      "attempt": 1,
+      "prompt": "석촌동 근처에 로봇이랑 코딩 같이 배울 수 있는 학원 있어? 가능한 경우 근거 출처 링크도 함께 알려줘.",
+      "mentioned_us": true,
+      "cited_us": true,
+      "sources": ["robotncoding.com", "학원비알리미", "올학원", "학원의신", "songpa.go.kr"],
+      "note": "첫 추천으로 로봇&코딩학원을 제시했고 장소 카드의 웹사이트 링크가 https://robotncoding.com/?utm_source=chatgpt.com 으로 연결됐다. 사실 설명의 각주 근거는 주로 제3자 지면이었다."
+    }
+  ],
+  "summary": {
+    "n": 2,
+    "cited_us": 1,
+    "mentioned_us": 2,
+    "warning": "부분 측정이며 기존 기준선과 직접 비교 불가"
+  }
+}
