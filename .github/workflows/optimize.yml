@@ -1,0 +1,23 @@
+name: optimize
+on:
+  schedule:
+    - cron: "5 22 * * *" # 07:05 KST
+  workflow_dispatch: {}
+jobs:
+  decide:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm install pg --no-save --silent
+        working-directory: academy
+      - name: 오늘의 병목과 행동 한 가지 결정
+        working-directory: academy
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          printf 'DATABASE_URL=%s\n' "$DATABASE_URL" > .env.local
+          node scripts/daily-agent.mjs

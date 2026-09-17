@@ -63,6 +63,7 @@ export type Ops = {
     unresolvedInquiries: number;
     scanToLeadPct: number;
   };
+  agentLoop: { day: string | null; status: string; diagnosis: string; action: string; evidence: string; completedAt: string | null };
   recent: { title: string; slug: string; at: string }[];
   firstSeen: { engine: string; query: string; day: string }[];
   /**
@@ -208,6 +209,7 @@ export async function readOps(client?: Client): Promise<Ops> {
     place: [],
     ai: { day: null, engine: null, method: null, prompts: 0, cited: 0, mentioned: 0, rounds: 0, comparable: false },
     sales: { scans30d: 0, leads30d: 0, newLeads: 0, unresolvedInquiries: 0, scanToLeadPct: 0 },
+    agentLoop: { day: null, status: "기록 없음", diagnosis: "실행 기록 없음", action: "오늘의 개선 루프를 실행합니다.", evidence: "", completedAt: null },
     recent: [],
     firstSeen: [],
     lastAt: { content: null, deliver: null, crawler: null, measure: null, next: null },
@@ -300,6 +302,12 @@ export async function readOps(client?: Client): Promise<Ops> {
         scanToLeadPct: s.scans ? Number(((s.leads / s.scans) * 100).toFixed(1)) : 0,
       };
     } catch { /* 영업 표가 아직 없으면 0으로 둔다 */ }
+    let agentLoop = empty.agentLoop;
+    try {
+      const [r] = await q(`select run_day::text day,status,diagnosis,action,evidence,completed_at::text completed
+        from geo.agent_runs where client_id=${c.id} order by run_day desc,started_at desc limit 1`);
+      if (r) agentLoop = { day:r.day,status:r.status,diagnosis:r.diagnosis,action:r.action,evidence:r.evidence,completedAt:r.completed };
+    } catch { /* 원장 생성 전 */ }
 
     const recent = await q(`
       select title, slug, published_at::text at from ${S}.posts
@@ -366,6 +374,7 @@ export async function readOps(client?: Client): Promise<Ops> {
       place: place.map((r) => ({ query: r.query, rank: r.rank })),
       ai,
       sales,
+      agentLoop,
       recent: recent.map((r) => ({ title: r.title, slug: r.slug, at: r.at })),
       firstSeen: firstSeen.map((r) => ({ engine: r.engine, query: r.query, day: r.first_day })),
     };

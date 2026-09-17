@@ -141,6 +141,17 @@ alter table geo.pilot_tasks enable row level security;
 alter table geo.local_audits enable row level security;
 alter table geo.content_approvals enable row level security;
 
+-- 매일 에이전트가 진단→행동→검증한 원장. 화면 역할 카드와 실제 실행을 구분한다.
+create table if not exists geo.agent_runs (
+  id bigserial primary key, client_id int not null references geo.clients(id),
+  run_day date not null default current_date, trigger text not null default 'daily',
+  status text not null default '행동 대기', facts jsonb not null default '{}'::jsonb,
+  diagnosis text not null, action text not null, evidence text not null default '',
+  started_at timestamptz not null default now(), completed_at timestamptz,
+  unique(client_id, run_day, trigger)
+);
+alter table geo.agent_runs enable row level security;
+
 -- 영업용 뷰 — 점수가 낮을수록 후킹이 강하다
 create or replace view geo.lead_queue as
 select l.id, l.created_at, l.email, l.company, l.phone, l.wants, l.status,

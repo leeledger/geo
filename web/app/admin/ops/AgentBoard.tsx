@@ -18,6 +18,14 @@ export default function AgentBoard({ data: d, clientName }: { data: Ops; clientN
     last: string | null; lastLabel: string; metric: string; metricLabel: string; jobs: string;
   }[] = [
     {
+      id: "improve", name: "개선 담당", initials: "개", role: "AI 답변의 미언급 원인을 고르고 실제 수정까지 닫습니다", mode: "매일 07:20 에이전트 실행",
+      status: d.agentLoop.status === "완료" ? "recorded" : d.agentLoop.day ? "attention" : "review",
+      headline: d.agentLoop.status === "완료" ? "오늘 개선 행동을 완료했습니다" : d.agentLoop.day ? "오늘의 병목을 골랐습니다" : "개선 실행 기록이 없습니다",
+      reason: d.agentLoop.diagnosis,
+      next: d.agentLoop.action,
+      last: d.agentLoop.completedAt, lastLabel: "마지막 실행 완료", metric: d.agentLoop.status, metricLabel: "오늘 실행 상태", jobs: "AI 질문 측정 · 미언급 원인 분석 · 사이트/지면 수정 · 색인 요청 · 동일 조건 재측정",
+    },
+    {
       id: "ops", name: "운영 담당", initials: "운", role: "전체 흐름을 살피고 우선순위를 정합니다", mode: "3시간마다 자동 점검",
       status: d.serp.brandLost.length ? "attention" : d.crawl.last24h === 0 ? "review" : "recorded",
       headline: d.serp.brandLost.length ? "브랜드 검색 결과 확인이 필요합니다" : d.crawl.last24h === 0 ? "최근 크롤러 기록을 확인할 차례입니다" : "최근 수집 기록을 확인했습니다",
@@ -75,7 +83,7 @@ export default function AgentBoard({ data: d, clientName }: { data: Ops; clientN
         <div className="staff-count"><b>{d.ok ? attention.length : "—"}</b><span>확인·검토</span></div>
         <div className="staff-count"><b>{d.ok ? agents.filter((a) => a.status === "recorded").length : "—"}</b><span>기록 확인</span></div>
       </div>
-      <p className="staff-caveat">실시간 실행 로그는 아직 연결되지 않았습니다. 아래 상태는 작업 중 여부가 아닌, 저장된 기록과 확인할 일을 뜻합니다.</p>
+      <p className="staff-caveat">개선 담당은 실행 원장을 직접 읽습니다. 다른 담당 카드는 저장된 성과와 확인할 일을 보여 줍니다.</p>
       <div className="staff-grid">
         {agents.map((a) => (
           <article key={a.id} className={`staff-card ${a.status}`} id={`staff-${a.id}`}>
