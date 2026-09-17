@@ -37,3 +37,13 @@ export async function markEnrolled(id: string, yes: boolean) {
   revalidatePath("/admin/inquiry");
   revalidatePath("/admin/ops");
 }
+
+/** 결과가 비어 있는 상담을 업무로 남겨 두고, 확인한 순간 바로 닫는다. */
+export async function resolveInquiry(form: FormData) {
+  const id = String(form.get("id") ?? "");
+  const result = String(form.get("result") ?? "");
+  if (!id || !["yes", "no"].includes(result)) return;
+  await inqPool().query(`update academy.inquiries set enrolled = $2 where id = $1`, [id, result === "yes"]);
+  revalidatePath("/admin/inquiry");
+  revalidatePath("/admin/ops");
+}

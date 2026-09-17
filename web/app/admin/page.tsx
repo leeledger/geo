@@ -2,6 +2,7 @@ import { isAdmin } from "@/lib/admin-auth";
 import { redirect } from "next/navigation";
 
 import { listLeads, dbEnabled } from "@/lib/leads";
+import { changeLeadStatus } from "@/lib/lead-actions";
 /** 로그인 뒤 돌아올 자리 */
 const HERE = "/admin";
 
@@ -64,7 +65,19 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
                   <td style={{ fontSize: 12.5, color: "var(--muted)", maxWidth: 280 }}>
                     {[l.concerns, l.competitor && `경쟁사 ${l.competitor}`].filter(Boolean).join(" · ") || "—"}
                   </td>
-                  <td><span className="pill">{l.status ?? "new"}</span></td>
+                  <td>
+                    <form action={changeLeadStatus} style={{ display: "flex", gap: 6 }}>
+                      <input type="hidden" name="id" value={l.id} />
+                      <select name="status" defaultValue={l.status ?? "new"} aria-label="리드 상태">
+                        <option value="new">새 문의</option>
+                        <option value="contacted">연락함</option>
+                        <option value="qualified">상담 대상</option>
+                        <option value="closed">계약</option>
+                        <option value="dropped">종료</option>
+                      </select>
+                      <button type="submit">저장</button>
+                    </form>
+                  </td>
                 </tr>
               ))}
             </tbody>

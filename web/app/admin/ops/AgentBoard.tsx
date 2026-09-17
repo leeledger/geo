@@ -49,6 +49,14 @@ export default function AgentBoard({ data: d, clientName }: { data: Ops; clientN
       next: "유통 대상 글과 이관 여부를 대조합니다. 구글 요청·네이버 이관에는 로그인 세션이 필요합니다.",
       last: d.lastAt.deliver, lastLabel: "마지막 네이버 이관", metric: String(d.posts.published), metricLabel: "사이트 발행 글 · 이관 수 아님", jobs: "IndexNow 알림 · 구글 색인 요청 · 네이버 이관 · 반영 확인",
     },
+    {
+      id: "sales", name: "성과 담당", initials: "성", role: "진단을 상담으로, 상담을 등록·계약 결과로 닫습니다", mode: "대시보드 열 때 미완료 결과 확인",
+      status: d.sales.newLeads > 0 || d.sales.unresolvedInquiries > 0 ? "attention" : d.sales.scans30d > 0 && d.sales.leads30d === 0 ? "review" : "recorded",
+      headline: d.sales.unresolvedInquiries > 0 ? `결과가 비어 있는 상담 ${d.sales.unresolvedInquiries}건이 있습니다` : d.sales.newLeads > 0 ? `아직 처리하지 않은 리드 ${d.sales.newLeads}건이 있습니다` : d.sales.scans30d > 0 && d.sales.leads30d === 0 ? "무료 진단이 상담으로 이어지지 않았습니다" : "문의 결과 기록을 확인했습니다",
+      reason: `최근 30일 무료 진단 ${d.sales.scans30d}건 · 리드 ${d.sales.leads30d}건 · 전환 ${d.sales.scanToLeadPct}%입니다. 상담 결과 미입력은 ${d.sales.unresolvedInquiries}건입니다.`,
+      next: d.sales.unresolvedInquiries > 0 ? "문의 기록에서 등록·미등록 결과를 확인해 업무를 닫습니다." : d.sales.newLeads > 0 ? "리드 큐에서 연락 여부와 상담 가능성을 기록합니다." : d.sales.leads30d === 0 ? "무료 진단 결과의 제안 문구와 입력 마찰을 바꾸고 30일 전환율을 다시 봅니다." : "유입 경로별 계약 전환을 비교해 다음 영업 대상을 정합니다.",
+      last: null, lastLabel: "미처리 리드", metric: String(d.sales.newLeads), metricLabel: "지금 처리할 리드", jobs: "무료 진단 전환 · 리드 후속 · 문의 유입 확인 · 등록·계약 결과 기록",
+    },
   ];
   const agents = roles.map((a) => d.ok ? a : {
     ...a, status: "unknown" as Status, headline: "데이터를 읽지 못했습니다",

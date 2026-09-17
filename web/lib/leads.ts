@@ -59,6 +59,11 @@ function pool(): Pool {
   return g.__geoPool;
 }
 
+export async function setLeadStatus(id: string, status: string) {
+  if (!dbEnabled || !["new", "contacted", "qualified", "closed", "dropped"].includes(status)) return;
+  await pool().query(`update geo.leads set status = $2 where id = $1`, [id, status]);
+}
+
 /** IP 는 원문으로 남기지 않는다. 중복·남용 판별에만 쓰는 해시. */
 export function hashIp(ip: string) {
   const salt = process.env.IP_HASH_SALT ?? "siteband-dev-salt";
@@ -127,7 +132,7 @@ export async function saveLead(input: {
     competitor: input.competitor?.slice(0, 200) || null,
     site: input.site?.slice(0, 200) || null,
     ip_hash: hashIp(input.ip),
-    source: input.referral ? "contact" : "free_scan",
+    source: input.scanId ? "free_scan" : "contact",
   };
   if (!dbEnabled) return appendFile("leads", row);
 

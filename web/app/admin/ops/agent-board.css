@@ -18,7 +18,7 @@
 .staff-card.attention{border-color:#976452}
 .staff-card header{display:flex;align-items:center;gap:11px;flex-wrap:wrap}
 .staff-avatar{display:grid;place-items:center;width:42px;height:42px;border-radius:13px;font-size:17px;font-weight:800;flex-shrink:0;background:#293147;color:#C5BEFF}
-.staff-avatar.avatar-measure{background:#193b3d;color:#8BE5D8}.staff-avatar.avatar-content{background:#402c3e;color:#E9ADD5}.staff-avatar.avatar-deliver{background:#403629;color:#ECC181}
+.staff-avatar.avatar-measure{background:#193b3d;color:#8BE5D8}.staff-avatar.avatar-content{background:#402c3e;color:#E9ADD5}.staff-avatar.avatar-deliver{background:#403629;color:#ECC181}.staff-avatar.avatar-sales{background:#3d2d24;color:#F3B890}
 .staff-card h3{font-size:16px;margin:0 0 4px;letter-spacing:-.03em}
 .staff-mode{font-size:10.5px;color:var(--mut);line-height:1.5}
 .staff-status{margin-left:auto;font-size:10.5px;font-weight:700;border-radius:99px;padding:5px 9px;white-space:nowrap;background:#2a333f;color:#BCC7D4}

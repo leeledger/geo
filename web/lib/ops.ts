@@ -56,6 +56,13 @@ export type Ops = {
     rounds: number;
     comparable: boolean;
   };
+  sales: {
+    scans30d: number;
+    leads30d: number;
+    newLeads: number;
+    unresolvedInquiries: number;
+    scanToLeadPct: number;
+  };
   recent: { title: string; slug: string; at: string }[];
   firstSeen: { engine: string; query: string; day: string }[];
   /**
@@ -200,6 +207,7 @@ export async function readOps(client?: Client): Promise<Ops> {
     serp: { day: null, hits: [], total: 0, rivalWon: 0, rivalTotal: 0, brandLost: [] },
     place: [],
     ai: { day: null, engine: null, method: null, prompts: 0, cited: 0, mentioned: 0, rounds: 0, comparable: false },
+    sales: { scans30d: 0, leads30d: 0, newLeads: 0, unresolvedInquiries: 0, scanToLeadPct: 0 },
     recent: [],
     firstSeen: [],
     lastAt: { content: null, deliver: null, crawler: null, measure: null, next: null },
@@ -273,6 +281,26 @@ export async function readOps(client?: Client): Promise<Ops> {
       };
     } catch { /* 아직 측정 표가 없는 고객사는 0건으로 보인다 */ }
 
+    let sales = empty.sales;
+    try {
+      const [s] = await q(`
+        select
+          (select count(*)::int from geo.scans
+            where coalesce(user_agent,'') <> 'cited-rescan' and created_at > now() - interval '30 days') scans,
+          (select count(*)::int from geo.leads
+            where created_at > now() - interval '30 days'
+              and (scan_id is not null or source = 'free_scan')) leads,
+          (select count(*)::int from geo.leads where coalesce(status,'new') = 'new') new_leads,
+          (select count(*)::int from academy.inquiries where ${ME} and enrolled is null) unresolved`);
+      sales = {
+        scans30d: s.scans,
+        leads30d: s.leads,
+        newLeads: s.new_leads,
+        unresolvedInquiries: s.unresolved,
+        scanToLeadPct: s.scans ? Number(((s.leads / s.scans) * 100).toFixed(1)) : 0,
+      };
+    } catch { /* 영업 표가 아직 없으면 0으로 둔다 */ }
+
     const recent = await q(`
       select title, slug, published_at::text at from ${S}.posts
        where ${ME} and published order by published_at desc limit 5`);
@@ -337,6 +365,7 @@ export async function readOps(client?: Client): Promise<Ops> {
       },
       place: place.map((r) => ({ query: r.query, rank: r.rank })),
       ai,
+      sales,
       recent: recent.map((r) => ({ title: r.title, slug: r.slug, at: r.at })),
       firstSeen: firstSeen.map((r) => ({ engine: r.engine, query: r.query, day: r.first_day })),
     };

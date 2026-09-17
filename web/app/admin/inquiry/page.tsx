@@ -2,7 +2,7 @@ import { isAdmin } from "@/lib/admin-auth";
 import { redirect } from "next/navigation";
 
 import { listInquiries, inquirySummary, SOURCES } from "@/lib/inquiries";
-import { addInquiry } from "@/lib/inquiry-actions";
+import { addInquiry, resolveInquiry } from "@/lib/inquiry-actions";
 import Link from "next/link";
 /** 로그인 뒤 돌아올 자리 */
 const HERE = "/admin/inquiry";
@@ -77,6 +77,13 @@ form.inq-f{background:var(--card);border:1px solid var(--line);border-radius:14p
 .inq .tag.se{background:#0F2724;color:var(--cool)}
 .inq .said{color:var(--ink2);font-size:13px;word-break:keep-all}
 .inq .empty{padding:34px 20px;text-align:center;color:var(--faint);font-size:14px}
+.inq .pending{border:1px solid #523d22;background:#211a11;border-radius:12px;padding:14px 17px;
+  margin-top:18px;color:var(--ink2);font-size:13.5px;line-height:1.7}
+.inq .pending b{color:var(--acc)}
+.inq .outcome{display:flex;gap:5px;align-items:center}
+.inq .outcome form{margin:0}.inq .outcome button{border:1px solid var(--line);background:var(--sunk);
+  color:var(--ink2);border-radius:7px;padding:5px 8px;font:inherit;font-size:11.5px;cursor:pointer}
+.inq .outcome button.y{border-color:#275d4c;color:var(--cool)}
 .inq .why{border-left:3px solid var(--cool);background:var(--sunk);border-radius:0 12px 12px 0;
   padding:15px 19px;margin-top:16px;font-size:13.5px;color:var(--ink2);line-height:1.8;
   word-break:keep-all}
@@ -95,6 +102,7 @@ export default async function InquiryPage({
 
   const [rows, sum] = await Promise.all([listInquiries(), inquirySummary()]);
   const m = sum[0];
+  const unresolved = rows.filter((r) => r.enrolled === null);
   const today = new Date().toISOString().slice(0, 10);
 
   return (
@@ -133,6 +141,13 @@ export default async function InquiryPage({
           그래서 <b>직접 묻는 것 말고는 방법이 없습니다.</b>
           원시적이지만 조작이 불가능하고, 대행사가 아니라 우리가 가진 데이터라 리포트보다 셉니다.
         </div>
+
+        {unresolved.length > 0 && (
+          <div className="pending">
+            <b>완료되지 않은 상담 {unresolved.length}건</b><br />
+            등록했는지 확인하기 전까지 매출 검증은 끝나지 않습니다. 아래 목록에서 결과를 누르면 이 업무가 닫힙니다.
+          </div>
+        )}
 
         <h2>새 문의</h2>
         <form className="inq-f" action={addInquiry}>
@@ -213,7 +228,20 @@ export default async function InquiryPage({
                     <td className="said">{r.said || "—"}</td>
                     <td className="m">{r.grade || "—"}</td>
                     <td className="m">
-                      {r.enrolled === null ? "아직" : r.enrolled ? "등록" : "안 함"}
+                      {r.enrolled === null ? (
+                        <div className="outcome">
+                          <form action={resolveInquiry}>
+                            <input type="hidden" name="id" value={r.id} />
+                            <input type="hidden" name="result" value="yes" />
+                            <button className="y" type="submit">등록</button>
+                          </form>
+                          <form action={resolveInquiry}>
+                            <input type="hidden" name="id" value={r.id} />
+                            <input type="hidden" name="result" value="no" />
+                            <button type="submit">안 함</button>
+                          </form>
+                        </div>
+                      ) : r.enrolled ? "등록" : "안 함"}
                     </td>
                   </tr>
                 ))}

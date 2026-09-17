@@ -54,7 +54,10 @@ export default function ScanForm({ id, placeholder }: { id: string; placeholder?
       const res = await fetch("/api/lead", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ email, company, website, scanId: result?.scanId ?? null, wants: "측정" }),
+        body: JSON.stringify({
+          email, company, website, scanId: result?.scanId ?? null,
+          site: result?.origin ?? domain, referral: "무료진단", wants: "30일 실행안",
+        }),
       });
       const data = await res.json();
       if (!res.ok || data?.error) { setLeadError(data?.error ?? "저장에 실패했습니다."); return; }
@@ -155,18 +158,18 @@ export default function ScanForm({ id, placeholder }: { id: string; placeholder?
           <div className="lead">
             {leadDone ? (
               <p className="leaddone">
-                접수됐습니다. <b>{email}</b> 로 AI 노출 실측 리포트를 보내드리겠습니다.
+                접수됐습니다. <b>{email}</b> 로 이 진단에서 먼저 할 3가지를 정리해 드립니다.
                 <br />
                 <span style={{ color: "var(--muted)", fontSize: 12.5 }}>
-                  실제 고객이 쓸 질문으로 AI 4곳에 물어보고, 경쟁사와 나란히 놓아 정리해 드립니다.
+                  진단한 주소와 점수가 함께 저장돼 다시 설명할 필요가 없습니다.
                 </span>
               </p>
             ) : (
               <form onSubmit={submitLead}>
-                <h4>AI가 실제로 추천하는지도 재볼까요?</h4>
+                <h4>이 점수에서 먼저 고칠 3가지만 받으세요</h4>
                 <p className="leadsub">
-                  실제 고객이 쓸 질문으로 AI 4곳에 물어보고, 경쟁사와 나란히 놓은 결과를
-                  <b>몇 번 물어봤는지와 함께</b> 보내드립니다. 무료입니다.
+                  진단 주소와 결과가 함께 접수됩니다. 다시 설명할 필요 없이
+                  <b>30일 안에 할 일과 확인할 수치</b>를 이메일 한 번으로 정리해 드립니다.
                 </p>
                 <div className="leadrow">
                   <input
@@ -178,7 +181,7 @@ export default function ScanForm({ id, placeholder }: { id: string; placeholder?
                     placeholder="회사명 (선택)" aria-label="회사명" disabled={leadBusy}
                   />
                   <button className="btn" type="submit" disabled={leadBusy}>
-                    {leadBusy ? "전송 중…" : "리포트 신청"}
+                    {leadBusy ? "접수 중…" : "3가지 실행안 받기"}
                   </button>
                 </div>
                 {/* 허니팟 — 사람에게는 보이지 않는다 */}
