@@ -198,6 +198,10 @@ export default async function OpsPage({
           </div>
           <Live slots={SLOTS} />
         </div>
+        <div style={{ marginTop: 14, display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <Link href="/admin/outreach" style={{ color: "var(--acc)", fontSize: 13, textDecoration: "none", border: "1px solid var(--line)", borderRadius: 8, padding: "8px 12px" }}>첫 고객 영업판 →</Link>
+          <Link href="/admin/inquiry" style={{ color: "var(--ink2)", fontSize: 13, textDecoration: "none", border: "1px solid var(--line)", borderRadius: 8, padding: "8px 12px" }}>상담 유입 기록 →</Link>
+        </div>
 
         {/*
           고객사 줄. 지금은 한 곳이라 이름만 보이고, 늘어나면 탭이 된다.

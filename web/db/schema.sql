@@ -50,6 +50,33 @@ create index if not exists leads_status_idx  on geo.leads (status);
 alter table geo.scans enable row level security;
 alter table geo.leads enable row level security;
 
+-- 직접 영업 후보. 공개 정보와 통화로 확인한 사실을 분리해 기록한다.
+create table if not exists geo.outreach_targets (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  district text not null,
+  neighborhood text,
+  address text,
+  phone text,
+  website text,
+  evidence_url text not null,
+  evidence_note text,
+  priority int not null default 3,
+  owner_consults boolean,
+  monthly_inquiries_5plus boolean,
+  single_location boolean,
+  status text not null default '확인 전',
+  next_action text not null default '전화로 3가지 조건 확인',
+  next_due date,
+  note text not null default '',
+  contacted_at timestamptz,
+  updated_at timestamptz not null default now(),
+  created_at timestamptz not null default now(),
+  unique(name, district)
+);
+create index if not exists outreach_status_idx on geo.outreach_targets(status, priority, updated_at);
+alter table geo.outreach_targets enable row level security;
+
 -- 영업용 뷰 — 점수가 낮을수록 후킹이 강하다
 create or replace view geo.lead_queue as
 select l.id, l.created_at, l.email, l.company, l.phone, l.wants, l.status,
