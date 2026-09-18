@@ -253,6 +253,22 @@ const main = async () => {
       (fail ? ` · 실패 ${fail} (${마지막오류.slice(0, 120)})` : ""));
   }
 
+  // 크레딧이 없으면 웹 검색을 쓰는 측정이 통째로 막힌다(무료 모델도 검색은 유료다).
+  // 돈 쓰는 일은 사람만 할 수 있으니 일감으로 올려 대시보드에 띄운다 — 로그에만 남기면 아무도 안 본다
+  const 크레딧막힘 = 요약.some((s) => /Insufficient credits|402/.test(s));
+  await q(
+    크레딧막힘
+      ? `insert into geo.agent_tasks (client_id, agent, kind, dedupe_key, title, detail, status, priority, payload, link)
+         values ($1,'measure','human','openrouter-credits',
+           'OpenRouter 크레딧이 없어 AI 답변 측정이 멈췄습니다',
+           '무료 모델도 웹 검색을 켜면 요청당 약 $0.007 이 크레딧에서 나갑니다. 하루 20문항 기준 월 약 $5 입니다. 충전하면 다음 실행부터 자동으로 다시 잽니다.',
+           '사람 대기', 5, '{"sticky":true}'::jsonb, 'https://openrouter.ai/settings/credits')
+         on conflict (client_id, dedupe_key) do update set status='사람 대기', updated_at=now()`
+      : `update geo.agent_tasks set status='완료', done_at=now(), updated_at=now()
+          where client_id=$1 and dedupe_key='openrouter-credits' and status='사람 대기'`,
+    [client.id],
+  ).catch((e) => console.log("  ⚠ 크레딧 일감 기록 실패", e.message));
+
   console.log(`\n${client.name} · ${오늘} AI 자동 측정`);
   for (const s of 요약) console.log(`  ${s}`);
   if (process.env.GITHUB_STEP_SUMMARY) {
