@@ -127,3 +127,7 @@ version_notified: v1.3.0
 ## 현재 체크포인트 (2026-09-17 · 매일 개선 루프)
 
 로봇앤코딩은 자사 실증 파일럿(20문항·19업무)으로 등록됐다. 질문 20개는 승인 상태다. `optimize.yml`이 매일 07:05 병목을 만들고 Codex heartbeat가 07:20 실제 개선 작업을 수행한다. 오늘의 병목은 최신 AI 측정 2건으로 기준선 40건(20문항×2회)에 미달한 것이다. 대시보드 개선 담당이 이 실행 원장을 표시한다.
+
+## 현재 체크포인트 (2026-09-19 · 개선 루프)
+
+q3 「헬리오시티 사는데 애 코딩학원 어디 보내면 좋을까」가 최근 자동 측정 0/2라 오늘 병목으로 선택됐다. OpenRouter 초안 작성은 크레딧 부족(402)으로 실패했지만, 공식 사이트와 llms.txt의 검증된 사실만 사용해 `helliositi-koding-hagwon-seontaek-gijun` 초안을 직접 작성했다. slop-check 0건, 확인되지 않은 숫자 0건이며 미발행·사실 확인 대기다. pilot `content-draft` 완료, content approval·agent run·intervention에 근거를 연결했다. UTC DB 때문에 오전 작업이 전날로 적히던 `academy.interventions.day` 기본값과 기록 스크립트를 KST로 고쳤다.

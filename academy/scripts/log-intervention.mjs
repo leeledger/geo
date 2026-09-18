@@ -30,13 +30,15 @@ const pool = new Pool({
 await pool.query(`
   create table if not exists academy.interventions (
     id       serial primary key,
-    day      date not null default current_date,
+    day      date not null default ((now() at time zone 'Asia/Seoul')::date),
     what     text not null,
     why      text,
     expect   text,
     created  timestamptz not null default now()
   )`);
 await pool.query(`alter table academy.interventions add column if not exists client_id int not null default 1`);
+// Neon 세션은 UTC다. 오전 실행을 전날 작업으로 기록하지 않도록 DB 기본값도 KST로 고정한다.
+await pool.query(`alter table academy.interventions alter column day set default ((now() at time zone 'Asia/Seoul')::date)`);
 
 let args = process.argv.slice(2);
 let client = null;
@@ -65,9 +67,10 @@ if (args[0] === "--list" || !args.length) {
 }
 
 const [what, why, expect] = args;
+const day = new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" });
 await pool.query(
-  `insert into academy.interventions (client_id, what, why, expect) values ($1,$2,$3,$4)`,
-  [client?.id ?? 1, what, why ?? null, expect ?? null],
+  `insert into academy.interventions (day, client_id, what, why, expect) values ($1::date,$2,$3,$4,$5)`,
+  [day, client?.id ?? 1, what, why ?? null, expect ?? null],
 );
 console.log(`  기록했습니다 — [${(client ?? CLIENTS[0]).name}] ${what}`);
 await pool.end();
