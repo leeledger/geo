@@ -264,8 +264,12 @@ const EXEC = {
   async "workflow-failed"(t) {
     const { run_id, file } = t.payload;
     if (t.attempts === 0) {
+      // 재실행(rerun)은 그 실행이 쓰던 옛 커밋의 설정으로 돈다. 고쳐 놓은 코드로 다시 해 보려면 새로 띄워야 한다 —
+      // write.yml 이 제미나이 키로 재실행돼 같은 429 로 또 죽었다(2026-09-17)
+      const 새로 = await gh(`/actions/workflows/${file}/dispatches`, { method: "POST", body: JSON.stringify({ ref: "main" }) });
+      if (새로 && !새로.__error) return { status: "관찰", nextTry: 뒤(1), evidence: `${오늘()} 최신 코드로 새로 실행함`, attempt: true };
       const r = await gh(`/actions/runs/${run_id}/rerun-failed-jobs`, { method: "POST" });
-      if (r && !r.__error) return { status: "관찰", nextTry: 뒤(2), evidence: `${오늘()} 실패한 잡을 다시 돌림`, attempt: true };
+      if (r && !r.__error) return { status: "관찰", nextTry: 뒤(2), evidence: `${오늘()} 새로 띄우지 못해(${끝(새로?.__error, 80)}) 실패한 잡만 다시 돌림`, attempt: true };
       return { status: "관찰", nextTry: 뒤(2), evidence: `${오늘()} 재실행 요청 실패 ${r?.__error ?? "GH_TOKEN 없음"}`, attempt: true };
     }
     const jobs = await gh(`/actions/runs/${run_id}/jobs`);
