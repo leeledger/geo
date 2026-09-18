@@ -207,7 +207,7 @@ const main = async () => {
         // 429 본문은 어느 한도(분당·일일·무료 등급)인지를, 404 는 쓸 모델 이름을 담아 온다. 첫 실패는 끝까지 찍는다
         console.log(`  ✗ ${e.engine} ${x.prompt_id} ${fail === 1 ? `${r.status} ${r.error.replace(/\s+/g, " ")}` : 마지막오류.slice(0, 160)}`);
         // 모델마다 무료 한도가 따로다. 막히면 같은 키로 되는 다른 모델을 한 번 찾아본다
-        if ([404, 413, 429].includes(r.status) && ok === 0 && !e.probed) {
+        if ([402, 404, 413, 429].includes(r.status) && ok === 0 && !e.probed) {
           e.probed = true;
           const 대안 = await 다른모델(e);
           for (const m of 대안) {
@@ -227,7 +227,7 @@ const main = async () => {
       }
       if (r.error) {
         // 한도·키·모델 문제는 나머지 질문도 똑같이 막힌다. 계속 두드리지 않는다
-        if ([400, 401, 403, 404, 413, 429].includes(r.status)) break;
+        if ([400, 401, 402, 403, 404, 413, 429].includes(r.status)) break;
         await 쉼(e.gap);
         continue;
       }
