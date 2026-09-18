@@ -239,6 +239,23 @@ const main = async () => {
       [client.id, 오늘, e.method],
     )).map((r) => r.prompt_id));
     let todo = questions.filter((x) => !done.has(x.prompt_id));
+    /**
+     * 매일 20문항을 다 재면 돈이 그만큼 나간다. 효과 판정은 7일 창으로 보니 그럴 필요가 없다.
+     * MEASURE_EVERY_DAYS=3 이면 3일에 한 번만 전부 잰다. 그 사이 날에는 아무것도 안 부른다.
+     * 다만 한 번 잴 때는 20문항을 통째로 잰다 — 질문마다 잰 날이 다르면 적중률을 비교할 수 없다.
+     */
+    const 주기 = Number(process.env.MEASURE_EVERY_DAYS) || 1;
+    if (주기 > 1 && todo.length && !LIMIT) {
+      const [최근] = await q(
+        `select max(measured_on)::text day from academy.ai_measurements
+          where client_id=$1 and collection_method=$2`, [client.id, e.method]);
+      const 지난날 = 최근?.day ? Math.round((new Date(오늘) - new Date(최근.day)) / 86400000) : 999;
+      if (지난날 < 주기 && done.size === 0) {
+        요약.push(`${e.engine}: ${주기}일 주기 — 마지막 측정 ${지난날}일 전이라 오늘은 건너뜀`);
+        성공엔진++;
+        continue;
+      }
+    }
     if (LIMIT) todo = todo.slice(0, LIMIT);
 
     let ok = 0, fail = 0, hit = 0;

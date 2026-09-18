@@ -47,6 +47,7 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           MEASURE_ENGINES: ${{ vars.MEASURE_ENGINES }}
+          MEASURE_EVERY_DAYS: ${{ vars.MEASURE_EVERY_DAYS }}
           MEASURE_ANTHROPIC_MODEL: ${{ vars.MEASURE_ANTHROPIC_MODEL }}
           MEASURE_GEMINI_MODEL: ${{ vars.MEASURE_GEMINI_MODEL }}
           MEASURE_GROQ_MODEL: ${{ vars.MEASURE_GROQ_MODEL }}
