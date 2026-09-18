@@ -8,6 +8,7 @@
  * 인증: Authorization: Bearer <LLM_PROXY_TOKEN>  — Vercel(geo)·GitHub Secrets 에 같은 값
  */
 import crypto from "node:crypto";
+import { inqPool } from "@/lib/inquiries";
 
 export const runtime = "nodejs";
 export const maxDuration = 300; // 초안은 생각 토큰까지 합쳐 1~3분 걸린다
@@ -39,6 +40,26 @@ export async function POST(req: Request) {
     return Response.json({ error: { code: 400, message: `중계하지 않는 모델입니다: ${body.model}. 허용: ${allow.join(", ")} 또는 :free` } }, { status: 400 });
   }
   body.max_tokens = Math.min(Number(body.max_tokens) || 12000, 16000);
+
+  /**
+   * 하루 호출 상한. 토큰이 새면 남이 우리 크레딧을 태울 수 있는데, 그걸 알아채는 건 청구서를 볼 때다.
+   * 정상 사용은 하루 20문항 측정 + 초안 몇 건이라 120 이면 넉넉하다. LLM_PROXY_DAILY_MAX 로 바꾼다.
+   */
+  const max = Number(process.env.LLM_PROXY_DAILY_MAX ?? 120);
+  const day = new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" });
+  try {
+    const db = inqPool();
+    await db.query(`create table if not exists geo.llm_usage (day date primary key, calls int not null default 0)`);
+    const { rows } = await db.query(
+      `insert into geo.llm_usage (day, calls) values ($1, 1)
+       on conflict (day) do update set calls = geo.llm_usage.calls + 1 returning calls`, [day]);
+    if (rows[0].calls > max) {
+      return Response.json({ error: { code: 429, message: `오늘 중계 한도 ${max}건을 넘었습니다. 예상보다 많이 불렸다면 토큰이 샜을 수 있습니다 — Vercel 에서 LLM_PROXY_TOKEN 을 바꾸고 tools/set-llm-proxy.mjs 를 다시 돌리세요.` } }, { status: 429 });
+    }
+  } catch (e) {
+    // 상한을 못 세는 것이 글쓰기를 막을 이유는 아니다. 다만 조용히 넘어가지는 않는다
+    console.error("llm 사용량 기록 실패", e);
+  }
 
   const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
