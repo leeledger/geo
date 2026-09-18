@@ -23,8 +23,14 @@ export async function POST(req: Request) {
   const got = (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "");
   if (!token || !같나(got, token)) return Response.json({ error: "unauthorized" }, { status: 401 });
 
-  const key = process.env.OPENROUTER_API_KEY;
-  if (!key) return Response.json({ error: { code: 503, message: "OPENROUTER_API_KEY 가 이 배포에 없습니다. 넣은 뒤 재배포해야 읽힙니다." } }, { status: 503 });
+  /**
+   * ?provider=anthropic 이면 Anthropic 으로 그대로 넘긴다.
+   * Anthropic 직판은 선불 크레딧이 아니라 실제 사용량 월 청구(카드)라, 크레딧이 바닥나 멈추는 일이 없다.
+   * OpenRouter 는 선불이라 잔액이 0이 되면 402 로 멈춘다 — 재는 일은 그쪽, 쓰는 일은 이쪽으로 갈라 둘 수 있다.
+   */
+  const anthropicMode = new URL(req.url).searchParams.get("provider") === "anthropic";
+  const key = anthropicMode ? process.env.ANTHROPIC_API_KEY : process.env.OPENROUTER_API_KEY;
+  if (!key) return Response.json({ error: { code: 503, message: `${anthropicMode ? "ANTHROPIC_API_KEY" : "OPENROUTER_API_KEY"} 가 이 배포에 없습니다. 넣은 뒤 재배포해야 읽힙니다.` } }, { status: 503 });
 
   let body: Record<string, unknown>;
   try { body = await req.json(); }
@@ -34,7 +40,7 @@ export async function POST(req: Request) {
    * stealth/union-alpha 는 2026-09-18 에 닫혔다(응답이 후속 모델 unbiased/pareto 를 알려 줬다).
    * 값은 LLM_PROXY_MODELS 로 바꾼다 (쉼표 구분). 출력 상한도 같이 건다.
    */
-  const allow = (process.env.LLM_PROXY_MODELS ?? "anthropic/claude-opus-5,anthropic/claude-sonnet-5,google/gemini-2.5-flash,qwen/qwen3.7-flash,openai/gpt-5-mini")
+  const allow = (process.env.LLM_PROXY_MODELS ?? "anthropic/claude-opus-5,anthropic/claude-sonnet-5,claude-opus-5,claude-sonnet-5,google/gemini-2.5-flash,qwen/qwen3.7-flash,openai/gpt-5-mini")
     .split(",").map((s) => s.trim()).filter(Boolean);
   if (typeof body.model !== "string" || !(allow.includes(body.model) || /:free$/.test(body.model))) {
     return Response.json({ error: { code: 400, message: `중계하지 않는 모델입니다: ${body.model}. 허용: ${allow.join(", ")} 또는 :free` } }, { status: 400 });
@@ -61,10 +67,16 @@ export async function POST(req: Request) {
     console.error("llm 사용량 기록 실패", e);
   }
 
-  const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-    method: "POST",
-    headers: { "content-type": "application/json", authorization: `Bearer ${key}`, "x-title": "cited" },
-    body: JSON.stringify(body),
-  });
+  const res = anthropicMode
+    ? await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01" },
+        body: JSON.stringify(body),
+      })
+    : await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: { "content-type": "application/json", authorization: `Bearer ${key}`, "x-title": "cited" },
+        body: JSON.stringify(body),
+      });
   return new Response(await res.text(), { status: res.status, headers: { "content-type": "application/json" } });
 }

@@ -120,15 +120,19 @@ export const 공급자만들기 = () => {
   }
 
   if (pick === "anthropic") {
+    // 키가 Vercel 에만 있으면 중계를 거친다. Anthropic 직판은 선불이 아니라 사용량 월 청구라 크레딧이 끊길 일이 없다
+    const 중계 = process.env.LLM_PROXY_URL && process.env.LLM_PROXY_TOKEN;
     const model = process.env.WRITER_MODEL || "claude-opus-5";
     return {
-      이름: "anthropic",
-      key: process.env.ANTHROPIC_API_KEY,
-      url: "https://api.anthropic.com/v1/messages",
+      이름: 중계 ? "anthropic(중계)" : "anthropic",
+      key: 중계 ? process.env.LLM_PROXY_TOKEN : process.env.ANTHROPIC_API_KEY,
+      url: 중계 ? `${process.env.LLM_PROXY_URL}?provider=anthropic` : "https://api.anthropic.com/v1/messages",
       model,
       검색가능: false,
       최대토큰: Number(process.env.WRITER_MAX_TOKENS) || 6000,
-      headers: (k) => ({ "content-type": "application/json", "x-api-key": k, "anthropic-version": "2023-06-01" }),
+      headers: (k) => (중계
+        ? { "content-type": "application/json", authorization: `Bearer ${k}` }
+        : { "content-type": "application/json", "x-api-key": k, "anthropic-version": "2023-06-01" }),
       요청: (p, 최대) => ({ model, max_tokens: 최대, messages: [{ role: "user", content: p }] }),
       text: (d) => (d.content ?? []).map((c) => c.text ?? "").join(""),
       끊겼나: (d) => d.stop_reason === "max_tokens",
