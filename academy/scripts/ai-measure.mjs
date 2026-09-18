@@ -321,10 +321,13 @@ const main = async () => {
     fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `### AI 자동 측정 ${오늘}\n${요약.map((s) => `- ${s}`).join("\n")}\n\n`);
   }
   if (시도엔진 === 0) {
-    console.log("측정할 키가 없습니다. GEMINI_API_KEY 또는 GROQ_API_KEY 가 필요합니다.");
+    console.log("측정할 키가 없습니다. LLM_PROXY_URL·ANTHROPIC_API_KEY 중 하나가 필요합니다.");
     process.exitCode = 78;
   } else if (성공엔진 === 0) {
-    process.exitCode = 1;
+    // 돈이 없어 못 잰 것은 고장이 아니라 설정이다. 78 로 끝내면 워크플로가 빨간불 대신 「건너뜀」으로 적는다.
+    // 매일 빨간불이 뜨면 진짜 고장났을 때 아무도 안 본다 (write.yml 이 같은 이유로 78 을 쓴다)
+    process.exitCode = 크레딧막힘 ? 78 : 1;
+    if (크레딧막힘) console.log("\n크레딧이 없어 측정을 건너뜁니다. 채우면 다음 실행부터 자동으로 다시 잽니다.");
   }
 };
 

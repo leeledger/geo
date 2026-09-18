@@ -144,6 +144,8 @@ const 상태 = (id, status, patch = {}) =>
      where id=$1`,
     [id, status, patch.evidence ?? "", patch.error ?? null, patch.nextTry ?? null, patch.link ?? null, patch.attempt ? 1 : 0]);
 
+/** 크레딧·잔액 때문에 막힌 것인가. 고장과 갈라야 한다 */
+const 돈없음 = (s) => /402|Insufficient credits|credit/i.test(String(s ?? ""));
 const 뒤 = (h) => new Date(Date.now() + h * 3600 * 1000).toISOString();
 const 오늘 = () => new Date().toLocaleString("sv-SE", { timeZone: "Asia/Seoul" }).slice(0, 16);
 
@@ -327,6 +329,8 @@ const EXEC = {
       "",
       r.out.slice(-12000),
     ].join("\n"));
+    // 돈이 없어 못 부른 것은 고장이 아니다. 세 번 실패로 세어 사람에게 넘기면 진짜 고장이 묻힌다
+    if (ans.error && 돈없음(ans.error)) return { status: "대기", nextTry: 뒤(12), evidence: `${오늘()} 크레딧이 없어 분석을 미룸` };
     if (ans.error) return { status: "실패", attempt: true, error: `분석 실패: ${ans.error}` };
     const made = [];
     for (const it of ans.json.items ?? []) {
@@ -419,6 +423,10 @@ const EXEC = {
       if (!다듬음.startsWith("다듬기 실패")) notes.다듬음 = 다듬음;
     }
     await q(`update academy.posts set review_notes=$2::jsonb where slug=$1`, [slug, JSON.stringify(notes)]);
+    if (다듬음.startsWith("다듬기 실패") && 돈없음(다듬음)) {
+      // 검사는 이미 했으니 원장이 읽을 수는 있다. 다듬기만 크레딧이 찰 때까지 미룬다
+      return { status: "대기", nextTry: 뒤(12), evidence: `${오늘()} AI 티 ${티.length}종 · 크레딧이 없어 다듬기는 미룸`, link: `${ADMIN}/admin/drafts#${slug}` };
+    }
     if (다듬음.startsWith("다듬기 실패") && t.attempts < 2) {
       return { status: "실패", attempt: true, evidence: `${오늘()} AI 티 ${티.length}종 · ${다듬음}`, error: 다듬음 };
     }

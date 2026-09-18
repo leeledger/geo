@@ -50,7 +50,17 @@ jobs:
           MEASURE_ANTHROPIC_MODEL: ${{ vars.MEASURE_ANTHROPIC_MODEL }}
           MEASURE_GEMINI_MODEL: ${{ vars.MEASURE_GEMINI_MODEL }}
           MEASURE_GROQ_MODEL: ${{ vars.MEASURE_GROQ_MODEL }}
-        run: node scripts/ai-measure.mjs
+        # 78 = 크레딧·키가 없어 건너뜀. 고장이 아니므로 빨간불을 내지 않는다
+        run: |
+          set +e
+          node scripts/ai-measure.mjs
+          code=$?
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          if [ "$code" = "78" ]; then
+            echo "::notice::크레딧이나 키가 없어 측정을 건너뜁니다."
+            exit 0
+          fi
+          exit $code
 
       - name: 판정 · 고르기 · 행동
         working-directory: academy
@@ -66,7 +76,7 @@ jobs:
 
       # 측정이 실패했는데 루프가 어제 자료로 돌았으면 초록불로 끝난다. 그러면 아무도 안 본다
       - name: 측정 실패 표시
-        if: steps.measure.outcome == 'failure'
+        if: steps.measure.outcome == 'failure' && steps.measure.outputs.code != '78'
         run: |
           echo "::error::AI 답변 측정이 실패했습니다. 'AI 답변 측정' 단계 로그를 보세요."
           exit 1
