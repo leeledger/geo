@@ -127,6 +127,21 @@ const main = async () => {
     [CLIENT],
   ).catch(() => []);
 
+  /**
+   * 슬롭이 나오는 가장 큰 이유는 재료가 없어서다. 모델에게 일반론밖에 줄 게 없으면 일반론을 쓴다.
+   * 그래서 이 글에만 있는 것을 준다 — 상담에서 실제로 나온 말, 그리고 AI 가 이 질문에 실제로 뭐라고 답했는지.
+   */
+  const 상담말 = await q(
+    `select said, source from academy.inquiries
+      where client_id = $1 and coalesce(said,'') <> '' order by day desc limit 8`, [CLIENT]).catch(() => []);
+  const [측정] = QUESTION
+    ? await q(
+        `select coalesce(raw->>'answer','') answer,
+                (select string_agg(distinct c->>'domain', ', ') from jsonb_array_elements(citations) c) doms
+           from academy.ai_measurements
+          where client_id = $1 and prompt_text = $2 order by measured_on desc limit 1`, [CLIENT, QUESTION]).catch(() => [])
+    : [];
+
   const prompt = [
     "너는 송파구에서 코딩·로봇 학원을 운영하는 원장이다. 학부모가 읽을 글을 직접 쓴다.",
     "광고가 아니라 판단 기준을 주는 글이다. 읽고 나서 우리 학원에 안 와도 도움이 됐으면 그걸로 됐다.",
@@ -149,6 +164,17 @@ const main = async () => {
       "  나쁜 예: 「8명 이하가 적당하다」 「응답자의 40%가 그만뒀다」\n" +
       "  좋은 예: 「한 반 인원을 물어보세요. 몇 명부터 질문이 밀리는지도 같이 물으면 답이 분명해집니다」",
     "",
+    상담말.length
+      ? `# 상담에서 실제로 들은 말 (첫 문장은 이 중 하나에서 연다. 없는 말을 지어 붙이지 마라)\n${상담말.map((r) => `- 「${r.said}」 (${r.source})`).join("\n")}`
+      : "# 상담에서 들은 말\n- 기록이 없다. 그러면 상담 장면을 지어내지 말고, 질문 자체로 연다.",
+    "",
+    측정?.answer
+      ? `# AI 가 이 질문에 지금 이렇게 답한다 (우리 학원은 안 나온다)\n` +
+        `${측정.answer.slice(0, 1800)}\n\n` +
+        `대신 인용된 곳: ${측정.doms ?? "없음"}\n` +
+        "이 답에서 비어 있는 것 — 판단 기준, 확인할 질문, 안 맞는 경우 — 을 채우는 글을 쓴다. 저 답을 요약하거나 베끼지 마라."
+      : "",
+    "",
     `# 이미 쓴 글 (주장이 겹치면 안 된다)\n${기존글.map((p) => `- ${p.title} — ${p.summary ?? ""}`).join("\n")}`,
     "",
     `# 지금 지고 있는 검색어\n${지는검색어.map((r) => `- ${r.query}`).join("\n") || "- (측정 없음)"}`,
@@ -160,6 +186,13 @@ const main = async () => {
     "",
     "확인필요 에는 상담·수업에서 실제로 있었던 일처럼 쓴 문장을 빠짐없이 넣어라.",
     "네가 겪지 않은 일을 겪은 것처럼 쓰면 발행 전에 걸러야 한다.",
+    "",
+    "# 마지막으로 스스로 훑어라 (내놓기 전에)",
+    "- 소제목은 4개를 넘지 않는다. 목록은 한 군데까지. 체크리스트로 닫지 않는다",
+    "- 첫 문장이 서론이면 지우고 둘째 문장부터 시작한다",
+    "- 「쓰면 안 되는 것」 목록의 표현이 하나라도 남아 있으면 그 문장을 다시 쓴다",
+    "- 검색하면 아무나 쓸 수 있는 문단이 있으면 지운다. 이 학원 원장만 쓸 수 있는 말로 바꾼다",
+    "- 다 고친 최종본만 body 에 넣는다. 고치는 과정은 쓰지 마라",
   ].join("\n");
 
   if (DRY) {

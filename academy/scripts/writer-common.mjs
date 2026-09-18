@@ -17,6 +17,14 @@
  * 그때 세 파일에 흩어져 있어 한꺼번에 못 고칠 뻔했다. 앞이 막히면 뒤로 넘어간다.
  * 값: 측정 1건 ≈ 검색 $0.007 + 모델 $0.006 (google/gemini-2.5-flash, 2026-09-18 기준)
  */
+/**
+ * 글 쓰는 모델은 따로 둔다. 재는 일은 싸야 하지만(하루 20번), 쓰는 일은 좋아야 한다(주 1번).
+ * 초안 한 편 ≈ 입력 3천 + 출력 3천 토큰 → Opus 5 로 약 $0.09(130원), Sonnet 5 로 약 $0.035.
+ * 2026-09-18 원장 지적: union-alpha 초안이 AI 슬롭이라 버렸다. 값보다 글이 중요한 자리다.
+ */
+// OPENROUTER_MODEL(측정용 싼 모델)을 여기서 읽으면 안 된다 — 그 변수를 재는 쪽에 맞추면 글까지 같이 싸구려가 된다
+export const 쓰기모델 = () => process.env.WRITER_MODEL || "anthropic/claude-opus-5";
+
 export const 모델들 = () => [
   process.env.OPENROUTER_MODEL,
   // 유료 — 크레딧이 있으면 이쪽이 한국어가 낫다
@@ -87,7 +95,7 @@ export const 공급자만들기 = () => {
   if (pick === "openrouter") {
     // 원장 결정(2026-09-17): 제미나이 무료 키가 모든 모델에서 429 라 OpenRouter 로 옮겼다.
     // 모델 요금은 0원이지만 web 플러그인(Exa)은 크레딧에서 요청당 $0.007 이 나간다 (openrouter.ai/docs 웹 검색 가격)
-    const model = process.env.WRITER_MODEL || 모델들()[0];
+    const model = 쓰기모델();
     return {
       이름: "openrouter",
       key: 오픈라우터()?.key,

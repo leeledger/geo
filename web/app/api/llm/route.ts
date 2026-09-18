@@ -33,7 +33,7 @@ export async function POST(req: Request) {
    * stealth/union-alpha 는 2026-09-18 에 닫혔다(응답이 후속 모델 unbiased/pareto 를 알려 줬다).
    * 값은 LLM_PROXY_MODELS 로 바꾼다 (쉼표 구분). 출력 상한도 같이 건다.
    */
-  const allow = (process.env.LLM_PROXY_MODELS ?? "google/gemini-2.5-flash,qwen/qwen3.7-flash,openai/gpt-5-mini")
+  const allow = (process.env.LLM_PROXY_MODELS ?? "anthropic/claude-opus-5,anthropic/claude-sonnet-5,google/gemini-2.5-flash,qwen/qwen3.7-flash,openai/gpt-5-mini")
     .split(",").map((s) => s.trim()).filter(Boolean);
   if (typeof body.model !== "string" || !(allow.includes(body.model) || /:free$/.test(body.model))) {
     return Response.json({ error: { code: 400, message: `중계하지 않는 모델입니다: ${body.model}. 허용: ${allow.join(", ")} 또는 :free` } }, { status: 400 });
