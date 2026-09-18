@@ -19,9 +19,12 @@
  */
 export const 모델들 = () => [
   process.env.OPENROUTER_MODEL,
+  // 유료 — 크레딧이 있으면 이쪽이 한국어가 낫다
   "google/gemini-2.5-flash",
   "qwen/qwen3.7-flash",
-  "openai/gpt-5-mini",
+  // 크레딧이 없으면 402 가 온다(2026-09-18). 무료 모델로라도 계속 잰다
+  "nex-agi/nex-n2.5-pro:free",
+  "qwen/qwen3.8-27b:free",
 ].filter(Boolean);
 
 export const 오픈라우터 = () =>
