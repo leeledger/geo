@@ -31,7 +31,7 @@ import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { Pool } from "pg";
 import { CLIENTS as CLIENT_CONF } from "../clients.mjs";
-import { 오픈라우터, 재시도 } from "./writer-common.mjs";
+import { 오픈라우터, 재시도, 모델들 } from "./writer-common.mjs";
 
 for (const l of fs.readFileSync(new URL("../.env.local", import.meta.url), "utf8").split(/\r?\n/)) {
   const m = /^([A-Z_]+)=(.*)$/.exec(l);
@@ -70,17 +70,19 @@ const 활동 = (clientId, agent, action, ok, summary, taskId = null, runUrl = RU
 const 물어보기 = async (prompt, maxTokens = 6000) => {
   const or = 오픈라우터();
   if (!or) return { error: "OpenRouter 설정 없음" };
-  const res = await 재시도(or.url, {
-    method: "POST",
-    headers: { "content-type": "application/json", authorization: `Bearer ${or.key}` },
-    body: JSON.stringify({
-      model: process.env.OPENROUTER_MODEL || "stealth/union-alpha",
-      max_tokens: maxTokens,
-      messages: [{ role: "user", content: prompt }],
-      response_format: { type: "json_object" },
-    }),
-  }).catch((e) => ({ ok: false, status: 0, text: async () => e.message }));
-  if (!res.ok) return { error: `${res.status} ${끝(await res.text(), 300)}` };
+  // 모델은 닫힌다. 막히면 다음 이름으로 (stealth/union-alpha 가 2026-09-18 에 닫혔다)
+  let res, 오류 = "";
+  for (const model of 모델들()) {
+    res = await 재시도(or.url, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${or.key}` },
+      body: JSON.stringify({ model, max_tokens: maxTokens, messages: [{ role: "user", content: prompt }], response_format: { type: "json_object" } }),
+    }).catch((e) => ({ ok: false, status: 0, text: async () => e.message }));
+    if (res.ok) break;
+    오류 = `${model} ${res.status} ${끝(await res.text(), 200)}`;
+    console.log(`  ⚠ ${오류}`);
+  }
+  if (!res?.ok) return { error: 오류 };
   const d = await res.json();
   const text = d.choices?.[0]?.message?.content ?? "";
   const m = /\{[\s\S]*\}/.exec(text.replace(/^```(json)?|```$/gm, ""));

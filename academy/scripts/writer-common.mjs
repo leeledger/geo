@@ -12,6 +12,18 @@
  * OpenRouter 로 가는 길. 키가 Vercel 에 Sensitive 로만 있어 Actions 는 사이티드 중계(/api/llm)를 거친다.
  * 로컬에 키가 있으면 바로 간다.
  */
+/**
+ * 쓸 모델. 이름을 한 곳에 둔다 — stealth/union-alpha 는 2026-09-18 에 닫혔고(응답이 후속 이름을 알려 줬다)
+ * 그때 세 파일에 흩어져 있어 한꺼번에 못 고칠 뻔했다. 앞이 막히면 뒤로 넘어간다.
+ * 값: 측정 1건 ≈ 검색 $0.007 + 모델 $0.006 (google/gemini-2.5-flash, 2026-09-18 기준)
+ */
+export const 모델들 = () => [
+  process.env.OPENROUTER_MODEL,
+  "google/gemini-2.5-flash",
+  "qwen/qwen3.7-flash",
+  "openai/gpt-5-mini",
+].filter(Boolean);
+
 export const 오픈라우터 = () =>
   process.env.LLM_PROXY_URL && process.env.LLM_PROXY_TOKEN
     ? { url: process.env.LLM_PROXY_URL, key: process.env.LLM_PROXY_TOKEN }
@@ -72,7 +84,7 @@ export const 공급자만들기 = () => {
   if (pick === "openrouter") {
     // 원장 결정(2026-09-17): 제미나이 무료 키가 모든 모델에서 429 라 OpenRouter 로 옮겼다.
     // 모델 요금은 0원이지만 web 플러그인(Exa)은 크레딧에서 요청당 $0.007 이 나간다 (openrouter.ai/docs 웹 검색 가격)
-    const model = process.env.WRITER_MODEL || process.env.OPENROUTER_MODEL || "stealth/union-alpha";
+    const model = process.env.WRITER_MODEL || 모델들()[0];
     return {
       이름: "openrouter",
       key: 오픈라우터()?.key,

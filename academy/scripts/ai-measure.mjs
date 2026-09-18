@@ -17,7 +17,7 @@
  */
 import fs from "node:fs";
 import { Pool } from "pg";
-import { 오픈라우터, 재시도 } from "./writer-common.mjs";
+import { 오픈라우터, 재시도, 모델들 } from "./writer-common.mjs";
 
 for (const l of fs.readFileSync(new URL("../.env.local", import.meta.url), "utf8").split(/\r?\n/)) {
   const m = /^([A-Z_]+)=(.*)$/.exec(l);
@@ -46,7 +46,7 @@ const ENGINES = [
     method: "api-openrouter-web-exa",
     key: 오픈라우터()?.key,
     url: 오픈라우터()?.url,
-    model: process.env.OPENROUTER_MODEL || "stealth/union-alpha",
+    model: 모델들()[0],
     gap: 3000,
     ask: async (e, text) => {
       const res = await 재시도(e.url, {
@@ -139,6 +139,7 @@ const 다른모델 = async (e) => {
     return names.sort((a, b) => b.localeCompare(a, "en", { numeric: true })).slice(0, 4);
   }
   if (e.engine === "groq-compound") return ["groq/compound-mini"].filter((m) => m !== e.model);
+  if (e.engine === "openrouter") return 모델들().filter((m) => m !== e.model);
   return [];
 };
 

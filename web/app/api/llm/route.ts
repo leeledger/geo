@@ -28,9 +28,15 @@ export async function POST(req: Request) {
   let body: Record<string, unknown>;
   try { body = await req.json(); }
   catch { return Response.json({ error: "json" }, { status: 400 }); }
-  // 토큰이 새도 비싼 모델로 크레딧을 태우지 못하게 무료 모델만, 출력 상한을 둔다
-  if (typeof body.model !== "string" || !(/^stealth\//.test(body.model) || /:free$/.test(body.model))) {
-    return Response.json({ error: { code: 400, message: "무료 모델만 중계합니다" } }, { status: 400 });
+  /**
+   * 토큰이 새도 비싼 모델로 크레딧을 태우지 못하게 목록에 있는 모델만 중계한다.
+   * stealth/union-alpha 는 2026-09-18 에 닫혔다(응답이 후속 모델 unbiased/pareto 를 알려 줬다).
+   * 값은 LLM_PROXY_MODELS 로 바꾼다 (쉼표 구분). 출력 상한도 같이 건다.
+   */
+  const allow = (process.env.LLM_PROXY_MODELS ?? "google/gemini-2.5-flash,qwen/qwen3.7-flash,openai/gpt-5-mini")
+    .split(",").map((s) => s.trim()).filter(Boolean);
+  if (typeof body.model !== "string" || !(allow.includes(body.model) || /:free$/.test(body.model))) {
+    return Response.json({ error: { code: 400, message: `중계하지 않는 모델입니다: ${body.model}. 허용: ${allow.join(", ")} 또는 :free` } }, { status: 400 });
   }
   body.max_tokens = Math.min(Number(body.max_tokens) || 12000, 16000);
 
