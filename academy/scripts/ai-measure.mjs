@@ -72,6 +72,48 @@ const ENGINES = [
     },
   },
   {
+    /**
+     * Claude + 웹 검색. 검색 1,000건당 $10 + 토큰 (platform.claude.com 요금표, 2026-09-18 확인).
+     * 질문 1건 ≈ 검색 $0.01 + 토큰 $0.03 (Sonnet 5 기준). OpenRouter 보다 비싸지만 선불이 아니라 안 멈춘다.
+     * 키가 Vercel 에만 있으면 중계(/api/llm?provider=anthropic)를 거친다.
+     */
+    engine: "anthropic-web",
+    method: "api-anthropic-web-search",
+    key: process.env.LLM_PROXY_TOKEN || process.env.ANTHROPIC_API_KEY,
+    url: process.env.LLM_PROXY_URL ? `${process.env.LLM_PROXY_URL}?provider=anthropic` : "https://api.anthropic.com/v1/messages",
+    model: process.env.MEASURE_ANTHROPIC_MODEL || "claude-sonnet-5",
+    gap: 2000,
+    ask: async (e, text) => {
+      const 중계 = Boolean(process.env.LLM_PROXY_URL);
+      const res = await 재시도(e.url, {
+        method: "POST",
+        headers: 중계
+          ? { "content-type": "application/json", authorization: `Bearer ${e.key}` }
+          : { "content-type": "application/json", "x-api-key": e.key, "anthropic-version": "2023-06-01" },
+        body: JSON.stringify({
+          model: e.model,
+          max_tokens: 4000,
+          messages: [{ role: "user", content: text }],
+          tools: [{ type: "web_search_20260209", name: "web_search", max_uses: 5 }],
+        }),
+      });
+      if (!res.ok) return { status: res.status, error: (await res.text()).slice(0, 3000) };
+      const d = await res.json();
+      if (d.error) return { status: d.error.code ?? 0, error: JSON.stringify(d.error).slice(0, 3000) };
+      const blocks = d.content ?? [];
+      const answer = blocks.filter((b) => b.type === "text").map((b) => b.text ?? "").join("");
+      // 인용은 실제로 검색해 읽은 자리에서만 센다 (검색 결과 블록 + 문장에 달린 인용)
+      const found = new Map();
+      for (const b of blocks) {
+        const list = b.type === "web_search_tool_result" && Array.isArray(b.content) ? b.content : [];
+        for (const r of list) if (r.url) found.set(r.url, { domain: 도메인(r.url), title: r.title ?? "", url: r.url });
+        for (const c of b.citations ?? []) if (c.url) found.set(c.url, { domain: 도메인(c.url), title: c.title ?? "", url: c.url });
+      }
+      const answerUrls = answer.match(/https?:\/\/[^\s)\]>"']+/g) ?? [];
+      return { answer, citations: [...found.values()], answerUrls, searches: d.usage?.server_tool_use?.web_search_requests ?? null };
+    },
+  },
+  {
     engine: "gemini",
     method: "api-gemini-google-search",
     key: process.env.GEMINI_API_KEY,
@@ -181,7 +223,11 @@ const main = async () => {
     if (ONLY && e.engine !== ONLY) continue;
     // 제미나이·groq 무료 키는 한도에 막혀 있다(2026-09-17). OpenRouter 가 있으면 매일 헛두드리지 않는다.
     // 결제를 켜면 MEASURE_ALL_ENGINES=1 로 다시 같이 잰다
-    if (!ONLY && e.engine !== "openrouter" && 오픈라우터() && process.env.MEASURE_ALL_ENGINES !== "1") continue;
+    // MEASURE_ENGINES 로 쓸 엔진을 고른다 (예: anthropic-web 또는 anthropic-web,openrouter).
+    // 안 정하면 OpenRouter 만 — 제미나이·groq 무료 키는 한도에 막혀 있어 매일 헛두드릴 이유가 없다
+    const 고른엔진 = (process.env.MEASURE_ENGINES ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+    if (!ONLY && 고른엔진.length && !고른엔진.includes(e.engine)) continue;
+    if (!ONLY && !고른엔진.length && e.engine !== "openrouter" && 오픈라우터() && process.env.MEASURE_ALL_ENGINES !== "1") continue;
     if (!e.key) {
       요약.push(`${e.engine}: 키 없음 — 건너뜀`);
       continue;

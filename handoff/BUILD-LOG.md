@@ -470,3 +470,4 @@ Known Gaps
 - 슬롭의 절반은 모델이 아니라 재료 부족이었다. 초안 프롬프트에 상담에서 실제로 들은 말, AI 가 그 질문에 지금 내놓는 답 전문과 인용 출처를 넣고, 소제목 4개·목록 1군데 상한과 자가 점검 항목을 붙였다
 - 결정(2026-09-18): 결제 경로를 둘로 열어 뒀다. OpenRouter 는 선불 크레딧(잔액 0 이면 402 로 멈춤) — 측정·검색에 쓴다. Anthropic 직판은 실제 사용량 월 청구(카드) — 글쓰기에 쓴다. 중계 `/api/llm?provider=anthropic` 가 Anthropic 으로 그대로 넘긴다. `WRITER_PROVIDER=anthropic` 을 GitHub 변수로 두면 초안이 그쪽으로 간다
 - 중계에 하루 호출 상한(`LLM_PROXY_DAILY_MAX`, 기본 120)을 걸었다. 토큰이 새도 크레딧이 하루치 이상 안 나간다
+- 결정(2026-09-18): Claude 웹 검색($10/1,000건)으로 측정까지 Anthropic 한 곳에서 할 수 있다. `ai-measure.mjs` 에 `anthropic-web` 엔진 추가(web_search_20260209, 기본 claude-sonnet-5). `MEASURE_ENGINES` GitHub 변수로 고른다. 질문 1건 ≈ $0.04 (검색 $0.01 + 토큰) → 하루 20문항이면 월 약 $24. OpenRouter+Exa 는 월 약 $8 이지만 선불이라 잔액 0 이면 멈춘다. 원장이 결제처 하나를 원하면 Anthropic, 값을 원하면 OpenRouter
