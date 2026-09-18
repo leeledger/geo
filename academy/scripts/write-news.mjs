@@ -136,6 +136,12 @@ const main = async () => {
     const 본문 = await res.text();
     console.log("생성 실패:", res.status);
     console.log(본문.slice(0, 2000));
+    if (res.status === 402) {
+      // 크레딧 없음은 설정 문제다. 78 로 끝내면 write.yml 이 「건너뜀」으로 적고 빨간불을 안 낸다
+      console.log("\nOpenRouter 크레딧이 없습니다. https://openrouter.ai/settings/credits 에서 충전하면 다음 주부터 다시 씁니다.");
+      process.exitCode = 78;
+      return;
+    }
     if (res.status === 429) {
       const 간격 = /"retryDelay"\s*:\s*"([^"]+)"/.exec(본문)?.[1];
       console.log(`\n무료 한도에 걸렸습니다.${간격 ? ` 재시도 간격 ${간격}.` : ""}`);

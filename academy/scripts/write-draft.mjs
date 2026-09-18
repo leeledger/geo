@@ -193,6 +193,12 @@ const main = async () => {
     const 오류본문 = await res.text();
     console.log("생성 실패:", res.status);
     console.log(오류본문.slice(0, 2000));
+    // 크레딧이 없는 건 고장이 아니라 설정이다. 매주 빨간불이 뜨면 진짜 고장났을 때 아무도 안 본다
+    if (res.status === 402) {
+      console.log("\nOpenRouter 크레딧이 없습니다. https://openrouter.ai/settings/credits 에서 충전하면 다음 주부터 다시 씁니다.");
+      process.exitCode = 78;
+      return;
+    }
     process.exitCode = 1;
     return;
   }
