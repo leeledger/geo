@@ -471,3 +471,17 @@ Known Gaps
 - 결정(2026-09-18): 결제 경로를 둘로 열어 뒀다. OpenRouter 는 선불 크레딧(잔액 0 이면 402 로 멈춤) — 측정·검색에 쓴다. Anthropic 직판은 실제 사용량 월 청구(카드) — 글쓰기에 쓴다. 중계 `/api/llm?provider=anthropic` 가 Anthropic 으로 그대로 넘긴다. `WRITER_PROVIDER=anthropic` 을 GitHub 변수로 두면 초안이 그쪽으로 간다
 - 중계에 하루 호출 상한(`LLM_PROXY_DAILY_MAX`, 기본 120)을 걸었다. 토큰이 새도 크레딧이 하루치 이상 안 나간다
 - 결정(2026-09-18): Claude 웹 검색($10/1,000건)으로 측정까지 Anthropic 한 곳에서 할 수 있다. `ai-measure.mjs` 에 `anthropic-web` 엔진 추가(web_search_20260209, 기본 claude-sonnet-5). `MEASURE_ENGINES` GitHub 변수로 고른다. 질문 1건 ≈ $0.04 (검색 $0.01 + 토큰) → 하루 20문항이면 월 약 $24. OpenRouter+Exa 는 월 약 $8 이지만 선불이라 잔액 0 이면 멈춘다. 원장이 결제처 하나를 원하면 Anthropic, 값을 원하면 OpenRouter
+
+### 2026-09-19 — 초안 공급자 재검토 (Anthropic → Groq → Gemini)
+
+- Anthropic 직판 키를 Vercel 에 넣고 `WRITER_PROVIDER=anthropic` 로 실제 초안 1편 성공 확인(claude-opus-5, 1796자, 짜임새·어휘·숫자 검사 통과)
+- 원장 지시로 Groq(무료) 재시도 — KG-18 과 같은 결과. 1135자(하한 미달), 지역 키워드 0회, 훈계조·체크리스트 닫기 재현. **여전히 발행 수준 아님, 결론 유지**
+- Gemini(무료) 로 전환 — 첫 시도 JSON 파싱 실패(모델이 따옴표를 이스케이프 안 하고 보냄, position 1311). 할당량 문제 아님, `finishReason: STOP`
+- **AI Studio 비율 제한 대시보드를 직접 열어 실측**(`luxual8@gmail.com` · 프로젝트 AGOGEO · 무료 등급):
+  - `gemini-3.6-flash` 텍스트 생성(그라운딩 없음): RPM 5 · TPM 250K · **RPD 20** — 초안 주 1편에는 넉넉함
+  - 검색 그라운딩: **Gemini 3 계열은 RPD 0** (결제해도 안 풀리는 게 아니라 무료 등급 자체가 0). Gemini 2/2.5 계열은 RPD 1,500 이지만 **모델이 신규 사용자에게 퇴역**(404, `gemini-2.5-flash`) — 실사용 불가
+  - 그래서 KG-7a 의 "결제 연결 필요"가 맞았다. `MEASURE_GEMINI_MODEL=gemini-2.5-flash` 로 바꾸면 될 거라 봤던 중간 판단은 틀렸음 — 되돌림
+- **코드 수정**: `writer-common.mjs` gemini 요청(검색 미사용 시)에 `responseSchema` 를 걸어 JSON 파싱 실패를 API 단에서 원천 차단 (커밋 `0ad30a1`). 재실행으로 확인 — `gemini-3.6-flash` 로 2339자 초안 성공, 짜임새 통과, slop-check 1건(훈계조 닫기)만 걸림 — 정상적으로 사람 검토로 넘어감
+- **결정: `WRITER_PROVIDER=gemini` 로 확정.** 무료·품질·할당량 셋 다 충족하는 유일한 조합 (Groq 는 품질 미달, Anthropic 은 유료, OpenRouter 는 크레딧 0)
+- **측정(그라운딩) 은 여전히 막혀 있다** — OpenRouter 크레딧 0(402) + Gemini 3 그라운딩 무료 0건 + Groq compound 는 2026-09-17 에 413(요청 과대)로 막힌 이력. **무료로 되는 길이 없다.** 재개하려면 원장이 OpenRouter 충전(월 약 $5~8) 또는 Gemini AI Studio 결제 연결 중 하나를 골라야 함 — 사람 결정 대기
+- `MEASURE_ENGINES=gemini` 로 강제했다가 위 이유로 실패 확인 후 변수 삭제, 기본 동작(OpenRouter 만 시도 → 크레딧 없으면 78 로 조용히 건너뜀)으로 되돌림
