@@ -164,7 +164,24 @@ export const 공급자만들기 = () => {
           // 검색을 켜면 JSON 모드를 같이 걸 수 없다. 껍질 벗기기와 줄바꿈 복구로 받는다.
           body.tools = [{ google_search: {} }];
         } else {
+          /**
+           * responseSchema 로 강제한다. 안 그러면 본문 안의 따옴표 하나가 JSON을 깨서
+           * 모델이 다 쓰고도 통째로 버려진다(2026-09-19, gemini-3.6-flash, position 1311 파싱 실패).
+           * 필드는 write-draft.mjs·write-news.mjs 가 기대하는 모양에 맞춘다.
+           */
           body.generationConfig.responseMimeType = "application/json";
+          body.generationConfig.responseSchema = {
+            type: "OBJECT",
+            properties: {
+              title: { type: "STRING" },
+              slug: { type: "STRING" },
+              summary: { type: "STRING" },
+              tags: { type: "ARRAY", items: { type: "STRING" } },
+              body: { type: "STRING" },
+              확인필요: { type: "ARRAY", items: { type: "STRING" } },
+            },
+            required: ["title", "summary", "tags", "body", "확인필요"],
+          };
         }
         return body;
       },
