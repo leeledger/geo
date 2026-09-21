@@ -77,7 +77,12 @@ export const 공급자들 = ({ groq = false } = {}) => {
 };
 
 /** WRITER_MODEL 은 WRITER_PROVIDER 가 고른 공급자 몫이다. 예비로 넘어간 쪽에 붙이면 없는 모델 이름으로 400 이 난다 */
-const 모델변수 = (p) => (!process.env.WRITER_PROVIDER || process.env.WRITER_PROVIDER === p ? process.env.WRITER_MODEL : undefined);
+const 모델변수 = (p) => {
+  // WRITER_PROVIDER 가 없으면 키로 자동으로 고른 첫 공급자가 주인이다
+  const 주인 = process.env.WRITER_PROVIDER
+    || (오픈라우터() ? "openrouter" : process.env.ANTHROPIC_API_KEY ? "anthropic" : process.env.GEMINI_API_KEY ? "gemini" : process.env.GROQ_API_KEY ? "groq" : null);
+  return 주인 === p ? process.env.WRITER_MODEL : undefined;
+};
 
 export const 공급자만들기 = (지정) => {
   const pick =
