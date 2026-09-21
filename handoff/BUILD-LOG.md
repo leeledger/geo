@@ -499,3 +499,16 @@ Known Gaps
 Known Gaps
 - KG-21a: 글·홈 `fmt()` 가 `timeZone: "Asia/Seoul"` 없이 날짜를 찍는다 (`app/page.tsx:29`, `app/blog/[slug]/page.tsx`). dev 하이드레이션 경고도 여기서 난다
 - KG-21b: 사이트 글 페이지 하단에는 카카오 QR·지도가 없다 (홈에만 있음)
+
+### 2026-09-21 (밤) — 에이전트가 공급자 하나에 막혀 서 있던 것
+
+- 원장 지적 「geo 에이전트가 실제로 일을 안 하는 것 같다」. agent_activity 를 보니 기록 대부분이 출근·회사 루프 상태 세기. 실제 일감은 막혀 있었다:
+  - who-wins 분석: `물어보기` 가 OpenRouter 만 불렀다. 크레딧 0 → 200 빈 답 → 「JSON 아님」 12일 반복
+  - write.yml: 기본이 뉴스 글인데 뉴스는 검색 근거가 필요하고 제미나이 무료는 근거 한도 0 → 매주 429
+- 결정: 공급자 목록(`공급자들()`)으로 넘어간다 — WRITER_PROVIDER → OpenRouter → Anthropic(중계, 하루 120 상한) → Gemini (→ Groq 는 분석 JSON 에만). 뉴스가 안 되면 관점 글 초안으로. 비용: Anthropic 은 카드 월 청구, 초안 1편 ≈ $0.09 · 분석 1회(sonnet-5) 수 센트
+- 확인: 수동 실행에서 who-wins 12일 만에 성공(검색어 6개 → listing 5 · content 1), 이어서 question-draft 를 claude-opus-5(중계)로 써서 초안 `songpa-chodeung-koding-hagwon-chucheon` 생성 — 사실 확인 대기
+- Richard 1차 Must 1 · Should 7 → 반영(3384cf9), 2차 통과, Low 1 반영(980b739)
+
+Known Gaps
+- KG-21c: listing 일감 5개가 전부 「사람 대기」. 플랫폼 등록은 업체 로그인이 필요하다 — 어느 플랫폼인지·무엇을 적을지까지 에이전트가 준비해 두면 사람 몫이 30초로 준다
+- KG-21d: 네이버 이관 도중 「태그 칸을 못 찾았습니다」 한 번 → 발행 화면이 안 넘어감. 재시도로 됐다. 원인 미확인
