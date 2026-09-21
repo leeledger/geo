@@ -23,6 +23,9 @@ export const CLIENTS = [
     domain: "robotncoding.com",
     // 네이버 통합검색은 블록마다 링크 형태가 달라 이름 글자로 찾는다
     brandRe: /로봇앤코딩|로봇&amp;코딩|robotncoding/i,
+    // 남의 페이지에 「우리가 올라 있나」는 이름만으로 못 가린다 — 로봇앤코딩학원이 강남·광진·서대문에도 있다.
+    // 주소나 전화 끝자리가 같이 있어야 우리다 (who-wins.mjs)
+    presenceRe: /석촌동\s*274-8|송파대로37길\s*52|422-?0525|1396-?0525/,
     // 사이트 저장소가 이 저장소 안에 있어 키 파일을 직접 둔다
     indexnowKeyFile: "public/indexnow-key.txt",
     publishes: true,

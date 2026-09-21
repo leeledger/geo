@@ -64,17 +64,30 @@ for (const c of selectClients()) {
     md.push(`### 「${q}」`, "", "| # | 종류 | 주소 | 제목 |", "|---|---|---|---|");
 
     const tally = {};
-    blocks.slice(0, 10).forEach((b, i) => {
+    for (const [i, b] of blocks.slice(0, 10).entries()) {
       const head = b.slice(0, 6000);
       const url = (head.match(/href="(https?:\/\/[^"]+)"/) ?? [])[1] ?? "";
       const host = url.replace(/^https?:\/\//, "").split("/")[0];
       const title = strip((head.match(/<span[^>]*class="[^"]*(?:title|headline)[^"]*"[^>]*>([\s\S]{0,200}?)<\/span>/) ?? [])[1]);
       const mine = url.includes(c.domain);
-      const k = mine ? "★ 우리" : kindOf(url, title);
+      let k = mine ? "★ 우리" : kindOf(url, title);
+      /**
+       * 우리 주소가 아니어도 그 페이지 안에 우리가 있을 수 있다.
+       * 순위닷 「송파구 코딩학원」 페이지에 로봇앤코딩학원이 2위로 올라 있었는데(2026-09-22 원장 확인)
+       * 주소만 보고 「등재 필요」 일감을 만들었다. 이기는 페이지를 열어 이름을 찾는다.
+       */
+      if (!mine && url && !/blog\.naver|cafe\.naver|youtube/.test(url)) {
+        const page = await fetch(url, { headers: { "user-agent": UA }, signal: AbortSignal.timeout(10000) })
+          .then((x) => (x.ok ? x.text() : "")).catch(() => "");
+        const 이름 = c.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const 이름있음 = c.brandRe?.test(page) || new RegExp(이름).test(page);
+        // 같은 이름 다른 지점을 우리로 세면 안 된다. 주소·전화가 정해져 있으면 그것까지 맞아야 한다
+        if (이름있음 && (!c.presenceRe || c.presenceRe.test(page))) k = `${k}·우리있음`;
+      }
       tally[k] = (tally[k] ?? 0) + 1;
       console.log(`  ${String(i + 1).padStart(2)}. ${k.padEnd(9)} ${host.slice(0, 34).padEnd(36)}${title.slice(0, 30)}`);
       md.push(`| ${i + 1} | ${k} | ${url.slice(0, 90)} | ${title.replace(/\|/g, "/").slice(0, 60)} |`);
-    });
+    }
 
     const top = Object.entries(tally).sort((a, b) => b[1] - a[1]);
     console.log(`     → ${top.map(([k, n]) => `${k} ${n}`).join(" · ")}`);
