@@ -31,7 +31,7 @@ import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { Pool } from "pg";
 import { CLIENTS as CLIENT_CONF } from "../clients.mjs";
-import { 오픈라우터, 재시도, 모델들 } from "./writer-common.mjs";
+import { 오픈라우터, 재시도, 모델들, 공급자들 } from "./writer-common.mjs";
 
 for (const l of fs.readFileSync(new URL("../.env.local", import.meta.url), "utf8").split(/\r?\n/)) {
   const m = /^([A-Z_]+)=(.*)$/.exec(l);
@@ -66,28 +66,53 @@ const 활동 = (clientId, agent, action, ok, summary, taskId = null, runUrl = RU
   q(`insert into geo.agent_activity (client_id, agent, action, ok, summary, task_id, run_url) values ($1,$2,$3,$4,$5,$6,$7)`,
     [clientId, agent, action, ok, String(summary).slice(0, 1000), taskId, runUrl]).catch((e) => console.log("  ⚠ 활동 기록 실패", e.message));
 
-// ─────────────────────────────────────────── LLM (OpenRouter 중계)
+// ─────────────────────────────────────────── LLM (막히면 다음 공급자로)
+/**
+ * OpenRouter 하나만 부르던 때는 크레딧이 0 이 되자 200 에 빈 답이 왔고,
+ * 「JSON 아님」 을 12일 동안 같은 자리에서 되풀이했다(2026-09-21 원장 지적 「에이전트가 일을 안 한다」).
+ * 이제 OpenRouter 모델들 → Anthropic(중계, 하루 상한 있음) → Gemini → Groq 순으로 넘어간다. 빈 답도 실패로 친다.
+ */
+const 분석모델 = { anthropic: process.env.COMPANY_ANTHROPIC_MODEL || "claude-sonnet-5" };
 const 물어보기 = async (prompt, maxTokens = 6000) => {
+  const 막힘 = [];
+  const 읽기 = (text) => {
+    const m = /\{[\s\S]*\}/.exec(String(text).replace(/^```(json)?|```$/gm, ""));
+    try { return JSON.parse(m?.[0] ?? ""); } catch { return null; }
+  };
+
   const or = 오픈라우터();
-  if (!or) return { error: "OpenRouter 설정 없음" };
-  // 모델은 닫힌다. 막히면 다음 이름으로 (stealth/union-alpha 가 2026-09-18 에 닫혔다)
-  let res, 오류 = "";
-  for (const model of 모델들()) {
-    res = await 재시도(or.url, {
-      method: "POST",
-      headers: { "content-type": "application/json", authorization: `Bearer ${or.key}` },
-      body: JSON.stringify({ model, max_tokens: maxTokens, messages: [{ role: "user", content: prompt }], response_format: { type: "json_object" } }),
-    }).catch((e) => ({ ok: false, status: 0, text: async () => e.message }));
-    if (res.ok) break;
-    오류 = `${model} ${res.status} ${끝(await res.text(), 200)}`;
-    console.log(`  ⚠ ${오류}`);
+  if (or) {
+    // 모델은 닫힌다. 막히면 다음 이름으로 (stealth/union-alpha 가 2026-09-18 에 닫혔다)
+    for (const model of 모델들()) {
+      const res = await 재시도(or.url, {
+        method: "POST",
+        headers: { "content-type": "application/json", authorization: `Bearer ${or.key}` },
+        body: JSON.stringify({ model, max_tokens: maxTokens, messages: [{ role: "user", content: prompt }], response_format: { type: "json_object" } }),
+      }).catch((e) => ({ ok: false, status: 0, text: async () => e.message }));
+      if (!res.ok) { 막힘.push(`openrouter/${model} ${res.status} ${끝(await res.text(), 120)}`); continue; }
+      const text = (await res.json().catch(() => ({}))).choices?.[0]?.message?.content ?? "";
+      const json = 읽기(text);
+      if (json) return { json, 공급자: `openrouter/${model}` };
+      막힘.push(`openrouter/${model} JSON 아님(${text.length}자)`);
+    }
   }
-  if (!res?.ok) return { error: 오류 };
-  const d = await res.json();
-  const text = d.choices?.[0]?.message?.content ?? "";
-  const m = /\{[\s\S]*\}/.exec(text.replace(/^```(json)?|```$/gm, ""));
-  try { return { json: JSON.parse(m?.[0] ?? "") }; }
-  catch { return { error: `JSON 아님: ${text.slice(0, 200)}` }; }
+
+  for (const p of 공급자들({ groq: true }).filter((x) => x.이름 !== "openrouter")) {
+    // 분석은 짧은 JSON 이라 글쓰기용 큰 모델까지 안 쓴다. 제미나이는 모델이 주소에 들어 있어 본문을 건드리지 않는다
+    const 앤트로픽 = p.이름.startsWith("anthropic");
+    const model = 앤트로픽 ? 분석모델.anthropic : p.model;
+    const 요청 = p.요청(`${prompt}\n\nJSON 객체 하나만 답하라. 다른 말은 붙이지 마라.`, Math.min(maxTokens, p.최대토큰));
+    const body = 앤트로픽 ? { ...요청, model } : 요청;
+    const res = await 재시도(p.url, { method: "POST", headers: p.headers(p.key), body: JSON.stringify(body) })
+      .catch((e) => ({ ok: false, status: 0, text: async () => e.message }));
+    if (!res.ok) { 막힘.push(`${p.이름} ${res.status} ${끝(await res.text(), 120)}`); continue; }
+    const text = p.text(await res.json().catch(() => ({})));
+    const json = 읽기(text);
+    if (json) return { json, 공급자: `${p.이름}/${model}` };
+    막힘.push(`${p.이름} JSON 아님(${text.length}자)`);
+  }
+  for (const m of 막힘) console.log(`  ⚠ ${m}`);
+  return { error: 막힘.length ? `모든 공급자 막힘: ${막힘.join(" · ")}` : "LLM 설정 없음" };
 };
 
 // ─────────────────────────────────────────── 일감 표

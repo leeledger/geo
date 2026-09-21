@@ -43,4 +43,7 @@ jobs:
           LLM_PROXY_URL: ${{ secrets.LLM_PROXY_URL }}
           LLM_PROXY_TOKEN: ${{ secrets.LLM_PROXY_TOKEN }}
           OPENROUTER_MODEL: ${{ vars.OPENROUTER_MODEL }}
+          # 예비 공급자. OpenRouter 가 막히면 중계(Anthropic) → 제미나이 → Groq 로 넘어간다 (writer-common 공급자들)
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
         run: node scripts/company.mjs

@@ -57,8 +57,27 @@ export const 재시도 = async (url, opts, 횟수 = 3) => {
 };
 
 /** 어느 모델로 쓰는가. 키가 있는 쪽을 쓴다. 우선순위 openrouter → anthropic → gemini → groq. */
-export const 공급자만들기 = () => {
+/**
+ * 쓸 수 있는 공급자를 순서대로 다 준다. 앞이 막히면(402 크레딧·429 한도·5xx) 다음으로 넘어간다.
+ *
+ * 하나만 고르던 때는 그 하나가 막히면 일 전체가 섰다 — 제미나이 무료 한도에 걸려 주간 초안이
+ * 이틀 연달아 죽었고, 회사 루프 분석은 OpenRouter 크레딧 0 으로 12일 같은 실패를 되풀이했다(2026-09-21).
+ * Groq 는 한국어가 무너져(BUILD-LOG 2026-09-12) 글쓰기 예비로는 안 넣는다. 짧은 JSON 분석에만 끝자리로 쓴다.
+ */
+export const 공급자들 = ({ groq = false } = {}) => {
+  const 순서 = [process.env.WRITER_PROVIDER, "openrouter", "anthropic", "gemini", ...(groq ? ["groq"] : [])];
+  const 있음 = {
+    openrouter: !!오픈라우터(),
+    anthropic: !!(process.env.ANTHROPIC_API_KEY || (process.env.LLM_PROXY_URL && process.env.LLM_PROXY_TOKEN)),
+    gemini: !!process.env.GEMINI_API_KEY,
+    groq: !!process.env.GROQ_API_KEY,
+  };
+  return [...new Set(순서.filter(Boolean))].filter((p) => 있음[p]).map((p) => 공급자만들기(p)).filter(Boolean);
+};
+
+export const 공급자만들기 = (지정) => {
   const pick =
+    지정 ||
     process.env.WRITER_PROVIDER ||
     (오픈라우터()
       ? "openrouter"

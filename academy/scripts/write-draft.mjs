@@ -24,7 +24,7 @@
  */
 import fs from "node:fs";
 import { Pool } from "pg";
-import { 공급자만들기, 금지, 지어내기금지, 파싱, 공통짜임새, 재시도 } from "./writer-common.mjs";
+import { 공급자만들기, 공급자들, 금지, 지어내기금지, 파싱, 공통짜임새, 재시도 } from "./writer-common.mjs";
 
 for (const l of fs.readFileSync(new URL("../.env.local", import.meta.url), "utf8").split(/\r?\n/)) {
   const m = /^([A-Z_]+)=(.*)$/.exec(l);
@@ -44,7 +44,7 @@ const QUESTION = 인자("--question");
 const STAGE = 인자("--stage") ?? "problem";
 const SOURCES = (인자("--sources") ?? "").split(",").map((s) => s.trim()).filter(Boolean);
 const CLIENT = 1;
-const 공급자 = 공급자만들기();
+let 공급자 = 공급자만들기();
 
 const u = new URL(process.env.DATABASE_URL);
 u.searchParams.delete("sslmode");
@@ -213,25 +213,28 @@ const main = async () => {
     process.exitCode = 78; // 설정 없음 — 실패와 구분한다
     return;
   }
-  console.log(`  쓰는 모델: ${공급자.model} (${공급자.이름})`);
-
-  const res = await 재시도(공급자.url, {
-    method: "POST",
-    headers: 공급자.headers(공급자.key),
-    body: JSON.stringify(공급자.요청(prompt, 공급자.최대토큰)),
-  });
-  if (!res.ok) {
+  // 앞 공급자가 막히면 다음으로 넘어간다. 하나에 매달리면 한도 하나에 주 1편이 통째로 선다
+  let res;
+  const 막힘 = [];
+  for (const 후보 of 공급자들()) {
+    공급자 = 후보;
+    console.log(`  쓰는 모델: ${공급자.model} (${공급자.이름})`);
+    res = await 재시도(공급자.url, {
+      method: "POST",
+      headers: 공급자.headers(공급자.key),
+      body: JSON.stringify(공급자.요청(prompt, 공급자.최대토큰)),
+    });
+    if (res.ok) break;
     // 끊어 찍어 두 번 답을 잘라 먹었다 — 404 는 쓸 모델 이름을, 429 는 어느 한도인지를
     // 본문에 담아 준다. 오류는 끝까지 읽혀야 쓸모가 있다. 길어야 몇 줄이다.
     const 오류본문 = await res.text();
-    console.log("생성 실패:", res.status);
+    console.log("생성 실패:", res.status, `(${공급자.이름})`);
     console.log(오류본문.slice(0, 2000));
-    // 크레딧이 없는 건 고장이 아니라 설정이다. 매주 빨간불이 뜨면 진짜 고장났을 때 아무도 안 본다
-    if (res.status === 402) {
-      console.log("\nOpenRouter 크레딧이 없습니다. https://openrouter.ai/settings/credits 에서 충전하면 다음 주부터 다시 씁니다.");
-      process.exitCode = 78;
-      return;
-    }
+    막힘.push(`${공급자.이름} ${res.status}`);
+  }
+  if (!res?.ok) {
+    console.log(`\n모든 공급자가 막혔습니다: ${막힘.join(" · ")}`);
+    // 예비가 있는데도 다 막혔으면 조용히 넘기지 않는다 — 회사 루프가 실패를 보고 운영 일감으로 올린다
     process.exitCode = 1;
     return;
   }

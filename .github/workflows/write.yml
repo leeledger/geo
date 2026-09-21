@@ -67,6 +67,13 @@ jobs:
             node scripts/write-draft.mjs
           else
             node scripts/write-news.mjs
+            code=$?
+            # 뉴스는 검색 근거가 있어야 쓴다. 제미나이 무료는 근거 검색 한도가 0 이라 매주 여기서 섰다(2026-09-21).
+            # 뉴스가 안 되면 관점 글 초안으로 넘어간다 — 주 1편이 목표지 뉴스가 목표가 아니다
+            if [ "$code" != "0" ]; then
+              echo "::notice::뉴스 글을 못 써서(종료 $code) 관점 글 초안으로 넘어갑니다"
+              node scripts/write-draft.mjs
+            fi
           fi
           code=$?
           if [ "$code" = "78" ]; then
