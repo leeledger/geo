@@ -3,6 +3,7 @@ import path from "node:path";
 import Link from "next/link";
 import schema from "@/content/schema.json";
 import { listPosts } from "@/lib/posts";
+import HomeScript from "@/components/HomeScript";
 
 /**
  * 홈은 기존 정적 HTML 을 그대로 내보낸다.
@@ -23,6 +24,9 @@ const RAW = fs.readFileSync(
 const CUT = RAW.lastIndexOf("<footer>");
 const HOME_TOP = CUT > 0 ? RAW.slice(0, CUT) : RAW;
 const HOME_BOTTOM = CUT > 0 ? RAW.slice(CUT) : "";
+
+/* innerHTML 로 들어간 <script> 는 클라이언트 이동 때 안 돈다. 본문만 떼어 HomeScript 가 돌린다. */
+const HOME_JS = RAW.match(/<script>([\s\S]*?)<\/script>\s*$/)?.[1] ?? "";
 
 export const revalidate = 900;
 
@@ -73,6 +77,7 @@ export default async function Home() {
       )}
 
       {HOME_BOTTOM && <div dangerouslySetInnerHTML={{ __html: HOME_BOTTOM }} />}
+      <HomeScript code={HOME_JS} />
     </>
   );
 }

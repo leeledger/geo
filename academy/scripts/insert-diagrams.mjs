@@ -73,7 +73,62 @@ const PLAN = {
       before: "## 하지 마셔야 할 것",
     },
   ],
+  "aiga-sukjereul-haetdamyeon": [
+    {
+      file: "three-questions",
+      alt: "아이가 가져온 숙제를 놓고 묻는 세 가지. 이거 나한테 설명해 줄래, 이 부분은 왜 이렇게 썼어, AI가 틀린 데는 없었어. 스스로 한 아이는 설명하고 이유를 대고 틀린 데를 짚는다. 받아 적은 아이는 두 번째 문장에서 막히고 이유를 못 대고 몰라요라고 한다.",
+      before: "## 같이 쓰면 남는 것이 생깁니다",
+    },
+    {
+      file: "order-swap",
+      alt: "AI를 같이 쓸 때 순서를 바꾼다. 아이가 먼저 자기 생각을 세 줄이라도 적고, 그다음 AI에게 묻고, 마지막에 둘을 비교해 고친다. 그러면 AI는 자기 생각을 확인하는 도구가 된다.",
+      before: "이 순서면 AI가",
+    },
+  ],
+  // 아래는 네이버에서 옮겨 온 옛 글. 원본 사진이 옮겨지지 않아 「사진 설명을 입력하세요」만 남아 있었다.
+  "suhakmunjereul-kodingeuro-haegyeol-haeboja": {
+    file: "divisor-steps",
+    alt: "약수 구하기를 코딩으로 옮긴 네 단계. 입력이 12일 때, 숫자를 넣고, 1부터 12까지 하나씩 나눠 보고, 나머지가 0인 수만 리스트에 담고, 리스트를 보여준다. 결과는 1 2 3 4 6 12.",
+    before: "위 과정은 약수를",
+  },
+  "jeolchajeoksago": [
+    {
+      file: "two-ways",
+      alt: "1부터 100까지의 합을 구하는 두 방법. 하나씩 더하면 덧셈 99번, 공식 100×101÷2를 쓰면 곱셈 한 번과 나눗셈 한 번. 둘 다 5050이다.",
+      before: "위의 예는 1786년",
+    },
+    {
+      file: "sandwich",
+      alt: "샌드위치 알고리즘. 로봇에게 시키려면 봉지를 연다, 식빵 두 장을 꺼낸다, 칼로 잼을 뜬다, 빵 한 면에 펴 바른다, 두 장을 겹친다로 나눠 정해 줘야 한다.",
+      before: "다소 사소하게",
+    },
+  ],
+  "aideuli-jaemiitge-moliphal-su-itdorok-haneungeoti": [
+    {
+      file: "interest-to-concept",
+      alt: "좋아하는 것이 다르면 익히는 개념도 다르다. 수학을 좋아하면 구구단을 출력하며 중첩 반복을, 미술을 좋아하면 좌표를 옮기며 그림을 그리며 좌표계를, 축구를 좋아하면 공을 차고 굴리며 입사각과 반사각과 중력을 익힌다.",
+      before: "반복문으로 구구단을 출력하려면",
+    },
+    {
+      file: "think-stages",
+      alt: "만드는 다섯 단계마다 생각이 붙는다. 아이디어, 스토리, 구조화, 알고리즘, 문제 해결.",
+      before: "## 로봇앤코딩학원",
+    },
+  ],
+  "jasini-mandeulgo-sipeun-geoteul-mandeuneun-jaemi": {
+    file: "make-share-loop",
+    alt: "만들고 싶은 것을 만들면 도는 고리. 만든다, 공유한다, 요구가 들어온다, 필요한 걸 찾아 배우며 고친다. 이 고리를 돌면 왜 수학을 배워야 하는지 스스로 묻게 된다.",
+    before: "## 왜 배워야 하는가에",
+  },
+  "ai-sidae-uri-aiui-miraereul-junbihaneun-bangbeop": {
+    file: "prompt-xo",
+    alt: "AI에게 정확히 묻기. 웹사이트 만들어줘는 무엇으로, 어떤 것을, 어느 부분을이 없다. HTML과 CSS를 사용해서 반응형 포트폴리오 사이트의 네비게이션 바를 만들어줘는 세 가지가 다 있다.",
+    before: "## ✅ AI의 답변 검증하기",
+  },
 };
+
+// 네이버에서 옮겨 온 글에는 사라진 사진 자리에 에디터 안내문만 남았다. 도해를 넣는 김에 걷어 낸다.
+const 빈자리 = /사진 설명을 입력하세요\.\s*/g;
 
 let done = 0;
 // 한 글에 여러 장이 필요할 때가 있다. 값이 배열이면 여러 장으로 본다.
@@ -84,6 +139,8 @@ for (const [slug, spec] of Object.entries(PLAN)) {
 
   let body = rows[0].body;
   let 바뀜 = false;
+  const 걷어냄 = body.replace(빈자리, "");
+  if (걷어냄 !== body) { body = 걷어냄; 바뀜 = true; }
 
   for (const p of 계획들) {
     if (body.includes(`/${p.file}.svg`)) { console.log(`  ${slug}/${p.file} — 이미 있습니다`); continue; }

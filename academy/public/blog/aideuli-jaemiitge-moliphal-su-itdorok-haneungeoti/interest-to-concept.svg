@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 440" width="960" height="440" role="img"
+     aria-label="좋아하는 것이 다르면 만드는 것이 다르고, 저절로 익히는 개념도 다르다. 수학을 좋아하는 아이는 구구단을 출력하며 중첩 반복을 익힌다. 미술을 좋아하는 아이는 좌표를 옮기며 그림을 그리며 좌표계를 익힌다. 축구를 좋아하는 아이는 공을 차고 굴리며 입사각과 반사각과 중력을 익힌다.">
+  <defs>
+    <linearGradient id="gbg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0E131C"/><stop offset="1" stop-color="#0B0F16"/>
+    </linearGradient>
+  </defs>
+  <rect width="960" height="440" fill="url(#gbg)"/>
+
+  <text x="480" y="44" text-anchor="middle" font-family="'IBM Plex Mono',ui-monospace,monospace"
+        font-size="12" letter-spacing="2.5" fill="#8A94A6">좋아하는 것이 다르면 익히는 개념도 다르다</text>
+
+  <g font-family="'IBM Plex Mono',ui-monospace,monospace" font-size="12" letter-spacing="2">
+    <text x="156" y="94" text-anchor="middle" fill="#F5A623">좋아하는 것</text>
+    <text x="440" y="94" text-anchor="middle" fill="#8A94A6">만드는 것</text>
+    <text x="764" y="94" text-anchor="middle" fill="#3DD6C4">저절로 익히는 개념</text>
+  </g>
+
+  <g font-family="'Noto Sans KR',system-ui,sans-serif">
+    <!-- 수학 -->
+    <rect x="56" y="112" width="200" height="80" rx="12" fill="#1C1710" stroke="#4A3A1E"/>
+    <text x="156" y="159" text-anchor="middle" font-size="20" font-weight="800" fill="#F3E6CF">수학</text>
+    <path d="M266 152 h20" stroke="#2B3646" stroke-width="1.6"/><path d="M280 146 l8 6 l-8 6" fill="none" stroke="#3DD6C4" stroke-width="1.8"/>
+    <rect x="300" y="112" width="280" height="80" rx="12" fill="#12181F" stroke="#232C38"/>
+    <text x="440" y="159" text-anchor="middle" font-size="17" font-weight="700" fill="#E6EAF0">구구단을 출력한다</text>
+    <path d="M590 152 h20" stroke="#2B3646" stroke-width="1.6"/><path d="M604 146 l8 6 l-8 6" fill="none" stroke="#3DD6C4" stroke-width="1.8"/>
+    <rect x="624" y="112" width="280" height="80" rx="12" fill="#111C1B" stroke="#24413C"/>
+    <text x="764" y="159" text-anchor="middle" font-size="18" font-weight="800" fill="#DDEDE9">중첩 반복</text>
+
+    <!-- 미술 -->
+    <rect x="56" y="208" width="200" height="80" rx="12" fill="#1C1710" stroke="#4A3A1E"/>
+    <text x="156" y="255" text-anchor="middle" font-size="20" font-weight="800" fill="#F3E6CF">미술</text>
+    <path d="M266 248 h20" stroke="#2B3646" stroke-width="1.6"/><path d="M280 242 l8 6 l-8 6" fill="none" stroke="#3DD6C4" stroke-width="1.8"/>
+    <rect x="300" y="208" width="280" height="80" rx="12" fill="#12181F" stroke="#232C38"/>
+    <text x="440" y="255" text-anchor="middle" font-size="17" font-weight="700" fill="#E6EAF0">좌표를 옮기며 그림을 그린다</text>
+    <path d="M590 248 h20" stroke="#2B3646" stroke-width="1.6"/><path d="M604 242 l8 6 l-8 6" fill="none" stroke="#3DD6C4" stroke-width="1.8"/>
+    <rect x="624" y="208" width="280" height="80" rx="12" fill="#111C1B" stroke="#24413C"/>
+    <text x="764" y="255" text-anchor="middle" font-size="18" font-weight="800" fill="#DDEDE9">좌표계</text>
+
+    <!-- 축구 -->
+    <rect x="56" y="304" width="200" height="80" rx="12" fill="#1C1710" stroke="#4A3A1E"/>
+    <text x="156" y="351" text-anchor="middle" font-size="20" font-weight="800" fill="#F3E6CF">축구</text>
+    <path d="M266 344 h20" stroke="#2B3646" stroke-width="1.6"/><path d="M280 338 l8 6 l-8 6" fill="none" stroke="#3DD6C4" stroke-width="1.8"/>
+    <rect x="300" y="304" width="280" height="80" rx="12" fill="#12181F" stroke="#232C38"/>
+    <text x="440" y="351" text-anchor="middle" font-size="17" font-weight="700" fill="#E6EAF0">공을 차고 굴린다</text>
+    <path d="M590 344 h20" stroke="#2B3646" stroke-width="1.6"/><path d="M604 338 l8 6 l-8 6" fill="none" stroke="#3DD6C4" stroke-width="1.8"/>
+    <rect x="624" y="304" width="280" height="80" rx="12" fill="#111C1B" stroke="#24413C"/>
+    <text x="764" y="351" text-anchor="middle" font-size="18" font-weight="800" fill="#DDEDE9">입사각·반사각·중력</text>
+  </g>
+
+  <text x="480" y="418" text-anchor="middle" font-family="'Noto Sans KR',system-ui,sans-serif"
+        font-size="14" fill="#8A94A6">배운다는 느낌 없이, 만들고 싶은 것을 만들다가 개념이 붙는다</text>
+</svg>

@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 360" width="960" height="360" role="img"
+     aria-label="샌드위치 알고리즘. 로봇에게 식빵에 잼을 바르게 하려면 절차를 하나씩 정해 줘야 한다. 1 봉지를 연다. 2 식빵 두 장을 꺼낸다. 3 칼로 잼을 뜬다. 4 빵 한 면에 펴 바른다. 5 두 장을 겹친다. 잼을 발라 한 줄로는 로봇이 못 한다.">
+  <defs>
+    <linearGradient id="gbg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0E131C"/><stop offset="1" stop-color="#0B0F16"/>
+    </linearGradient>
+  </defs>
+  <rect width="960" height="360" fill="url(#gbg)"/>
+
+  <text x="480" y="44" text-anchor="middle" font-family="'IBM Plex Mono',ui-monospace,monospace"
+        font-size="12" letter-spacing="2.5" fill="#8A94A6">샌드위치 알고리즘 · 로봇에게 시킨다면</text>
+
+  <g font-family="'Noto Sans KR',system-ui,sans-serif">
+    <rect x="48" y="84" width="160" height="120" rx="12" fill="#12181F" stroke="#232C38"/>
+    <text x="128" y="116" text-anchor="middle" font-family="'IBM Plex Mono',ui-monospace,monospace" font-size="13" fill="#F5A623">1</text>
+    <text x="128" y="156" text-anchor="middle" font-size="16" font-weight="700" fill="#E6EAF0">봉지를 연다</text>
+
+    <rect x="224" y="84" width="160" height="120" rx="12" fill="#12181F" stroke="#232C38"/>
+    <text x="304" y="116" text-anchor="middle" font-family="'IBM Plex Mono',ui-monospace,monospace" font-size="13" fill="#F5A623">2</text>
+    <text x="304" y="150" text-anchor="middle" font-size="16" font-weight="700" fill="#E6EAF0">식빵 두 장을</text>
+    <text x="304" y="174" text-anchor="middle" font-size="16" font-weight="700" fill="#E6EAF0">꺼낸다</text>
+
+    <rect x="400" y="84" width="160" height="120" rx="12" fill="#12181F" stroke="#232C38"/>
+    <text x="480" y="116" text-anchor="middle" font-family="'IBM Plex Mono',ui-monospace,monospace" font-size="13" fill="#F5A623">3</text>
+    <text x="480" y="150" text-anchor="middle" font-size="16" font-weight="700" fill="#E6EAF0">칼로 잼을</text>
+    <text x="480" y="174" text-anchor="middle" font-size="16" font-weight="700" fill="#E6EAF0">뜬다</text>
+
+    <rect x="576" y="84" width="160" height="120" rx="12" fill="#12181F" stroke="#232C38"/>
+    <text x="656" y="116" text-anchor="middle" font-family="'IBM Plex Mono',ui-monospace,monospace" font-size="13" fill="#F5A623">4</text>
+    <text x="656" y="150" text-anchor="middle" font-size="16" font-weight="700" fill="#E6EAF0">빵 한 면에</text>
+    <text x="656" y="174" text-anchor="middle" font-size="16" font-weight="700" fill="#E6EAF0">펴 바른다</text>
+
+    <rect x="752" y="84" width="160" height="120" rx="12" fill="#111C1B" stroke="#24413C"/>
+    <text x="832" y="116" text-anchor="middle" font-family="'IBM Plex Mono',ui-monospace,monospace" font-size="13" fill="#3DD6C4">5</text>
+    <text x="832" y="150" text-anchor="middle" font-size="16" font-weight="700" fill="#DDEDE9">두 장을</text>
+    <text x="832" y="174" text-anchor="middle" font-size="16" font-weight="700" fill="#DDEDE9">겹친다</text>
+
+    <rect x="200" y="236" width="560" height="64" rx="12" fill="#1C1710" stroke="#4A3A1E"/>
+    <text x="480" y="264" text-anchor="middle" font-size="16" font-weight="700" fill="#F3E6CF">“잼을 발라” 한 줄로는 로봇이 못 한다</text>
+    <text x="480" y="288" text-anchor="middle" font-size="13" fill="#A8977A">무엇을, 어느 순서로 — 전부 나눠서 정해 줘야 한다</text>
+  </g>
+
+  <text x="480" y="334" text-anchor="middle" font-family="'Noto Sans KR',system-ui,sans-serif"
+        font-size="13" fill="#8A94A6">집에서 아이와 해 보는 놀이 · 아이가 명령하고 부모가 로봇처럼 그대로만 움직인다</text>
+</svg>

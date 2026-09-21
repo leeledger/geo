@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 380" width="960" height="380" role="img"
+     aria-label="AI에게 정확히 묻는 법. 나쁜 예는 웹사이트 만들어줘. 무엇으로, 어떤 것을, 어느 부분을 만들지가 없다. 좋은 예는 HTML과 CSS를 사용해서 반응형 포트폴리오 사이트의 네비게이션 바를 만들어줘. 무엇으로는 HTML과 CSS, 어떤 것은 반응형 포트폴리오 사이트, 어느 부분은 네비게이션 바다.">
+  <defs>
+    <linearGradient id="gbg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0E131C"/><stop offset="1" stop-color="#0B0F16"/>
+    </linearGradient>
+  </defs>
+  <rect width="960" height="380" fill="url(#gbg)"/>
+
+  <text x="480" y="44" text-anchor="middle" font-family="'IBM Plex Mono',ui-monospace,monospace"
+        font-size="12" letter-spacing="2.5" fill="#8A94A6">AI에게 정확히 묻기</text>
+
+  <g font-family="'Noto Sans KR',system-ui,sans-serif">
+    <!-- X -->
+    <rect x="56" y="76" width="848" height="80" rx="12" fill="#12181F" stroke="#232C38"/>
+    <circle cx="100" cy="116" r="18" fill="none" stroke="#5D6878" stroke-width="1.6"/>
+    <path d="M92 108 l16 16 M108 108 l-16 16" stroke="#5D6878" stroke-width="2"/>
+    <text x="136" y="123" font-size="20" font-weight="800" fill="#5D6878">“웹사이트 만들어줘”</text>
+    <text x="880" y="122" text-anchor="end" font-size="13" fill="#4E5867">무엇으로 · 어떤 것 · 어느 부분 — 하나도 없다</text>
+
+    <!-- O -->
+    <rect x="56" y="176" width="848" height="168" rx="12" fill="#111C1B" stroke="#24413C"/>
+    <circle cx="100" cy="220" r="18" fill="none" stroke="#3DD6C4" stroke-width="2"/>
+    <text x="136" y="214" font-size="20" font-weight="800" fill="#DDEDE9">“HTML과 CSS를 사용해서 반응형 포트폴리오 사이트의</text>
+    <text x="136" y="244" font-size="20" font-weight="800" fill="#DDEDE9">네비게이션 바를 만들어줘”</text>
+
+    <rect x="136" y="276" width="208" height="44" rx="22" fill="#0B0F16" stroke="#F5A623"/>
+    <text x="240" y="304" text-anchor="middle" font-size="14" fill="#F3E6CF"><tspan fill="#F5A623">무엇으로</tspan>  HTML·CSS</text>
+    <rect x="360" y="276" width="300" height="44" rx="22" fill="#0B0F16" stroke="#F5A623"/>
+    <text x="510" y="304" text-anchor="middle" font-size="14" fill="#F3E6CF"><tspan fill="#F5A623">어떤 것</tspan>  반응형 포트폴리오 사이트</text>
+    <rect x="676" y="276" width="208" height="44" rx="22" fill="#0B0F16" stroke="#F5A623"/>
+    <text x="780" y="304" text-anchor="middle" font-size="14" fill="#F3E6CF"><tspan fill="#F5A623">어느 부분</tspan>  네비게이션 바</text>
+  </g>
+</svg>

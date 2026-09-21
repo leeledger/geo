@@ -1101,6 +1101,11 @@ print(best)</code></pre>
 <script>
 /* 인터랙션은 전부 선택적이다. 이 스크립트가 실행되지 않아도 본문은 그대로 보인다. */
 (function () {
+  /* 새로고침이면 브라우저가, 클라이언트 이동이면 HomeScript 가 이걸 돌린다. 같은 화면에 두 번은 안 돈다. */
+  var root = document.getElementById("nav");
+  if (!root || root.hasAttribute("data-live")) return;
+  root.setAttribute("data-live", "");
+
   var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   var risers = document.querySelectorAll(".rise");
@@ -1300,6 +1305,8 @@ print(best)</code></pre>
 
     var last = 0;
     function tick(t) {
+      /* 다른 페이지로 떠나면 멈춘다. 안 그러면 돌아올 때마다 루프가 하나씩 쌓인다. */
+      if (!cv.isConnected) return;
       if (!last) last = t;
       /* 커서를 부드럽게 따라간다 — 딱딱 끊기면 값싸 보인다 */
       if (tx > -9000) { mx += (tx - mx) * 0.16; my += (ty - my) * 0.16; }

@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 360" width="960" height="360" role="img"
+     aria-label="로봇&amp;코딩학원 상담 안내. 전화 02-422-0525. 카카오톡 채널 로봇&amp;코딩학원, pf.kakao.com/_Bxhxbxjxb. 서울 송파구 석촌동 274-8 2층. 오른쪽 QR 코드를 휴대폰으로 찍으면 카카오톡 채널 상담이 열립니다.">
+  <defs>
+    <linearGradient id="gbg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0E131C"/><stop offset="1" stop-color="#0B0F16"/>
+    </linearGradient>
+  </defs>
+  <rect width="960" height="360" fill="url(#gbg)"/>
+
+  <g font-family="'Noto Sans KR',system-ui,sans-serif">
+    <text x="64" y="72" font-family="'IBM Plex Mono',ui-monospace,monospace" font-size="12" letter-spacing="2.5" fill="#8A94A6">상담 · 문의</text>
+    <text x="64" y="118" font-size="30" font-weight="800" fill="#E6EAF0">로봇&amp;코딩학원</text>
+
+    <text x="64" y="176" font-family="'IBM Plex Mono',ui-monospace,monospace" font-size="12" letter-spacing="2" fill="#F5A623">전화</text>
+    <text x="150" y="178" font-size="20" font-weight="700" fill="#F3E6CF">02-422-0525</text>
+
+    <text x="64" y="220" font-family="'IBM Plex Mono',ui-monospace,monospace" font-size="12" letter-spacing="2" fill="#3DD6C4">카카오톡</text>
+    <text x="150" y="222" font-size="20" font-weight="700" fill="#DDEDE9">채널 「로봇&amp;코딩학원」</text>
+    <text x="150" y="248" font-family="'IBM Plex Mono',ui-monospace,monospace" font-size="14" fill="#7FA79F">pf.kakao.com/_Bxhxbxjxb</text>
+
+    <text x="64" y="294" font-family="'IBM Plex Mono',ui-monospace,monospace" font-size="12" letter-spacing="2" fill="#8A94A6">주소</text>
+    <text x="150" y="296" font-size="17" fill="#C9D1DC">서울 송파구 석촌동 274-8 2층</text>
+  </g>
+
+  <rect x="660" y="56" width="236" height="236" rx="14" fill="#FFFFFF"/>
+  <svg x="672" y="68" width="212" height="212" viewBox="0 0 37 37">
+    <path fill="none" stroke="#141414" d="M2 2.5h7m3 0h1m2 0h2m2 0h2m4 0h2m1 0h7m-33 1h1m5 0h1m2 0h2m1 0h4m1 0h2m2 0h4m1 0h1m5 0h1m-33 1h1m1 0h3m1 0h1m3 0h1m7 0h1m1 0h1m2 0h2m1 0h1m1 0h3m1 0h1m-33 1h1m1 0h3m1 0h1m2 0h1m4 0h5m1 0h1m2 0h2m1 0h1m1 0h3m1 0h1m-33 1h1m1 0h3m1 0h1m1 0h1m4 0h3m1 0h1m3 0h1m1 0h2m1 0h1m1 0h3m1 0h1m-33 1h1m5 0h1m6 0h2m1 0h1m1 0h1m1 0h1m1 0h2m2 0h1m5 0h1m-33 1h7m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h7m-25 1h2m6 0h4m4 0h1m-23 1h2m2 0h3m2 0h2m1 0h1m1 0h3m1 0h2m1 0h1m1 0h2m1 0h1m-28 1h1m2 0h1m3 0h1m1 0h2m2 0h1m3 0h2m1 0h3m1 0h2m2 0h1m2 0h1m-32 1h2m3 0h3m1 0h3m1 0h4m1 0h1m3 0h1m2 0h1m3 0h1m1 0h1m-33 1h1m1 0h2m1 0h1m2 0h1m1 0h1m3 0h1m12 0h3m1 0h2m-32 1h1m1 0h1m2 0h2m1 0h1m4 0h1m1 0h4m1 0h1m1 0h3m1 0h2m2 0h1m-31 1h1m1 0h1m1 0h1m2 0h2m3 0h2m5 0h3m1 0h1m2 0h1m1 0h2m-31 1h3m1 0h1m1 0h1m1 0h1m1 0h2m2 0h4m1 0h3m2 0h1m1 0h1m1 0h1m-29 1h1m8 0h2m2 0h1m2 0h1m2 0h4m1 0h7m1 0h1m-31 1h1m1 0h1m1 0h4m1 0h2m2 0h2m1 0h1m1 0h4m1 0h3m1 0h3m-32 1h3m1 0h1m2 0h1m2 0h2m9 0h1m1 0h1m1 0h1m1 0h2m1 0h1m1 0h1m-33 1h7m4 0h2m1 0h2m2 0h1m1 0h1m1 0h1m1 0h1m3 0h1m1 0h2m-32 1h2m3 0h1m1 0h1m1 0h3m3 0h2m2 0h2m6 0h2m-27 1h1m3 0h1m1 0h1m1 0h1m2 0h1m3 0h1m2 0h2m1 0h1m1 0h1m3 0h3m-32 1h1m1 0h3m4 0h2m1 0h1m1 0h1m1 0h1m2 0h1m4 0h1m4 0h1m2 0h1m-30 1h1m1 0h2m1 0h1m1 0h1m1 0h4m4 0h1m2 0h1m2 0h7m-32 1h3m1 0h1m1 0h1m1 0h3m1 0h2m2 0h3m2 0h1m2 0h1m3 0h1m2 0h1m-33 1h1m1 0h2m1 0h3m2 0h1m1 0h1m3 0h1m5 0h1m1 0h5m-21 1h4m2 0h1m2 0h3m1 0h1m2 0h1m3 0h1m1 0h1m-31 1h7m1 0h1m2 0h5m1 0h3m1 0h1m1 0h2m1 0h1m1 0h2m-30 1h1m5 0h1m3 0h3m2 0h1m7 0h2m3 0h1m1 0h1m-31 1h1m1 0h3m1 0h1m7 0h1m1 0h1m1 0h3m1 0h9m1 0h1m-33 1h1m1 0h3m1 0h1m1 0h2m1 0h4m2 0h1m2 0h3m1 0h2m1 0h1m2 0h1m-31 1h1m1 0h3m1 0h1m1 0h4m1 0h2m1 0h1m4 0h2m1 0h3m-27 1h1m5 0h1m3 0h1m1 0h1m2 0h1m4 0h2m1 0h2m7 0h1m-33 1h7m2 0h1m5 0h2m3 0h2m1 0h1m2 0h5"/>
+  </svg>
+  <text x="778" y="324" text-anchor="middle" font-family="'Noto Sans KR',system-ui,sans-serif" font-size="14" fill="#8A94A6">휴대폰으로 찍으면 카카오톡 상담이 열립니다</text>
+</svg>

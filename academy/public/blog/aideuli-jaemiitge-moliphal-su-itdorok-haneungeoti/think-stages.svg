@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 300" width="960" height="300" role="img"
+     aria-label="코딩으로 무언가를 만드는 다섯 단계마다 생각이 붙는다. 1 아이디어를 떠올린다. 2 스토리를 구체화한다. 3 구조를 나눈다. 4 알고리즘으로 논리를 적는다. 5 문제가 생기면 해결책을 찾아 고친다. 남이 만든 것을 입력만 하면 이 단계가 전부 빠진다.">
+  <defs>
+    <linearGradient id="gbg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0E131C"/><stop offset="1" stop-color="#0B0F16"/>
+    </linearGradient>
+  </defs>
+  <rect width="960" height="300" fill="url(#gbg)"/>
+
+  <text x="480" y="44" text-anchor="middle" font-family="'IBM Plex Mono',ui-monospace,monospace"
+        font-size="12" letter-spacing="2.5" fill="#8A94A6">만드는 모든 단계에 생각이 붙는다</text>
+
+  <g font-family="'Noto Sans KR',system-ui,sans-serif">
+    <rect x="52" y="90" width="152" height="104" rx="12" fill="#12181F" stroke="#232C38"/>
+    <text x="128" y="120" text-anchor="middle" font-family="'IBM Plex Mono',ui-monospace,monospace" font-size="12" fill="#F5A623">1</text>
+    <text x="128" y="152" text-anchor="middle" font-size="18" font-weight="800" fill="#E6EAF0">아이디어</text>
+    <text x="128" y="176" text-anchor="middle" font-size="12" fill="#8A94A6">떠올린다</text>
+    <path d="M208 142 h12" stroke="#2B3646" stroke-width="1.6"/><path d="M216 136 l8 6 l-8 6" fill="none" stroke="#3DD6C4" stroke-width="1.8"/>
+
+    <rect x="228" y="90" width="152" height="104" rx="12" fill="#12181F" stroke="#232C38"/>
+    <text x="304" y="120" text-anchor="middle" font-family="'IBM Plex Mono',ui-monospace,monospace" font-size="12" fill="#F5A623">2</text>
+    <text x="304" y="152" text-anchor="middle" font-size="18" font-weight="800" fill="#E6EAF0">스토리</text>
+    <text x="304" y="176" text-anchor="middle" font-size="12" fill="#8A94A6">구체화한다</text>
+    <path d="M384 142 h12" stroke="#2B3646" stroke-width="1.6"/><path d="M392 136 l8 6 l-8 6" fill="none" stroke="#3DD6C4" stroke-width="1.8"/>
+
+    <rect x="404" y="90" width="152" height="104" rx="12" fill="#12181F" stroke="#232C38"/>
+    <text x="480" y="120" text-anchor="middle" font-family="'IBM Plex Mono',ui-monospace,monospace" font-size="12" fill="#F5A623">3</text>
+    <text x="480" y="152" text-anchor="middle" font-size="18" font-weight="800" fill="#E6EAF0">구조화</text>
+    <text x="480" y="176" text-anchor="middle" font-size="12" fill="#8A94A6">덩어리로 나눈다</text>
+    <path d="M560 142 h12" stroke="#2B3646" stroke-width="1.6"/><path d="M568 136 l8 6 l-8 6" fill="none" stroke="#3DD6C4" stroke-width="1.8"/>
+
+    <rect x="580" y="90" width="152" height="104" rx="12" fill="#12181F" stroke="#232C38"/>
+    <text x="656" y="120" text-anchor="middle" font-family="'IBM Plex Mono',ui-monospace,monospace" font-size="12" fill="#F5A623">4</text>
+    <text x="656" y="152" text-anchor="middle" font-size="18" font-weight="800" fill="#E6EAF0">알고리즘</text>
+    <text x="656" y="176" text-anchor="middle" font-size="12" fill="#8A94A6">논리로 적는다</text>
+    <path d="M736 142 h12" stroke="#2B3646" stroke-width="1.6"/><path d="M744 136 l8 6 l-8 6" fill="none" stroke="#3DD6C4" stroke-width="1.8"/>
+
+    <rect x="756" y="90" width="152" height="104" rx="12" fill="#111C1B" stroke="#24413C"/>
+    <text x="832" y="120" text-anchor="middle" font-family="'IBM Plex Mono',ui-monospace,monospace" font-size="12" fill="#3DD6C4">5</text>
+    <text x="832" y="152" text-anchor="middle" font-size="18" font-weight="800" fill="#DDEDE9">문제 해결</text>
+    <text x="832" y="176" text-anchor="middle" font-size="12" fill="#7FA79F">막히면 찾아서 고친다</text>
+  </g>
+
+  <text x="480" y="248" text-anchor="middle" font-family="'Noto Sans KR',system-ui,sans-serif"
+        font-size="14" fill="#8A94A6">남이 만든 스토리를 입력만 하면 이 다섯 단계가 전부 빠진다</text>
+</svg>

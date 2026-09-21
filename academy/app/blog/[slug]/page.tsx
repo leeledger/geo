@@ -19,6 +19,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const post = await getPost(slug);
   if (!post) return { title: "찾을 수 없는 글" };
   const desc = post.summary || excerpt(post.body);
+  // 공유 이미지를 안 주면 네이버·카카오가 본문 첫 SVG 를 한글 글꼴 없이 그려 글자가 네모로 나온다.
+  // 도해는 PNG 로도 구워 두니(svg-to-png.mjs) 그쪽을 준다.
+  const first = /!\[[^\]]*\]\((\/blog\/[^)\s]+)\)/.exec(post.body)?.[1];
+  const image = first?.replace(/\.svg$/, ".png");
   return {
     title: post.title,
     description: desc,
@@ -29,6 +33,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       description: desc,
       publishedTime: post.published_at ?? undefined,
       modifiedTime: post.updated_at,
+      ...(image ? { images: [{ url: image }] } : {}),
     },
   };
 }

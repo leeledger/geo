@@ -130,10 +130,24 @@ function toBlocks(md) {
   return out;
 }
 
+/**
+ * 하단 상담 블록. 옛 네이버 글에는 카카오채널 카드·지도가 늘 붙어 있었는데
+ * 사이트에서 옮긴 글에는 글자 안내만 남아 지도와 QR 이 빠졌다(2026-09-21 원장 지적).
+ *   카카오 주소  → 에디터가 링크 카드로 바꾼다
+ *   QR 카드      → 홈페이지 kakao-qr.svg 와 같은 코드 (assets/naver-footer/contact-qr.svg 를 구운 것)
+ *   지도         → 에디터 「장소」에서 송파대로37길 52 를 골라 넣는다
+ */
+const QR_CARD = fileURLToPath(new URL("./assets/naver-footer/contact-qr.png", import.meta.url));
+const PLACE = { query: "로봇앤코딩학원", address: "송파대로37길 52" };
+
 const BLOCKS = [
   ...toBlocks(post.body),
   { hr: true },
   { t: "― 로봇&코딩학원 (서울 송파구 석촌동 274-8 2층)" },
+  // QR·지도를 카카오 주소보다 먼저 둔다. 주소 줄이 링크 카드로 바뀌면 커서가 카드 뒤에서 길을 잃고
+  // 「사진」 버튼이 파일 창을 안 연다(2026-09-21, 20초 대기 끝에 죽음 — 발행 전이라 중복은 없었다).
+  ...(fs.existsSync(QR_CARD) ? [{ img: QR_CARD }] : []),
+  { place: true },
   { t: "상담 02-422-0525 · 카카오톡 http://pf.kakao.com/_Bxhxbxjxb/chat" },
   { t: `글 전문 https://robotncoding.com/blog/${slug}` },
 ];
@@ -304,12 +318,52 @@ async function typeRich(text) {
 }
 
 async function insertImage(file) {
-  const chooser = page.waitForEvent("filechooser", { timeout: 20000 });
-  await F.getByRole("button", { name: /사진/ }).first().click();
-  (await chooser).setFiles(file);
+  const 열기 = async () => {
+    const chooser = page.waitForEvent("filechooser", { timeout: 15000 });
+    await F.locator("button.se-image-toolbar-button").first().click();
+    return chooser;
+  };
+  let chooser;
+  try { chooser = await 열기(); }
+  catch {
+    // 커서가 링크 카드·지도 같은 덩어리에 걸려 있으면 파일 창이 안 뜬다. 끝으로 옮기고 한 번 더
+    await page.keyboard.press("Escape");
+    await F.locator(".se-component").last().click().catch(() => {});
+    await page.keyboard.press("Control+End");
+    await page.waitForTimeout(800);
+    chooser = await 열기();
+  }
+  await chooser.setFiles(file);
   await page.waitForTimeout(9000);
   await page.keyboard.press("Control+End");   // 커서를 끝으로. 안 하면 그림 앞에 글이 들어간다
   await page.waitForTimeout(700);
+}
+
+/**
+ * 지도 넣기. 「장소」 → 검색 → 우리 주소 줄의 「추가」 → 「확인」 (naver-place-probe.mjs 로 확인한 순서).
+ * 이름으로 고르면 안 된다 — 「로봇앤코딩학원」 이 강남·광진에도 있다. 주소로 고른다.
+ */
+async function insertPlace() {
+  try {
+    await F.getByRole("button", { name: /^장소/ }).first().click({ timeout: 8000 });
+    await page.waitForTimeout(2500);
+    await F.locator("input[placeholder*='장소']").first().click();
+    await page.keyboard.type(PLACE.query, { delay: 25 });
+    await page.keyboard.press("Enter");
+    await page.waitForTimeout(3500);
+    const item = F.locator(".se-place-map-search-result-item", { hasText: PLACE.address }).first();
+    await item.hover();
+    await item.locator(".se-place-add-button").click({ timeout: 5000 });
+    await page.waitForTimeout(1200);
+    await F.locator(".se-popup-button-confirm").first().click();
+    await page.waitForTimeout(3000);
+    await page.keyboard.press("Control+End");
+    await page.waitForTimeout(600);
+    return (await F.locator(".se-component.se-placesMap").count()) > 0;
+  } catch {
+    await F.locator(".se-popup-close-button").first().click().catch(() => {});
+    return false;
+  }
 }
 
 // ── 본문 입력 ────────────────────────────────────────────
@@ -333,6 +387,11 @@ for (const b of BLOCKS) {
   }
 
   if (b.hr) { await addHr(); continue; }
+
+  if (b.place) {
+    console.log((await insertPlace()) ? "  [지도] 로봇앤코딩학원" : "  ⚠ 지도를 못 넣었습니다 — 발행 뒤 손으로 넣어 주세요");
+    continue;
+  }
 
   if (b.h) {
     // 소제목 앞에 구분선을 둬서 마디가 보이게 한다
@@ -382,7 +441,12 @@ if (await box.isVisible().catch(() => false)) {
 }
 
 if (DRY) {
-  console.log("\n--dry 입니다. 발행하지 않았습니다. 창에서 확인하세요 (90초).");
+  // 하단부(QR·지도·링크 카드)를 사람이 안 봐도 확인할 수 있게 찍어 둔다
+  await page.keyboard.press("Escape");
+  await F.locator(".se-component").last().scrollIntoViewIfNeeded().catch(() => {});
+  await page.waitForTimeout(1500);
+  await page.screenshot({ path: path.join(process.cwd(), "naver-dry-bottom.png") });
+  console.log("\n--dry 입니다. 발행하지 않았습니다. 하단: naver-dry-bottom.png · 창에서 확인하세요 (90초).");
   await page.waitForTimeout(90000);
   await ctx.close();
   process.exit(0);

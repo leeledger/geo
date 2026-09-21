@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 460" width="960" height="460" role="img"
+     aria-label="만들고 싶은 것을 만들면 도는 고리. 직접 그린 캐릭터로 게임을 만든다. 사이트에 공유한다. 쓰는 사람이 늘며 요구가 들어온다. 필요한 것을 찾아 배우며 고친다. 그리고 다시 게시한다. 이 고리를 돌다 보면 왜 수학을 배워야 하는지 스스로 묻게 되고, 공부의 목적이 생긴다.">
+  <defs>
+    <linearGradient id="gbg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0E131C"/><stop offset="1" stop-color="#0B0F16"/>
+    </linearGradient>
+    <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M1 1 L9 5 L1 9" fill="none" stroke="#3DD6C4" stroke-width="1.6"/>
+    </marker>
+  </defs>
+  <rect width="960" height="460" fill="url(#gbg)"/>
+
+  <text x="480" y="44" text-anchor="middle" font-family="'IBM Plex Mono',ui-monospace,monospace"
+        font-size="12" letter-spacing="2.5" fill="#8A94A6">만들고 싶은 것을 만들면 도는 고리</text>
+
+  <g fill="none" stroke="#2B3646" stroke-width="1.6" stroke-dasharray="4 5" marker-end="url(#arr)">
+    <path d="M586 120 Q760 120 760 196"/>
+    <path d="M760 284 Q760 370 588 370"/>
+    <path d="M372 370 Q200 370 200 284"/>
+    <path d="M200 196 Q200 120 374 120"/>
+  </g>
+
+  <g font-family="'Noto Sans KR',system-ui,sans-serif">
+    <rect x="380" y="84" width="200" height="72" rx="12" fill="#12181F" stroke="#232C38"/>
+    <text x="480" y="115" text-anchor="middle" font-size="18" font-weight="800" fill="#E6EAF0">만든다</text>
+    <text x="480" y="139" text-anchor="middle" font-size="12" fill="#8A94A6">직접 그린 캐릭터로 게임</text>
+
+    <rect x="660" y="204" width="200" height="72" rx="12" fill="#12181F" stroke="#232C38"/>
+    <text x="760" y="235" text-anchor="middle" font-size="18" font-weight="800" fill="#E6EAF0">공유한다</text>
+    <text x="760" y="259" text-anchor="middle" font-size="12" fill="#8A94A6">사이트에 게시</text>
+
+    <rect x="380" y="334" width="200" height="72" rx="12" fill="#12181F" stroke="#232C38"/>
+    <text x="480" y="365" text-anchor="middle" font-size="18" font-weight="800" fill="#E6EAF0">요구가 들어온다</text>
+    <text x="480" y="389" text-anchor="middle" font-size="12" fill="#8A94A6">쓰는 사람이 늘어난다</text>
+
+    <rect x="100" y="204" width="200" height="72" rx="12" fill="#111C1B" stroke="#24413C"/>
+    <text x="200" y="235" text-anchor="middle" font-size="18" font-weight="800" fill="#DDEDE9">고친다</text>
+    <text x="200" y="259" text-anchor="middle" font-size="12" fill="#7FA79F">필요한 걸 찾아 배운다</text>
+
+    <text x="480" y="236" text-anchor="middle" font-size="18" font-weight="800" fill="#F5A623">“왜 수학을 배워야 하지?”</text>
+    <text x="480" y="262" text-anchor="middle" font-size="13" fill="#A8977A">스스로 묻는 순간 공부의 목적이 생긴다</text>
+  </g>
+</svg>
