@@ -60,7 +60,7 @@ export async function POST(req: Request) {
       `insert into geo.llm_usage (day, calls) values ($1, 1)
        on conflict (day) do update set calls = geo.llm_usage.calls + 1 returning calls`, [day]);
     if (rows[0].calls > max) {
-      return Response.json({ error: { code: 429, message: `오늘 중계 한도 ${max}건을 넘었습니다. 예상보다 많이 불렸다면 토큰이 샜을 수 있습니다 — Vercel 에서 LLM_PROXY_TOKEN 을 바꾸고 tools/set-llm-proxy.mjs 를 다시 돌리세요.` } }, { status: 429 });
+      return Response.json({ error: { code: 429, message: `오늘 중계 한도 ${max}건을 넘었습니다. 예상보다 많이 불렸다면 토큰이 샜을 수 있습니다 — Vercel 에서 LLM_PROXY_TOKEN 을 바꾸고 tools/set-llm-proxy.mjs 를 다시 돌리세요.` } }, { status: 429, headers: { "x-proxy-cap": "1" } });
     }
   } catch (e) {
     // 상한을 못 세는 것이 글쓰기를 막을 이유는 아니다. 다만 조용히 넘어가지는 않는다

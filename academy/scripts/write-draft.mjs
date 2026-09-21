@@ -204,7 +204,7 @@ const main = async () => {
     return;
   }
 
-  if (!공급자?.key) {
+  if (!공급자들().length) {
     console.log("\n키가 없습니다. 초안을 쓰지 못합니다. 하나만 GitHub Secrets 에 넣으면 주 1회 자동으로 돕니다.");
     console.log("  GEMINI_API_KEY     무료 한도 있음. 무료 중에 한국어가 제일 낫다 (aistudio.google.com)");
     console.log("  ANTHROPIC_API_KEY  월 4편 기준 4,037~8,187원 (api-cost.mjs)");
@@ -213,50 +213,57 @@ const main = async () => {
     process.exitCode = 78; // 설정 없음 — 실패와 구분한다
     return;
   }
-  // 앞 공급자가 막히면 다음으로 넘어간다. 하나에 매달리면 한도 하나에 주 1편이 통째로 선다
-  let res;
+
+  /**
+   * 앞 공급자가 막히면 다음으로 넘어간다. 하나에 매달리면 한도 하나에 주 1편이 통째로 선다.
+   * 막힘은 상태 코드만이 아니다 — 200 에 빈 답, 잘린 답, JSON 이 아닌 답도 다음으로 넘긴다.
+   */
+  let post, 고쳐읽음;
   const 막힘 = [];
   for (const 후보 of 공급자들()) {
     공급자 = 후보;
     console.log(`  쓰는 모델: ${공급자.model} (${공급자.이름})`);
-    res = await 재시도(공급자.url, {
+    const res = await 재시도(공급자.url, {
       method: "POST",
       headers: 공급자.headers(공급자.key),
       body: JSON.stringify(공급자.요청(prompt, 공급자.최대토큰)),
-    });
-    if (res.ok) break;
-    // 끊어 찍어 두 번 답을 잘라 먹었다 — 404 는 쓸 모델 이름을, 429 는 어느 한도인지를
-    // 본문에 담아 준다. 오류는 끝까지 읽혀야 쓸모가 있다. 길어야 몇 줄이다.
-    const 오류본문 = await res.text();
-    console.log("생성 실패:", res.status, `(${공급자.이름})`);
-    console.log(오류본문.slice(0, 2000));
-    막힘.push(`${공급자.이름} ${res.status}`);
+    }).catch((e) => ({ ok: false, status: 0, text: async () => e.message }));
+    if (!res.ok) {
+      // 끊어 찍어 두 번 답을 잘라 먹었다 — 404 는 쓸 모델 이름을, 429 는 어느 한도인지를
+      // 본문에 담아 준다. 오류는 끝까지 읽혀야 쓸모가 있다. 길어야 몇 줄이다.
+      const 오류본문 = await res.text();
+      console.log("생성 실패:", res.status, `(${공급자.이름})`);
+      console.log(오류본문.slice(0, 2000));
+      막힘.push(`${공급자.이름} ${res.status}`);
+      continue;
+    }
+    const data = await res.json().catch(() => ({}));
+    const text = 공급자.text(data);
+
+    // 상한에 걸려 잘리면 JSON 이 깨진다. 그때 「JSON 으로 안 왔습니다」라고만 찍으면
+    // 모델이 이상한 줄 알고 엉뚱한 데를 뒤지게 된다. 잘린 건 잘렸다고 말한다.
+    if (공급자.끊겼나?.(data)) {
+      console.log(`\n출력이 상한(${공급자.최대토큰} 토큰)에 걸려 잘렸습니다. 글이 끝까지 안 나왔습니다. WRITER_MAX_TOKENS 를 올리세요.`);
+      막힘.push(`${공급자.이름} 잘림`);
+      continue;
+    }
+
+    const 읽음 = 파싱(text);
+    if (읽음.오류 || !읽음.post?.body) {
+      // 앞 200자만 찍으면 원인을 못 짚는다. 잘렸는지 깨졌는지부터 갈라야 한다.
+      console.log("JSON 으로 안 왔습니다:", 읽음.오류 ?? "body 없음");
+      console.log(`  끝난 이유: ${data.candidates?.[0]?.finishReason ?? data.choices?.[0]?.finish_reason ?? data.stop_reason ?? "?"} · 받은 길이 ${text.length}자`);
+      console.log("  앞:", text.slice(0, 110).replace(/\s+/g, " "));
+      console.log("  뒤:", text.slice(-110).replace(/\s+/g, " "));
+      막힘.push(`${공급자.이름} JSON 아님`);
+      continue;
+    }
+    ({ post, 고쳐읽음 } = 읽음);
+    break;
   }
-  if (!res?.ok) {
+  if (!post) {
     console.log(`\n모든 공급자가 막혔습니다: ${막힘.join(" · ")}`);
     // 예비가 있는데도 다 막혔으면 조용히 넘기지 않는다 — 회사 루프가 실패를 보고 운영 일감으로 올린다
-    process.exitCode = 1;
-    return;
-  }
-  const data = await res.json();
-  const text = 공급자.text(data);
-
-  // 상한에 걸려 잘리면 JSON 이 깨진다. 그때 「JSON 으로 안 왔습니다」라고만 찍으면
-  // 모델이 이상한 줄 알고 엉뚱한 데를 뒤지게 된다. 잘린 건 잘렸다고 말한다.
-  if (공급자.끊겼나?.(data)) {
-    console.log(`\n출력이 상한(${공급자.최대토큰} 토큰)에 걸려 잘렸습니다. 글이 끝까지 안 나왔습니다.`);
-    console.log("WRITER_MAX_TOKENS 를 올리세요. 단 Groq 무료는 프롬프트까지 합쳐 분당 8,000 토큰입니다.");
-    process.exitCode = 1;
-    return;
-  }
-
-  const { post, 고쳐읽음, 오류 } = 파싱(text);
-  if (오류) {
-    // 앞 200자만 찍으면 원인을 못 짚는다. 잘렸는지 깨졌는지부터 갈라야 한다.
-    console.log("JSON 으로 안 왔습니다:", 오류);
-    console.log(`  끝난 이유: ${data.candidates?.[0]?.finishReason ?? data.choices?.[0]?.finish_reason ?? data.stop_reason ?? "?"} · 받은 길이 ${text.length}자`);
-    console.log("  앞:", text.slice(0, 110).replace(/\s+/g, " "));
-    console.log("  뒤:", text.slice(-110).replace(/\s+/g, " "));
     process.exitCode = 1;
     return;
   }

@@ -49,7 +49,8 @@ export const 오픈라우터 = () =>
 export const 재시도 = async (url, opts, 횟수 = 3) => {
   for (let i = 0; ; i++) {
     const res = await fetch(url, opts);
-    if (!(res.status === 429 || res.status >= 500) || i >= 횟수) return res;
+    // 중계의 하루 상한(x-proxy-cap)은 기다려도 안 풀린다. 다시 부르면 상한 칸만 더 먹는다
+    if (!(res.status === 429 || res.status >= 500) || i >= 횟수 || res.headers?.get?.("x-proxy-cap")) return res;
     const 초 = 20 * 2 ** i;
     console.log(`  (${res.status} — ${초}초 기다렸다 다시 부릅니다 ${i + 1}/${횟수})`);
     await new Promise((r) => setTimeout(r, 초 * 1000));
@@ -75,6 +76,9 @@ export const 공급자들 = ({ groq = false } = {}) => {
   return [...new Set(순서.filter(Boolean))].filter((p) => 있음[p]).map((p) => 공급자만들기(p)).filter(Boolean);
 };
 
+/** WRITER_MODEL 은 WRITER_PROVIDER 가 고른 공급자 몫이다. 예비로 넘어간 쪽에 붙이면 없는 모델 이름으로 400 이 난다 */
+const 모델변수 = (p) => (!process.env.WRITER_PROVIDER || process.env.WRITER_PROVIDER === p ? process.env.WRITER_MODEL : undefined);
+
 export const 공급자만들기 = (지정) => {
   const pick =
     지정 ||
@@ -92,7 +96,7 @@ export const 공급자만들기 = (지정) => {
   if (pick === "groq") {
     // 무료 목록은 전부 오픈웨이트다. 여섯 번 재봤고 한국어에서 같은 자리에서 무너졌다.
     // 죽지 않고 도는 예비 경로로만 남긴다 (BUILD-LOG 2026-09-12).
-    const model = process.env.WRITER_MODEL || "openai/gpt-oss-120b";
+    const model = 모델변수("groq") || "openai/gpt-oss-120b";
     return {
       이름: "groq",
       key: process.env.GROQ_API_KEY,
@@ -114,7 +118,7 @@ export const 공급자만들기 = (지정) => {
   if (pick === "openrouter") {
     // 원장 결정(2026-09-17): 제미나이 무료 키가 모든 모델에서 429 라 OpenRouter 로 옮겼다.
     // 모델 요금은 0원이지만 web 플러그인(Exa)은 크레딧에서 요청당 $0.007 이 나간다 (openrouter.ai/docs 웹 검색 가격)
-    const model = 쓰기모델();
+    const model = 모델변수("openrouter") || "anthropic/claude-opus-5";
     return {
       이름: "openrouter",
       key: 오픈라우터()?.key,
@@ -141,7 +145,7 @@ export const 공급자만들기 = (지정) => {
   if (pick === "anthropic") {
     // 키가 Vercel 에만 있으면 중계를 거친다. Anthropic 직판은 선불이 아니라 사용량 월 청구라 크레딧이 끊길 일이 없다
     const 중계 = process.env.LLM_PROXY_URL && process.env.LLM_PROXY_TOKEN;
-    const model = process.env.WRITER_MODEL || "claude-opus-5";
+    const model = 모델변수("anthropic") || "claude-opus-5";
     return {
       이름: 중계 ? "anthropic(중계)" : "anthropic",
       key: 중계 ? process.env.LLM_PROXY_TOKEN : process.env.ANTHROPIC_API_KEY,
@@ -163,7 +167,7 @@ export const 공급자만들기 = (지정) => {
     // 모델 이름은 자주 바뀐다. 2.5-flash 는 신규 사용자에게 닫혔고
     // 404 본문이 「gemini-3.6-flash 를 쓰라」고 직접 알려줬다(2026-09-12).
     // 또 막히면 그때도 응답에 후속 이름이 적혀 온다. WRITER_MODEL 로 넘긴다.
-    const model = process.env.WRITER_MODEL || "gemini-3.6-flash";
+    const model = 모델변수("gemini") || "gemini-3.6-flash";
     return {
       이름: "gemini",
       key: process.env.GEMINI_API_KEY,
@@ -179,7 +183,10 @@ export const 공급자만들기 = (지정) => {
           contents: [{ parts: [{ text: p }] }],
           generationConfig: { maxOutputTokens: 최대 },
         };
-        if (옵션.검색) {
+        if (옵션.json) {
+          // 글이 아닌 JSON(회사 루프 분석 등). 글 양식 스키마를 걸면 필요한 필드가 안 온다
+          body.generationConfig.responseMimeType = "application/json";
+        } else if (옵션.검색) {
           // 검색을 켜면 JSON 모드를 같이 걸 수 없다. 껍질 벗기기와 줄바꿈 복구로 받는다.
           body.tools = [{ google_search: {} }];
         } else {

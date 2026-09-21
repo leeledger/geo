@@ -73,46 +73,68 @@ const 활동 = (clientId, agent, action, ok, summary, taskId = null, runUrl = RU
  * 이제 OpenRouter 모델들 → Anthropic(중계, 하루 상한 있음) → Gemini → Groq 순으로 넘어간다. 빈 답도 실패로 친다.
  */
 const 분석모델 = { anthropic: process.env.COMPANY_ANTHROPIC_MODEL || "claude-sonnet-5" };
-const 물어보기 = async (prompt, maxTokens = 6000) => {
+/**
+ * 모양 — 받은 JSON 이 쓸 만한지 부르는 쪽이 판단한다. JSON 이긴 한데 필요한 칸이 없으면(예: items 없음)
+ * 그것도 실패로 치고 다음 공급자로 넘어간다. 안 그러면 「만든 일감 없음」으로 일주일 미뤄진다.
+ * 돌려주는 돈없음 은 모든 실패가 크레딧(402)일 때만 참이다 — 오류 글자에 402 가 섞였다고 참이 되면 안 된다.
+ */
+const 물어보기 = async (prompt, maxTokens = 6000, 모양 = () => true) => {
   const 막힘 = [];
+  const 코드들 = [];
   const 읽기 = (text) => {
     const m = /\{[\s\S]*\}/.exec(String(text).replace(/^```(json)?|```$/gm, ""));
-    try { return JSON.parse(m?.[0] ?? ""); } catch { return null; }
+    try { const j = JSON.parse(m?.[0] ?? ""); return 모양(j) ? j : null; } catch { return null; }
   };
+  const 부르기 = (url, opts) => 재시도(url, opts).catch((e) => ({ ok: false, status: 0, headers: new Headers(), text: async () => e.message }));
+  let 상한 = false; // 중계 하루 상한 — OpenRouter·Anthropic 이 같은 칸을 쓰니 걸리면 중계는 더 안 부른다
 
   const or = 오픈라우터();
   if (or) {
     // 모델은 닫힌다. 막히면 다음 이름으로 (stealth/union-alpha 가 2026-09-18 에 닫혔다)
+    let 크레딧없음 = false;
     for (const model of 모델들()) {
-      const res = await 재시도(or.url, {
+      // 크레딧이 0 이면 유료 모델은 다 402 다. 중계 상한만 깎으니 무료(:free)만 더 해 본다
+      if (크레딧없음 && !model.endsWith(":free")) continue;
+      const res = await 부르기(or.url, {
         method: "POST",
         headers: { "content-type": "application/json", authorization: `Bearer ${or.key}` },
         body: JSON.stringify({ model, max_tokens: maxTokens, messages: [{ role: "user", content: prompt }], response_format: { type: "json_object" } }),
-      }).catch((e) => ({ ok: false, status: 0, text: async () => e.message }));
-      if (!res.ok) { 막힘.push(`openrouter/${model} ${res.status} ${끝(await res.text(), 120)}`); continue; }
+      });
+      if (res.headers?.get?.("x-proxy-cap")) { 상한 = true; 막힘.push("중계 하루 상한"); 코드들.push(429); break; }
+      if (!res.ok) {
+        if (res.status === 402) 크레딧없음 = true;
+        코드들.push(res.status);
+        막힘.push(`openrouter/${model} ${res.status} ${끝(await res.text(), 120)}`);
+        continue;
+      }
       const text = (await res.json().catch(() => ({}))).choices?.[0]?.message?.content ?? "";
       const json = 읽기(text);
       if (json) return { json, 공급자: `openrouter/${model}` };
-      막힘.push(`openrouter/${model} JSON 아님(${text.length}자)`);
+      코드들.push(0);
+      막힘.push(`openrouter/${model} 쓸 수 없는 답(${text.length}자)`);
     }
   }
 
   for (const p of 공급자들({ groq: true }).filter((x) => x.이름 !== "openrouter")) {
     // 분석은 짧은 JSON 이라 글쓰기용 큰 모델까지 안 쓴다. 제미나이는 모델이 주소에 들어 있어 본문을 건드리지 않는다
     const 앤트로픽 = p.이름.startsWith("anthropic");
+    if (앤트로픽 && 상한 && p.이름.includes("중계")) continue;
     const model = 앤트로픽 ? 분석모델.anthropic : p.model;
-    const 요청 = p.요청(`${prompt}\n\nJSON 객체 하나만 답하라. 다른 말은 붙이지 마라.`, Math.min(maxTokens, p.최대토큰));
+    const 요청 = p.요청(`${prompt}\n\nJSON 객체 하나만 답하라. 다른 말은 붙이지 마라.`, maxTokens, { json: true });
     const body = 앤트로픽 ? { ...요청, model } : 요청;
-    const res = await 재시도(p.url, { method: "POST", headers: p.headers(p.key), body: JSON.stringify(body) })
-      .catch((e) => ({ ok: false, status: 0, text: async () => e.message }));
-    if (!res.ok) { 막힘.push(`${p.이름} ${res.status} ${끝(await res.text(), 120)}`); continue; }
+    const res = await 부르기(p.url, { method: "POST", headers: p.headers(p.key), body: JSON.stringify(body) });
+    if (!res.ok) { 코드들.push(res.status); 막힘.push(`${p.이름} ${res.status} ${끝(await res.text(), 120)}`); continue; }
     const text = p.text(await res.json().catch(() => ({})));
     const json = 읽기(text);
     if (json) return { json, 공급자: `${p.이름}/${model}` };
-    막힘.push(`${p.이름} JSON 아님(${text.length}자)`);
+    코드들.push(0);
+    막힘.push(`${p.이름} 쓸 수 없는 답(${text.length}자)`);
   }
   for (const m of 막힘) console.log(`  ⚠ ${m}`);
-  return { error: 막힘.length ? `모든 공급자 막힘: ${막힘.join(" · ")}` : "LLM 설정 없음" };
+  return {
+    error: 막힘.length ? `모든 공급자 막힘: ${막힘.join(" · ")}` : "LLM 설정 없음",
+    돈없음: 코드들.length > 0 && 코드들.every((c) => c === 402),
+  };
 };
 
 // ─────────────────────────────────────────── 일감 표
@@ -170,7 +192,6 @@ const 상태 = (id, status, patch = {}) =>
     [id, status, patch.evidence ?? "", patch.error ?? null, patch.nextTry ?? null, patch.link ?? null, patch.attempt ? 1 : 0]);
 
 /** 크레딧·잔액 때문에 막힌 것인가. 고장과 갈라야 한다 */
-const 돈없음 = (s) => /402|Insufficient credits|credit/i.test(String(s ?? ""));
 const 뒤 = (h) => new Date(Date.now() + h * 3600 * 1000).toISOString();
 const 오늘 = () => new Date().toLocaleString("sv-SE", { timeZone: "Asia/Seoul" }).slice(0, 16);
 
@@ -353,9 +374,9 @@ const EXEC = {
       '형식: {"items":[{"query":"검색어","action":"content|listing","question":"학부모가 실제로 칠 질문형 문장","targets":["이기는 도메인"],"reason":"한 줄"}]}',
       "",
       r.out.slice(-12000),
-    ].join("\n"));
+    ].join("\n"), 6000, (j) => Array.isArray(j?.items));
     // 돈이 없어 못 부른 것은 고장이 아니다. 세 번 실패로 세어 사람에게 넘기면 진짜 고장이 묻힌다
-    if (ans.error && 돈없음(ans.error)) return { status: "대기", nextTry: 뒤(12), evidence: `${오늘()} 크레딧이 없어 분석을 미룸` };
+    if (ans.error && ans.돈없음) return { status: "대기", nextTry: 뒤(12), evidence: `${오늘()} 크레딧이 없어 분석을 미룸` };
     if (ans.error) return { status: "실패", attempt: true, error: `분석 실패: ${ans.error}` };
     const made = [];
     for (const it of ans.json.items ?? []) {
@@ -414,6 +435,7 @@ const EXEC = {
     let 티 = 검사();
     const notes = { ...post.notes, AI티: 티 };
     let 다듬음 = "";
+    let 크레딧부족 = false;
     if (티.length && !post.notes.다듬음) {
       // 사실이 바뀌면 안 된다. 숫자(개수까지)·소제목·링크가 원문과 똑같을 때만 채택하고, 원문은 notes 에 남겨 되돌릴 수 있게 한다
       const 숫자들 = (s) => (s.match(/\d+/g) ?? []).sort().join(",");
@@ -426,9 +448,9 @@ const EXEC = {
         '형식: {"body":"고친 전체 마크다운"}',
         "",
         post.body,
-      ].join("\n"), 12000);
+      ].join("\n"), 12000, (j) => typeof j?.body === "string" && j.body.length > 0);
       const body = ans.json?.body;
-      if (!body) 다듬음 = `다듬기 실패: ${ans.error ?? "본문 없음"}`;
+      if (!body) { 다듬음 = `다듬기 실패: ${ans.error ?? "본문 없음"}`; 크레딧부족 = !!ans.돈없음; }
       else if (body.length < post.body.length * 0.9 || body.length > post.body.length * 1.15) 다듬음 = `다듬기 결과를 버림: 길이가 ${post.body.length}→${body.length}자로 너무 바뀜`;
       else if (숫자들(body) !== 숫자들(post.body)) 다듬음 = "다듬기 결과를 버림: 숫자가 원문과 달라짐";
       else if (소제목(body) !== 소제목(post.body) || 링크(body) !== 링크(post.body)) 다듬음 = "다듬기 결과를 버림: 소제목이나 링크가 바뀜";
@@ -448,7 +470,7 @@ const EXEC = {
       if (!다듬음.startsWith("다듬기 실패")) notes.다듬음 = 다듬음;
     }
     await q(`update academy.posts set review_notes=$2::jsonb where slug=$1`, [slug, JSON.stringify(notes)]);
-    if (다듬음.startsWith("다듬기 실패") && 돈없음(다듬음)) {
+    if (다듬음.startsWith("다듬기 실패") && 크레딧부족) {
       // 검사는 이미 했으니 원장이 읽을 수는 있다. 다듬기만 크레딧이 찰 때까지 미룬다
       return { status: "대기", nextTry: 뒤(12), evidence: `${오늘()} AI 티 ${티.length}종 · 크레딧이 없어 다듬기는 미룸`, link: `${ADMIN}/admin/drafts#${slug}` };
     }
