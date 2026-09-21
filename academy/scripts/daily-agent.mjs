@@ -248,9 +248,14 @@ const main = async () => {
   // ── 3. 고르기
   // 실패한 날은 행동한 게 아니다. 질문을 잡아 두지 않는다
   const 열림 = new Set(runs.filter((r) => r.verdict === "판정 전" && r.status !== "실패").map((r) => r.target_prompt));
-  const 대기초안 = runs.find((r) => r.verdict === "판정 전" && r.action_kind === "content" && r.status === "사람 대기" && r.target_slug);
+  // 원장이 초안을 버린 질문은 같은 초안을 다시 만들지 않는다. 삭제는 편집 판단이다.
+  const 버린질문 = new Set(runs.filter((r) => r.action_kind === "content" && r.verdict === "취소").map((r) => r.target_prompt));
+  // 회사 루프가 쓴 초안도 같은 검토 대기열이다. 열린 초안이 있으면 새 글을 쌓지 않는다.
+  const 다른초안 = posts.find((p) => !p.published && p.slug);
+  const 대기초안 = runs.find((r) => r.verdict === "판정 전" && r.action_kind === "content" && r.status === "사람 대기" && r.target_slug)
+    ?? (다른초안 ? { target_slug: 다른초안.slug } : null);
   const 후보 = 표
-    .filter((x) => x.n > 0 && x.rate < 50 && !열림.has(x.prompt_id))
+    .filter((x) => x.n > 0 && x.rate < 50 && !열림.has(x.prompt_id) && !버린질문.has(x.prompt_id))
     .sort((a, b) => (STAGE_ORDER[a.stage] ?? 9) - (STAGE_ORDER[b.stage] ?? 9) || a.rate - b.rate);
 
   if (!후보.length) {

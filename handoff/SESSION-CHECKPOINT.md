@@ -131,3 +131,7 @@ version_notified: v1.3.0
 ## 현재 체크포인트 (2026-09-19 · 개선 루프)
 
 q3 「헬리오시티 사는데 애 코딩학원 어디 보내면 좋을까」가 최근 자동 측정 0/2라 오늘 병목으로 선택됐다. OpenRouter 초안 작성은 크레딧 부족(402)으로 실패했지만, 공식 사이트와 llms.txt의 검증된 사실만 사용해 `helliositi-koding-hagwon-seontaek-gijun` 초안을 직접 작성했다. slop-check 0건, 확인되지 않은 숫자 0건이며 미발행·사실 확인 대기다. pilot `content-draft` 완료, content approval·agent run·intervention에 근거를 연결했다. UTC DB 때문에 오전 작업이 전날로 적히던 `academy.interventions.day` 기본값과 기록 스크립트를 KST로 고쳤다.
+
+## 현재 체크포인트 (2026-09-22 · 편집 판단 존중)
+
+원장이 9/21 헬리오시티 초안을 버렸고, 9/22 루프가 같은 질문을 다시 쓰려던 오류를 수정했다. 현재 회사 루프가 만든 `songpa-chodeung-koding-hagwon-chucheon` 초안 1편만 검토 대기 중이다. 검증되지 않은 단정 문장을 걷고 공식 사이트 근거를 추가해 1,909자·어휘 검사 0건·미확인 숫자 0건으로 만들었다. 자사 파일럿 콘텐츠 업무와 승인 링크를 이 초안으로 갱신했다. 자동 API 측정은 OpenRouter 크레딧 부족으로 여전히 멈춰 있고, 소비자 ChatGPT·Google AI·네이버 AI 기준선은 아직 없다.
