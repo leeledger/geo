@@ -374,7 +374,8 @@ const EXEC = {
       '형식: {"items":[{"query":"검색어","action":"content|listing","question":"학부모가 실제로 칠 질문형 문장","targets":["이기는 도메인"],"reason":"한 줄"}]}',
       "",
       r.out.slice(-12000),
-    ].join("\n"), 6000, (j) => Array.isArray(j?.items));
+    // 「등재 필요」인데 이기는 곳이 비어 있으면 짐작이다 — 어디에 등재하라는지 모르는 일감은 사람에게 쓸모가 없다(2026-09-21 원장 지적)
+    ].join("\n"), 6000, (j) => Array.isArray(j?.items) && j.items.every((it) => it?.action !== "listing" || (it.targets ?? []).length > 0));
     // 돈이 없어 못 부른 것은 고장이 아니다. 세 번 실패로 세어 사람에게 넘기면 진짜 고장이 묻힌다
     if (ans.error && ans.돈없음) return { status: "대기", nextTry: 뒤(12), evidence: `${오늘()} 크레딧이 없어 분석을 미룸` };
     if (ans.error) return { status: "실패", attempt: true, error: `분석 실패: ${ans.error}` };
