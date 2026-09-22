@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { isAdmin, cookieValue, COOKIE_NAME, COOKIE_MAX_AGE } from "@/lib/admin-auth";
+import { isAdmin, cookieValue, COOKIE_NAME, COOKIE_MAX_AGE, safeAdminPath } from "@/lib/admin-auth";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -14,9 +14,8 @@ export const runtime = "nodejs";
 export async function GET(req: Request) {
   const url = new URL(req.url);
   const key = url.searchParams.get("key") ?? "";
-  const to = url.searchParams.get("to") ?? "/admin/ops";
-  // 돌려보낼 곳은 관리 화면 안쪽만. //evil.com 같은 바깥 주소로 튀지 않게
-  const safeTo = /^\/admin(\/|$|\?)/.test(to) && !to.startsWith("//") ? to : "/admin/ops";
+  // 돌려보낼 곳은 관리 화면 안쪽만 (login·signIn 과 같은 검사)
+  const safeTo = safeAdminPath(url.searchParams.get("to"));
 
   if (!key || !(await isAdmin(key))) {
     return NextResponse.redirect(new URL(`/admin/login?to=${encodeURIComponent(safeTo)}`, url.origin));

@@ -2,7 +2,7 @@
 
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { credentialsOk, cookieValue, COOKIE_NAME, COOKIE_MAX_AGE } from "./admin-auth";
+import { credentialsOk, cookieValue, COOKIE_NAME, COOKIE_MAX_AGE, safeAdminPath } from "./admin-auth";
 
 /**
  * 로그인·로그아웃.
@@ -31,8 +31,7 @@ export async function signIn(prev: string | null, form: FormData): Promise<strin
     maxAge: COOKIE_MAX_AGE,
   });
 
-  const to = String(form.get("to") || "/admin/ops");
-  redirect(to);
+  redirect(safeAdminPath(String(form.get("to") ?? "")));
 }
 
 export async function signOut(): Promise<void> {

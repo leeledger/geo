@@ -40,8 +40,29 @@ export function credentialsOk(id: string, pw: string) {
   return same(id, adminId()) && same(pw, s);
 }
 
+/**
+ * 쿠키 값 = 「발급 시각.서명」. 서명에 발급 시각을 넣는다.
+ * 전에는 늘 같은 값(아이디 서명)이라 한 번 새면 비밀번호를 바꾸기 전까지 영원히 통했다(Richard 2026-09-23).
+ * 이제 12시간이 지나면 서버가 거절한다 — 브라우저가 지우는 것만 믿지 않는다.
+ */
 export function cookieValue() {
-  return sign(adminId());
+  const t = Math.floor(Date.now() / 1000);
+  return `${t}.${sign(`${adminId()}.${t}`)}`;
+}
+
+function cookieOk(c: string) {
+  const [t, sig] = c.split(".");
+  const n = Number(t);
+  if (!Number.isInteger(n) || !sig) return false;
+  const age = Math.floor(Date.now() / 1000) - n;
+  if (age < -60 || age > MAX_AGE) return false;
+  return same(sig, sign(`${adminId()}.${n}`));
+}
+
+/** 로그인 뒤 돌려보낼 곳 — 관리 화면 안쪽만. //바깥 주소로 튀지 않게 한 곳에서 거른다 */
+export function safeAdminPath(to: string | null | undefined, fallback = "/admin/ops") {
+  const v = String(to ?? "");
+  return /^\/admin(\/|$|\?)/.test(v) && !v.startsWith("//") && !v.includes("\\") ? v : fallback;
 }
 
 /**
@@ -53,11 +74,13 @@ export function cookieValue() {
  */
 export async function isAdmin(key?: string): Promise<boolean> {
   const s = secret();
-  if (!s) return true;                     // 로컬 개발 — 토큰 미설정이면 열어 둔다
+  // 비밀이 없으면 로컬 개발에서만 열어 둔다. 운영에서 환경변수가 빠지면 전부 잠근다 —
+  // 전에는 운영에서도 열려, 서버 동작에 넣은 관리자 검사 11개가 통째로 무력해질 수 있었다(Richard 2026-09-23)
+  if (!s) return process.env.NODE_ENV !== "production";
 
   const jar = await cookies();
   const c = jar.get(COOKIE)?.value;
-  if (c && same(c, sign(adminId()))) return true;
+  if (c && cookieOk(c)) return true;
 
   const legacy = process.env.ADMIN_TOKEN;
   if (legacy && key && same(key, legacy)) return true;

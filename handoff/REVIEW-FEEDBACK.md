@@ -1,49 +1,46 @@
-# Review Feedback — Step 14a (/admin/ops 정리 · 실시간 직원 줄) + heartbeat
-Date: 2026-09-22
+# Review Feedback — 랜딩 대체값 494bbc4 · Step 14a 수정 3853b31 · Step 14b fb324d0 · 보안 93fb90f
+Date: 2026-09-23
 Ready for Builder: NO
-Commits reviewed: b4b397f · fcd40b9 (배포됨) · 2333059 (tools/heartbeat.mjs)
+(전부 이미 배포됨)
 
 ## Must Fix
-1. **agents.ts `lastSlot` — 놓친 일이 날이 바뀌면 「정상」으로 칠해진다.** `lastSlot` 은 **오늘** 지난 시각만 본다(`kstDay(now)`, 요일 제한이면 그 요일에만).
-   - 매일 06:35 감사가 어제 안 돌았어도, 오늘 00:00~08:05(06:35+90분)는 「정상」이다.
-   - 주 1회(write 월 06:07 · sales 월 08:10)는 월요일에 놓치면 화요일부터 다음 월요일까지 엿새 동안 「정상」이다.
-   - 10일 안 활동이 아예 없는 역할도 오늘 시각 전이면 「정상」이다.
-   「근거 없이 정상으로 칠하지 않는다」(brief·파일 머리 주석)를 어긴다.
-   고치는 법: 마지막 예정 시각을 **오늘까지 최근 8일 안에서** 찾는다(dow 반영, 지금보다 90분 넘게 지난 가장 최근 것). 그 시각 이후 기록이 없으면 지연으로 둔다. `judge` 시험에 「어제 감사 없음 → 오늘 05:00 지연」 「월요일 초안 없음 → 화요일 지연」 두 경우를 더한다.
-2. **할 일(Todo) 4번 — 내부 문구가 조각나 원장 줄에 나온다**(운영 스크린샷 prod/robotncoding-1280-closed.png, 호출자 지적).
-   - 「조사 · 영점 — 크롤러: 빙 크롤러 커버리지 (5/47) · 처음 온 …」
-   - 「자동 수리안(가지)이 검토에서 떨어졌습니다: 의 majo…」
-   `plain()` 은 파일 이름·가지를 지우기만 해서 「의 major」 같은 잘린 조각과 「R5」 「영점」 같은 감사 용어가 남는다. 게다가 원장이 무엇을 해야 하는지가 없다.
-   고치는 법: 사람 대기 일감 가운데 에이전트가 만든 kind(`investigate`·`repair-approval`·`human`(audit/repair/sales)·`workflow-failed`)는 `plain()` 으로 문장을 깎지 말고 **kind·payload 로 문장을 새로 만든다**. 제목은 「무엇이 · 왜」, 행동은 「무엇을 누르나/열어 보나」다. 예: `investigate` R5 microsoft → 「빙이 우리 글을 47쪽 중 5쪽만 읽음 — 자동 수리안이 검토에서 떨어져 원장 확인이 필요합니다」 + 행동 「조사 내용 보기」. 숫자는 payload.facts 에서만 가져온다. 대응표에 없는 kind 는 제목 원문을 `plain()` 한 것으로 두되, **단어 중간에서 자르지 않는다**(자를 때는 어절 경계 + 「…」, 잘라서 조사만 남는 「의 …」 같은 앞머리는 버린다). Todo 시험에 실제 DB 문구 5개(REVIEW-REQUEST 의 plain 전후 예)를 넣어, 조각·내부 이름이 없는지 본다.
-3. **수리공 줄이 「정상 · 수리 성공」으로 보인다 — 스위치가 꺼져 아무것도 안 합쳤는데**(호출자 지적).
-   회사 루프가 옮긴 「자동 작업 repair」 성공 줄을 `said()` 가 「수리 성공」으로 읽는다. 워크플로 실행이 성공했다는 뜻이지 수리가 됐다는 뜻이 아니다. repair.mjs 의 「스위치 꺼짐」 활동은 다음 06:50 정기 실행부터 생긴다. 그 줄이 생긴 뒤에도 옮긴 줄이 더 최근이면 같은 착시가 난다.
-   고치는 법:
-   - (a) 옮긴 줄 문구는 「실행 완료/실패」로 쓰고, 일의 성과처럼 읽히는 말(「수리 성공」 「측정 성공」)을 쓰지 않는다(`WORKFLOW_PLAIN`+`said`).
-   - (b) 수리공 역할의 상태는 옮긴 줄이 아니라 수리공 자신의 활동과 `geo.repairs` 로 정한다. 「스위치 꺼짐」 활동이 있으면 꺼짐이다. 그 줄이 아직 없으면 최근 7일 `geo.repairs` 에 `합침` 이 없고 `승인 대기`·`검토 불합격`만 있을 때 「쉬는 중 · 합친 수리 없음」으로 둔다. 「정상」으로 두지 않는다.
-   - (c) 수리공 줄의 마지막 한 일은 옮긴 줄을 건너뛰고 수리공 자신의 활동을 보인다.
+1. **web/lib/admin-auth.ts `isAdmin` — 비밀이 없으면 관리 화면 전체가 열린다.**
+   `const s = secret(); if (!s) return true;` 는 로컬 개발 편의로 둔 것이다. 그런데 운영에서 ADMIN_PASSWORD·ADMIN_TOKEN 이 둘 다 빠지면(환경변수 이름 실수, 새 Vercel 프로젝트, BOM 이 붙은 값을 지운 뒤 재등록 전 등) 모든 서버 동작·/api/admin/*·7개 화면이 로그인 없이 열린다. 오늘 서버 동작 11개에 guard 를 단 이유가 이 한 줄로 무너진다.
+   고치는 법: `if (!s) return process.env.NODE_ENV !== "production";`. 운영에서 비밀이 없으면 닫힌다. `credentialsOk` 는 이미 닫혀 있다. 이번 커밋이 만든 문제는 아니지만 이번 보안 수정의 전제라 여기서 막는다.
 
 ## Should Fix
-- **조사 319(R5 빙) 가 사람 대기로 남아 있다 — 오늘 세션이 빙에 47개 주소를 제출했는데**(bing-done.json, 활동 「빙 주소 제출」). R5 신호는 커버리지가 20% 를 넘어야 사라지니 며칠 더 뜬다. 원장 줄에는 「조치 중」이 보여야 한다. 두 가지를 한다:
-  - (a) 세션이나 도구가 한 조치를 그 일감에 붙인다. 빙 제출 도구가 끝나면 관련 investigate(R5 microsoft) 일감에 evidence 「<KST> 빙 제출 47개 — 크롤 대기」를 달고, 상태를 `관찰`(next_try +3일)로 옮긴다.
-  - (b) Todo 는 evidence 에 최근 조치가 있는 사람 대기를 「조치 중 · <날짜> 빙 제출」로 흐리게 보이고, 맨 뒤로 보낸다.
-  이번 단계에서 (b) 만 해도 된다. (a) 는 BUILD-LOG Known Gap 에 적는다.
-- **agents.ts `plain()` 에 남는 것.** 「case-report 실패 Error.captureStackTrace(err)」 — 확장자 없는 스크립트 이름과 오류 코드 조각이 남는다. 실패 문구는 「<일 이름> 실패 — 로그 확인」처럼 원인 원문을 빼고, 원문은 「자세히」 안에만 둔다. `R\d` 규칙 번호와 「영점」 같은 감사 용어도 쉬운 말로 바꾼다(위 Must 2 대응표와 같이).
-- **`judge` 막힘** — 가장 최근 활동이 실패면 날짜와 상관없이 막힘이다. 이건 옳다. 다만 이유 줄에 「n일 전」을 붙여야 오래된 막힘인지 보인다.
-- **API 오류 문구** — `readAgents` 가 실패하면 `err` 에 DB 오류 원문을 담아 보낸다. 관리자만 보지만 화면에 그대로 찍히면 내부 이름이 샌다. 화면에는 「상태를 못 읽었습니다」만 쓰고, err 는 서버 로그에만 둔다.
+- **web/lib/admin-actions.ts `signIn` — `redirect(String(form.get("to")))` 를 검사하지 않는다.** 로그인 화면이 dest 를 걸러서 넘기고, Next 서버 동작은 출처 검사를 하니 지금은 뚫기 어렵다. 그래도 enter/route.ts 와 같은 규칙(`/^\/admin(\/|$|\?)/` + `//` 거부)을 여기에도 건다. 규칙을 한 함수(`safeAdminPath`)로 모아 login·enter·signIn 이 같이 쓴다.
+- **쿠키 값이 영구 고정이다.** `cookieValue() = HMAC(secret, adminId)` 라 늘 같은 값이다. maxAge 12시간은 브라우저 쪽 만료일 뿐이다. 쿠키가 한 번 새면 비밀을 바꿀 때까지 영원히 유효하고, 로그아웃도 서버에서 무효화하지 못한다. 발급 시각을 서명에 넣고(`${id}.${iat}` 를 HMAC) `isAdmin` 에서 12시간이 넘으면 거부한다.
+- **addClientInquiry(공개, pilot-actions.ts:57) — 공개로 둔다는 가정은 맞다.** inquiry_key 는 `gen_random_uuid()`(122비트)이고 status 준비·진행 파일럿만 받는다 — 링크를 받은 고객만 쓰는 능력 주소다. 다만 입력 검사가 모자라다:
+  - (a) `source`·`channel` 을 화면의 선택지(AI·네이버검색…·전화·카카오·방문)로 제한하지 않고 길이도 자르지 않는다. 아무 문자열이나 들어가 성장 칸 「출처별」과 파일럿 보고서에 그대로 뜬다. 허용 목록 밖이면 거부한다.
+  - (b) `day` 가 `current_date` 라 DB(UTC) 날짜로 적힌다. KST 00:00~08:59 에 적은 상담이 전날로 들어간다. `(now() at time zone 'Asia/Seoul')::date` 로 바꾼다.
+  - (c) uuid 가 아닌 key 가 오면 Postgres 형변환 오류로 동작이 예외를 던진다(500). 쿼리 전에 uuid 꼴을 검사하고 조용히 돌아간다(getPilotByInquiryKey 는 try 로 감싸 이미 null).
+  - (d) 요청 수 제한이 없다. 링크가 새면 기록을 부풀릴 수 있다. 우선 같은 key 로 1분에 N건 넘으면 거부하는 간단한 제한을 둔다(DB count).
+- **옛 열쇠(?key=) 노출 — enter 경로는 나아졌지만 없어지지는 않았다.** 열쇠가 여전히 요청 주소에 실린다.
+  - Vercel 요청 로그에 쿼리가 남는다.
+  - 즐겨찾기·주소창 기록에도 남는다(enter 가 쿠키로 바꾼 뒤 열쇠 없는 주소로 보내는 건 맞다).
+  - `secret()` 은 ADMIN_PASSWORD 가 없으면 ADMIN_TOKEN 을 비밀번호와 쿠키 서명 키로 쓴다. 열쇠 = 비밀번호 = 서명 키다.
+  권고:
+  - (1) ADMIN_PASSWORD 를 따로 정해 열쇠와 비밀번호를 가른다.
+  - (2) 즐겨찾기를 로그인으로 옮긴 뒤 옛 열쇠 받기를 끄고 ADMIN_TOKEN 을 교체한다(Step 13 에서 권한 교체와 같이).
+  - (3) /admin 과 /admin/enter 응답에 `Referrer-Policy: no-referrer` 를 준다.
+  (1)(2) 는 원장 결정이라 아래 Escalate 에도 올린다.
+- web/app/admin/pilots — `D(x)`·`day(x)` 가 Date 를 `toISOString().slice(0,10)` 로 자른다. date 칼럼(started_on·ends_on)은 Vercel(UTC)에서 맞다. timestamptz 칼럼에 쓰이면 KST 날짜가 하루 어긋난다. 날짜는 SQL 에서 `::text` 로 받는 저장소 규칙대로 바꾼다.
 
 ## Escalate to Architect
-- **원장 PC 12:40·19:10 을 지연 판정에 넣음.** PC 가 꺼져 있으면 유통 줄이 빨간 「지연」이 된다. 사실이고 알려야 할 일이지만, 원장이 퇴근하는 저녁마다 빨간 불이 뜨면 경보 피로가 생긴다. 「PC 꺼짐」을 지연과 다른 회색 상태로 둘지 원장·Arch 가 정한다.
-- **직원 줄을 고객사로 거르지 않음** — BUILD-LOG 이유(옮긴 줄이 첫 고객사 번호)대로 맞다고 본다. 받아들인다.
-
-## heartbeat (2333059)
-- 통과. `gh auth token --user leeledger` 로 이 호출에만 토큰을 준다(활성 계정 전환 없음). 실행 중인 회사 루프가 있으면 건너뛰고, 70분 안에 돈 기록이 있으면 아무것도 안 한다. 로그 파일은 gitignore 대상이다. 작업 스케줄러 등록은 PowerShell `-Command` 로 경로 `&` 함정을 피한다.
-- 참고(막을 일 아님): company.yml 이 계속 실패하면 heartbeat 도 매시 다시 띄운다. 실패 일감은 회사 루프가 이미 올리니 추가 조치는 필요 없다. dispatch 하는 사람이 원장 계정이라, repair 처럼 triggering_actor 로 사람/봇을 가르는 워크플로를 heartbeat 가 띄우게 되면 「사람이 띄움」으로 보인다. heartbeat 는 company.yml 만 띄우도록 지금 모양을 유지하고, 주석에 그 이유를 한 줄 남긴다.
+- **옛 열쇠 주소를 언제 끊을지, ADMIN_PASSWORD 를 따로 둘지.** 스크립트·즐겨찾기가 ?key= 를 쓰고 있어 끊는 날은 원장이 정한다. 끊는 날에 ADMIN_TOKEN 교체를 같이 한다(Step 13 권고).
 
 ## Cleared
-- **/api/admin/agents**: `isAdmin()` 쿠키 검사, 401, 성공 응답 no-store, force-dynamic. 로그아웃 상태에서 운영 401 확인. 내보내는 값은 plain 처리한 문구와 상태뿐이다(위 err 제외).
-- **정해진 시각 ↔ .github/workflows cron**: 10개 전부 일치한다. company 매시 23분, watch `11 */3`→KST 00:11…21:11, audit 06:35, scout 06:37, repair 06:50, optimize 07:05, serp 07:41, snapshot 03:23, write 월 06:07, sales 월 08:10. 원장 PC 12:40·19:10 은 yml 이 아니라 로컬 에이전트라 대조 대상 밖이다.
-- **폴링**: 45초, 탭이 숨으면 쉬고 보이면 곧바로 읽는다. 실패하면 마지막 값을 유지하고 「연결 끊김 · n분 전 값」을 보인다. 「n분 전」은 1분마다 다시 센다. 첫 그림은 서버 시각이라 hydration 이 어긋나지 않는다.
-- **움직임**: transform 은 ring 에만 쓴다(CLAUDE.md 함정). reduced-motion 이면 점·ring·줄 애니메이션과 working 배경이 모두 꺼진다. 상태등 옆에는 늘 글자 라벨이 있다.
-- **CSS**: `:where(.ops)` 로 이 화면 안에서만 globals 를 끊는다(특이도 0, 랜딩에는 .ops 가 없다). 삭제한 firstSeen·daysMeasured·withImages·Live·Flow 는 grep 소비처 0, tsc 0.
-- **Claude 상한 표시**: env 가 없으면 상한을 지어내지 않고 호출 수만 보인다.
-- **repair.mjs 꺼짐 활동**: 정기 실행과 merge 모드 두 분기에 한 줄씩 남는다. 동작은 바뀌지 않았다.
+- **494bbc4 랜딩**: 대체 숫자(8·460·43·6·2위)를 모두 없앴다. 못 읽으면 null 이고 그 칸·문장을 숨기며 Count 는 「—」다. 플레이스 순위는 KST 오늘 기준 14일 안에 잰 것만, 측정일 「m/dd 측정」을 붙인다. 쿼리는 파라미터를 쓰고 실패하면 null 이다. 지어낸 숫자가 사라졌다.
+- **3853b31 14a 수정**: 지난 Must 3·Should 들이 다 풀렸다.
+  - `dueSlots` 가 8일을 거슬러 보고 요일 제한과 90분 유예를 반영한다. 놓친 어제·월요일 일이 지연으로 뜬다.
+  - todo-text.ts 는 investigate(R5 는 facts 의 쪽수·vendor 로 「빙이 우리 글 47쪽 중 5쪽만 읽었습니다」)·repair-approval·workflow-failed 의 문장을 새로 만든다. 나머지는 어절 경계에서 자르고 외톨이 조사를 지우며, 최근 3일 조치는 「조치 중」으로 흐리게 맨 뒤로 보낸다.
+  - 옮긴 줄은 「실행 완료/실패」다. 수리공은 옮긴 줄을 빼고 판정하고, 7일 합침이 0 이면 「쉬는 중 · 합친 수리 없음」이다. 검토 불합격은 막힘으로 안 친다.
+  - 막힘에 「n일 전」이 붙는다. PC 는 한 번 비면 회색 「PC 꺼짐」, 두 번이면 지연이다(Arch). API 오류 원문은 서버 로그에만 남는다.
+- **fb324d0 14b**: 관리 화면 7개를 새로 그렸다. 화면 글은 React 텍스트다. dangerouslySetInnerHTML 은 CSS 문자열과 초안 render(esc 를 먼저 거친 기존 코드)뿐이다. `kstToday` 는 +9h 로 계산한다. pilots.ts 별칭(`as day`)은 올바르게 고쳤다.
+- **93fb90f 보안**: "use server" 모듈 9개를 모두 봤다.
+  - inquiry·lead·outreach·pilot·draft·task·brief 의 모든 동작이 isAdmin 을 거친다.
+  - admin-actions 의 signIn/signOut 은 로그인 자체라 맞다. inquiries.ts 는 "use server" 가 아니다(주석에만 나옴).
+  - 빠진 곳은 의도한 addClientInquiry 하나뿐이다.
+  - enter/route.ts: 열쇠가 틀리면 로그인 화면으로 보낸다. 맞으면 httpOnly·SameSite=Lax·운영 Secure·path=/·12h 쿠키와 no-store 를 주고 열쇠 없는 /admin 경로로 보낸다. `to` 는 `/admin` 안쪽만 받고 `//` 는 거부하며, 출처는 요청 origin 으로 고정해 바깥으로 튀지 않는다.
+  - 공개 API(crawl·lead·scan)는 설계상 공개이고 이번 범위 밖이다. llm·pilots prompts·admin agents 는 검사가 있다.

@@ -54,4 +54,22 @@ export async function updateAudit(form:FormData){await guard();await inqPool().q
 export async function approveQuestions(form:FormData){await guard();await inqPool().query(`update geo.pilot_questions set approved=true where pilot_id=$1`,[String(form.get("pilot_id"))]);revalidatePath(String(form.get("path")));}
 export async function updateQuestion(form:FormData){await guard();await inqPool().query(`update geo.pilot_questions set text=$2,approved=false where id=$1`,[Number(form.get("id")),String(form.get("text")??"").slice(0,300)]);revalidatePath(String(form.get("path")));}
 export async function updateContent(form:FormData){await guard();const status=String(form.get("status"));await inqPool().query(`update geo.content_approvals set title=$2,draft_url=nullif($3,''),published_url=nullif($4,''),status=$5,customer_note=$6,approved_at=case when $5 in ('승인','게시') and approved_at is null then now() else approved_at end,published_at=case when $5='게시' then now() else null end,updated_at=now() where id=$1`,[Number(form.get("id")),String(form.get("title")??"").slice(0,200),String(form.get("draft_url")??"").slice(0,500),String(form.get("published_url")??"").slice(0,500),status,String(form.get("customer_note")??"").slice(0,500)]);revalidatePath(String(form.get("path")));}
-export async function addClientInquiry(form:FormData){const key=String(form.get("key")??"");const {rows:[p]}=await inqPool().query(`select p.id,c.id client_id from geo.pilots p join geo.clients c on c.id=p.client_id where p.inquiry_key=$1 and p.status in ('준비','진행')`,[key]);if(!p)return;const source=String(form.get("source")??"");if(!source)return;await inqPool().query(`insert into academy.inquiries(day,source,said,channel,grade,enrolled,note,client_id) values(current_date,$1,$2,$3,'',$4,'고객 전용 기록표',$5)`,[source,String(form.get("said")??"").slice(0,300),String(form.get("channel")??"전화"),form.get("enrolled")==='yes'?true:form.get("enrolled")==='no'?false:null,p.client_id]);revalidatePath(`/record/${key}`);}
+/**
+ * 고객사 전용 유입 기록표(/record/<열쇠>). 로그인 없이 쓰는 공개 폼이라 입력을 좁힌다(Richard 2026-09-23).
+ * 열쇠는 uuid(122비트)라 링크 자체가 권한이다. 다만 값은 보고서·현황판 집계로 가니 폼의 선택지만 받는다.
+ */
+const 유입경로 = ["AI", "네이버검색", "구글검색", "네이버플레이스", "블로그", "소개", "간판·전단", "기타"];
+const 연락경로 = ["전화", "카카오", "방문"];
+export async function addClientInquiry(form:FormData){
+  const key=String(form.get("key")??"");
+  // uuid 가 아니면 DB 가 형 변환 오류로 500 을 낸다 — 먼저 거른다
+  if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(key))return;
+  const source=String(form.get("source")??"").trim();
+  const channel=String(form.get("channel")??"전화").trim();
+  if(!유입경로.includes(source)||!연락경로.includes(channel))return;
+  const {rows:[p]}=await inqPool().query(`select p.id,c.id client_id from geo.pilots p join geo.clients c on c.id=p.client_id where p.inquiry_key=$1 and p.status in ('준비','진행')`,[key]);
+  if(!p)return;
+  // current_date 는 DB 의 UTC 날짜다. 00~09시(KST)에 쓴 기록이 전날로 들어갔다
+  await inqPool().query(`insert into academy.inquiries(day,source,said,channel,grade,enrolled,note,client_id) values((now() at time zone 'Asia/Seoul')::date,$1,$2,$3,'',$4,'고객 전용 기록표',$5)`,[source,String(form.get("said")??"").slice(0,300),channel,form.get("enrolled")==='yes'?true:form.get("enrolled")==='no'?false:null,p.client_id]);
+  revalidatePath(`/record/${key}`);
+}
