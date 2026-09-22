@@ -23,7 +23,7 @@ export default function LoginForm({ to }: { to: string }) {
         비밀번호
         <input name="pw" type="password" autoComplete="current-password" required />
       </label>
-      <button className="lgbtn" type="submit" disabled={busy}>
+      <button className="adm-btn ok lgbtn" type="submit" disabled={busy}>
         {busy ? "확인하는 중…" : "들어가기"}
       </button>
       {err && <p className="lgerr">{err}</p>}

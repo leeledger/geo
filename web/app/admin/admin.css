@@ -1,0 +1,75 @@
+/*
+ * 관리 화면 공통 한 벌 (Step 14b). 테마는 하나 — 어두운 판.
+ * 토큰(--bg 등)은 여기 한 곳에만 둔다. 페이지 CSS 는 자기 배치만 적는다.
+ * 디자인 시스템이 아니다. 여러 화면에 똑같이 복사돼 있던 것만 모았다.
+ * 글자: 본문 16px · 보조 14px 이상 · 보조 글자색 --ink2 이상(--mut/--faint 는 날짜·각주만) · keep-all
+ */
+.adm{--bg:#0C1016;--card:#141A22;--sunk:#10151C;--line:#232C38;--soft:#1A222C;
+  --ink:#E8EDF3;--ink2:#A7B2C0;--mut:#7B8696;--faint:#5A6474;
+  --acc:#F5A623;--cool:#3DD6C4;--ok:#3DD6A0;--warn:#E0A93C;--crit:#D2705F;
+  background:var(--bg);color:var(--ink);min-height:100vh;font-size:16px;line-height:1.55;word-break:keep-all;
+  font-family:"Noto Sans KR",system-ui,sans-serif;padding:18px 0 80px}
+.adm *{box-sizing:border-box}
+.adm .w{max-width:920px;margin:0 auto;padding:0 16px}
+
+/* 랜딩 globals.css 의 section·nav·h2·details 규칙을 관리 화면에서 끊는다 (특이도 0 — 페이지 규칙이 이긴다) */
+:where(.adm) section{padding:0}
+:where(.adm) nav{position:static;z-index:auto;border:0;background:none;backdrop-filter:none;height:auto}
+:where(.adm) details{border:0;border-radius:0;background:none;overflow:visible;box-shadow:none}
+:where(.adm) details p{padding:0;max-width:none;color:inherit;font-size:inherit;line-height:inherit}
+:where(.adm) summary{padding:0;font-size:inherit;font-weight:inherit;display:list-item}
+:where(.adm) summary::after{content:none}
+.adm h1,.adm h2,.adm h3{max-width:none;color:var(--ink);text-wrap:wrap}
+.adm h1{font-size:24px;font-weight:900;letter-spacing:-.03em;margin:0}
+.adm h2{font-size:21px;font-weight:800;letter-spacing:-.025em;margin:32px 0 8px;line-height:1.35}
+.adm h3{font-size:17px;font-weight:800;margin:22px 0 8px}
+.adm .sub{font-size:14px;color:var(--ink2);margin:4px 0 0}
+.adm a{color:var(--cool)}
+.adm input,.adm select,.adm textarea{font:inherit;font-size:16px;background:var(--sunk);color:var(--ink);
+  border:1px solid var(--line);border-radius:9px;padding:9px 11px;max-width:100%}
+.adm input:focus,.adm select:focus,.adm textarea:focus{outline:none;border-color:var(--acc)}
+.adm :focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+
+/* 머리 — 제목 + 관리 화면 이동 */
+.adm-top{display:flex;justify-content:space-between;align-items:center;gap:8px 16px;flex-wrap:wrap;margin-bottom:14px}
+.adm-nav{display:flex;gap:2px 14px;flex-wrap:wrap;font-size:14px}
+.adm-nav a{color:var(--ink2);text-decoration:none;padding:4px 0;border-bottom:2px solid transparent}
+.adm-nav a:hover{color:var(--ink)}
+.adm-nav a[aria-current="page"]{color:var(--ink);border-bottom-color:var(--acc);font-weight:700}
+
+/* 지금 할 일 — 모든 화면 맨 위 */
+.adm-todo{background:#1d1a14;border:1px solid #5c4a2a;border-radius:14px;padding:14px 16px}
+.adm .adm-todo h2{margin:0 0 10px;color:#F0CE87}
+.adm-todo .n{font-size:16px;font-weight:700;color:#F0CE87}
+.adm-todo .none{margin:0;font-size:16px}
+.adm-todo ol,.adm-todo ul{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+
+/* 카드 — 머리 한 줄 · 한 줄 · 행동 */
+.adm-card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;min-width:0}
+.adm-card .h{font-weight:800;font-size:16px}
+.adm-card .d{font-size:14px;color:var(--ink2);margin-top:2px;overflow-wrap:anywhere}
+.adm-card .a{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
+
+/* 버튼 */
+.adm-btn{display:inline-block;font:inherit;font-size:14px;font-weight:700;color:#1a1204;background:var(--acc);
+  border:0;border-radius:8px;padding:8px 13px;cursor:pointer;white-space:nowrap;text-decoration:none;line-height:1.4}
+.adm .adm-btn{color:#1a1204}
+.adm-btn.alt{background:#2a333f;color:var(--ink)}
+.adm .adm-btn.alt{color:var(--ink)}
+.adm-btn.ok{background:var(--cool)}
+.adm-btn.bad{background:#2a333f;color:var(--crit)}
+.adm-btn:disabled{opacity:.45;cursor:not-allowed}
+
+/* 자세히 — 결정에 안 쓰이는 것은 여기 하나에 */
+.adm-more{margin-top:28px;border:1px solid var(--line);border-radius:14px;background:var(--sunk)}
+.adm .adm-more>summary{cursor:pointer;padding:14px 18px;font-size:16px;font-weight:800;color:var(--ink2);display:list-item}
+.adm-more>.in{padding:0 16px 18px}
+
+/* 표 — 가로로 넘치면 이 안에서만 */
+.adm-tw{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--card)}
+.adm-tw table{border-collapse:collapse;width:100%;font-size:14px;min-width:460px}
+.adm-tw th,.adm-tw td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--soft);vertical-align:top}
+.adm-tw thead th{background:var(--sunk);color:var(--ink2);font-weight:600}
+.adm-tw tbody tr:last-child td{border-bottom:0}
+
+.adm-empty{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px;color:var(--ink2)}

@@ -1,80 +1,70 @@
 import { isAdmin } from "@/lib/admin-auth";
 import { redirect } from "next/navigation";
-import Link from "next/link";
+
 import { listDrafts } from "@/lib/drafts";
 import { saveDraft, publishDraft, discardDraft, revertDraft, requeueIllustrate } from "@/lib/draft-actions";
+import AdminNav from "../AdminNav";
 
 const HERE = "/admin/drafts";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 /**
- * 초안 검토 — 읽고, 고치고, 발행한다.
+ * 초안 검토 — 읽고, 사실 확인하고, 발행한다.
  *
  * 에이전트가 쓰는 건 초안까지다. 발행 전 사실 확인은 사람만 한다(CLAUDE.md).
- * 그래서 확인할 것을 맨 위에 모아 둔다: 모델이 스스로 「지어냈을 수 있다」고 적은 문장, AI 티 검사, 짜임새.
+ * 맨 위 카드에는 결정에 쓰는 것만: 제목 · 사실 확인할 문장 · 도해 썸네일 · 발행/버리기.
+ * AI 티·짜임새는 걸렸을 때만 한 줄, 통과면 자세히. 본문·고치기·되돌리기·도해 다시 요청도 자세히.
  */
 
 const CSS = `
-.dr{--bg:#0C1016;--card:#141A22;--sunk:#10151C;--line:#232C38;--soft:#1A222C;
-  --ink:#E8EDF3;--ink2:#A7B2C0;--mut:#7B8696;--faint:#5A6474;
-  --acc:#F5A623;--cool:#3DD6C4;--ok:#3DD6A0;--warn:#E0A93C;--crit:#D2705F;
-  background:var(--bg);color:var(--ink);min-height:100vh;
-  font-family:"Noto Sans KR",system-ui,sans-serif;padding:38px 0 90px;word-break:keep-all}
-.dr .w{max-width:880px;margin:0 auto;padding:0 16px}
-.dr h1{font-size:25px;font-weight:900;letter-spacing:-.035em;margin:0 0 6px}
-.dr .eb{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--acc);margin-bottom:8px}
-.dr .lead{font-size:14px;color:var(--mut);margin:0 0 20px}
-.dr a{color:var(--cool)}
-.dr-nav{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 24px}
-.dr-nav a{font-size:13px;padding:6px 11px;border:1px solid var(--line);border-radius:8px;text-decoration:none;color:var(--ink2)}
-.dr-nav a.on{border-color:var(--acc);color:var(--acc)}
-.dr-empty{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:26px;color:var(--mut)}
-article.dr-card{background:var(--card);border:1px solid var(--line);border-radius:16px;margin:0 0 28px;overflow:hidden}
-.dr-head{padding:20px 22px 14px;border-bottom:1px solid var(--line)}
-.dr-meta{font-size:12px;color:var(--mut);font-family:"IBM Plex Mono",monospace;display:flex;gap:12px;flex-wrap:wrap}
-.dr-head h2{font-size:20px;font-weight:800;letter-spacing:-.03em;margin:8px 0 6px}
-.dr-sum{font-size:14px;color:var(--ink2);margin:0}
-.dr-check{padding:14px 22px;background:var(--sunk);border-bottom:1px solid var(--line)}
-.dr-check h3{font-size:13px;font-weight:800;margin:10px 0 6px;color:var(--warn)}
-.dr-check h3:first-child{margin-top:0}
-.dr-check ul{margin:0;padding-left:18px;font-size:13.5px;color:var(--ink2);line-height:1.7}
-.dr-check .okk{color:var(--ok);font-size:13px;margin:0}
-.dr-body{padding:6px 22px 18px;font-size:15px;line-height:1.85;color:var(--ink)}
-.dr-body h3{font-size:17px;margin:22px 0 6px}
+.dr-list{display:grid;gap:14px}
+.dr-card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.dr-card h3{margin:0;font-size:18px;line-height:1.45}
+.dr-meta{font-size:14px;color:var(--ink2);margin-top:2px}
+.dr-sec{margin-top:12px}
+.dr-sec b.t{display:block;font-size:14px;color:var(--warn);margin-bottom:4px}
+.dr-sec ul{margin:0;padding-left:18px;font-size:16px;line-height:1.6}
+.dr-sec p{margin:0;font-size:14px;color:var(--ink2)}
+.dr-sec p.warn{color:var(--warn)}
+.dr-thumbs{display:flex;gap:8px;flex-wrap:wrap}
+.dr-thumbs img{width:96px;height:72px;object-fit:contain;background:#fff;border-radius:8px;border:1px solid var(--line)}
+.dr-flag>summary{cursor:pointer;color:var(--warn);font-size:14px;font-weight:700;margin-top:10px}
+.dr-flag ul{margin:6px 0 0;padding-left:18px;font-size:14px;color:var(--ink2)}
+.dr-act{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:14px}
+.dr-act form{margin:0;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.dr-act small{font-size:14px;color:var(--ink2)}
+.dr-conf{display:flex;align-items:center;gap:6px;font-size:14px;color:var(--ink2)}
+.dr-more{margin-top:12px;border-top:1px solid var(--line);padding-top:8px}
+.dr-more>summary{cursor:pointer;font-size:14px;color:var(--ink2);font-weight:700}
+.dr-body{font-size:16px;line-height:1.8;color:var(--ink)}
+.dr-body h3{font-size:17px;margin:20px 0 6px}
 .dr-body p{margin:10px 0}
-.dr-body li{margin:4px 0}
-.dr-body .img{display:inline-block;font-size:12px;color:var(--mut);border:1px dashed var(--line);padding:4px 8px;border-radius:6px}
+.dr-body .img{display:inline-block;font-size:14px;color:var(--ink2);border:1px dashed var(--line);padding:4px 8px;border-radius:6px}
 .dr-body .imgp{display:block;margin:12px 0}
 .dr-body .imgp img{display:block;width:100%;height:auto;border-radius:10px;border:1px solid var(--line);margin-bottom:6px}
-details.dr-edit{border-top:1px solid var(--line);padding:12px 22px}
-details.dr-edit summary{cursor:pointer;font-size:13.5px;color:var(--ink2)}
-.dr-edit label{display:block;font-size:12px;color:var(--mut);margin:12px 0 5px}
-.dr-edit input,.dr-edit textarea{width:100%;box-sizing:border-box;background:var(--sunk);color:var(--ink);border:1px solid var(--line);border-radius:9px;padding:10px 12px;font:inherit;font-size:14px}
-.dr-edit textarea{min-height:420px;line-height:1.7;font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:13px}
-.dr-act{display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:16px 22px;border-top:1px solid var(--line)}
-.dr button{font:inherit;font-size:14px;font-weight:700;border-radius:10px;padding:10px 16px;cursor:pointer;border:1px solid var(--line);background:var(--soft);color:var(--ink)}
-.dr button.pub{background:var(--acc);border-color:var(--acc);color:#1a1204}
-.dr button.del{color:var(--crit)}
-.dr button:disabled{opacity:.45;cursor:not-allowed}
-.dr-act small{color:var(--mut);font-size:12px}
-.dr-conf{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--mut)}
-@media (max-width:600px){.dr-head,.dr-check,.dr-body,.dr-act,details.dr-edit{padding-left:16px;padding-right:16px}}
+.dr-edit label{display:block;font-size:14px;color:var(--ink2);margin:12px 0 5px}
+.dr-edit input,.dr-edit textarea{width:100%}
+.dr-edit textarea{min-height:420px;font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:14px}
 `;
 
 // 모델이 쓴 글이라 따옴표까지 막는다 — 링크 주소가 속성 밖으로 새지 않게
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 
 /**
- * 도해 미리보기. 원장이 그림 속 글자·숫자까지 사실 확인한다(Richard 9/22).
+ * 도해 주소. 원장이 그림 속 글자·숫자까지 사실 확인한다(Richard 9/22).
  * 에이전트 도해(/blog/img/<slug>/<name>.svg)는 발행 전에는 사이트가 안 내보내니 DB 의 SVG 를 data: 로 넣는다.
  * <img> 로 그리므로 SVG 안 스크립트는 돌지 않는다. 손으로 넣은 public 도해는 사이트 주소로 연다
  */
-function 미리보기(alt: string, src: string, slug: string, domain: string, images: Record<string, string>) {
+function 그림주소(src: string, slug: string, domain: string, images: Record<string, string>): string | null {
   const 에이전트 = /^\/blog\/img\/([^/]+)\/([a-z0-9-]+)\.svg$/.exec(src);
-  const 주소 = 에이전트
+  return 에이전트
     ? (에이전트[1] === slug && images[에이전트[2]] ? `data:image/svg+xml;base64,${Buffer.from(images[에이전트[2]]).toString("base64")}` : null)
     : /^\/blog\/[a-z0-9가-힣-]+\/[\w.-]+\.(?:svg|png)$/.test(src) ? `https://${domain}${src}` : null;
+}
+
+function 미리보기(alt: string, src: string, slug: string, domain: string, images: Record<string, string>) {
+  const 주소 = 그림주소(src, slug, domain, images);
   const 글 = `<span class="img">도해: ${alt}${주소 ? "" : " (그림을 찾을 수 없음)"}</span>`;
   return 주소 ? `<span class="imgp"><img src="${esc(주소)}" alt="${alt}" loading="lazy">${글}</span>` : 글;
 }
@@ -111,100 +101,128 @@ export default async function DraftsPage({ searchParams }: { searchParams: Promi
   const drafts = await listDrafts(Number.isInteger(clientId) ? clientId : undefined);
 
   return (
-    <main className="dr">
+    <main className="adm">
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
       <div className="w">
-        <div className="eb">CONTENT REVIEW</div>
-        <h1>검토할 초안 {drafts.length}편</h1>
-        <p className="lead">에이전트가 쓴 글입니다. 사실을 확인하고 발행하면 한 시간 안에 유통 담당이 검색엔진에 알립니다. 발행 전에는 사이트에 안 보입니다.</p>
-        <nav className="dr-nav">
-          <Link href="/admin/ops">← 운영 현황</Link>
-          <Link href={HERE} className={!c ? "on" : ""}>전체</Link>
-        </nav>
+        <div className="adm-top">
+          <h1>초안 검토</h1>
+          <AdminNav here="/admin/drafts" />
+        </div>
 
-        {drafts.length === 0 && <div className="dr-empty">검토할 초안이 없습니다.</div>}
+        <section className="adm-todo" aria-labelledby="dr-h">
+          <h2 id="dr-h">검토할 초안{drafts.length > 0 && <span className="n"> {drafts.length}편</span>}</h2>
+          {drafts.length === 0 ? <p className="none">없음 — 새 초안이 오면 여기 뜹니다</p> : (
+            <p className="sub" style={{ margin: 0 }}>사실을 확인하고 발행하면 한 시간 안에 유통 담당이 검색엔진에 알립니다. 발행 전에는 사이트에 안 보입니다.</p>
+          )}
+        </section>
 
-        {drafts.map((d) => {
-          const n = d.notes ?? {};
-          const 확인 = n.확인필요 ?? [];
-          const 티 = n.AI티 ?? [];
-          const 흠 = n.짜임새 ?? [];
-          // 도해는 무조건(원장 2026-09-22) — 없으면 발행 버튼을 막는다. 서버(publishDraft)도 한 번 더 막는다
-          const 도해수 = (d.body.match(/!\[[^\]]*\]\([^)]+\)/g) ?? []).length;
-          const 삽화 = n.삽화;
-          return (
-            <article key={d.slug} className="dr-card" id={d.slug}>
-              <div className="dr-head">
-                <div className="dr-meta">
-                  <span>{d.clientName}</span><span>{d.category}</span><span>쓴 때 {kst(d.createdAt)}</span>
-                  <span>{d.body.length.toLocaleString("ko-KR")}자</span>{n.모델 && <span>{n.모델}</span>}
+        <div className="dr-list" style={{ marginTop: 14 }}>
+          {drafts.map((d) => {
+            const n = d.notes ?? {};
+            const 확인 = n.확인필요 ?? [];
+            const 티 = n.AI티 ?? [];
+            const 흠 = n.짜임새 ?? [];
+            // 도해는 무조건(원장 2026-09-22) — 없으면 발행 버튼을 막는다. 서버(publishDraft)도 한 번 더 막는다
+            const 그림들 = [...d.body.matchAll(/!\[([^\]]*)\]\(([^)]+)\)/g)].map((m) => ({ alt: m[1], url: 그림주소(m[2], d.slug, d.domain, d.images) }));
+            const 도해수 = 그림들.length;
+            const 삽화 = n.삽화;
+            const 검사함 = d.task?.evidence?.includes("AI 티") ?? false;
+            return (
+              <article key={d.slug} className="dr-card" id={d.slug}>
+                <h3>{d.title}</h3>
+                <div className="dr-meta">{d.clientName} · {d.body.length.toLocaleString("ko-KR")}자 · 쓴 때 {kst(d.createdAt)}</div>
+
+                <div className="dr-sec">
+                  <b className="t">사실 확인할 문장{확인.length ? ` ${확인.length}개` : ""}</b>
+                  {확인.length ? <ul>{확인.map((s, i) => <li key={i}>{s}</li>)}</ul>
+                    : <p>{Object.keys(n).length ? "모델이 적은 문장은 없습니다. 그래도 숫자·경험담은 읽어 보세요." : "메모 없이 저장된 초안입니다. 본문 전체를 읽어 확인하세요."}</p>}
                 </div>
-                <h2>{d.title}</h2>
-                <p className="dr-sum">{d.summary}</p>
-                {n.질문 && <p className="dr-sum" style={{ marginTop: 8 }}>겨냥한 AI 질문: 「{n.질문}」{n.경쟁출처?.length ? ` · 대신 인용된 곳: ${n.경쟁출처.join(", ")}` : ""}</p>}
-              </div>
 
-              <div className="dr-check">
-                <h3>사실 확인할 문장 {확인.length ? `${확인.length}개` : ""}</h3>
-                {확인.length ? <ul>{확인.map((s, i) => <li key={i}>{s}</li>)}</ul>
-                  : <p className="okk">{Object.keys(n).length ? "모델이 적은 문장은 없습니다. 그래도 숫자·경험담은 읽어 보세요." : "이 초안은 메모 없이 저장됐습니다. 본문 전체를 읽어 확인하세요."}</p>}
-                <h3>AI 티 검사</h3>
-                {티.length ? <ul>{티.map((t, i) => <li key={i}>{t.why} — {t.sample.join(", ")}</li>)}</ul>
-                  : <p className="okk">{d.task?.evidence?.includes("AI 티") ? "걸린 표현 없음" : "콘텐츠 담당이 아직 검사하지 않았습니다 (매시 실행)"}</p>}
-                {흠.length > 0 && <><h3>짜임새</h3><ul>{흠.map((s, i) => <li key={i}>{s}</li>)}</ul></>}
-                <h3>도해</h3>
-                {도해수 > 0
-                  ? <p className="okk">도해 {도해수}장 — 본문에 「도해: …」로 보입니다. 그림 속 글자와 숫자도 사실 확인해 주세요.</p>
-                  : <>
-                      <p style={{ margin: 0, fontSize: 13.5, color: "var(--warn)" }}>
-                        {d.body.length < 600
-                          ? "도해가 없습니다 — 본문이 600자보다 짧아 삽화 담당이 그리지 않습니다. 본문을 채우거나 세션에서 도해를 넣어야 발행할 수 있습니다."
-                          : "도해가 아직 없습니다 — 삽화 담당이 그리는 중입니다(매시 1편, 하루 6편까지). 도해가 붙어야 발행할 수 있습니다."}
-                        {삽화?.시도 ? ` 지금까지 ${삽화.시도}번 그렸고 검사에서 다 버려졌습니다.` : ""}
-                      </p>
-                      {(삽화?.버린것?.length ?? 0) > 0 && <ul>{삽화!.버린것!.slice(0, 4).map((s, i) => <li key={i}>{s}</li>)}</ul>}
-                      <form action={requeueIllustrate} style={{ marginTop: 8 }}>
-                        <input type="hidden" name="slug" value={d.slug} /><button type="submit">도해 다시 그리기</button>
-                      </form>
-                    </>}
-                {n.다듬음 && <p className="okk" style={{ marginTop: 8 }}>{n.다듬음}</p>}
-                {n.원문 && (
-                  <details style={{ marginTop: 8 }}>
-                    <summary style={{ cursor: "pointer", fontSize: 13, color: "var(--ink2)" }}>다듬기 전 원문 보기</summary>
-                    <div className="dr-body" style={{ padding: "6px 0" }} dangerouslySetInnerHTML={{ __html: render(n.원문) }} />
-                    <form action={revertDraft}><input type="hidden" name="slug" value={d.slug} /><button type="submit">원문으로 되돌리기</button></form>
+                <div className="dr-sec">
+                  <b className="t">도해{도해수 ? ` ${도해수}장 — 그림 속 글자·숫자도 확인` : ""}</b>
+                  {도해수 > 0 ? (
+                    <div className="dr-thumbs">
+                      {그림들.map((g, i) => g.url
+                        // eslint-disable-next-line @next/next/no-img-element
+                        ? <img key={i} src={g.url} alt={g.alt} loading="lazy" />
+                        : <p key={i} className="warn">「{g.alt}」 그림을 찾을 수 없음</p>)}
+                    </div>
+                  ) : (
+                    <p className="warn">
+                      {d.body.length < 600
+                        ? "없음 — 본문이 600자보다 짧아 삽화 담당이 그리지 않습니다. 도해가 붙어야 발행할 수 있습니다."
+                        : "아직 없음 — 삽화 담당이 그리는 중입니다(매시 1편, 하루 6편까지). 도해가 붙어야 발행할 수 있습니다."}
+                      {삽화?.시도 ? ` 지금까지 ${삽화.시도}번 그렸고 검사에서 다 버려졌습니다.` : ""}
+                    </p>
+                  )}
+                </div>
+
+                {티.length > 0 && (
+                  <details className="dr-flag">
+                    <summary>AI 티 {티.length}곳 — 보기</summary>
+                    <ul>{티.map((t, i) => <li key={i}>{t.why} — {t.sample.join(", ")}</li>)}</ul>
                   </details>
                 )}
-              </div>
+                {흠.length > 0 && (
+                  <details className="dr-flag">
+                    <summary>짜임새 {흠.length}곳 — 보기</summary>
+                    <ul>{흠.map((s, i) => <li key={i}>{s}</li>)}</ul>
+                  </details>
+                )}
 
-              <div className="dr-body" dangerouslySetInnerHTML={{ __html: render(d.body, { slug: d.slug, domain: d.domain, images: d.images }) }} />
+                <div className="dr-act">
+                  <form action={publishDraft}>
+                    <input type="hidden" name="slug" value={d.slug} />
+                    <button type="submit" className="adm-btn" disabled={도해수 === 0}>사실 확인했음 · 발행</button>
+                  </form>
+                  <form action={discardDraft}>
+                    <input type="hidden" name="slug" value={d.slug} />
+                    <label className="dr-conf"><input type="checkbox" name="confirm" value="yes" required /> 버리기 확인</label>
+                    <button type="submit" className="adm-btn bad">초안 버리기</button>
+                  </form>
+                </div>
 
-              <details className="dr-edit">
-                <summary>직접 고치기</summary>
-                <form action={saveDraft}>
-                  <input type="hidden" name="slug" value={d.slug} />
-                  <label>제목</label><input name="title" defaultValue={d.title} />
-                  <label>요약</label><input name="summary" defaultValue={d.summary} />
-                  <label>본문 (마크다운)</label><textarea name="body" defaultValue={d.body} />
-                  <div className="dr-act" style={{ padding: "14px 0 0", border: 0 }}><button type="submit">고친 내용 저장</button></div>
-                </form>
-              </details>
-
-              <div className="dr-act">
-                <form action={publishDraft}>
-                  <input type="hidden" name="slug" value={d.slug} />
-                  <button type="submit" className="pub" disabled={도해수 === 0}>사실 확인했음 · 발행</button>
-                </form>
-                <small>{도해수 === 0 ? "도해가 붙으면 발행할 수 있습니다 · " : ""}발행 주소: {d.domain}/blog/{d.slug}</small>
-                <form action={discardDraft} style={{ marginLeft: "auto" }}>
-                  <input type="hidden" name="slug" value={d.slug} />
-                  <label className="dr-conf"><input type="checkbox" name="confirm" value="yes" required /> 버리기 확인</label>
-                  <button type="submit" className="del">초안 버리기</button>
-                </form>
-              </div>
-            </article>
-          );
-        })}
+                <details className="dr-more">
+                  <summary>자세히 — 본문 · 고치기 · 검사 결과</summary>
+                  <div className="dr-sec">
+                    <p>발행 주소: {d.domain}/blog/{d.slug}{d.category ? ` · ${d.category}` : ""}</p>
+                    {d.summary && <p>요약: {d.summary}</p>}
+                    {n.질문 && <p>겨냥한 AI 질문: 「{n.질문}」{n.경쟁출처?.length ? ` · 대신 인용된 곳: ${n.경쟁출처.join(", ")}` : ""}</p>}
+                    {티.length === 0 && <p>AI 티 검사: {검사함 ? "걸린 표현 없음" : "콘텐츠 담당이 아직 검사하지 않았습니다 (매시 실행)"}</p>}
+                    {흠.length === 0 && <p>짜임새: 걸린 것 없음</p>}
+                    {n.다듬음 && <p>{n.다듬음}</p>}
+                  </div>
+                  {도해수 === 0 && (
+                    <div className="dr-sec">
+                      {(삽화?.버린것?.length ?? 0) > 0 && <ul>{삽화!.버린것!.slice(0, 4).map((s, i) => <li key={i}>{s}</li>)}</ul>}
+                      <form action={requeueIllustrate} style={{ marginTop: 8 }}>
+                        <input type="hidden" name="slug" value={d.slug} /><button type="submit" className="adm-btn alt">도해 다시 그리기</button>
+                      </form>
+                    </div>
+                  )}
+                  <div className="dr-body" dangerouslySetInnerHTML={{ __html: render(d.body, { slug: d.slug, domain: d.domain, images: d.images }) }} />
+                  {n.원문 && (
+                    <details className="dr-more">
+                      <summary>다듬기 전 원문 보기</summary>
+                      <div className="dr-body" dangerouslySetInnerHTML={{ __html: render(n.원문) }} />
+                      <form action={revertDraft}><input type="hidden" name="slug" value={d.slug} /><button type="submit" className="adm-btn alt">원문으로 되돌리기</button></form>
+                    </details>
+                  )}
+                  <details className="dr-more dr-edit">
+                    <summary>직접 고치기</summary>
+                    <form action={saveDraft}>
+                      <input type="hidden" name="slug" value={d.slug} />
+                      <label>제목</label><input name="title" defaultValue={d.title} />
+                      <label>요약</label><input name="summary" defaultValue={d.summary} />
+                      <label>본문 (마크다운)</label><textarea name="body" defaultValue={d.body} />
+                      <div className="dr-act"><button type="submit" className="adm-btn alt">고친 내용 저장</button></div>
+                    </form>
+                  </details>
+                </details>
+              </article>
+            );
+          })}
+        </div>
       </div>
     </main>
   );

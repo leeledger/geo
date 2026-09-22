@@ -17,7 +17,7 @@ export default async function Login({
   if (await isAdmin()) redirect(dest);
 
   return (
-    <div className="lgwrap">
+    <div className="adm lgwrap">
       <div className="lgcard">
         <div className="lglab">Cited 사이티드</div>
         <h1>관리자</h1>
@@ -27,22 +27,15 @@ export default async function Login({
 
       <style>{`
         .lgwrap{min-height:100dvh;display:grid;place-items:center;padding:28px}
-        .lgcard{width:100%;max-width:360px;background:var(--card,#14161a);
-          border:1px solid var(--line,#262a31);border-radius:16px;padding:30px 28px 26px}
-        .lglab{font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;
-          color:var(--mut,#8b94a3);margin-bottom:10px}
-        .lgcard h1{font-size:25px;margin:0 0 7px;word-break:keep-all}
-        .lgsub{font-size:13.5px;color:var(--mut,#8b94a3);margin:0 0 22px;word-break:keep-all}
+        .lgcard{width:100%;max-width:360px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:30px 28px 26px}
+        .lglab{font-size:14px;color:var(--ink2);margin-bottom:10px}
+        .lgcard h1{margin:0 0 7px}
+        .lgsub{font-size:14px;color:var(--ink2);margin:0 0 22px}
         .lgform{display:flex;flex-direction:column;gap:14px}
-        .lgform label{display:flex;flex-direction:column;gap:6px;font-size:12.5px;
-          color:var(--mut,#8b94a3)}
-        .lgform input{background:var(--bg,#0e1013);border:1px solid var(--line,#262a31);
-          border-radius:9px;padding:11px 13px;color:var(--fg,#e8ecf1);font-size:15px;width:100%}
-        .lgform input:focus{outline:none;border-color:var(--cool,#3DD6C4)}
-        .lgbtn{margin-top:4px;background:var(--cool,#3DD6C4);color:#08121a;border:0;
-          border-radius:9px;padding:12px;font-size:15px;font-weight:700;cursor:pointer}
-        .lgbtn:disabled{opacity:.55;cursor:default}
-        .lgerr{margin:12px 0 0;font-size:13px;color:#D2705F;word-break:keep-all}
+        .lgform label{display:flex;flex-direction:column;gap:6px;font-size:14px;color:var(--ink2)}
+        .lgform input{width:100%}
+        .lgbtn{margin-top:4px;padding:12px;font-size:16px}
+        .lgerr{margin:12px 0 0;font-size:14px;color:var(--crit)}
       `}</style>
     </div>
   );
