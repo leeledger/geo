@@ -57,6 +57,7 @@ const CSS = `
 .gr-spark svg{display:block;width:100%;height:32px;overflow:visible}
 .gr-dot{position:absolute;width:8px;height:8px;border-radius:50%;background:var(--acc);
   box-shadow:0 0 0 2px var(--card);transform:translate(-50%,-50%)}
+.gr-dot.live{background:var(--card);box-shadow:none;border:2px solid var(--faint);box-sizing:border-box}
 .gr-nospark{font-size:11.5px;color:var(--faint);height:32px;display:flex;align-items:center}
 .gr-bars{position:relative;height:32px;display:flex;align-items:flex-end;gap:2px;border-bottom:1px solid var(--line)}
 .gr-bars i{display:block;flex:0 1 24px;max-width:24px;background:var(--faint);border-radius:4px 4px 0 0}
@@ -106,7 +107,7 @@ function verdict(d: Delta | null): Verdict {
   if (d.dir === "flat") return "same";
   return d.dir === d.good ? "better" : "worse";
 }
-const VERDICT_WORD: Record<Verdict, string> = { better: "좋아짐", worse: "나빠짐", same: "그대로", none: "", neutral: "중립" };
+const VERDICT_WORD: Record<Verdict, string> = { better: "좋아짐", worse: "나빠짐", same: "", none: "", neutral: "" };
 
 /** 변화 줄 — 기호 + 절대 차 + 이전 값. 없으면 없다고 적는다 */
 function Change({ d, unit, prevLabel, noneText = "비교할 이전 값 없음", what = "", text }: {
@@ -118,28 +119,36 @@ function Change({ d, unit, prevLabel, noneText = "비교할 이전 값 없음", 
   const v = verdict(d);
   if (v === "none") return <div className="gr-ch mut">{noneText}</div>;
   const diff = (d.now ?? 0) - (d.prev ?? 0);   // none 이면 위에서 끝났다 — 여기 오면 둘 다 있다
-  const sym = v === "neutral" ? "–" : d.dir === "up" ? "▲" : d.dir === "down" ? "▼" : "–";
   const cls = v === "better" ? "ok" : v === "worse" ? "crit" : "mut";
   const body = d.dir === "flat" ? "그대로" : `${what}${signed(diff)}${unit}`;
+  const line = text ?? `${body} · ${prevLabel} ${n(d.prev ?? 0)}${unit}`;
+  // 중립은 기호를 안 붙인다 — 방향은 부호가 말한다. 대시와 마이너스가 겹치면 「그대로」인지 「줄었음」인지 안 읽힌다
+  if (v === "neutral") return <div className="gr-ch mut">{line} · 중립</div>;
+  const sym = d.dir === "up" ? "▲" : d.dir === "down" ? "▼" : "–";
   return (
     <div className={`gr-ch ${cls}`}>
-      {sym} {text ?? `${body} · ${prevLabel} ${n(d.prev ?? 0)}${unit}`}
-      <em>{VERDICT_WORD[v]}</em>
+      {sym} {line}
+      {v !== "same" && <em>{VERDICT_WORD[v]}</em>}
     </div>
   );
 }
 
-/** 추세선 — 선은 --faint, 마지막 점만 --acc. null 은 끊는다(0 으로 메우지 않는다) */
-function Spark({ values, days, unit }: { values: (number | null)[]; days: string[]; unit: string }) {
-  const got = values.map((v, i) => ({ v, i })).filter((p): p is { v: number; i: number } => p.v !== null);
+/**
+ * 추세선 — 선은 --faint, 마지막 완전한 날 점만 --acc. null 은 끊는다(0 으로 메우지 않는다).
+ * live = 마지막 값이 오늘(진행 중)이다. 선에서 빼고 흐린 속 빈 점으로만 둔다 — 비교에 안 쓰는 값이다.
+ */
+function Spark({ values, days, unit, live = false }: { values: (number | null)[]; days: string[]; unit: string; live?: boolean }) {
+  const today = live ? values[values.length - 1] : null;
+  const line = live ? values.slice(0, -1) : values;
+  const got = line.map((v, i) => ({ v, i })).filter((p): p is { v: number; i: number } => p.v !== null);
   if (got.length === 0) return <div className="gr-nospark">기록 없음</div>;
   if (got.length < 2) return <div className="gr-nospark">추세를 그리기엔 기록이 1회</div>;
-  const max = Math.max(1, ...got.map((p) => p.v));
+  const max = Math.max(1, ...got.map((p) => p.v), today ?? 0);
   const X = (i: number) => (values.length === 1 ? 50 : (i / (values.length - 1)) * 100);
   const Y = (v: number) => 28 - (v / max) * 24;
   let d = "";
   let pen = false;
-  values.forEach((v, i) => {
+  line.forEach((v, i) => {
     if (v === null) { pen = false; return; }
     d += `${pen ? "L" : "M"}${X(i).toFixed(2)},${Y(v).toFixed(2)}`;
     pen = true;
@@ -147,12 +156,17 @@ function Spark({ values, days, unit }: { values: (number | null)[]; days: string
   const a = got[0], z = got[got.length - 1];
   return (
     <div className="gr-spark" role="img"
-         aria-label={`${md(days[a.i])} ${n(a.v)}${unit} → ${md(days[z.i])} ${n(z.v)}${unit}`}>
+         aria-label={`${md(days[a.i])} ${n(a.v)}${unit} → ${md(days[z.i])} ${n(z.v)}${unit}`
+           + (live && today !== null ? ` · 오늘 ${md(days[days.length - 1])} ${n(today)}${unit}(진행 중, 비교에 안 씀)` : "")}>
       <svg viewBox="0 0 100 32" preserveAspectRatio="none" aria-hidden="true">
         <path d={d} fill="none" stroke="var(--faint)" strokeWidth={2} vectorEffect="non-scaling-stroke"
               strokeLinejoin="round" strokeLinecap="round" />
       </svg>
       <span className="gr-dot" style={{ left: `${X(z.i)}%`, top: Y(z.v) }} />
+      {live && today !== null && (
+        <span className="gr-dot live" style={{ left: `${X(values.length - 1)}%`, top: Y(today) }}
+              title={`오늘 ${n(today)}${unit} · 진행 중`} />
+      )}
     </div>
   );
 }
@@ -182,7 +196,8 @@ export default function Growth({ g, err, client }: { g: G | null; err?: string; 
     );
   }
   const T = g.today;
-  const weekAgo = addDays(T, -7);
+  const Yd = addDays(T, -1);          // 비교 창의 끝 = 어제
+  const weekAgo = addDays(Yd, -7);
 
   /* AI — 가장 최근 쌍 */
   const aiTop = g.ai?.[0] ?? null;
@@ -197,8 +212,9 @@ export default function Growth({ g, err, client }: { g: G | null; err?: string; 
   const low = covNow.length && cov && cov.total > 0
     ? covNow.reduce((m, x) => (x.now < m.now ? x : m))
     : null;
-  const lowPrev = low ? low.s.points.find((p) => p.day === weekAgo)?.pages ?? null : null;
-  const covDelta: Delta | null = cov === null ? null : low ? delta(low.now, lowPrev, "up") : delta(null, null, "up");
+  // 값은 지금(오늘까지 누적), 비교는 어제 대 그 7일 전 — 오늘은 진행 중이라 비교에 안 넣는다
+  const lowAt = (day: string) => (low ? low.s.points.find((p) => p.day === day)?.pages ?? null : null);
+  const covDelta: Delta | null = cov === null ? null : low ? delta(lowAt(Yd), lowAt(weekAgo), "up") : delta(null, null, "up");
   const lowSpark = low ? g.days.map((d) => low.s.points.find((p) => p.day === d)?.pages ?? null) : [];
 
   /* 경쟁 검색어 */
@@ -208,8 +224,9 @@ export default function Growth({ g, err, client }: { g: G | null; err?: string; 
 
   /* 크롤러 — 중립 */
   const cr = g.crawl;
-  const crawlDelta: Delta | null = cr && cr.search.now !== null && cr.ai.now !== null
-    ? delta(cr.search.now + cr.ai.now, (cr.search.prev ?? 0) + (cr.ai.prev ?? 0), "neutral") : null;
+  const crawlSum = (k: "now" | "prev") => cr ? (cr.search[k] ?? 0) + (cr.ai[k] ?? 0) + (cr.other[k] ?? 0) : 0;
+  const crawlDelta: Delta | null = cr ? delta(crawlSum("now"), crawlSum("prev"), "neutral") : null;
+  const crawlOther = cr ? (cr.other.now ?? 0) + (cr.other.prev ?? 0) > 0 : false;
 
   /* 발행 */
   const ps = g.posts;
@@ -255,10 +272,13 @@ export default function Growth({ g, err, client }: { g: G | null; err?: string; 
     <div className="gr">
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
       <h2>성장 — 늘고 있나</h2>
-      <p className="sub">최근 7일을 그 전 7일과 비교합니다(문의·리드는 30일). 오늘 {T} KST</p>
+      <p className="sub">
+        어제까지 7일을 그 전 7일과 비교합니다(문의·리드는 30일). 오늘은 진행 중이라 비교에서 뺐습니다 — 추세선의 속 빈 점.
+        경쟁 검색어·AI 측정은 하루 한 번 재는 값이라 엔진이 다 돈 날이면 오늘 값을 씁니다. 오늘 {T} KST
+      </p>
 
       <div className="gr-verdict">
-        <b>최근 7일</b> —{" "}
+        <b>어제까지 7일</b> —{" "}
         {verdicts.map(([label, names], i) => (
           <span key={label}>
             {i > 0 && <span className="sep">·</span>}
@@ -311,8 +331,11 @@ export default function Growth({ g, err, client }: { g: G | null; err?: string; 
           {cov === null ? <NoVal /> : cov.total === 0 ? <NoVal text="쪽 목록 없음" /> : low && (
             <div className="gr-val">{low.s.label} {low.now}<small>/ {cov.total}쪽</small></div>
           )}
-          <Change d={covDelta} unit="쪽" prevLabel="7일 전" />
-          {low && <Spark values={lowSpark} days={g.days} unit="쪽" />}
+          <Change d={covDelta} unit="쪽" prevLabel=""
+                  text={covDelta && covDelta.dir !== "none" && covDelta.dir !== "flat"
+                    ? `${signed((covDelta.now ?? 0) - (covDelta.prev ?? 0))}쪽 · ${md(weekAgo)} ${covDelta.prev}쪽 → ${md(Yd)} ${covDelta.now}쪽`
+                    : covDelta?.dir === "flat" ? `그대로 · ${md(weekAgo)}·${md(Yd)} 모두 ${covDelta.now}쪽` : undefined} />
+          {low && <Spark values={lowSpark} days={g.days} unit="쪽" live />}
           {cov && cov.total > 0 && (
             <div className="gr-line">
               {covNow.map((x, i) => (
@@ -352,13 +375,14 @@ export default function Growth({ g, err, client }: { g: G | null; err?: string; 
         {/* 크롤러 방문 — 중립 */}
         <Tile name="크롤러 방문" tag="중립">
           {cr === null ? <NoVal /> : (
-            <div className="gr-val">{n((cr.search.now ?? 0) + (cr.ai.now ?? 0))}<small>회 · 최근 7일</small></div>
+            <div className="gr-val">{n(crawlSum("now"))}<small>회 · 어제까지 7일</small></div>
           )}
           <Change d={crawlDelta} unit="회" prevLabel="그 전 7일" />
-          {cr && <Spark values={cr.daily.map((x) => x.search + x.ai)} days={cr.daily.map((x) => x.day)} unit="회" />}
+          {cr && <Spark values={cr.daily.map((x) => x.search + x.ai + x.other)} days={cr.daily.map((x) => x.day)} unit="회" live />}
           {cr && (
             <div className="gr-line">
               검색 색인 {n(cr.search.now ?? 0)} · 그 전 {n(cr.search.prev ?? 0)} / AI {n(cr.ai.now ?? 0)} · 그 전 {n(cr.ai.prev ?? 0)}
+              {crawlOther && ` / 기타 ${n(cr.other.now ?? 0)} · 그 전 ${n(cr.other.prev ?? 0)}`}
             </div>
           )}
           <Mean>로봇이 다녀간 횟수. 한 번 다 읽고 나면 줄어든다</Mean>
@@ -368,7 +392,7 @@ export default function Growth({ g, err, client }: { g: G | null; err?: string; 
         {/* 학원 문의 */}
         <Tile name="학원 문의">
           {iq === null ? <NoVal /> : !iq.ever ? <NoVal text="기록 없음" /> : (
-            <div className="gr-val">{n(iq.last30.now ?? 0)}<small>건 · 30일</small></div>
+            <div className="gr-val">{n(iq.last30.now ?? 0)}<small>건 · 어제까지 30일</small></div>
           )}
           <Change d={inqDelta} unit="건" prevLabel="그 전 30일" />
           {iq && (iq.last30.now ?? 0) > 0 && (
@@ -391,7 +415,7 @@ export default function Growth({ g, err, client }: { g: G | null; err?: string; 
           <div className="gr-eb">② 꾸준한 발행</div>
           <Tile name="발행">
             {ps === null ? <NoVal /> : !postsEver ? <NoVal text="기록 없음" /> : (
-              <div className="gr-val">{ps.last7.now}<small>편 · 최근 7일</small></div>
+              <div className="gr-val">{ps.last7.now}<small>편 · 어제까지 7일</small></div>
             )}
             <Change d={postsDelta} unit="편" prevLabel="그 전 7일" />
             {ps && postsEver > 0 && (() => {
@@ -424,7 +448,7 @@ export default function Growth({ g, err, client }: { g: G | null; err?: string; 
           <div className="gr-eb">③ 첫 고객</div>
           <Tile name="사이티드 리드·진단" tag="사이티드 전체">
             {g.sales === null ? <NoVal /> : (
-              <div className="gr-val">{n(g.sales.leads30.now ?? 0)}<small>건 · 리드 30일</small></div>
+              <div className="gr-val">{n(g.sales.leads30.now ?? 0)}<small>건 · 리드 어제까지 30일</small></div>
             )}
             <Change d={g.sales?.leads30 ?? null} unit="건" prevLabel="그 전 30일" />
             {g.sales && (
@@ -486,7 +510,7 @@ export default function Growth({ g, err, client }: { g: G | null; err?: string; 
           <table>
             <thead>
               <tr>
-                <th>주</th><th>발행</th><th>크롤러 검색/AI</th><th>★커버리지 구/네/빙</th>
+                <th>주</th><th>발행</th><th>크롤러 검색/AI/기타</th><th>★커버리지 구/네/빙</th>
                 <th>경쟁 검색어</th><th>AI 측정 회차</th><th>문의</th>
               </tr>
             </thead>
@@ -501,7 +525,7 @@ export default function Growth({ g, err, client }: { g: G | null; err?: string; 
                   <tr key={w.week}>
                     <td>{weekLabel(w.week, w.partialDays)}</td>
                     <td className="n">{pw ? `${pw.n}편` : "확인 못함"}</td>
-                    <td className="n">{w.search ?? "?"} / {w.ai ?? "?"}</td>
+                    <td className="n">{w.search ?? "?"} / {w.ai ?? "?"} / {w.other ?? "?"}</td>
                     <td className="n">{c ? c.map((v) => v ?? "—").join(" / ") : "—"}</td>
                     <td className="n">{w.rival ? `${w.rival.won}/${w.rival.total} (${md(w.rival.day)})` : "기록 없음"}</td>
                     <td>{rounds.length ? rounds.join(" · ") : "—"}</td>

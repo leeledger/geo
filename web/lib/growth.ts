@@ -1,10 +1,13 @@
 import { pool, type Client } from "./ops";
+import { AI_BOTS, SEARCH_BOTS } from "./crawler-class";
 
 /**
  * 「늘고 있나」— 현황판 맨 위 성장 지표.
  *
  * 원장(9/22): 「실제로 얼마나 성장하고 있는지 가늠이 힘들다」. 누적값만 있으면 비교 기준이 없다.
- * 그래서 지표마다 같은 조건의 이전 값을 붙인다. 최근 7일 대 그 전 7일(문의·리드는 30일 대 30일).
+ * 그래서 지표마다 같은 조건의 이전 값을 붙인다. 어제까지 7일 대 그 전 7일(문의·리드는 30일 대 30일).
+ * 오늘은 몇 시간만 센 날이라 비교 창에 넣지 않는다(Arch 결정 9/22 — 오전에 보면 늘 「줄었다」로 기울었다).
+ * 경쟁 검색어·AI 측정은 하루 한 번 재는 값이라 창이 아니다 — 엔진이 다 돈 날이면 오늘 값도 쓴다.
  *
  * 날짜 경계는 전부 KST 다. 하루 = (ts at time zone 'Asia/Seoul')::date. 날짜는 SQL 에서 ::text 로 받는다.
  * 조각마다 따로 잡는다 — 표 하나가 없어도 나머지는 뜬다. 못 읽은 조각은 null 이고 화면은 「확인 못함」.
@@ -32,7 +35,8 @@ export type Growth = {
     prev: { day: string; won: number } | null;
     partialDays: string[];
   } | null;
-  crawl: { search: Delta; ai: Delta; daily: { day: string; search: number; ai: number }[] } | null;
+  /** 검색·AI·기타는 crawler-class(= academy/lib/bots.ts 두 칸). 어느 칸에도 없는 봇은 기타 */
+  crawl: { search: Delta; ai: Delta; other: Delta; daily: { day: string; search: number; ai: number; other: number }[] } | null;
   posts: { last7: Delta; sinceDays: number | null; streakWeeks: number; weekly: { week: string; n: number; partialDays: number | null }[] } | null;
   /** ever = 이 고객사 문의 기록 전체 건수. 0 이면 「0건」이 아니라 「기록 없음」이다 */
   inquiries: { last30: Delta; bySource: { source: string; n: number }[]; unresolved: number; ever: number } | null;
@@ -45,13 +49,11 @@ export type Growth = {
    */
   weeks: {
     week: string; partialDays: number | null;
-    search: number | null; ai: number | null; inquiries: number | null;
+    search: number | null; ai: number | null; other: number | null; inquiries: number | null;
     rival: { day: string; won: number; total: number } | null;
   }[] | null;
 };
 
-/** 검색 색인 로봇. 나머지는 AI 로 센다 (Step 11: 합쳐 세서 1486 을 AI 방문이라 한 적이 있다) */
-const SEARCH_VENDORS = ["google", "naver", "microsoft", "duckduckgo"];
 /** AI 가 답할 때 찾는 검색 색인. 순서가 곧 계열색 순서다 — 바꾸지 않는다 */
 const COV_VENDORS: { vendor: CovVendor; label: string }[] = [
   { vendor: "google", label: "구글" },
@@ -106,6 +108,7 @@ export async function readGrowth(client: Client): Promise<Growth> {
   const [{ today: T }] = await q<{ today: string }>(
     `select (now() at time zone 'Asia/Seoul')::date::text as today`, []);
   const days = range(addDays(T, -13), T);
+  const Y = addDays(T, -1);   // 비교 창의 끝 = 어제(마지막 완전한 날)
   const startWeek = await q<{ w: string }>(
     `select date_trunc('week', $1::date::timestamp)::date::text as w`, [client.startedOn]);
   const W0 = startWeek[0].w;
@@ -231,32 +234,36 @@ export async function readGrowth(client: Client): Promise<Growth> {
 
   /* 크롤러 방문 — 검색 색인과 AI 를 갈라 센다. 중립 지표 */
   const crawl = await part("크롤러", async () => {
-    const rows = await q<{ day: string; search: number; ai: number }>(
+    const rows = await q<{ day: string; search: number; ai: number; other: number }>(
       `select (seen_at at time zone 'Asia/Seoul')::date::text as day,
-              count(*) filter (where vendor = any($2))::int as search,
-              count(*) filter (where coalesce(vendor, '') <> all($2))::int as ai
+              count(*) filter (where bot = any($2))::int as search,
+              count(*) filter (where bot = any($3))::int as ai,
+              count(*) filter (where bot is null or not (bot = any($2) or bot = any($3)))::int as other
          from ${S}.crawl_hits
-        where client_id = $1 and (seen_at at time zone 'Asia/Seoul')::date > $3::date - 14
-        group by 1`, [id, SEARCH_VENDORS, T]);
+        where client_id = $1 and (seen_at at time zone 'Asia/Seoul')::date >= $4::date - 13
+        group by 1`, [id, SEARCH_BOTS, AI_BOTS, Y]);
     const by = new Map(rows.map((r) => [r.day, r]));
-    const daily = days.map((day) => ({ day, search: by.get(day)?.search ?? 0, ai: by.get(day)?.ai ?? 0 }));
-    const sum = (k: "search" | "ai", a: number, b: number) => daily.slice(a, b).reduce((s, r) => s + r[k], 0);
+    const at = (day: string) => ({ day, search: by.get(day)?.search ?? 0, ai: by.get(day)?.ai ?? 0, other: by.get(day)?.other ?? 0 });
+    // 비교 창: 어제-6~어제 대 어제-13~어제-7. 추세선(daily)은 오늘까지 — 오늘 점은 화면에서 흐리게
+    const win = range(addDays(Y, -13), Y).map(at);
+    const sum = (k: "search" | "ai" | "other", a: number, b: number) => win.slice(a, b).reduce((s, r) => s + r[k], 0);
     return {
       search: delta(sum("search", 7, 14), sum("search", 0, 7), "neutral"),
       ai: delta(sum("ai", 7, 14), sum("ai", 0, 7), "neutral"),
-      daily,
+      other: delta(sum("other", 7, 14), sum("other", 0, 7), "neutral"),
+      daily: days.map(at),
     };
   });
 
   /* 발행 — 착수 뒤 글만. 옛 글(옮겨 온 것)은 뺀다 */
   const posts = await part("발행", async () => {
     const [c] = await q<{ last7: number; prev7: number; since: number | null }>(
-      `select count(*) filter (where (published_at at time zone 'Asia/Seoul')::date between $3::date - 6 and $3::date)::int as last7,
-              count(*) filter (where (published_at at time zone 'Asia/Seoul')::date between $3::date - 13 and $3::date - 7)::int as prev7,
+      `select count(*) filter (where (published_at at time zone 'Asia/Seoul')::date between $4::date - 6 and $4::date)::int as last7,
+              count(*) filter (where (published_at at time zone 'Asia/Seoul')::date between $4::date - 13 and $4::date - 7)::int as prev7,
               $3::date - max((published_at at time zone 'Asia/Seoul')::date) as since
          from ${S}.posts
         where client_id = $1 and published and published_at >= ($2::date::timestamp at time zone 'Asia/Seoul')`,
-      [id, client.startedOn, T]);
+      [id, client.startedOn, T, Y]);
     const wk = await q<{ week: string; n: number }>(
       `select w::date::text as week, count(p.slug)::int as n
          from generate_series(date_trunc('week', $2::date::timestamp), date_trunc('week', $3::date::timestamp), interval '1 week') w
@@ -290,11 +297,11 @@ export async function readGrowth(client: Client): Promise<Growth> {
               count(*) filter (where day > $2::date - 30 and day <= $2::date)::int as last30,
               count(*) filter (where day > $2::date - 60 and day <= $2::date - 30)::int as prev30,
               count(*) filter (where enrolled is null)::int as unresolved
-         from ${S}.inquiries where client_id = $1`, [id, T]);
+         from ${S}.inquiries where client_id = $1`, [id, Y]);
     const src = await q<{ source: string; n: number }>(
       `select coalesce(nullif(source, ''), '출처 미입력') as source, count(*)::int as n
          from ${S}.inquiries where client_id = $1 and day > $2::date - 30 and day <= $2::date
-        group by 1 order by 2 desc, 1`, [id, T]);
+        group by 1 order by 2 desc, 1`, [id, Y]);
     return { last30: delta(c.last30, c.prev30, "up"), bySource: src, unresolved: c.unresolved, ever: c.ever };
   });
 
@@ -302,25 +309,24 @@ export async function readGrowth(client: Client): Promise<Growth> {
   const sales = await part("사이티드 리드", async () => {
     const [c] = await q<{ l30: number; lp: number; s30: number; sp: number }>(
       `select
-         (select count(*)::int from geo.leads where (created_at at time zone 'Asia/Seoul')::date > $1::date - 30) as l30,
+         (select count(*)::int from geo.leads where (created_at at time zone 'Asia/Seoul')::date between $1::date - 29 and $1::date) as l30,
          (select count(*)::int from geo.leads where (created_at at time zone 'Asia/Seoul')::date > $1::date - 60
                                                  and (created_at at time zone 'Asia/Seoul')::date <= $1::date - 30) as lp,
          (select count(*)::int from geo.scans where user_agent is distinct from 'cited-rescan'
-                                                 and (created_at at time zone 'Asia/Seoul')::date > $1::date - 30) as s30,
+                                                 and (created_at at time zone 'Asia/Seoul')::date between $1::date - 29 and $1::date) as s30,
          (select count(*)::int from geo.scans where user_agent is distinct from 'cited-rescan'
                                                  and (created_at at time zone 'Asia/Seoul')::date > $1::date - 60
-                                                 and (created_at at time zone 'Asia/Seoul')::date <= $1::date - 30) as sp`, [T]);
+                                                 and (created_at at time zone 'Asia/Seoul')::date <= $1::date - 30) as sp`, [Y]);
     return { leads30: delta(c.l30, c.lp, "up"), scans30: delta(c.s30, c.sp, "up") };
   });
 
   /* 막힌 곳 — 실패는 줄어야 좋다 */
   const agents = await part("에이전트", async () => {
     const [a] = await q<{ f7: number; fp: number; t7: number }>(
-      `select count(*) filter (where not ok and (at at time zone 'Asia/Seoul')::date > $2::date - 7)::int as f7,
-              count(*) filter (where not ok and (at at time zone 'Asia/Seoul')::date > $2::date - 14
-                                            and (at at time zone 'Asia/Seoul')::date <= $2::date - 7)::int as fp,
-              count(*) filter (where (at at time zone 'Asia/Seoul')::date > $2::date - 7)::int as t7
-         from geo.agent_activity where (client_id = $1 or client_id is null)`, [id, T]);
+      `select count(*) filter (where not ok and (at at time zone 'Asia/Seoul')::date between $2::date - 6 and $2::date)::int as f7,
+              count(*) filter (where not ok and (at at time zone 'Asia/Seoul')::date between $2::date - 13 and $2::date - 7)::int as fp,
+              count(*) filter (where (at at time zone 'Asia/Seoul')::date between $2::date - 6 and $2::date)::int as t7
+         from geo.agent_activity where (client_id = $1 or client_id is null)`, [id, Y]);
     const [w] = await q<{ n: number }>(
       `select count(*)::int as n from geo.agent_tasks where client_id = $1 and status = '사람 대기'`, [id]);
     return { fail7: delta(a.f7, a.fp, "down"), total7: a.t7, waitingHuman: w.n };
@@ -328,14 +334,16 @@ export async function readGrowth(client: Client): Promise<Growth> {
 
   /* 표로 보기 — 주별 요약 */
   const weeks = await part("주별 요약", async () => {
-    const rows = await q<{ week: string; search: number; ai: number }>(
+    const rows = await q<{ week: string; search: number; ai: number; other: number }>(
       `select w::date::text as week,
-              count(h.id) filter (where h.vendor = any($4))::int as search,
-              count(h.id) filter (where coalesce(h.vendor, '') <> all($4))::int as ai
+              count(h.id) filter (where h.bot = any($4))::int as search,
+              count(h.id) filter (where h.bot = any($5))::int as ai,
+              count(h.id) filter (where h.bot is null or not (h.bot = any($4) or h.bot = any($5)))::int as other
          from generate_series(date_trunc('week', $2::date::timestamp), date_trunc('week', $3::date::timestamp), interval '1 week') w
          left join ${S}.crawl_hits h
            on h.client_id = $1 and date_trunc('week', h.seen_at at time zone 'Asia/Seoul') = w
-        group by w order by w`, [id, client.startedOn, T, SEARCH_VENDORS]);
+          and h.seen_at >= ($2::date::timestamp at time zone 'Asia/Seoul')
+        group by w order by w`, [id, client.startedOn, T, SEARCH_BOTS, AI_BOTS]);
     const inq = await part("주별 문의", () => q<{ week: string; n: number }>(
       `select date_trunc('week', day::timestamp)::date::text as week, count(*)::int as n
          from ${S}.inquiries where client_id = $1 and day >= date_trunc('week', $2::date::timestamp)::date group by 1`,
@@ -355,7 +363,7 @@ export async function readGrowth(client: Client): Promise<Growth> {
       }
       return {
         week: r.week, partialDays: counted < 7 ? counted : null,
-        search: r.search, ai: r.ai,
+        search: r.search, ai: r.ai, other: r.other,
         inquiries: inqBy ? inqBy.get(r.week) ?? 0 : null,
         rival: rv,
       };

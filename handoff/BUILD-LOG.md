@@ -791,3 +791,15 @@ Known Gaps
 - KG: 기존 page.tsx 의 「표로 보기 아닌」 `.ops-disclosure`(자동 실행 일정) 도 globals 의 details 흰 배경을 받을 수 있다 — 이번에 안 봤다
 - KG: next dev 가 web/AGENTS.md · web/CLAUDE.md 를 만든다(agentRules). 지웠고 커밋 안 함
 - KG: 기존 ops.ts sales.leads30d 는 `scan_id is not null or source='free_scan'` 필터, 성장 칸은 브리프대로 geo.leads 전체 — 두 칸 숫자가 다를 수 있다(지금은 둘 다 0)
+
+### Step 13 — Richard 1차 반영 + Arch 결정 — BUILT (재검토 대기)
+*Date: 2026-09-22 · Bob*
+- 결정(Arch): 비교 창은 완전한 날만 — 7일 = 어제-6~어제, 그 전 = 어제-13~어제-7, 30일도 어제에서 끝. 오늘은 추세선에서 흐린 속 빈 점, 비교에 안 씀. 이번 주 발행은 그대로 부분 주
+- 결정(Bob, Arch 확인 대기): 경쟁 검색어·AI 측정은 하루 한 번 재는 스냅샷이라 오늘 값도 쓴다(경쟁은 엔진 수 규칙이 이미 불완전한 날을 거른다). sub 에 밝혔다
+- Must: 중립 칸 기호 없음(「−110회 · 그 전 7일 673회 · 중립」), 그대로 한 번만
+- Should: 크롤러 검색/AI/기타를 bot 이름으로 — web/lib/crawler-class.ts(academy/lib/bots.ts 두 칸 사본, Applebot=검색, 모르는 봇=기타) + web/scripts/check-crawler-class.mjs 로 원본과 대조. 주별 크롤 수에 seen_at >= 착수일
+- 숫자(창 끝 9/21): 검색 232·그 전 272 / AI 331·그 전 401 / 기타 0 · 실패 24·그 전 3 · 발행 1·그 전 12
+
+Known Gaps
+- KG: check-crawler-class.mjs 는 손으로 돌린다. bots.ts 를 고치고 안 돌리면 web 사본이 늙는다
+- KG(Richard Escalate): ADMIN_TOKEN 교체 권고 — 원장 결정

@@ -1,40 +1,34 @@
-# Review Request — Step 13 (현황판 「성장 — 늘고 있나」)
+# Review Request — Step 13 · Richard 1차 반영 + Arch 결정(완전한 날만 비교)
 Date: 2026-09-22
 Ready for Review: YES
 
 ## Files Changed
-- web/lib/growth.ts:1-366 — 새 파일. `readGrowth(client)`: 오늘(KST)을 SQL 에서 한 번 받고 모든 쿼리에 $ 파라미터로 넘긴다. 조각마다 `part()` try/catch → null. 커버리지 114 · AI 152 · 경쟁 195-231 · 크롤 233 · 발행 252 · 문의 287 · 사이티드 302 · 에이전트 317 · 주별 요약 330
-- web/app/admin/ops/Growth.tsx:1-520 — 새 서버 컴포넌트. 판정 줄(223 judged), 칸 8개, Change(112, 기호+절대 차+이전 값+좋아짐/나빠짐 글자), Spark(133, non-scaling-stroke + HTML 점), 발행 주별 막대, 차트 카드(456), 표로 보기(464)
-- web/app/admin/ops/CoverageChart.tsx:1-166 — 새 클라이언트 컴포넌트. 한 축 선 3개, 끝 라벨 14px 미만이면 합침, 헤어라인+툴팁(좌우 뒤집기), tabIndex=0 + ←→/Home/End, aria-live 읽기 줄
-- web/lib/ops.ts:13 — `pool` export
-- web/app/admin/ops/page.tsx:10-11, 201-210, 272-273 — import, Promise.all 에 readGrowth(통째 실패 → {g:null, err}), `<Growth>` 를 err 다음·AgentBoard 앞에
+- web/app/admin/ops/Growth.tsx:113-137 — **Must** Change: 중립은 기호 없이 「−110회 · 그 전 7일 673회 · 중립」. flat 은 「– 그대로 · 9/15 4개」(뒤 「그대로」 글자 뺌)
+- web/app/admin/ops/Growth.tsx:140-178 — Spark `live`: 마지막 값(오늘)은 선·강조 점에서 빼고 흐린 속 빈 점. aria-label 끝에 「오늘 9/22 41회(진행 중, 비교에 안 씀)」
+- web/app/admin/ops/Growth.tsx:199-230 — 비교 창 끝 = 어제. 커버리지 변화 = 어제 대 그 7일 전(「+4쪽 · 9/14 1쪽 → 9/21 5쪽」), 값은 지금 누적. 크롤러 합에 기타 포함
+- web/app/admin/ops/Growth.tsx:276 부근 — sub 「어제까지 7일을 그 전 7일과 … 오늘은 진행 중이라 비교에서 뺐습니다」, 판정 줄 이름 「어제까지 7일」, 값 꼬리표 「어제까지 7일/30일」. 주별 표 크롤러 칸 검색/AI/기타
+- web/lib/growth.ts:111 — `Y = 오늘-1`. 크롤 236 · 발행 259 · 문의 294 · 사이티드 309 · 에이전트 324 가 전부 Y 로 끝나는 창(7일 = Y-6..Y, 그 전 = Y-13..Y-7, 30일 = Y-29..Y, 그 전 = Y-59..Y-30). 발행 sinceDays·주별 막대는 오늘 기준 그대로(이번 주는 부분 주)
+- web/lib/growth.ts:236-257, 336-346 — **Should** 크롤러 분류를 vendor 대신 `bot` 이름으로: crawler-class 의 SEARCH_BOTS/AI_BOTS, 어느 쪽도 아니면(또는 bot null) 기타. 주별 요약 크롤 수에 `seen_at >= startedOn(KST 자정)`
+- web/lib/crawler-class.ts — 새 파일. academy/lib/bots.ts 두 칸의 봇 이름 사본(web 은 Vercel 에 web/ 만 올라가 academy 를 못 읽는다). Applebot = 검색
+- web/scripts/check-crawler-class.mjs — 새 파일. bots.ts 를 case-report.mjs 와 같은 정규식으로 읽어 두 목록이 같은지 본다. 지금 「AI_BOTS 같음 (20) · SEARCH_BOTS 같음 (5)」
 
-## 숫자 대조 (2026-09-22, 로컬 렌더 = 운영 DB)
-- 커버리지 끝값 구글 47 · 네이버 47 · 빙 5 / 47쪽 ✓. 네이버 9/16 1 → 9/17 44 ✓. 구글 9/06 15 ✓. 끝 라벨 「구글·네이버 47」 합쳐짐 ✓
-- AI: 맨 위 claude-code-web(claude-code-headless-websearch) 9/22 언급 4/20 · 인용 0/20 「이 방법으로는 1회차」 ✓. openrouter 「공통 11문항: 언급 3→3 · 인용 0→0」 ✓. chatgpt-web-logged-out · claude-code-websearch 1회차 ✓
-- 경쟁 4/6(9/22), 9/15 4 → 그대로. 9/21 불완전으로 빠짐 ✓. 「네이버 통합 4 · 네이버 웹문서 2(최고 1위) · 빙 0」 ✓
-- 크롤러 검색 262 · 그 전 204 / AI 260 · 그 전 433 ✓
-- 발행: 최근 7일 2 · 그 전 3. 주별 8/31주 0 · 9/7주 12 · 9/14주 0 · 9/21주 2 = 14편 ✓ (옛 글 없음). 연속 1주
-- 문의 30일 2 · 결과 미입력 2 · 리드 0 ✓ · 무료 진단 22회
-- 실패 7일 33 · 그 전 3 ✓. 활동 7일은 233(브리프 예시 239 — 조회 시점 차이, 같은 필터)
-- 판정 줄: 좋아진 것 2(커버리지·학원 문의) · 그대로 2(경쟁·리드) · 나빠진 것 2(발행·에이전트 실패) · 비교 못 함 1(AI)
+## 숫자 (2026-09-22 KST, 창 끝 9/21)
+- 크롤러(봇 이름 분류): 검색 232 · 그 전 272 / AI 331 · 그 전 401 / 기타 0 — 따로 SQL 로 같은 값 확인
+- 에이전트 실패 24 · 그 전 3 (따로 SQL 확인), 활동 154
+- 발행 어제까지 7일 1편 · 그 전 12편 (9/08~9/14 에 12편)
+- 커버리지 빙 9/14 1 → 9/21 5 (+4), 값 5/47
+- 경쟁 4/6(9/22) vs 9/15 4 그대로 · AI 는 이전과 같음 · 문의 2 · 리드 0
+- 주별 표 첫 주 43/128/0 (전에는 vendor 분류로 42/129 — Applebot 1회가 검색으로 옮김)
 
-## ?c=ilog
-에러 없이 렌더. AI·문의·발행 「기록 없음」 + 「비교할 이전 값 없음」, 발행 「이 고객사 글은 이 DB 에 없다」, 문의 「상담 기록이 아직 없다」. 커버리지 구글 1 · 네이버 2 · 빙 3 / 10쪽
+## 판단이 들어간 곳 (Arch 확인 바람)
+- **경쟁 검색어·AI 측정은 오늘 값을 쓴다.** 둘은 7일 창이 아니라 하루 한 번 재는 스냅샷이고, 경쟁은 이미 「엔진이 다 돈 날」 규칙이 불완전한 날을 거른다. 어제까지로 자르면 9/22 네이버 웹문서 1위 첫 등장이 칸에서 사라지고 9/20 값이 뜬다. sub 에 이 예외를 적었다. Arch 결정 「any comparison」 을 글자 그대로 따르라면 rival 의 latest 를 `day <= 어제` 로 거르는 한 줄이다
+- 오늘 점을 흐리게 그리는 추세선은 누적/합계 두 개(커버리지·크롤러). 경쟁 추세선은 위 이유로 오늘 점이 보통 점
 
-## 화면 확인 (스크린샷은 저장소 밖 C:\Users\force\AppData\Local\Temp\claude\)
-- growth-{robotncoding,ilog}-{1280,390}.png · growth-hover-{1280,390}.png · growth-hover-right-{1280,390}.png · growth-keyboard-{1280,390}.png · growth-table-{1280,390}.png
-- 1280·390 모두 가로 스크롤 없음, 콘솔 오류 0. 끝 라벨 오른쪽 끝이 상자 안(390: 329 < 345). 툴팁이 뷰포트 안(390: 90~200px), 오른쪽 끝에서 왼쪽으로 뒤집힘. 키보드 ←← 로 9/20 툴팁 + aria-live 문장
-- 기존 섹션 h2 순서 그대로: 직원별 업무 현황 · 오늘의 운영 기록 · 고객사 성과 지표 · 하루 시간표 · 사람만 할 수 있는 일 · 크롤러 커버리지 · 검색에 처음 나온 날 · 최근 발행
+## 화면 (스크린샷: C:\Users\force\AppData\Local\Temp\claude\)
+- growth-robotncoding-1280.png · growth-robotncoding-390.png · growth-ilog-1280.png · growth-ilog-390.png
+- growth-hover-1280/390.png · growth-hover-right-1280/390.png · growth-keyboard-1280/390.png · growth-table-1280/390.png
+- growth-tile-crawl.png · growth-tile-coverage.png (2배 확대 — 중립 줄, 속 빈 오늘 점)
+- 1280·390 × robotncoding·ilog: 가로 스크롤 없음, 콘솔 오류 0. tsc 0
 
-## Open Questions
-- Growth 타입에 `inquiries.ever` · `weeks` 두 칸을 더했다(BUILD-LOG 에 이유). 괜찮은가
-- AI 칸 판정은 언급 수 기준. 인용 기준이 맞다면 한 줄 바꾸면 된다
-- 판정 줄에 칸 이름을 흐리게 붙였다 — 브리프는 숫자만. 빼라면 뺀다
-- 차트는 고정 viewBox 대신 잰 폭으로 그린다(390px 글자 크기 때문)
-- 경쟁 추세선: 9/21 이 빠져서 9/22 점이 선과 떨어져 홀로 있다 — 의도대로(0 으로 안 메움)
-
-## Out of Scope (logged in BUILD-LOG)
-- `.ops-disclosure` 도 globals details 흰 배경 영향 가능성
-- next dev 가 만드는 web/AGENTS.md · web/CLAUDE.md
-- ops.ts 기존 리드 필터와 성장 칸 리드 기준 차이
+## Out of Scope (BUILD-LOG)
+- case-report.mjs 는 손대지 않았다 — 이미 bots.ts 두 칸으로 가른다. web 사본과 원본이 어긋나면 check 스크립트로만 잡힌다(자동 실행은 아직 없음)
