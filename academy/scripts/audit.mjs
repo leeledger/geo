@@ -33,7 +33,6 @@ const DRY = process.argv.includes("--dry");
 const NO_DIAG = DRY || process.argv.includes("--no-diag");
 const MAX_DIAG = Number(process.env.AUDIT_MAX_DIAG ?? 2);
 const REPO = process.env.GITHUB_REPOSITORY || "leeledger/geo";
-const RUN_URL = process.env.GITHUB_RUN_ID ? `${process.env.GITHUB_SERVER_URL}/${REPO}/actions/runs/${process.env.GITHUB_RUN_ID}` : null;
 const HOUSE = 1; // 사이티드 자체 일은 첫 고객사 칸에 둔다 (company.mjs 와 같은 규칙)
 const ROOT = fileURLToPath(new URL("../..", import.meta.url));
 const ENGINES = (process.env.MEASURE_ENGINES ?? "").split(",").map((s) => s.trim()).filter(Boolean);
@@ -414,14 +413,16 @@ try {
     const { 새로, 닫음 } = await 일감쓰기();
     console.log(`\n일감: 새 조사 ${새로} · 닫음 ${닫음}`);
     const 진단수 = NO_DIAG ? 0 : await 진단();
-    await q(`insert into geo.agent_activity (client_id, agent, action, ok, summary, run_url) values ($1,'audit','감사',true,$2,$3)`,
-      [HOUSE, `신호 ${신호들.length} · 새 조사 ${새로} · 진단 ${진단수} · 회복 ${회복}`, RUN_URL]);
+    // run_url 은 비운다. company.mjs 출근 기록이 run_url 로 「이미 봤다」를 가려서, 여기서 채우면 audit 출근이 안 찍혔다(2026-09-22 첫 실행).
+    // 실행 주소는 회사 루프의 「자동 작업 audit」 행에 달린다
+    await q(`insert into geo.agent_activity (client_id, agent, action, ok, summary, run_url) values ($1,'audit','감사',true,$2,null)`,
+      [HOUSE, `신호 ${신호들.length} · 새 조사 ${새로} · 진단 ${진단수} · 회복 ${회복}`]);
   }
 } catch (e) {
   // 감사관이 죽으면 회사 루프가 audit.yml 실패로 일감을 연다. 여기서는 기록만 남기고 실패로 끝낸다
   console.error("감사 실패", e);
-  if (!DRY) await q(`insert into geo.agent_activity (client_id, agent, action, ok, summary, run_url) values ($1,'audit','감사',false,$2,$3)`,
-    [HOUSE, 끝(e.message, 500), RUN_URL]).catch(() => {});
+  if (!DRY) await q(`insert into geo.agent_activity (client_id, agent, action, ok, summary, run_url) values ($1,'audit','감사',false,$2,null)`,
+    [HOUSE, 끝(e.message, 500)]).catch(() => {});
   process.exitCode = 1;
 } finally {
   await pool.end();
