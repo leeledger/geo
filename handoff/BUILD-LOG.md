@@ -571,4 +571,5 @@ Known Gaps
 - KG: `claude-code.mjs` 가 윈도에서 여러 줄·따옴표 든 `system` 을 cmd 로 넘기면 잘린다. Actions(리눅스, 셸 없음)는 괜찮다. writer-common 의 claude-code 초안을 로컬에서 돌리면 같은 일이 난다 — `--system-prompt-file` 로 바꾸는 게 맞다
 - KG: 로컬에서 `CLAUDE_CODE_LOCAL=1` 로 진단하면 조사관이 Read 로 `academy/.env.local` 을 볼 수 있다(규칙으로만 막음). Actions 는 파일이 없다
 - KG: `/admin/ops` 는 담당 카드(AgentBoard roles)에 audit 가 없어 `대기`·`수리 대기` 조사 일감이 카드에 안 뜬다. `사람 대기` 만 「원장님이 하실 일」에 뜬다. 이름표 한 줄 목록이 없어 brief 대로 손대지 않았다
-- KG: optimize 반복 실패 신호(R1)는 company 루프가 optimize 15:08 성공을 아직 activity 에 안 옮겨서 뜬 것이다. 다음 회사 루프 뒤 「회복」으로 닫힐 것
+- 후속(b021963): audit 의 「감사」 행이 run_url 을 달면 company 출근기록이 그 실행을 「이미 봤다」로 건너뛴다 — run_url 을 비움. 재시험에서 「자동 작업 audit」 3행 확인, R1 두 건은 회복으로 닫힘
+- KG: company.yml schedule 이 실제로는 몇 시간씩 빈다(9/22 05:10Z 뒤 schedule 없음). R6 의 「3시간」이 GitHub cron 지연으로 걸릴 수 있다 — 한 주 보고 기준을 정할 것
