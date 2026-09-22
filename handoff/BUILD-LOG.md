@@ -693,3 +693,38 @@ Known Gaps
 - robots.txt 수: 「AI 13」에 방문하지 않는 제어 토큰(Google-Extended·Applebot-Extended)이 들어 있었다 → 「User-agent 17개 명시 허용 — 크롤러 AI 10 · 검색 4 · 기타 1(Daum) + 방문하지 않는 학습 허용 토큰 2」
 - 페이지 문장: 07 「지금 세면 전 엔진 0% 가 나올 것이 뻔하다」는 06 의 측정 회차(ChatGPT 부분 측정 1/2 인용 포함)와 어긋나 「같은 방법으로 반복 측정」으로. 06 「인용하는 문서의 대부분이 제3자 지면」은 센 비율이 없어 「첫 기준선에서는 …제3자 지면이었습니다」로 좁혔다
 - sales.mjs --push 가 커밋 직전에 가림 검사를 한 번 더 한다
+
+### Step 12 — 삽화 담당 (초안에 도해) — BUILT (Richard 검토 대기)
+*Date: 2026-09-22 · Bob*
+
+- 새 표 `academy.post_images (slug, name, svg, alt, created_at, unique(slug,name))` — schema.sql 에 적고 운영 DB 에 만들었다(additive)
+- 새 경로 `academy/app/blog/img/[slug]/[name]/route.ts` — image/svg+xml · CSP `default-src 'none'; style-src 'unsafe-inline'` · nosniff · 캐시 1일(s-maxage). 이름·슬러그 꼴이 아니면 404. 학원 사이트 `npx vercel --prod` 1회(이 세션)
+- og:image: 첫 이미지가 `/blog/img/` 면 넣지 않는다(PNG 가 없다)
+- `academy/scripts/illustrate.mjs` — Claude Code(purpose illustrate, capRequired, sonnet, 도구 없음, 빈 임시 폴더) 1회 = 1편. `--dry` · `--test` · `--slug` · `--task`
+  - 검사(스크립트): 태그 짝·속성·엔티티를 보는 작은 XML 검사(새 패키지 없음) · script/foreignObject/on*=/javascript:/@import/외부 href·url() · xmlns · 폭 960 · 60KB · aria-label · 본문에 없는 수(masks.mjs 수검사 — 그림 글자·aria·alt·data-value) · 다른 고객사 말(clients.mjs id≠글의 고객사 + geo.clients + 영업 후보, 못 읽으면 멈춤)
+  - 차트(원장 지시 반영): `data-value` 단 rect 는 data-chart 별로 길이÷값이 2% 안 — 길이 쪽은 크기가 더 갈리는 쪽(값이 같은 두 막대 중 하나만 줄이는 것도 잡는다). 축 눈금 `data-axis` 는 0 부터 같은 간격인 수만(지어낸 수를 눈금으로 숨기지 못하게)
+  - 본문 날짜 「2026년 8월 27일」은 「2026.08.27」「2026.8.27」「2026.08」도 같은 수로 본다 — 연표 참고 예시가 이 표기를 쓴다. 날짜 말고는 넓히지 않는다
+  - 자리: before 문구가 든 **줄 머리**에 끼운다(문단 중간이면 이미지가 한 줄을 차지 못해 안 그려진다). 못 찾으면 첫 `##` 뒤, 없으면 맨 뒤
+  - 저장은 한 거래 — 그림 insert + 본문 update(`updated_at=$읽은값 and not published and 본문에 ![ 없음`). 0행이면 그림도 되돌린다
+- 결정: sales.mjs 의 가림검사·수 검사를 masks.mjs 로 옮겨 같이 쓴다(sales 는 import). 한글 수사 앞에 한글이 붙으면 수로 안 본다(「중요한 점」의 「한 점」) — sales 쪽도 같이 느슨해진다. sales --draft-test 11/11 · --leak-test 20/20 그대로
+- 결정(원장 「도해는 무조건」): 다 버려져도 초안을 닫지 않고 다시 그린다. 시도 수는 `review_notes.삽화.시도`. company: 시도 2 이상이면 `illustrate-human-<slug>` 사람 대기, 재시도 간격 1시간→6시간. 매시 1편(최근 50분 안 illustrate 호출이 있으면 미룸) · 하루 상한은 claude-code.mjs 그대로
+- 결정: 도해 없이 발행된 글은 `noimg-<slug>` 사람 대기(발행본은 에이전트가 고치지 않는다). 지금 2편: 2023nyeon-buteo-…, 2025nyeon-sw-…
+- 결정: 참고 예시를 grading-shift.svg 한 장 → 원장 지시의 새 스타일 세 장(ai-textbook-16-subjects-2028 timeline·recognized-textbook·info-hours). info-hours.svg 에 data-value·data-axis 를 달았다(보이는 모양 같음, 학원 재배포 안 함 — 스크립트는 저장소 파일을 읽는다)
+- web(검토 화면, **푸시 안 함 — Richard 뒤**): publishDraft 는 본문에 `![` 가 없으면 0행. 화면에 「도해」 칸 · 없으면 「도해가 아직 없습니다 — 삽화 담당이 그리는 중」 + 시도·버린 이유 + 「도해 다시 그리기」(삽화 기록 지우고 illustrate 일감 대기로, attempts 0) · 발행 버튼 disabled. 초안 버리기는 그 슬러그의 post_images 와 illustrate 일감도 지운다/닫는다
+- naver-blog-post.mjs: 본문 그림이 `/blog/img/` 면 DB SVG 를 임시 폴더에 풀어 svg-to-png.mjs 로 굽는다(파싱 오류면 그 도구가 PNG 를 안 만든다). --dry 가 본문 첫 사진도 찍는다(naver-dry-image.png)
+
+결과
+- 운영 경로: 시험 그림 넣고 `https://robotncoding.com/blog/img/step12-test/probe.svg` 200 · image/svg+xml · CSP 헤더 확인 · 없는 이름 404 · .png 404 → 지움
+- `--test` 전부 맞음(파싱 3종·스크립트·on*·외부 href·xlink·javascript:·url()·foreignObject·지어낸 수·부분 수·수 구절·alt 수·다른 고객사 이름·도메인·폭·60KB·막대 비례/줄임/같은 값 줄임/값 없는 수·축 눈금 3종·aria 2종 · 참고 예시 3장 통과 · 자리 3종 · 덮어쓰기 2종)
+- 로컬 실제 1편(옛 스타일, 18:26): 1장 붙임 · 1장 버림(「2026.8.27」— 그때는 날짜 표기 넓힘 전)
+- Actions company run 35715128836 (bbc411a): 「도해 그리기」 → 「도해 2장 붙임 · 버림 1장 (aria-label 에 내용이 없음)」. claude_calls id 14 purpose illustrate task_id 396, 139초. 운영에서 두 그림 200 · CSP · 렌더 정상. 버린 1장은 작은따옴표 오판 → 8b4c421 로 고침
+- 검토 화면(운영 /admin/drafts) 에 「도해: 2026년 8월 27일 교육부 발표부터…」 확인
+- 네이버 --dry: DB 도해 1장 굽기 → 에디터에 PNG 로 들어간 것 스크린샷 확인(발행 안 함)
+- 시험 초안 두 편(step12-probe-local, step12-server-check)과 그 그림·일감은 확인 직후 지웠다. 원장이 「[시험]」 제목을 보고 물었다 — 앞으로 검토 화면에 보이는 시험 초안은 만들지 않는다
+
+Known Gaps
+- KG: Vercel CDN 이 /blog/img 응답을 하루 캐시한다 — 지운 그림도 캐시가 끝날 때까지 열린다(시험 그림 2개 주소가 지금 그렇다)
+- KG: 서버 증명 초안이 참고 예시와 같은 글이라 그림이 예시를 거의 베꼈다. 다른 글에서 새 스타일이 어떻게 나오는지는 다음 실제 초안에서 처음 본다
+- KG: 재시도·사람 대기(시도 ≥2)·web 발행 막기·다시 그리기 버튼은 실제로 돌려 보지 않았다(tsc 만). web 은 푸시 전
+- KG: 되돌리기(revertDraft)는 다듬기 전 원문으로 돌린다 — 그 뒤에 붙은 도해 줄도 사라진다. 그러면 삽화 담당이 다시 그린다(도해 없는 초안)
+- KG: 네이버 --dry 가 에디터에 임시 저장을 남긴다(원래 동작)

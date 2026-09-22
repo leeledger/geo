@@ -1,56 +1,38 @@
-# Review Request — Step 11 재제출 (Must 1 · Should 전부 · Arch 결정 3)
+# Review Request — Step 12 (삽화 담당)
 Date: 2026-09-22
 Ready for Review: YES
-Commits: 5600aef (코드) · 7f46a15 (sales.mjs 가 올린 새 공개본) — main, pushed
-(앞 제출은 git 이력 5909104 의 REVIEW-REQUEST)
 
-## Must — 지어낸 숫자 검사 (sales.mjs 초안검사)
-- 숫자는 재료의 **숫자 토큰 집합**에 통째로 있어야 한다(`30` 이 `/style.css 30` 의 일부라서 통과하던 길 막힘)
-- 단위 붙은 수(`%·퍼센트·배·명·건·곳·개·번·회·일·주·달·개월·년·쪽·편·위·점·분·가지·군데`)와 한글 수사(`한·두·세·네·다섯…·열·스무·서른·마흔·쉰·수십·수백·백·천·만`)가 붙은 구절은 **공백을 접은 그 구절이 재료에 그대로** 있어야 한다. 허용: 틀 구절 `세가지·다섯건·한달·한곳·한번`
-- `--draft-test` (Actions run 35708215385) — 11/11
-  ```
-  ✓ 30% 늘었다 — 버림: 30, 30%        ✓ 세 배 — 버림: 세배            ✓ 두 달 만에 — 버림: 두달
-  ✓ 재료에 없는 숫자 — 버림: 1486, 1486회   ✓ 부분 숫자 속임(30 → 3) — 버림: 3, 3곳
-  ✓ 재료에 있는 구절(895회·45편) — 통과     ✓ 통화틀 먼 곳 · 같은 지역 — 통과    ✓ 답장틀 — 통과
-  ✓ 같은 지역에 리포트 링크 — 버림        ✓ 같은 지역에 실증 언급 — 버림
-  ```
+## Files Changed
+- academy/app/blog/img/[slug]/[name]/route.ts:1-41 — DB SVG 를 image/svg+xml 로, CSP·nosniff·캐시 1일, 꼴 안 맞으면 404 (운영 배포됨)
+- academy/app/blog/[slug]/page.tsx:22-26 — /blog/img 도해면 og:image 를 넣지 않음 (운영 배포됨)
+- academy/db/schema.sql:30-40 — academy.post_images
+- academy/scripts/illustrate.mjs:64-114 — 작은 XML 검사(태그 짝·속성·엔티티·뿌리 svg)
+- academy/scripts/illustrate.mjs:121-230 — 그림 글자 추출(축 눈금 제외) · 축검사 · 막대검사(길이 쪽 고르기, 2%) · 한장검사
+- academy/scripts/illustrate.mjs:232-285 — 재료로(날짜 점 표기) · 끼우기(줄 머리) · 저장(한 거래, updated_at 조건)
+- academy/scripts/illustrate.mjs:287-352 — 새 스타일 참고 세 장 + 프롬프트
+- academy/scripts/illustrate.mjs:354-435 — 가릴 말(fail-closed) · 대상(시도 적은 것부터) · 그리기(ILLUSTRATE= 한 줄)
+- academy/scripts/illustrate.mjs:437-552 — --dry · --test (DB 는 되돌리는 거래 안에서만)
+- academy/scripts/company.mjs:279-299 — illustrate 일감 · 시도 ≥2 사람 대기 · 도해 없이 발행된 글 사람 대기
+- academy/scripts/company.mjs:325 — illustrate-·noimg- 일감도 초안 신호로 닫음
+- academy/scripts/company.mjs:516-540 — 실행기: 매시 1편 문, 결과별 상태(다버림은 대기로 다시)
+- academy/masks.mjs:44-126 — 가림검사·고객사말·수검사 (sales.mjs 에서 옮김, 한글 수사 앞 한글 제외)
+- academy/scripts/sales.mjs:31,70-92 — masks.mjs 를 import
+- academy/public/blog/ai-textbook-16-subjects-2028/info-hours.svg:34-50 — data-value·data-axis (보이는 모양 같음)
+- tools/naver-blog-post.mjs:78-80,95-107,126 — /blog/img 도해를 DB 에서 받아 임시 폴더에서 PNG 로
+- tools/naver-blog-post.mjs:463-470 — --dry 가 본문 첫 사진도 찍음
+- web/lib/draft-actions.ts:49-63 — 본문에 ![ 없으면 발행 0행 (**푸시 안 함**)
+- web/lib/draft-actions.ts:82-104 — requeueIllustrate (**푸시 안 함**)
+- web/lib/draft-actions.ts:112-119 — 초안 버리기가 그림·illustrate 일감도 정리 (**푸시 안 함**)
+- web/app/admin/drafts/page.tsx:57,116-118,139-151,178-180 — 도해 칸 · 다시 그리기 · 발행 버튼 막기 (**푸시 안 함**)
+- web/lib/drafts.ts:11 — notes.삽화 타입 (**푸시 안 함**)
 
-## Should
-- **가림 목록 한 곳** — `academy/masks.mjs`(MASKS·가릴원문·가릴모양·같은지역구). case-report.mjs 는 여기서 MASKS 를 가져오고 sales.mjs 는 원문 쪽 말(로보티즈·디랩·글로벌리더센터·송파런·강남점 카카오채널·learns.academy·대치동·서울 포함)로 검사한다
-- **표기 바꿈** — 원문 · URL 푼 원문(href 안 인코딩) · 태그 떼고 숫자/이름 엔티티·URL 푼 글 · 정규화본(소문자, 공백·구두점 지움, `&`·`and`→`앤`) 네 번. 정규화본은 네 글자 이상 말만(두 글자 지역어가 남의 낱말에 걸림). 두 글자 한글은 앞 글자가 한글이면 안 센다(「손가락」≠「가락」). 영문 `robot&coding`·`robotcoding`·`robot and coding`·`robotncoding` 은 가릴원문에 넣었다
-  - `--leak-test` (run 35708158539) — 20/20: 학원 이름·입말·띄어쓰기·띄어쓴 엔티티·띄어쓴 입말·숫자 엔티티(&#38; &#x26;)·태그로 쪼갬·영문 표기·URL 인코딩·도메인·지역어·가린 경쟁 브랜드·지역 학원 사이트·글 주소·주소·전화·휴대전화·영업 후보 이름 → 잡음 / 가린 공개본(「손가락」 포함) → 통과 / 지금 공개본 → 걸림 없음
-- **후보 이름 fail-closed** — `select name from geo.outreach_targets` 실패면 throw
-- **sales.yml** — `persist-credentials: false`. 단계 나눔: 쓰기·초안(GH_TOKEN 없음) → `--push`(GH_TOKEN 여기만, 토큰 주소로 푸시). 초안 claude 는 `envDrop: DATABASE_URL·GH_TOKEN·GITHUB_TOKEN`
-- **묶음으로 바꿔 옛 키 문제 해소** — 주간 키 `sales-calls-<월요일>`. 실행마다 열린 낱개 `call-*` 와 지난주 묶음은 「주간 묶음 일감으로 옮김」으로 닫는다
-- **조용히 빠지는 후보** — 주간 한 줄에 「완료 표시했지만 연락일이 그대로인 후보 N」(지난 2주 완료 묶음의 target_ids ∩ 지금 밀린 후보)
-- **푸시 실패** — fetch 실패·rebase 충돌이면 `rebase --abort` 후 `case-report-push` 사람 대기, 실패로 끝남
+## Open Questions
+- 막대검사: 길이 쪽을 「크기가 더 크게 갈리는 쪽」으로 고른다. 가로 막대 두 계열(높이 16·20)에서 맞는지, 속일 길이 남았는지
+- 축 눈금은 data-axis 를 단 text 만 숫자 검사에서 빠진다. 0 부터 같은 간격만 허락 — 충분히 좁은가
+- 재료로: 날짜 점 표기만 넓혔다. 다른 표기(「1학기」→「1H」 등)는 버린다 — 의도대로
+- 수검사의 한글 수사 앞 한글 제외는 sales 초안 검사도 느슨하게 한다(「…한 번」이 「한번」으로 안 잡힘). 괜찮은가
+- web 은 git push = 랜딩 배포다. 통과하면 푸시해 주세요 (지금 작업 트리에만 있고 커밋 안 함)
+- CDN 하루 캐시 — 지운 그림이 하루 동안 열린다. 캐시를 줄일지
 
-## Arch 결정
-1. 묶음 일감 하나 — 가장 오래 밀린 3곳(next_due, priority, 이름 순) 통화문 + 나머지 7곳 이름·연락일. 낱개 10개는 닫힘(「주간 묶음 일감(sales-calls-2026-09-21)으로 옮김」)
-2. 같은 지역 — `같은지역구 = [송파, 강동]`(masks.mjs, 강동은 붙은 생활권이라 같이 — 지금 후보 10곳 전부 해당). 통화틀은 링크 대신 「말로 먼저 설명」, 원장 줄에 「(케이스 리포트 링크는 뺐습니다 — …특정됩니다)」 한 줄. claude 초안이 링크·「리포트」「실증」「사례」「직접 운영」「운영하는 학원」「우리/저희 학원」「http」를 쓰면 버린다. 먼 곳 후보는 링크를 줄 수 있다
-3. 케이스 리포트(case-report.mjs, 손으로)
-   - 머리: `AI 크롤러 방문 895회` + `검색 크롤러 방문 (구글·빙·네이버 등) 591회` (합 1486 — 판별표 bots.ts 의 두 칸 그대로. Applebot·Amazonbot·meta-externalagent 는 그 표에서 AI 칸)
-   - 04 「크롤러 방문 — AI 와 검색 색인을 나눠 셉니다」, 표에 구분 칸, 경로 표에 「AI·검색 합계」
-   - 일별 기록: snapshots.crawl_total(모든 고객사) 대신 이 고객사 crawl_hits 를 그날 KST 자정까지 누적 — 「누적 AI · 누적 검색」 두 칸. 17일차 893 + 566 = 1459 ≤ 지금 1486
-   - 허용 수: robots.txt 에서 센 AI 13 · 검색 4(Daum 은 검색). 진단표 「11종」도 같은 숫자로. 판별 수: bots.ts 에서 센 AI 21 · 검색 4. 「스키마 19종」은 진단표 20종과 어긋나고 확인할 데이터가 없어 뺐다
-   - 공개: 7f46a15, 가림 검사 통과 → **라이브 확인**: https://geo-rose-nine.vercel.app/case/academy.html 에 「895 회 AI 크롤러 방문 591 회 검색 크롤러 방문」·「04 크롤러 방문 — AI 와 검색 색인을 나눠 셉니다」
-   - BUILD-LOG 에 날짜 붙은 정정 항목
-
-## 실행 (Actions run 35708277098)
-```
-케이스 리포트: 새로 뽑음 — 다음 단계(--push)가 커밋
-연락일 지난 영업 후보 10곳 (통화문 3) · 24시간 넘은 리드 0건
-초안: 이번 주 claude 1회를 이미 씀 — 숫자 없는 틀을 쓴다
-연락한 곳 0 · 다음 약속 0 · 리드 0 · 연락일 지난 후보 10(통화문 3) · 완료 표시했지만 연락일이 그대로인 후보 0 · 답장 초안 0 · 낱개·지난 일감 10개를 묶음으로 옮김
-공개본 커밋·푸시 7f46a15
-```
-- 원장 줄: 일감 378 「이번 주 영업 전화 — 연락일 지난 후보 10곳 (통화문 3곳)」. 세 곳 모두 송파라 링크 뺀 이유 줄이 붙었다
-
-## 못 본 것
-- claude 초안이 새 검사를 통과하는지 — 이번 주 1회를 이미 썼다. 다음 월요일(9/28 23:10 UTC)이 처음
-- 푸시 충돌·rebase 되돌리기 경로 — 충돌을 일부러 만들지 않았다(코드 검토만)
-- 리드 답장 — 리드 0건
-
-## Out of Scope (BUILD-LOG)
-- snapshot 라우트가 고객사를 섞어 센다 (academy/app)
-- 타임라인의 다른 손 기록 숫자는 다시 확인하지 않았다
+## Out of Scope (logged in BUILD-LOG)
+- CDN 캐시로 지운 그림이 하루 열림 · revertDraft 가 도해 줄도 되돌림 · 네이버 --dry 임시 저장 · 재시도/사람 대기/web 경로 실제 미실행
