@@ -59,3 +59,39 @@ Ready for Review: YES
 
 ## Out of Scope (logged in BUILD-LOG)
 - 일감 문구 원천의 내부 이름 · 회사 루프 무소식 · 랜딩 page.tsx 의 8·460 대체값 · 14b 전부
+
+---
+# Review Request — Step 14a 2차 (Richard 1차 반영) + 랜딩 정정
+Date: 2026-09-22
+Ready for Review: YES
+커밋 3853b31(14a 반영) · 494bbc4(랜딩 바닥값 정정, 호출자 지시) — 둘 다 push·배포·운영 확인
+
+## Files Changed
+- web/lib/agents.ts — dueSlots(8일·요일·유예) · judge 재작성(수리공 자기 활동·merged7·pcoff·막힘 n일 전) · said(실행 완료/실패, 실패 「로그 확인」) · plain 보강 · readAgents 에 geo.repairs 7일 합침 수, 응답 err 제거
+- web/lib/todo-text.ts (새) — todoText(task): kind·payload 대응표, cut() 어절 경계, doingOf() 조치 중
+- web/lib/ops.ts:79,335,345 — tasks 에 payload
+- web/app/admin/ops/Todo.tsx — todoText 사용, details 행동, 조치 중 흐리게 맨 뒤, 머리 건수는 조치 중 뺀 수
+- web/app/admin/ops/AgentStrip.tsx:16 — 「PC 꺼짐」 라벨(회색 고정, .lt 기본색)
+- web/app/admin/ops/page.tsx — td-more-d·doing CSS
+- web/app/page.tsx:167-182, 206-226, 345, 516-575 · web/app/Count.tsx · web/lib/place.ts (새) — 랜딩 바닥값 제거(BUILD-LOG 정정 항목에 전후 인용)
+
+## 시험 (judge-test2.cjs, 가짜 시각·가짜 활동 — DB 안 씀)
+- 감사 06:30 정상 · 07:35 정상 · 08:15 지연 「감사 06:35 예정이었는데 기록이 없습니다」
+- 어제 감사 없음 → 오늘 05:00 지연 「감사 9/22 06:35 …」 · 월요일 초안 없음 → 화요일 지연 「주간 초안 작성 9/21 06:07 …」 · 월요일 했으면 목요일 정상
+- 활동 0 → ops·measure·content·deliver·sales 모두 정상 아님
+- 옮긴 줄 「검색 노출 측정 실행 완료」 · 수리공 합침 0 → 「쉬는 중 · 합친 수리 없음 (최근 7일)」, 마지막 한 일 「수리 실패 — 로그 확인」(옮긴 줄 건너뜀) · 스위치 꺼짐 → 꺼짐
+- 막힘 「영업 주간 실패 — 로그 확인 · 3일 전」
+- PC 19:10 한 번 빔 → pcoff 「원장 PC 작업 19:10 기록 없음 — PC 가 꺼져 있었을 수 있습니다」 · 두 번 → 지연
+- 할 일 실제 DB 5건 (내부 이름·R번호·영점·외톨이 조사·빈 괄호·주소 검사 통과):
+  - [human] 상담 결과 미입력 2건 | 등록했는지 안 했는지를 적어야 노출이 매출로 이어지는지 압니다. | 입력하기
+  - [human] 이번 주 영업 전화 — 연락일 지난 후보 10곳 (통화문 3곳) | 통화문 초안입니다. | 영업판 열기
+  - [listing] 등재 필요: 「잠실 초등 코딩학원」 | 순위닷의 우리 학원 태그: …(2026-09-22 확인). | 열기
+  - [investigate] 빙이 우리 글 47쪽 중 5쪽만 읽었습니다 | 자동 수리안이 검토에서 떨어졌습니다 — Claude 세션에서 고칩니다 | 조사 내용 보기
+  - [brand-defense] 아이로그 — 우리 이름으로 검색해도 안 나옵니다 | 구글 서치콘솔 색인 요청과 … 확인해야 합니다 | 했어요
+- 운영(배포 뒤): 4조합 내부 이름 0 · 가로 스크롤 0 · 콘솔 오류 0 · 로그아웃 401. 직원 줄: 운영·감사관 지연 · 수리공 쉬는 중 · 측정 정상 · 콘텐츠 정상 · 삽화 쉬는 중 · 유통 정상 · 영업 정상
+- 스크린샷: shots/robotncoding-1280-first.png 외 · shots/todo-open-{1280,390}.png
+
+## Open Questions
+- 「조치 중」은 근거 마지막 줄 단어(제출·등록·고침·합침…)로 판단한다. 319 는 조치가 어디에도 기록되지 않아 안 보인다(KG)
+- 수리공 「검토 불합격」을 막힘에서 뺐다 — 검토 관문이 제 일을 한 것으로 봄
+- repair.mjs 스위치 꺼짐 줄이 생기면 합침 0 보다 꺼짐이 먼저다
