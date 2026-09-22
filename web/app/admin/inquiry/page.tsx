@@ -73,6 +73,8 @@ export default async function InquiryPage({
   searchParams,
 }: { searchParams: Promise<{ key?: string; c?: string }> }) {
   const { key, c } = await searchParams;
+  // 옛 열쇠 주소는 쿠키로 바꿔 준다 — 서버 동작(저장 버튼)이 쿠키로만 관리자를 가린다
+  if (key) redirect("/admin/enter?key=" + encodeURIComponent(key) + "&to=" + encodeURIComponent(HERE));
   if (!(await isAdmin(key))) redirect("/admin/login?to=" + encodeURIComponent(HERE));
 
   const clients = await listClients();

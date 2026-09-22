@@ -61,6 +61,8 @@ function TaskForm({ t, path, today }: { t: any; path: string; today: string }) {
 
 export default async function Page({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ key?: string }> }) {
   const [{ id }, { key }] = await Promise.all([params, searchParams]);
+  // 옛 열쇠 주소는 쿠키로 바꿔 준다 — 서버 동작(저장 버튼)이 쿠키로만 관리자를 가린다
+  if (key) redirect("/admin/enter?key=" + encodeURIComponent(key) + "&to=" + encodeURIComponent(`/admin/pilots/${id}`));
   if (!(await isAdmin(key))) redirect(`/admin/login?to=/admin/pilots/${id}`);
   const x = await getPilot(id);
   if (!x) notFound();

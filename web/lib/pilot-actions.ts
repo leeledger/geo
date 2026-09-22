@@ -3,6 +3,14 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { inqPool } from "./inquiries";
 
+import { isAdmin } from "./admin-auth";
+
+/** 서버 동작은 동작 번호만 알면 누구나 부를 수 있다. 화면이 관리자 전용이어도 동작 자체를 막아야 한다(2026-09-23 발견) */
+async function guard() {
+  if (!(await isAdmin())) throw new Error("관리자만 할 수 있습니다");
+}
+
+
 const makeQuestions=(brand:string,district:string,neighborhood:string,category:string,audience:string)=>[
  `${district}에서 ${audience} ${category} 추천해줘`,`${neighborhood} 근처 ${category} 어디가 좋아?`,`${district} ${category} 중 상담을 잘해주는 곳 알려줘`,`${neighborhood}에서 가까운 ${category} 비교해줘`,`${district} ${category} 비용은 보통 얼마야`,`${district}에서 후기 말고 수업 근거가 분명한 ${category} 알려줘`,`${audience}가 다닐 ${district} ${category} 고르는 기준 알려줘`,`${district} ${category} 중 소규모로 가르치는 곳 있어?`,
  `${audience}에게 ${category}가 필요한지 판단하는 법은?`,`${category}를 시작하기 좋은 시기는 언제야?`,`${category} 상담 때 무엇을 물어봐야 해?`,`${category}를 다녀도 효과 없는 경우는?`,`${category}에서 실제로 무엇을 배우는지 확인하는 법은?`,
@@ -10,7 +18,7 @@ const makeQuestions=(brand:string,district:string,neighborhood:string,category:s
  `${brand}은 어떤 곳이야?`,`${brand}의 위치와 수업 대상을 알려줘`,`${brand}을 선택해도 되는 사람과 안 맞는 사람을 알려줘`
 ];
 
-export async function createPilot(form:FormData){
+export async function createPilot(form:FormData){await guard();
   const brand=String(form.get("name")??"").trim(), domain=String(form.get("domain")??"").trim().replace(/^https?:\/\//,"").replace(/\/$/,"");
   const district=String(form.get("district")??"").trim(), neighborhood=String(form.get("neighborhood")??"").trim();
   const category=String(form.get("category")??"").trim(), audience=String(form.get("audience")??"").trim();
@@ -41,9 +49,9 @@ export async function createPilot(form:FormData){
   }catch(e){await db.query("rollback");throw e}finally{db.release()}
   revalidatePath("/admin/pilots"); redirect(`/admin/pilots/${pilotId}`);
 }
-export async function updatePilotTask(form:FormData){const id=Number(form.get("id"));const status=String(form.get("status"));const evidence=String(form.get("evidence")??"").slice(0,500);await inqPool().query(`update geo.pilot_tasks set status=$2,evidence=$3,completed_at=case when $2='완료' then now() else null end where id=$1`,[id,status,evidence]);revalidatePath(String(form.get("path")));}
-export async function updateAudit(form:FormData){await inqPool().query(`update geo.local_audits set observed=$2,verdict=$3,recommendation=$4,updated_at=now() where id=$1`,[Number(form.get("id")),String(form.get("observed")??"").slice(0,300),String(form.get("verdict")),String(form.get("recommendation")??"").slice(0,500)]);revalidatePath(String(form.get("path")));}
-export async function approveQuestions(form:FormData){await inqPool().query(`update geo.pilot_questions set approved=true where pilot_id=$1`,[String(form.get("pilot_id"))]);revalidatePath(String(form.get("path")));}
-export async function updateQuestion(form:FormData){await inqPool().query(`update geo.pilot_questions set text=$2,approved=false where id=$1`,[Number(form.get("id")),String(form.get("text")??"").slice(0,300)]);revalidatePath(String(form.get("path")));}
-export async function updateContent(form:FormData){const status=String(form.get("status"));await inqPool().query(`update geo.content_approvals set title=$2,draft_url=nullif($3,''),published_url=nullif($4,''),status=$5,customer_note=$6,approved_at=case when $5 in ('승인','게시') and approved_at is null then now() else approved_at end,published_at=case when $5='게시' then now() else null end,updated_at=now() where id=$1`,[Number(form.get("id")),String(form.get("title")??"").slice(0,200),String(form.get("draft_url")??"").slice(0,500),String(form.get("published_url")??"").slice(0,500),status,String(form.get("customer_note")??"").slice(0,500)]);revalidatePath(String(form.get("path")));}
+export async function updatePilotTask(form:FormData){await guard();const id=Number(form.get("id"));const status=String(form.get("status"));const evidence=String(form.get("evidence")??"").slice(0,500);await inqPool().query(`update geo.pilot_tasks set status=$2,evidence=$3,completed_at=case when $2='완료' then now() else null end where id=$1`,[id,status,evidence]);revalidatePath(String(form.get("path")));}
+export async function updateAudit(form:FormData){await guard();await inqPool().query(`update geo.local_audits set observed=$2,verdict=$3,recommendation=$4,updated_at=now() where id=$1`,[Number(form.get("id")),String(form.get("observed")??"").slice(0,300),String(form.get("verdict")),String(form.get("recommendation")??"").slice(0,500)]);revalidatePath(String(form.get("path")));}
+export async function approveQuestions(form:FormData){await guard();await inqPool().query(`update geo.pilot_questions set approved=true where pilot_id=$1`,[String(form.get("pilot_id"))]);revalidatePath(String(form.get("path")));}
+export async function updateQuestion(form:FormData){await guard();await inqPool().query(`update geo.pilot_questions set text=$2,approved=false where id=$1`,[Number(form.get("id")),String(form.get("text")??"").slice(0,300)]);revalidatePath(String(form.get("path")));}
+export async function updateContent(form:FormData){await guard();const status=String(form.get("status"));await inqPool().query(`update geo.content_approvals set title=$2,draft_url=nullif($3,''),published_url=nullif($4,''),status=$5,customer_note=$6,approved_at=case when $5 in ('승인','게시') and approved_at is null then now() else approved_at end,published_at=case when $5='게시' then now() else null end,updated_at=now() where id=$1`,[Number(form.get("id")),String(form.get("title")??"").slice(0,200),String(form.get("draft_url")??"").slice(0,500),String(form.get("published_url")??"").slice(0,500),status,String(form.get("customer_note")??"").slice(0,500)]);revalidatePath(String(form.get("path")));}
 export async function addClientInquiry(form:FormData){const key=String(form.get("key")??"");const {rows:[p]}=await inqPool().query(`select p.id,c.id client_id from geo.pilots p join geo.clients c on c.id=p.client_id where p.inquiry_key=$1 and p.status in ('준비','진행')`,[key]);if(!p)return;const source=String(form.get("source")??"");if(!source)return;await inqPool().query(`insert into academy.inquiries(day,source,said,channel,grade,enrolled,note,client_id) values(current_date,$1,$2,$3,'',$4,'고객 전용 기록표',$5)`,[source,String(form.get("said")??"").slice(0,300),String(form.get("channel")??"전화"),form.get("enrolled")==='yes'?true:form.get("enrolled")==='no'?false:null,p.client_id]);revalidatePath(`/record/${key}`);}

@@ -71,6 +71,8 @@ function Card({ t, i }: { t: OutreachTarget; i: number }) {
 
 export default async function OutreachPage({ searchParams }: { searchParams: Promise<{ key?: string }> }) {
   const { key } = await searchParams;
+  // 옛 열쇠 주소는 쿠키로 바꿔 준다 — 서버 동작(저장 버튼)이 쿠키로만 관리자를 가린다
+  if (key) redirect("/admin/enter?key=" + encodeURIComponent(key) + "&to=" + encodeURIComponent(HERE));
   if (!(await isAdmin(key))) redirect("/admin/login?to=" + encodeURIComponent(HERE));
   const targets = await listOutreach();
   const count = (s: string) => targets.filter((t) => t.status === s).length;

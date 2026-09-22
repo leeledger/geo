@@ -37,6 +37,8 @@ type Pilot = { id: string; name: string; started_on: unknown; ends_on: unknown; 
 
 export default async function Page({ searchParams }: { searchParams: Promise<{ key?: string }> }) {
   const { key } = await searchParams;
+  // 옛 열쇠 주소는 쿠키로 바꿔 준다 — 서버 동작(저장 버튼)이 쿠키로만 관리자를 가린다
+  if (key) redirect("/admin/enter?key=" + encodeURIComponent(key) + "&to=" + encodeURIComponent("/admin/pilots"));
   if (!(await isAdmin(key))) redirect("/admin/login?to=/admin/pilots");
   const ps = (await listPilots()) as Pilot[];
 

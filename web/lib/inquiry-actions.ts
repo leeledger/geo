@@ -3,6 +3,14 @@
 import { revalidatePath } from "next/cache";
 import { inqPool } from "./inquiries";
 
+import { isAdmin } from "./admin-auth";
+
+/** 서버 동작은 동작 번호만 알면 누구나 부를 수 있다. 화면이 관리자 전용이어도 동작 자체를 막아야 한다(2026-09-23 발견) */
+async function guard() {
+  if (!(await isAdmin())) throw new Error("관리자만 할 수 있습니다");
+}
+
+
 /**
  * 폼에서 부르는 동작만 여기 둔다.
  *
@@ -11,7 +19,7 @@ import { inqPool } from "./inquiries";
  * 한 파일에 다 두었다가 그렇게 깨졌다. 읽기와 상수는 inquiries.ts 에 있다.
  */
 
-export async function addInquiry(form: FormData) {
+export async function addInquiry(form: FormData) {await guard();
   const src = String(form.get("source") ?? "").trim();
   if (!src) return;
 
@@ -33,14 +41,14 @@ export async function addInquiry(form: FormData) {
   revalidatePath("/admin/ops");
 }
 
-export async function markEnrolled(id: string, yes: boolean) {
+export async function markEnrolled(id: string, yes: boolean) {await guard();
   await inqPool().query(`update academy.inquiries set enrolled = $2 where id = $1`, [id, yes]);
   revalidatePath("/admin/inquiry");
   revalidatePath("/admin/ops");
 }
 
 /** 결과가 비어 있는 상담을 업무로 남겨 두고, 확인한 순간 바로 닫는다. */
-export async function resolveInquiry(form: FormData) {
+export async function resolveInquiry(form: FormData) {await guard();
   const id = String(form.get("id") ?? "");
   const result = String(form.get("result") ?? "");
   if (!id || !["yes", "no"].includes(result)) return;

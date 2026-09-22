@@ -124,6 +124,8 @@ export default async function OpsPage({
   searchParams,
 }: { searchParams: Promise<{ key?: string; c?: string }> }) {
   const { key, c: want } = await searchParams;
+  // 옛 열쇠 주소는 쿠키로 바꿔 준다 — 서버 동작(저장 버튼)이 쿠키로만 관리자를 가린다
+  if (key) redirect("/admin/enter?key=" + encodeURIComponent(key) + "&to=" + encodeURIComponent(HERE));
   if (!(await isAdmin(key))) redirect("/admin/login?to=" + encodeURIComponent(HERE));
 
   // 주소에 ?c=슬러그 를 붙이면 그 고객사를 본다
