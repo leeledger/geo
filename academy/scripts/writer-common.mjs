@@ -8,6 +8,8 @@
  * 관점 글은 숫자를 쓰면 안 되고, 뉴스 글은 출처만 있으면 써야 한다.
  */
 
+import { 클로드코드, 클로드코드있음 } from "./claude-code.mjs";
+
 /**
  * OpenRouter 로 가는 길. 키가 Vercel 에 Sensitive 로만 있어 Actions 는 사이티드 중계(/api/llm)를 거친다.
  * 로컬에 키가 있으면 바로 간다.
@@ -46,7 +48,20 @@ export const 오픈라우터 = () =>
  * 429·5xx 는 기다렸다 다시 부른다. Union Alpha 는 공용 풀이라 「잠시 뒤 재시도」 429 가 자주 온다
  * (2026-09-17 첫 실행에서 4번째 질문과 초안이 이걸로 멈췄다). 20·40·80초
  */
+/**
+ * 「claude-code:」 주소는 HTTP 가 아니라 Claude Code(원장 Max 구독)를 부른다.
+ * 여기 한 곳에서 응답 모양으로 바꿔 돌려주면 초안·뉴스·회사 루프 분석이 고칠 것 없이 그대로 쓴다.
+ * 성공 200 · 구독 한도 429 · 그 밖 500. 본문은 { text, urls, error }.
+ */
+const 클로드코드응답 = async (opts) => {
+  const b = JSON.parse(opts.body);
+  const r = await 클로드코드(b.prompt, { model: b.model, system: b.system, tools: b.검색 ? ["WebSearch"] : [], maxTurns: b.검색 ? 14 : 3 });
+  return new Response(JSON.stringify(r), { status: r.ok ? 200 : r.한도 ? 429 : 500, headers: { "content-type": "application/json" } });
+};
+
 export const 재시도 = async (url, opts, 횟수 = 3) => {
+  // 구독 한도는 몇 시간 단위라 기다려도 안 풀린다. 한 번만 부른다
+  if (String(url).startsWith("claude-code:")) return 클로드코드응답(opts);
   for (let i = 0; ; i++) {
     const res = await fetch(url, opts);
     // 중계의 하루 상한(x-proxy-cap)은 기다려도 안 풀린다. 다시 부르면 상한 칸만 더 먹는다
@@ -66,8 +81,10 @@ export const 재시도 = async (url, opts, 횟수 = 3) => {
  * Groq 는 한국어가 무너져(BUILD-LOG 2026-09-12) 글쓰기 예비로는 안 넣는다. 짧은 JSON 분석에만 끝자리로 쓴다.
  */
 export const 공급자들 = ({ groq = false } = {}) => {
-  const 순서 = [process.env.WRITER_PROVIDER, "openrouter", "anthropic", "gemini", ...(groq ? ["groq"] : [])];
+  // claude-code 는 원장 Max 구독이라 따로 돈이 안 든다. 있으면 지정 공급자 바로 다음, 돈 드는 쪽보다 앞에 둔다
+  const 순서 = [process.env.WRITER_PROVIDER, "claude-code", "openrouter", "anthropic", "gemini", ...(groq ? ["groq"] : [])];
   const 있음 = {
+    "claude-code": 클로드코드있음(),
     openrouter: !!오픈라우터(),
     anthropic: !!(process.env.ANTHROPIC_API_KEY || (process.env.LLM_PROXY_URL && process.env.LLM_PROXY_TOKEN)),
     gemini: !!process.env.GEMINI_API_KEY,
@@ -80,7 +97,7 @@ export const 공급자들 = ({ groq = false } = {}) => {
 const 모델변수 = (p) => {
   // WRITER_PROVIDER 가 없으면 키로 자동으로 고른 첫 공급자가 주인이다
   const 주인 = process.env.WRITER_PROVIDER
-    || (오픈라우터() ? "openrouter" : process.env.ANTHROPIC_API_KEY ? "anthropic" : process.env.GEMINI_API_KEY ? "gemini" : process.env.GROQ_API_KEY ? "groq" : null);
+    || (클로드코드있음() ? "claude-code" : 오픈라우터() ? "openrouter" : process.env.ANTHROPIC_API_KEY ? "anthropic" : process.env.GEMINI_API_KEY ? "gemini" : process.env.GROQ_API_KEY ? "groq" : null);
   return 주인 === p ? process.env.WRITER_MODEL : undefined;
 };
 
@@ -88,7 +105,9 @@ export const 공급자만들기 = (지정) => {
   const pick =
     지정 ||
     process.env.WRITER_PROVIDER ||
-    (오픈라우터()
+    (클로드코드있음()
+      ? "claude-code"
+      : 오픈라우터()
       ? "openrouter"
       : process.env.ANTHROPIC_API_KEY
       ? "anthropic"
@@ -97,6 +116,32 @@ export const 공급자만들기 = (지정) => {
         : process.env.GROQ_API_KEY
           ? "groq"
           : null);
+
+  if (pick === "claude-code") {
+    // 원장 Max 구독(CLAUDE_CODE_OAUTH_TOKEN). 요금이 따로 안 나가고 크레딧이 끊길 일이 없다(2026-09-22 전환).
+    // 검색이 필요하면 WebSearch 를 켜고, 읽은 결과 주소를 출처로 준다
+    const model = 모델변수("claude-code") || "opus";
+    return {
+      이름: "claude-code",
+      key: "구독",
+      url: "claude-code:",
+      model,
+      검색가능: true,
+      최대토큰: 12000,
+      headers: () => ({ "content-type": "application/json" }),
+      요청: (p, 최대, 옵션 = {}) => ({
+        prompt: p,
+        model,
+        검색: Boolean(옵션.검색),
+        system: 옵션.검색
+          ? "너는 한국어로 글을 쓰는 작가다. 웹 검색으로 근거를 찾고, 요청한 JSON 형식만 출력한다. 다른 말은 붙이지 않는다."
+          : "너는 한국어로 글을 쓰는 작가다. 요청한 JSON 형식만 출력한다. 다른 말은 붙이지 않는다.",
+      }),
+      text: (d) => d.text ?? "",
+      끊겼나: () => false,
+      출처: (d) => (d.urls ?? []).map((u) => ({ 제목: u.title ?? "", 주소: u.url })),
+    };
+  }
 
   if (pick === "groq") {
     // 무료 목록은 전부 오픈웨이트다. 여섯 번 재봤고 한국어에서 같은 자리에서 무너졌다.
@@ -148,7 +193,7 @@ export const 공급자만들기 = (지정) => {
   }
 
   if (pick === "anthropic") {
-    // 키가 Vercel 에만 있으면 중계를 거친다. Anthropic 직판은 선불이 아니라 사용량 월 청구라 크레딧이 끊길 일이 없다
+    // 키가 Vercel 에만 있으면 중계를 거친다. Anthropic API 는 선불 크레딧이다 — 월 청구라 적었던 건 틀렸다(2026-09-22 잔액 소진으로 섰다)
     const 중계 = process.env.LLM_PROXY_URL && process.env.LLM_PROXY_TOKEN;
     const model = 모델변수("anthropic") || "claude-opus-5";
     return {

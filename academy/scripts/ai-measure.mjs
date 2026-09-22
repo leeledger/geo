@@ -18,6 +18,7 @@
 import fs from "node:fs";
 import { Pool } from "pg";
 import { 오픈라우터, 재시도, 모델들 } from "./writer-common.mjs";
+import { 클로드코드, 클로드코드있음 } from "./claude-code.mjs";
 
 for (const l of fs.readFileSync(new URL("../.env.local", import.meta.url), "utf8").split(/\r?\n/)) {
   const m = /^([A-Z_]+)=(.*)$/.exec(l);
@@ -40,6 +41,30 @@ const 도메인 = (s) => {
 };
 
 const ENGINES = [
+  {
+    /**
+     * Claude Code(머리 없이) + WebSearch. 원장 Max 구독으로 돈다 — API 크레딧이 필요 없다(2026-09-22 전환).
+     * 인용은 anthropic-web 과 같은 기준: 검색해서 실제로 받아 본 결과 주소.
+     * 9/10 의 claude-code-websearch 는 세션에서 손으로 잰 것이라 방법 이름을 따로 둔다 — 섞으면 비율을 비교할 수 없다.
+     */
+    engine: "claude-code-web",
+    method: "claude-code-headless-websearch",
+    key: 클로드코드있음() ? "구독" : null,
+    model: process.env.MEASURE_CLAUDE_CODE_MODEL || "sonnet",
+    gap: 3000,
+    ask: async (e, text) => {
+      const r = await 클로드코드(text, {
+        system: "너는 한국어로 답하는 일반 AI 도우미다. 사용자의 질문에 웹 검색으로 최신 정보를 찾아 답한다. 코딩과 무관한 질문도 똑같이 성실히 답한다.",
+        tools: ["WebSearch"],
+        model: e.model,
+      });
+      // 구독 한도에 걸리면 나머지 질문도 똑같이 막힌다 — 429 로 넘겨 루프를 멈춘다
+      if (!r.ok) return { status: r.한도 ? 429 : 0, error: r.error ?? "알 수 없음" };
+      const citations = r.urls.map((u) => ({ domain: 도메인(u.url), title: u.title, url: u.url }));
+      const answerUrls = r.text.match(/https?:\/\/[^\s)\]>"']+/g) ?? [];
+      return { answer: r.text, citations, answerUrls };
+    },
+  },
   {
     // 원장 결정(2026-09-17). 모델 0원, 웹 검색(Exa)은 요청당 $0.007 크레딧
     engine: "openrouter",
