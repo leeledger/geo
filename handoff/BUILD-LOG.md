@@ -728,3 +728,26 @@ Known Gaps
 - KG: 재시도·사람 대기(시도 ≥2)·web 발행 막기·다시 그리기 버튼은 실제로 돌려 보지 않았다(tsc 만). web 은 푸시 전
 - KG: 되돌리기(revertDraft)는 다듬기 전 원문으로 돌린다 — 그 뒤에 붙은 도해 줄도 사라진다. 그러면 삽화 담당이 다시 그린다(도해 없는 초안)
 - KG: 네이버 --dry 가 에디터에 임시 저장을 남긴다(원래 동작)
+
+### Step 12 — Richard 1차 반영 — BUILT (재검토 대기)
+*Date: 2026-09-22 · Bob*
+
+- Must 1: 걸러내기 → **허용 목록**. 요소는 접두어 없는 SVG 그리기 요소(svg·g·defs·title·desc·도형·text·tspan·그라데이션·stop·filter·fe 7종·clipPath·mask·pattern·use·symbol·marker·style)만. 접두어 속성은 `xmlns:xlink`(정확한 URI)·`xlink:href="#…"` 만, `xmlns` 는 SVG URI 만. 속성 값과 `<style>` 글은 **엔티티를 푼 뒤** 검사(「&#x75;rl(」). `\`(CSS 이스케이프)·`@` 규칙·CDATA 는 버린다. href 는 `#` 만, url() 은 `#` 만
+- Must 1: `tools/svg-to-png.mjs` — `newContext({ javaScriptEnabled: false })` + file: 말고 모든 요청 abort. 모든 사용처에 걸린다. 시험: `<script>` 가 글자를 바꾸고 fetch 하는 SVG + 외부 `<image>` → PNG 에 「SAFE」 그대로 · 로컬 수신 서버 요청 0건. parsererror 잡기는 그대로(날 & → 종료 1)
+- Must 2: 삽화 하루 몫 `ILLUSTRATE_MAX_PER_DAY`(기본 6, KST 날짜, geo.claude_calls purpose illustrate). illustrate.mjs 가 부르기 전에 세고 「하루몫」 → company 는 다음 KST 자정 뒤로 미룬다. 측정 아닌 몫 20 중 삽화 최대 6 → 14 가 writer·audit·repair·sales 몫으로 남는다. 측정 예약 20 은 claude-code.mjs 그대로
+- 결정: 600자 미만 초안은 그리지 않는다(company·illustrate 같은 기준, 검토 화면에도 그렇게 적는다). 원장이 되돌린 2023 빈 글(43자)이 매시 호출을 먹지 않게
+- Should: route CSP 에 `sandbox` · **발행된 글의 그림만** 내보냄(posts join published) · 캐시 1시간(Arch 결정)
+- Should: 검토 화면이 도해를 미리 보여 준다 — DB SVG 를 서버에서 `data:image/svg+xml;base64` `<img>` 로(스크립트 안 돎, 새 경로 없음). 손으로 넣은 public 도해는 사이트 주소 `<img>`
+- Should: 막대는 `data-orient="h|v"` 필수(짐작 없앰). data-value 가 없는데 data-axis 눈금이 있거나, 모서리 작은(rx≤6) 얇은(≤40) rect 둘 이상이 굵기가 같고 길이만 10% 넘게 갈리며 수 글자가 있으면 버린다. 둥근 알약·같은 크기 카드·범례는 안 걸린다(참고 예시 3장 통과)
+- Should: 한글 수사에 수천·수만·몇·석·넉. sales --draft-test 14/14(수만 명·몇 배·「중요한 점」 추가), --leak-test 20/20
+- Should: 발행 막기가 본문의 `/blog/img/<slug>/<name>.svg` 가 post_images 에 다 있는지도 본다(SQL 을 운영 DB 에서 시험: 없는 그림 → 막음, public 그림만·그림 없음 → 조건 통과)
+
+결과
+- `--test` 전부 맞음 — Richard 페이로드(h:script·x:foreignObject·x:href·<image> 두 가지·\75rl(·@\69mport·style 속성 \·엔티티 url(·<animate attributeName=href>·<set>·<a>·CDATA) 전부 버림, 안전한 <style> 통과
+- 학원 배포(nj164dvw1). 운영: 발행 글 슬러그 그림 200 · `Cache-Control: public, max-age=3600` · `CSP …; sandbox` · 초안 슬러그 그림 404 (시험 행은 지움)
+- 랜딩(푸시 f9adfaf·55f878c): /admin/drafts 에 「도해가 아직 없습니다…」 · 발행 버튼 disabled · 「도해 다시 그리기」 확인
+- Actions company run 35716797232 (55f878c) 성공. 600자 미만 초안이라 삽화 일감 없음, noimg 일감 2건은 코디네이터가 도해를 넣고/비공개로 돌려 완료
+
+Known Gaps
+- KG: 검토 화면 도해 미리보기(data:)는 도해 붙은 초안이 없어 운영에서 눈으로 못 봤다. 검토 화면에 보이는 시험 초안을 만들지 않기로 해서다 — 다음 실제 초안에서 본다
+- KG: 하루 몫 도달 → 다음 날 미룸, 재시도·사람 대기 경로는 아직 실제로 안 돌았다
