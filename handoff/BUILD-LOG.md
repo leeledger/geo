@@ -645,3 +645,18 @@ Known Gaps
 
 Known Gaps
 - KG: 합친 뒤 확인 실행은 워크플로의 결론(success)만 본다. company.mjs 처럼 안에서 오류를 잡고 0 으로 끝나는 스크립트는 수리가 깨뜨려도 「성공」으로 나온다
+
+### Step 11 — 영업 담당 — BUILT (Richard 검토 대기)
+*Date: 2026-09-22 · Bob*
+
+- 새 파일: `academy/scripts/sales.mjs`, `.github/workflows/sales.yml` (월 08:10 KST + dispatch run·leak-test). 회사 루프가 sales.yml 을 지켜보되 다시 띄우지 않는다
+- 결정: 초안은 claude 1회/주(purpose sales, capRequired), 도구 없이 빈 임시 폴더. 재료는 케이스 리포트 공개본 본문 + 그 후보·리드 행뿐
+- 결정: 초안에 재료에 없는 숫자나 가릴 말이 있으면 버리고 숫자 없는 틀로 — 지어내지 않는다를 코드로 지킨다. 버린 원문은 payload 에만
+- 결정: 공개본 가림 검사 목록 = clients.mjs 이름 변형·도메인·brandRe·presenceRe 글자 + 지역어(case-report MASKS 와 같은 말) + 영업 후보 이름 + 전화번호. 하나라도 있으면 공개본을 안 바꾸고 사람 대기
+- 사건: 첫 실행에서 통화문 10개가 전부 버려졌다 — 영업 후보 이름이 가릴 말 목록(공개본용)에 있어 통화 상대 이름만 불러도 걸렸다. 통화 상대 자기 이름은 빼고 검사하게 고침(ae50b51). 이번 주 원장 줄에는 숫자 없는 틀이 올라가 있다
+- 결과: 가림 검사 시험 10/10 (run 35706714170) · 실행 → 케이스 리포트 갱신 커밋 f5b40e8(가림 통과) · 통화 사람 대기 10 · 리드 0 (run 35706781965) · 재실행 중복 없음 (run 35706988353)
+
+Known Gaps
+- KG: 고친 판으로 claude 통화문이 검사를 통과하는지는 다음 월요일에 처음 본다
+- KG: 지역어 목록이 sales.mjs 와 case-report.mjs MASKS 두 곳에 있다
+- KG: 리드 답장 경로는 리드 0건이라 아직 안 돌았다
