@@ -247,9 +247,9 @@ const main = async () => {
     const 주기 = Number(process.env.MEASURE_EVERY_DAYS) || 1;
     if (주기 > 1 && todo.length && !LIMIT) {
       const [최근] = await q(
-        `select max(measured_on)::text day from academy.ai_measurements
+        `select max(measured_on)::text as last_day from academy.ai_measurements
           where client_id=$1 and collection_method=$2`, [client.id, e.method]);
-      const 지난날 = 최근?.day ? Math.round((new Date(오늘) - new Date(최근.day)) / 86400000) : 999;
+      const 지난날 = 최근?.last_day ? Math.round((new Date(오늘) - new Date(최근.last_day)) / 86400000) : 999;
       if (지난날 < 주기 && done.size === 0) {
         요약.push(`${e.engine}: ${주기}일 주기 — 마지막 측정 ${지난날}일 전이라 오늘은 건너뜀`);
         성공엔진++;
