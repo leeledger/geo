@@ -529,3 +529,15 @@ Known Gaps
 - write.yml 재실행: 뉴스(제미나이 근거 429) → 초안(제미나이 503 · OpenRouter 402 · Anthropic 잔액 400). 예비 경로는 설계대로 돌았고 막힌 건 돈. 크레딧·한도로만 막히면 78(건너뜀)로 끝내 「코드 고쳐야」 일감이 안 생기게 함(0596746). 운영 일감 17 닫음
 - who-wins: 이기는 페이지 안에 우리가 있는지 주소·전화로 대조 → 등재 일감 5개 중 4개는 이미 올라 있어 닫음(53b877b). 남은 「잠실」: 순위닷 태그에 잠실이 없음, 플레이스 대표 키워드 추정
 - 사람 몫(돈·로그인·상담)만 남음: Anthropic 충전(60) · 상담 결과 2건(8) · 아이로그 서치콘솔(3, 고객사 계정) · 플레이스 대표 키워드(258) · 초안 2편 사실 확인
+
+### 2026-09-22 (오후) — 에이전트를 Max 구독(Claude Code)으로 · Brave 색인 0건 발견
+
+- 원장 지적 「Max 구독 중인데 API 크레딧 따로 충전은 불편」 → `claude setup-token` 으로 구독 토큰을 GitHub 시크릿(CLAUDE_CODE_OAUTH_TOKEN)에 넣고, 측정·초안·분석을 `claude -p` 로 돌림(`academy/scripts/claude-code.mjs`)
+  - 기본 시스템 프롬프트가 코딩 도우미라 학원 추천을 거절 → `--system-prompt` 로 바꿈. 빈 임시 폴더·`--strict-mcp-config`·ANTHROPIC_API_KEY 빼고 실행
+  - 첫 토큰은 복사 중 잘려 401 → 원장이 다시 넣음. GitHub 에서 20문항 측정 성공(오늘 20/20)
+  - 변수: WRITER_PROVIDER=claude-code · MEASURE_ENGINES=claude-code-web · MEASURE_EVERY_DAYS=3. CLI 2.1.278 고정
+  - Richard 4차까지(Must 5·Should 12) 반영, 통과. 결정: 판정은 같은 엔진끼리만 비교(엔진 전환이 「효과 있음」으로 적히지 않게), 뉴스 출처는 근거·본문에 주소가 똑같이 나온 것만
+- **발견: Claude 는 우리를 못 찾는다.** 20문항 검색 결과에 robotncoding.com 0건. 「robotncoding.com 무슨 학원?」 → 「강남 대치동, 2008년」, 다른 답은 우리 주소·전화를 「잼코딩학원 석촌캠퍼스」에 붙임
+  - 원인: Claude 웹 검색은 Brave 색인을 쓰는데 Brave 에 `site:robotncoding.com` 0건(Playwright 로 확인). ClaudeBot 127쪽 수집은 학습용이라 별개
+  - `tools/brave-submit.mjs` — 주소 입력·제출은 도구, 캡차는 사람. 효과는 3일마다 claude-code-web 인용으로 본다
+- 사이트 자체(llms.txt·JSON-LD)는 주소·전화·「이 주소의 학원이 우리」를 이미 분명히 적고 있다 — 문제는 글이 아니라 색인
