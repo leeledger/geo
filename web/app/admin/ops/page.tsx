@@ -86,6 +86,13 @@ const CSS = `
 .td-naver{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .td-naver input{background:var(--sunk);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 9px;font:inherit;font-size:14px;min-width:150px}
 .td-more{margin:8px 0 0;font-size:14px;color:var(--ink2)}
+.td-list li.doing{opacity:.6}
+.ops .td-more-d{position:relative;border:0;border-radius:0;background:none;overflow:visible;box-shadow:none}
+.ops .td-more-d>summary{display:inline-block;padding:7px 12px;font-size:14px}
+.ops .td-more-d>summary::after{content:none}
+.ops .td-more-d p{position:absolute;right:0;top:calc(100% + 6px);z-index:5;width:min(420px,80vw);max-width:none;box-sizing:border-box;
+  background:var(--sunk);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:0;font-size:14px;line-height:1.6;color:var(--ink2)}
+@media(max-width:720px){.ops .td-more-d>summary{display:block;text-align:center}.ops .td-more-d p{position:static;width:auto;margin-top:6px}}
 @media(max-width:720px){
   .td-list li{flex-direction:column;align-items:stretch;gap:8px}
   .td-t{display:flex;flex-direction:column}

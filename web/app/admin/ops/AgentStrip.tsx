@@ -13,7 +13,7 @@ import type { Agents, AgentState } from "@/lib/agents";
  */
 
 const LABEL: Record<AgentState, string> = {
-  unknown: "확인 못함", off: "꺼짐", stuck: "막힘", late: "지연", working: "일하는 중", idle: "쉬는 중", ok: "정상",
+  unknown: "확인 못함", off: "꺼짐", stuck: "막힘", late: "지연", working: "일하는 중", pcoff: "PC 꺼짐", idle: "쉬는 중", ok: "정상",
 };
 const POLL_MS = 45_000;
 const FLASH_MS = 1_800;

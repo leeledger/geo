@@ -14,7 +14,7 @@ import { pool } from "./ops";
  */
 
 /** 화면 글자는 AgentStrip 의 LABEL (클라이언트가 이 파일을 불러오면 pg 까지 딸려 간다 — 타입만 가져간다) */
-export type AgentState = "unknown" | "off" | "stuck" | "late" | "working" | "idle" | "ok";
+export type AgentState = "unknown" | "off" | "stuck" | "late" | "working" | "pcoff" | "idle" | "ok";
 
 /** 활동 한 줄 (geo.agent_activity + 그 일감의 kind) */
 export type Act = { agent: string; action: string; ok: boolean; summary: string; at: string; kind: string | null };
@@ -39,7 +39,6 @@ export type Agents = {
   rows: AgentRow[];
   /** 오늘(KST) Claude 호출 수. cap 은 env CLAUDE_DAILY_MAX — 없으면 null 이고 화면은 상한을 안 쓴다 */
   claude: { n: number; cap: number | null } | null;
-  err?: string;
 };
 
 /**
@@ -49,6 +48,7 @@ export type Agents = {
  * times     KST HH:MM. dow 가 있으면 그 요일만(0=일, 1=월)
  * hourly    매시 몇 분 — 시각 대신 「2시간 무소식」 하나로 판정
  * countMirror  옮긴 줄을 오늘 건수에 세는가. 스스로 활동을 적는 일은 안 센다(이중 계산) — 단 옮긴 줄이 실패면 실패로 센다
+ * pc        원장 PC 의 로컬 에이전트. 한 번 비면 회색 「PC 꺼짐」, 두 번 연속 비면 빨간 「지연」(Arch 결정 9/22 — 퇴근한 저녁마다 빨간 불이면 경보 피로)
  */
 type Job = {
   name: string;
@@ -58,6 +58,7 @@ type Job = {
   dow?: number;
   hourly?: number;
   countMirror: boolean;
+  pc?: boolean;
 };
 
 type Role = { id: string; name: string; agents: string[]; jobs: Job[] };
@@ -99,7 +100,7 @@ export const ROLES: Role[] = [
     jobs: [
       { name: "색인 알림", wf: "snapshot", times: ["03:23"], countMirror: true },                                    // snapshot.yml 23 18 * * *
       // 원장 PC 의 로컬 에이전트. PC 가 꺼져 있으면 기록이 없다 — 그것도 알려야 할 일이다
-      { name: "원장 PC 작업", self: { agent: "deliver", action: "로컬 에이전트 출근" }, times: ["12:40", "19:10"], countMirror: false },
+      { name: "원장 PC 작업", self: { agent: "deliver", action: "로컬 에이전트 출근" }, times: ["12:40", "19:10"], countMirror: false, pc: true },
     ],
   },
   {
@@ -155,22 +156,35 @@ export function plain(s: string | null | undefined): string {
   t = t.replace(/[\w.-]*gemini[\w.-]*/gi, "Gemini");
   t = t.replace(/microsoft(?=[^a-z]|$)/gi, "빙").replace(/빙를/g, "빙을").replace(/빙가/g, "빙이").replace(/빙는/g, "빙은").replace(/빙와/g, "빙과");
   t = t.replace(/\bvendor\b/gi, "");
+  t = t.replace(/\bR\d+\b/g, "감사 규칙").replace(/영점/g, "0에 머묾");   // 감사 용어
   t = t.replace(/\s*\(?최고\s*\d+(?:\.\d+)?\s*%\)?/g, "");
   t = t.replace(/\s*\d+(?:\.\d+)?\s*%/g, "");
+  // 지운 자리에 남은 외톨이 조사(「통화 뒤 에 결과」 「: 의 비교군」). 「이 학원」의 「이」처럼 낱말도 되는 것은 안 지운다
+  t = t.replace(/(^|[\s:(])(?:의|에|를|을|으로|에서)(?=\s)/g, "$1");
   t = t.replace(/\(\s*\)/g, "").replace(/\s+([,)])/g, "$1").replace(/(·\s*){2,}/g, "· ").replace(/\s+/g, " ").trim();
+  t = t.replace(/\bgoogle\b/gi, "구글").replace(/\bnaver\b/gi, "네이버").replace(/\bcrawl-push\b/g, "색인 재요청")
+    .replace(/빙\(빙\)/g, "빙").replace(/빙는/g, "빙은").replace(/감사 규칙 감사 (?:신호|규칙)/g, "감사 규칙")
+    .replace(/\(\s*→\s*/g, "(").replace(/감사 규칙와/g, "감사 규칙과").replace(/감사 규칙는/g, "감사 규칙은");
   return t.replace(/^[·—:\s-]+|[·—:\s-]+$/g, "");
 }
 
 const MIRROR = /^자동 작업 ([a-z]+)$/;
 
-/** 활동 한 줄을 사람 말로. 옮긴 줄의 summary(「schedule · success」 류)는 버린다 */
+/**
+ * 활동 한 줄을 사람 말로.
+ * 옮긴 줄은 GitHub 실행이 끝났다는 뜻일 뿐이다 — 「수리 성공」처럼 일의 성과로 읽히게 쓰지 않는다(Richard 9/22).
+ * 실패는 원인 원문을 빼고 「<일> 실패 — 로그 확인」. 원문은 자세히의 직원별 현황에만 있다.
+ */
 export function said(a: Act): string {
   const m = MIRROR.exec(a.action);
-  if (m) return `${WORKFLOW_PLAIN[m[1]] ?? "자동 작업"} ${a.ok ? "성공" : "실패"}`;
+  if (m) return `${WORKFLOW_PLAIN[m[1]] ?? "자동 작업"} 실행 ${a.ok ? "완료" : "실패"}`;
   const head = plain(a.action);
+  if (!a.ok) return `${head} 실패 — 로그 확인`;
   const tail = plain(a.summary);
   return tail ? `${head} · ${tail}` : head;
 }
+
+const isMirror = (a: Act) => MIRROR.test(a.action);
 
 /* ─────────────────────────────── 역할 가르기 */
 
@@ -196,13 +210,24 @@ const dowOf = (day: string) => new Date(`${day}T00:00:00Z`).getUTCDay();
 const at = (day: string, hm: string) => Date.parse(`${day}T${hm}:00+09:00`);
 const plusDays = (day: string, n: number) => kstDay(Date.parse(`${day}T12:00:00+09:00`) + n * 86400000);
 
-/** 오늘 KST 로 이미 지난 가장 최근 시각 (요일 제한 반영). 없으면 null */
-function lastSlot(j: Job, now: number): { t: number; hm: string } | null {
-  if (!j.times) return null;
-  const day = kstDay(now);
-  if (j.dow !== undefined && dowOf(day) !== j.dow) return null;
-  const past = j.times.map((hm) => ({ t: at(day, hm), hm })).filter((s) => s.t <= now);
-  return past.length ? past[past.length - 1] : null;
+type Slot = { t: number; label: string };
+/**
+ * 유예(90분)까지 지난 정해진 시각들, 최신이 앞. 오늘부터 8일 전까지 본다(요일 제한 반영) —
+ * 오늘만 보면 어제 놓친 일이 자정 뒤에 「정상」으로 칠해지고, 월요일에 놓친 주 1회 일이 엿새 동안 정상이다(Richard 9/22).
+ */
+function dueSlots(j: Job, now: number): Slot[] {
+  if (!j.times) return [];
+  const today = kstDay(now);
+  const out: Slot[] = [];
+  for (let k = 0; k <= 8; k++) {
+    const day = plusDays(today, -k);
+    if (j.dow !== undefined && dowOf(day) !== j.dow) continue;
+    for (const hm of j.times) {
+      const t = at(day, hm);
+      if (now - t >= LATE_GRACE_MIN * 60000) out.push({ t, label: day === today ? hm : `${Number(day.slice(5, 7))}/${day.slice(8, 10)} ${hm}` });
+    }
+  }
+  return out.sort((a, b) => b.t - a.t);
 }
 
 function nextSlot(jobs: Job[], now: number): number | null {
@@ -244,34 +269,46 @@ export type JudgeInput = {
   tasks: OpenTask[];
   /** geo.settings repair_paused (수리공만 의미 있음) */
   paused?: boolean;
+  /** 최근 7일 geo.repairs 에서 합친 수 (수리공만). null = 못 읽음 */
+  merged7?: number | null;
 };
+
+const daysAgo = (iso: string, now: number) => Math.floor((now - Date.parse(iso)) / 86400000);
 
 export function judge(role: Role, input: JudgeInput, now: number): AgentRow {
   const { acts, tasks } = input;
-  const latest = acts[0] ?? null;
+  // 수리공은 옮긴 줄(워크플로가 돌았다)로 판정하지 않는다 — 스위치가 꺼져도 워크플로는 「성공」한다
+  const isRepair = role.id === "repair";
+  const own = isRepair ? acts.filter((a) => !isMirror(a)) : acts;
+  const shown = own[0] ?? null;
   const base = {
     id: role.id, name: role.name,
-    last: latest ? { at: latest.at, text: said(latest), ok: latest.ok } : null,
+    last: shown ? { at: shown.at, text: said(shown), ok: shown.ok } : null,
     next: fmtNext(nextSlot(role.jobs, now), now),
     today: countToday(role, acts, now),
   };
   const row = (state: AgentState, reason: string | null): AgentRow => ({ ...base, state, reason });
 
   // 꺼짐 — 수리공 스위치. 켜는 건 원장님 (에이전트가 켜지 않는다)
-  if (role.id === "repair") {
-    const own = acts.find((a) => a.agent === "repair");
+  if (isRepair) {
     if (input.paused) {
-      const why = acts.find((a) => a.agent === "repair" && a.summary.startsWith("수리공 멈춤 — "));
+      const why = own.find((a) => a.summary.startsWith("수리공 멈춤 — "));
       const text = why ? plain(why.summary.replace(/^수리공 멈춤 — /, "").replace(/\s*\(.*$/, "")) : "";
       return row("off", `멈춤 — ${text || "사람이 풀 때까지"}`);
     }
-    if (own && own.summary.startsWith("스위치 꺼짐")) return row("off", "스위치 꺼짐 — 켜는 건 원장님");
+    if (shown && shown.summary.startsWith("스위치 꺼짐")) return row("off", "스위치 꺼짐 — 켜는 건 원장님");
   }
 
-  // 막힘 — 가장 최근 활동이 실패 (그 뒤 성공이 있었다면 그게 가장 최근이다)
-  if (latest && !latest.ok) return row("stuck", said(latest));
+  // 막힘 — 가장 최근 활동이 실패. 수리공의 「검토 불합격」은 검토 관문이 제 일을 한 것이라 막힘으로 안 친다
+  const failing = isRepair ? acts.filter((a) => !(a.agent === "repair" && a.summary.includes("검토 불합격"))) : acts;
+  const latest = failing[0] ?? null;
+  if (latest && !latest.ok) {
+    const d = daysAgo(latest.at, now);
+    return row("stuck", `${said(latest)}${d >= 1 ? ` · ${d}일 전` : ""}`);
+  }
 
-  // 지연
+  // 지연 — 유예가 지난 정해진 시각 뒤에 기록이 없다. 원장 PC 는 한 번은 회색, 두 번 연속이면 지연
+  let pcMiss: string | null = null;
   for (const j of role.jobs) {
     if (j.hourly !== undefined) {
       const last = acts.find((a) => matches(j, a));
@@ -280,20 +317,30 @@ export function judge(role: Role, input: JudgeInput, now: number): AgentRow {
       }
       continue;
     }
-    const s = lastSlot(j, now);
-    if (!s || now - s.t < LATE_GRACE_MIN * 60000) continue;
-    if (!acts.some((a) => matches(j, a) && Date.parse(a.at) >= s.t)) {
-      return row("late", `${j.name} ${s.hm} 예정이었는데 기록이 없습니다`);
+    const due = dueSlots(j, now);
+    if (!due.length) continue;
+    const doneSince = (t: number) => acts.some((a) => matches(j, a) && Date.parse(a.at) >= t);
+    if (doneSince(due[0].t)) continue;
+    if (j.pc) {
+      if (due[1] && !doneSince(due[1].t)) return row("late", `${j.name} ${due[1].label}·${due[0].label} 두 번 기록이 없습니다`);
+      pcMiss = `${j.name} ${due[0].label} 기록 없음 — PC 가 꺼져 있었을 수 있습니다`;
+      continue;
     }
+    return row("late", `${j.name} ${due[0].label} 예정이었는데 기록이 없습니다`);
   }
 
   // 일하는 중
   const run = tasks.find((t) => t.status === "실행 중" && now - Date.parse(t.updatedAt) <= WORKING_FRESH_MIN * 60000);
   if (run) return row("working", plain(run.title));
 
+  if (pcMiss) return row("pcoff", pcMiss);
+
+  // 수리공 — 최근 7일 합친 수리가 없으면 「정상」이 아니다
+  if (isRepair && input.merged7 === 0) return row("idle", "합친 수리 없음 (최근 7일)");
+
   // 쉬는 중 — 정해진 시각이 없는 역할만
   if (!role.jobs.length) {
-    const recent = latest && now - Date.parse(latest.at) <= 24 * 3600000;
+    const recent = shown && now - Date.parse(shown.at) <= 24 * 3600000;
     const open = tasks.some((t) => t.status !== "완료" && t.status !== "닫힘");
     if (!recent && !open) return row("idle", "할 일 없음");
   }
@@ -328,8 +375,9 @@ function claudeCap(): number | null {
 
 export async function readAgents(now = Date.now()): Promise<Agents> {
   const stamp = new Date(now).toISOString();
-  const unknown = (err: string): Agents => ({
-    ok: false, at: stamp, err, claude: null,
+  // 오류 원문은 서버 로그에만 — 응답·화면에는 「상태를 못 읽었습니다」만 (내부 이름이 샌다)
+  const unknown = (): Agents => ({
+    ok: false, at: stamp, claude: null,
     rows: ROLES.map((r) => ({ id: r.id, name: r.name, state: "unknown", reason: "상태를 못 읽었습니다", last: null, next: null, today: { ok: 0, fail: 0 } })),
   });
   try {
@@ -354,6 +402,13 @@ export async function readAgents(now = Date.now()): Promise<Agents> {
     const acts: Act[] = ar.map((r) => ({ agent: r.agent, action: r.action, ok: !!r.ok, summary: r.summary, at: iso(r.at), kind: r.kind ?? null }));
     const tasks: OpenTask[] = tr.map((r) => ({ agent: r.agent, kind: r.kind, status: r.status, title: r.title, updatedAt: iso(r.updated_at) }));
     const paused = sr[0]?.value === "true";
+    let merged7: number | null = null;
+    try {
+      const { rows: [m] } = await p.query(
+        `select count(*)::int as n from geo.repairs
+          where (status = '합침' or merged_at is not null) and coalesce(merged_at, updated_at) > now() - interval '7 days'`);
+      merged7 = m.n;
+    } catch (e) { console.error("repairs 읽기 실패", e); }
 
     return {
       ok: true, at: stamp, claude,
@@ -361,10 +416,11 @@ export async function readAgents(now = Date.now()): Promise<Agents> {
         acts: acts.filter((a) => roleOfAct(a) === r.id),
         tasks: tasks.filter((t) => roleOfAgent(t.agent, t.kind) === r.id),
         paused: r.id === "repair" ? paused : false,
+        merged7: r.id === "repair" ? merged7 : null,
       }, now)),
     };
   } catch (e) {
     console.error("에이전트 상태 읽기 실패", e);
-    return unknown(e instanceof Error ? e.message : String(e));
+    return unknown();
   }
 }
