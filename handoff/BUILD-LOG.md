@@ -803,3 +803,37 @@ Known Gaps
 Known Gaps
 - KG: check-crawler-class.mjs 는 손으로 돌린다. bots.ts 를 고치고 안 돌리면 web 사본이 늙는다
 - KG(Richard Escalate): ADMIN_TOKEN 교체 권고 — 원장 결정
+
+### Step 14 — 관리 화면 단순화 — BRIEFED (2026-09-22)
+원장: 「검색에 처음 나온 날 같은 의미 없는 건 빼」「너무 알아보기 힘들어」「전반적으로 쉽게」「직원들이 잘 돌고 있는지 실시간으로」「상태등 액티비티하게」.
+- 순서: 14a-1(현황판 재배치) → 14a-2(에이전트 직원 실시간 줄) → Richard → 배포 → 14b(나머지 관리 화면 + 공통 admin.css·AdminNav)
+- 현황판 맨 위 순서 결정: ① 오늘 원장님이 하실 일 ② 에이전트 직원 — 지금 ③ 크고 있나(카드 4장: AI 답변·답변 색인·글·문의) ④ 커버리지 차트 1개 ⑤ 자세히(운영자용) 하나
+- 제거: 검색에 처음 나온 날(ops.ts firstSeen 까지) · SLOTS 시간표·Live 시계(실제 일정과 달라 틀린 정보) · HUMAN 고정 목록 · 옛 KPI 7칸 · Growth 판정 줄 · Flow.tsx(죽은 코드)
+- 자세히로: 경쟁 검색어·크롤러 방문·사이티드 리드·플레이스·실패 수 · 표로 보기 · 크롤러 표 · 최근 글 5편 · AgentBoard 격자 · Brief
+- 화면에 엔진·방법 내부 이름 금지(자세히 포함). 엔진은 Claude/ChatGPT/… 로만
+- 실시간 줄: 45초 폴링(웹소켓 없음) · 원천은 DB(agent_activity·agent_tasks·claude_calls·settings) — 페이지에서 GitHub API 안 부름 · 지연 판정 grace 90분(출근기록이 최대 1시간 늦게 옮겨짐) · 상태 글자 라벨 항상 · reduced-motion 존중
+- repair.mjs: 스위치 꺼짐일 때 활동 한 줄 남김(화면이 REPAIR_ENABLED 를 알 방법이 없어서)
+- Claude 상한은 web env CLAUDE_DAILY_MAX 가 있을 때만 표시 — 없으면 사용 수만(지어내지 않는다)
+- 관리 화면 테마 하나(어두운 판)
+- Known Gaps 후보: 역할 시각표 상수가 .github/workflows cron 과 따로 논다(바꿀 때 둘 다) · CLAUDE_DAILY_MAX 가 GitHub 변수와 Vercel env 두 곳
+
+### Step 14a — 현황판 단순화 + 에이전트 직원 실시간 줄 — BUILT · 배포됨 (Richard 검토 대기) · 커밋 b4b397f
+- 새 파일: web/app/admin/ops/Todo.tsx · AgentStrip.tsx · web/lib/agents.ts · web/app/api/admin/agents/route.ts
+- 다시 씀: page.tsx(순서 ①~⑤, 폭 920·기본 16px) · Growth.tsx(카드 4장 + 차트 + GrowthMore)
+- 손봄: AgentBoard.tsx(할 일·요약 카운트 제거, 설명·활동 문구 plain) · agent-board.css(안 쓰는 규칙 삭제) · CoverageChart.tsx(aria-label 문구만) · ops.ts(firstSeen·daysMeasured·withImages 제거 — 소비처 0) · repair.mjs(스위치 꺼짐 활동 2곳)
+- 삭제: Live.tsx · Flow.tsx
+- 결정(Bob): 직원 줄은 **고객사로 거르지 않는다** — 직원은 회사 전체. 옮긴 줄(자동 작업 *)은 첫 고객사 번호로 적혀서, 거르면 아이로그 화면에선 전부 「지연」. readAgents() 는 client 인자 없음
+- 결정(Bob): countMirror 를 역할이 아니라 **일(job) 단위**로 둠 — write·snapshot 은 스스로 활동을 안 적어서(grep: agent_activity 를 쓰는 건 audit·repair·sales·company·setup-company 뿐) 역할 단위로 끄면 콘텐츠·유통의 정해진 일이 안 세진다
+- 결정(Bob): 지연 판정은 일마다(그 일의 옮긴 줄 또는 스스로 적은 줄이 정시 이후에 있나). 원장 PC 12:40·19:10 도 넣음 — PC 가 꺼져 있으면 「지연」이 뜬다(알려야 할 일)
+- 결정(Bob): repair.mjs merge 거부 분기 문구는 「스위치 꺼짐 — 합치지 않았습니다」(브리프 「같은 문구」 대신 사실대로. 판정은 「스위치 꺼짐」 앞머리로 하므로 같다)
+- 결정(Bob): 할 일·실패 문구에 plain() 을 씌움(표시만, 데이터 안 고침). 크롤러 표 커버리지는 % 대신 「읽은 쪽 / 전체쪽」
+- 결정(Bob): 랜딩 globals.css 의 section{padding:112px}·nav{sticky}·h2{max-width:22ch} 가 관리 화면에 먹어서 `:where(.ops)` 로 끊음 — 14b admin.css 로 옮길 것
+
+Known Gaps (14a)
+- KG: ROLES 시각표(web/lib/agents.ts)는 .github/workflows/*.yml cron 의 사본이다. cron 을 바꾸면 둘 다
+- KG: 일감 문구에 내부 이름이 섞여 있다(데이터는 안 고침, 화면에서만 plain). 예: 「조사 · 영점 — 크롤러: microsoft 크롤러 커버리지 10.6% (5/47)」 · 「자동 수리안(가지 auto/fix-319)이 … scout.mjs … R5(audit.mjs)」 · 「통화 뒤 /admin/outreach 에 결과와…」 · 「로봇&코딩학원 — openai 커버리지 32.6% (최고 100%)」 — 일감을 만드는 쪽(company.mjs·audit.mjs·sales.mjs)에서 쉬운 말로 쓰게 하는 건 별도 단계
+- KG: **발견** 9/22 23:24 KST 기준 「회사 루프」 활동이 19:36 뒤로 없다(약 4시간) → 운영·감사관 줄이 실제로 「지연」. company.yml 매시 cron 이 GitHub 에서 건너뛰어지는지 확인 필요(범위 밖, 안 건드림)
+- KG: Vercel env CLAUDE_DAILY_MAX 없음 → 화면은 「오늘 Claude 사용 n회」만. 40 을 넣을지는 Arch/원장 결정(넣을 땐 파일로 넘기고 env pull 로 길이 확인)
+- KG: 수리공 「꺼짐」은 다음 06:50 실행부터 보인다. 그 전엔 「정상」/「지연」일 수 있다
+- KG: web/app/page.tsx:168-169 랜딩이 readOps 실패 시 크롤러 수를 8·460 으로 채운다 — 지어낸 숫자 대체값(범위 밖)
+- KG: 14b 미착수
