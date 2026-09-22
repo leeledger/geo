@@ -12,7 +12,7 @@
  *  - 한도는 원장이 평소 쓰는 Claude 와 같이 쓴다. 가볍게 쓴다
  *
  *   const r = await 클로드코드("질문", { tools: ["WebSearch"] })
- *   r.ok · r.text · r.urls(검색 결과로 읽은 주소) · r.error · r.한도 · r.인증실패 · r.시간초과
+ *   r.ok · r.text · r.urls(검색 결과로 읽은 주소) · r.error · r.한도 · r.인증실패 · r.시간초과 · r.거절(권한에 막힌 도구 호출)
  */
 import { spawn, execFile } from "node:child_process";
 import fs from "node:fs";
@@ -110,6 +110,8 @@ export async function 클로드코드(prompt, { system = 기본시스템, tools 
         // error_max_turns 처럼 is_error 는 아닌데 실패인 경우도 이유를 남긴다
         error: ok ? null : (text.slice(0, 300) || result.subtype || "알 수 없음"),
         cost: result.total_cost_usd ?? null,
+        // 권한 규칙에 막힌 도구 호출(CLI 가 직접 센 것). 칸막이 시험의 증거다
+        거절: result.permission_denials ?? [],
       });
     });
     // claude 가 입력을 다 읽기 전에 죽으면(인증·설치·시간 초과) EPIPE 가 나고, 안 받으면 부른 프로세스까지 죽는다
