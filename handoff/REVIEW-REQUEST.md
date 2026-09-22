@@ -71,3 +71,12 @@ Must 6·Should 7·Arch 결정 2 를 다 넣었다. Actions 에서 가드 시험 
 - 사람이 띄운 run 이 킬 스위치가 꺼져 있어도 승인 대기까지 가는 것(위 Arch (a))
 - `process.env` 와 fetch 가 한 줄에 있으면 원래 있던 이름이라도 막는다 — 기존 코드 모양에 따라 과하게 막을 수 있다
 - 되돌리기는 BUILD-LOG 의 「자동 수리」 항목을 지우지 않고 「되돌림」 줄을 덧붙인다
+
+---
+## 추가 — Richard 2차 Should Fix 1~3 (83ce049 · 0807cf9)
+1. 봇 재실행: repair.yml 이 `REPAIR_ACTOR: github.triggering_actor` 를 넘긴다. 「사람이 띄움」 = dispatch + 띄운 이가 비어 있지 않고 `[bot]` 이 아님. 봇이 띄운 run·dry 는 지난 수리 확인만, merge 는 거절. company.mjs 는 repair.yml 실패를 다시 띄우지·rerun 하지 않고 사람 대기로만 올린다
+   - 로컬 흉내(GITHUB_ACTIONS=true, REPAIR_EVENT=workflow_dispatch, REPAIR_ACTOR=github-actions[bot]): merge → 「merge 는 사람만 띄운다 (github-actions[bot]) — 합치지 않는다」 · run → 「사람이 띄운 실행이 아니다 … 지난 수리 확인만 한다」
+2. 거절: 승인 합치기는 `repair-approve-<id>` 가 사람 대기일 때만. 완료·닫힘·없음이면 행 「거절」, 조사 사람 대기, 그 조사는 더 자동 수리 안 함(지난 수리 확인이 매 실행 찾는다). /admin/ops 에는 닫기 버튼이 없고 「완료」 표시만 있어(finishTask) 그걸 거절로 본다 — 승인 일감 문구에 그렇게 적고 SQL 한 줄 대안도 적었다
+3. 가드: `process[`·`Reflect.x(process`·`{ … env … } = process` 막음. 추가 줄에 `fetch(`·`request(`·`.post(`·`process` 가 있으면 needs_owner → 견습이 끝나도 무인 합치기 안 함(승인은 됨). 가드 시험 21/21 — Actions run 35705965069
+4. 확인 실행이 결론만 보는 것 → BUILD-LOG Known Gap
+- 덤: repair.mjs 는 작업 트리가 깨끗할 때만 돈다(0807cf9). finally 의 `checkout -f` 가 로컬 수정을 날릴 수 있었다
