@@ -541,3 +541,34 @@ Known Gaps
   - 원인: Claude 웹 검색은 Brave 색인을 쓰는데 Brave 에 `site:robotncoding.com` 0건(Playwright 로 확인). ClaudeBot 127쪽 수집은 학습용이라 별개
   - `tools/brave-submit.mjs` — 주소 입력·제출은 도구, 캡차는 사람. 효과는 3일마다 claude-code-web 인용으로 본다
 - 사이트 자체(llms.txt·JSON-LD)는 주소·전화·「이 주소의 학원이 우리」를 이미 분명히 적고 있다 — 문제는 글이 아니라 색인
+
+### Step 9 — 감사관 · 원인 조사 — BRIEFED
+*Date: 2026-09-22 · Arch*
+
+원장 지시 「심도있게 검토해서 AI 에이전트 회사로 운영해봐」. 9/22 에 찾은 문제(반복 실패·측정 정지·근거 없는 완료·Brave 0건)는 전부 사람 세션이 찾았다. 루프에 자기를 의심하는 자리가 없다.
+
+- 결정: 순서는 9 감사관(읽기만) → 10 수리공(가드 안에서 고치고 합치고 되돌림) → 11 영업 담당(준비만, 발송은 사람). 진단 없이 수리를 붙이면 엉뚱한 곳을 고친다
+- 결정: 감사관은 규칙 6개(반복 실패·멈춘 측정·근거 없는 완료·인용 0·크롤러 0·출근만)를 SQL 로 찾고, 하루 2건만 claude -p 로 가설 검증. 조사관은 읽기 도구만, DB·GitHub 토큰 없음, checkout 토큰 미보관
+- 결정: 근거(파일:줄·URL)가 없는 진단은 `관찰` 으로만 둔다. 분류 `code` 는 `수리 대기` — Step 10 입력
+- 결정: 수리공은 `academy/scripts/*.mjs` 만. 워크플로·web·academy/app·숫자 파는 스크립트·글 데이터 금지. GITHUB_TOKEN 은 workflows·변수·시크릿 권한이 없고 브랜치 보호도 없다(무료 비공개, 403) — 가드는 스크립트 안
+- 결정: 새 표 `geo.claude_calls`(Step 9), `geo.repairs`(Step 10). 전부 additive
+- 오늘 데이터: 자동 측정 cited 전부 0 · 크롤러 client1 microsoft 10.6%·duckduckgo 2.1%, client2 google·perplexity 10% · scout 는 벤더 넷만 봄
+
+### Step 9 — 감사관 · 원인 조사 — BUILT (Richard 검토 대기)
+*Date: 2026-09-22 · Bob*
+
+- 새 파일: `academy/scripts/audit.mjs`, `.github/workflows/audit.yml`. 표 `geo.claude_calls` (additive, audit 가 ensure)
+- `claude-code.mjs`: `cwd`·`envDrop` 옵션만. 안 주면 전과 똑같다(빈 임시 폴더, 지우는 것도 임시 폴더일 때만)
+- `company.mjs`: WORKFLOWS 에 `audit.yml: ops` 한 줄 · `web/lib/ops.ts`: 정렬에 `수리 대기` 를 `실패` 다음에 (한 줄)
+- 결정: R1 은 summary 뿐 아니라 **action 도 정규화**해 묶는다. who-wins 일감 제목이 「(9일째)」「(12일째)」로 바뀌어 같은 실패가 둘로 갈렸다
+- 결정: R6 의 「출근」은 `action like '%출근%'` (로컬 에이전트 출근 포함)
+- 결정: R3 측정 일감 = `kind='check-index'`(→ serp_checks) · `dedupe_key='openrouter-credits'`(→ ai_measurements, 일감 60)
+- 결정: 조사관 규칙·출력 형식은 **표준입력**으로 넘기고 시스템 프롬프트는 한 줄. 윈도에서 claude 는 cmd 를 거치는데
+  여러 줄 인자는 첫 줄에서 잘려 뒤의 `--tools` 까지 버려졌다 — 로컬 시험 2회가 도구 28개가 다 열린 채 20턴을 다 쓰고 끝났다(error_max_turns). 파일 변경은 없었다(git status 확인)
+- 결과: 로컬 진단 1건 성공 — R5 microsoft → `code`·기지 → `수리 대기`(일감 319). 근거 scout.mjs:57 · company.mjs:519
+
+Known Gaps
+- KG: `claude-code.mjs` 가 윈도에서 여러 줄·따옴표 든 `system` 을 cmd 로 넘기면 잘린다. Actions(리눅스, 셸 없음)는 괜찮다. writer-common 의 claude-code 초안을 로컬에서 돌리면 같은 일이 난다 — `--system-prompt-file` 로 바꾸는 게 맞다
+- KG: 로컬에서 `CLAUDE_CODE_LOCAL=1` 로 진단하면 조사관이 Read 로 `academy/.env.local` 을 볼 수 있다(규칙으로만 막음). Actions 는 파일이 없다
+- KG: `/admin/ops` 는 담당 카드(AgentBoard roles)에 audit 가 없어 `대기`·`수리 대기` 조사 일감이 카드에 안 뜬다. `사람 대기` 만 「원장님이 하실 일」에 뜬다. 이름표 한 줄 목록이 없어 brief 대로 손대지 않았다
+- KG: optimize 반복 실패 신호(R1)는 company 루프가 optimize 15:08 성공을 아직 activity 에 안 옮겨서 뜬 것이다. 다음 회사 루프 뒤 「회복」으로 닫힐 것

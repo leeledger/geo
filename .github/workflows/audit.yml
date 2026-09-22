@@ -1,0 +1,48 @@
+# 감사관 — 매일 아침 회사가 스스로를 의심한다 (academy/scripts/audit.mjs)
+#
+# 반복 실패 · 멈춘 측정 · 근거 없는 완료 · 0 인 지표를 찾아 조사 일감을 만들고,
+# 하루 2건까지 Claude Code 로 원인을 좁힌다. 읽기만 한다 — 코드도 글도 안 고친다.
+# 2026-09-22 에 찾은 문제가 전부 사람 세션에서 나왔다. 루프는 하나도 못 찾았다.
+#
+# 필요한 시크릿: DATABASE_URL, CLAUDE_CODE_OAUTH_TOKEN
+name: audit
+
+on:
+  schedule:
+    - cron: "35 21 * * *"   # 06:35 KST — optimize(07:05) 앞
+  workflow_dispatch: {}
+
+concurrency:
+  group: audit
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  actions: read   # company·optimize 실행 기록을 본다
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      # 조사관이 Read 로 .git/config 의 토큰을 못 보게 자격 증명을 남기지 않는다
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+      - run: npm install pg --no-save --silent
+        working-directory: academy
+      - name: Claude Code 설치
+        run: npm install -g @anthropic-ai/claude-code@2.1.278 --silent  # company.yml 과 같은 판
+      # .env.local 은 만들지 않는다 — 조사관이 저장소를 읽으니 비밀은 환경변수로만 준다
+      - name: 감사 · 원인 조사
+        working-directory: academy
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          GH_TOKEN: ${{ github.token }}
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          MEASURE_ENGINES: ${{ vars.MEASURE_ENGINES }}
+          MEASURE_EVERY_DAYS: ${{ vars.MEASURE_EVERY_DAYS }}
+        run: node scripts/audit.mjs

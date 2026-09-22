@@ -342,7 +342,7 @@ export async function readOps(client?: Client): Promise<Ops> {
                updated_at::text as updated, done_at::text as done
           from geo.agent_tasks
          where client_id=${c.id} and (status not in ('완료','닫힘') or done_at > now() - interval '48 hours')
-         order by case status when '사람 대기' then 0 when '실행 중' then 1 when '실패' then 2 when '대기' then 3 when '로컬 대기' then 4 when '관찰' then 5 else 6 end, priority, updated_at desc
+         order by case status when '사람 대기' then 0 when '실행 중' then 1 when '실패' then 2 when '수리 대기' then 3 when '대기' then 4 when '로컬 대기' then 5 when '관찰' then 6 else 7 end, priority, updated_at desc
          limit 120`);
       const activity = await q(`select agent, action, ok, summary, at::text as at, run_url
           from geo.agent_activity where client_id=${c.id} or client_id is null order by at desc limit 80`);
