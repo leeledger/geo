@@ -32,7 +32,8 @@ if (fs.existsSync(envFile)) {
 const 인자 = (name) => { const i = process.argv.indexOf(name); return i >= 0 ? process.argv[i + 1] : null; };
 const MODE = process.argv.includes("--dry") ? "dry" : process.argv.includes("--revert-test") ? "revert-test" : (process.env.REPAIR_MODE || "run");
 const TASK = (() => { const v = 인자("--task") ?? process.env.REPAIR_TASK; return v && /^\d+$/.test(v) ? Number(v) : null; })();
-const 정수 = (v, d) => { const n = Number(v ?? d); return Number.isInteger(n) && n >= 0 ? n : d; };
+// 빈 문자열도 기본값으로 — Actions 는 설정 안 한 변수를 "" 로 넘긴다. Number("") 는 0 이라 상한 0 이 됐다(9/22 첫 dry)
+const 정수 = (v, d) => { if (v === undefined || v === null || String(v).trim() === "") return d; const n = Number(v); return Number.isInteger(n) && n >= 0 ? n : d; };
 const MAX_PER_DAY = 정수(process.env.REPAIR_MAX_PER_DAY, 1);
 const ENABLED = process.env.REPAIR_ENABLED === "1";
 const REPO = process.env.GITHUB_REPOSITORY || "leeledger/geo";
@@ -108,7 +109,9 @@ const 비밀값들 = () => ["DATABASE_URL", "GH_TOKEN", "GITHUB_TOKEN", "CLAUDE_
 const 한도 = { 파일: 3, 줄: 80 };
 
 /** 바뀐 파일 목록 — 시작 전에 이미 있던 변경(로컬 작업 트리)은 뺀다 */
-const 바뀜 = (before = new Set()) => git("status", "--porcelain", "-uall").split("\n").filter(Boolean)
+// git() 은 출력을 trim 한다 — 첫 줄 앞의 공백(" M")이 날아가 파일 이름이 한 글자 잘린다. 여기선 날것을 쓴다
+const 바뀜 = (before = new Set()) => execFileSync("git", ["-c", "core.quotepath=false", "status", "--porcelain", "-uall"], { cwd: ROOT, encoding: "utf8" })
+  .split("\n").filter(Boolean)
   .map((l) => ({ code: l.slice(0, 2), file: l.slice(3).replace(/^"|"$/g, "") })).filter((x) => !before.has(x.file));
 
 const 가드 = (base, files) => {

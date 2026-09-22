@@ -35,7 +35,7 @@ const SANDBOX_TEST = process.argv.includes("--sandbox-test");
 const DRY = process.argv.includes("--dry");
 const NO_DIAG = DRY || process.argv.includes("--no-diag");
 // 숫자가 아니면 limit NaN 으로 감사 전체가 죽는다
-const MAX_DIAG = (() => { const n = Number(process.env.AUDIT_MAX_DIAG ?? 2); return Number.isInteger(n) && n >= 0 ? n : 2; })();
+const MAX_DIAG = (() => { const v = String(process.env.AUDIT_MAX_DIAG ?? "").trim(); const n = v === "" ? 2 : Number(v); return Number.isInteger(n) && n >= 0 ? n : 2; })();
 const REPO = process.env.GITHUB_REPOSITORY || "leeledger/geo";
 const HOUSE = 1; // 사이티드 자체 일은 첫 고객사 칸에 둔다 (company.mjs 와 같은 규칙)
 const ROOT = fileURLToPath(new URL("../..", import.meta.url));

@@ -36,7 +36,8 @@ const 인증문구 = /Failed to authenticate|Invalid bearer token|API Error: 401
  * 측정이 먼저다 — 측정 아닌 호출은 CLAUDE_MEASURE_RESERVE(기본 20) 만큼 남겨 두고 멈춘다 (Step 10, 2026-09-22)
  * 상한에 걸린 것은 「한도」로 돌려준다. 호출자들은 한도를 실패로 세지 않는다
  */
-const 정수 = (v, d) => { const n = Number(v ?? d); return Number.isInteger(n) && n >= 0 ? n : d; };
+// 빈 문자열도 기본값으로 — Actions 는 설정 안 한 변수를 "" 로 넘긴다. Number("") 는 0 이라 상한 0 이 됐다(9/22 첫 dry)
+const 정수 = (v, d) => { if (v === undefined || v === null || String(v).trim() === "") return d; const n = Number(v); return Number.isInteger(n) && n >= 0 ? n : d; };
 let 기록q = null;
 let 표준비 = null;
 /** DB 를 이미 연 호출자는 자기 쿼리 함수를 준다(감사관은 부르기 전에 DATABASE_URL 을 환경에서 지운다) */
