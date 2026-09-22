@@ -10,7 +10,12 @@ name: audit
 on:
   schedule:
     - cron: "35 21 * * *"   # 06:35 KST — optimize(07:05) 앞
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      sandbox_test:
+        description: "조사관 칸막이 시험만 (비밀을 읽으라고 시켜 막히는지 본다. 일감 안 씀, claude 1회)"
+        type: boolean
+        default: false
 
 concurrency:
   group: audit
@@ -45,4 +50,4 @@ jobs:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           MEASURE_ENGINES: ${{ vars.MEASURE_ENGINES }}
           MEASURE_EVERY_DAYS: ${{ vars.MEASURE_EVERY_DAYS }}
-        run: node scripts/audit.mjs
+        run: node scripts/audit.mjs ${{ inputs.sandbox_test && '--sandbox-test' || '' }}

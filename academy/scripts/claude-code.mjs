@@ -28,14 +28,18 @@ const 기본시스템 = "너는 한국어로 답하는 일반 도우미다. 코�
 const 한도문구 = /usage limit|limit reached|hit your limit|rate.?limit|resets\b|API Error: 429/i;
 const 인증문구 = /Failed to authenticate|Invalid bearer token|API Error: 401|OAuth token/i;
 
-export async function 클로드코드(prompt, { system = 기본시스템, tools = [], model = "sonnet", maxTurns = 8, timeoutMs = 5 * 60 * 1000, cwd = null, envDrop = [] } = {}) {
+export async function 클로드코드(prompt, { system = 기본시스템, tools = [], model = "sonnet", maxTurns = 8, timeoutMs = 5 * 60 * 1000, cwd = null, envDrop = [], allow = [], deny = [] } = {}) {
   // cwd 를 주면 그 폴더에서 돈다(감사관이 저장소를 읽는다). 안 주면 빈 임시 폴더 — 지우는 것도 임시 폴더일 때만
   const dir = cwd ?? fs.mkdtempSync(path.join(os.tmpdir(), "cc-"));
   const args = ["-p", "--output-format", "stream-json", "--verbose", "--model", model, "--max-turns", String(maxTurns),
     "--strict-mcp-config", "--system-prompt", system];
   // --allowedTools 는 허락만 한다. 다른 도구가 보이면 검색 결과 속 글에 끌려 Read 같은 걸 부를 수 있다 — 보이는 도구 자체를 좁힌다
-  if (tools.length) args.push("--tools", tools.join(","), "--allowedTools", tools.join(","));
+  // allow 를 주면 도구 이름 대신 경로를 좁힌 규칙(예: Read(./**))으로 허락한다. 이름만 주면 모든 경로가 허락된다
+  if (tools.length) args.push("--tools", tools.join(","), "--allowedTools", (allow.length ? allow : tools).join(","));
   else args.push("--tools", "");
+  // 경로를 좁혀 허락했으면 나머지는 묻지 않고 거절한다 — -p 에는 물어볼 사람이 없다
+  if (allow.length) args.push("--permission-mode", "dontAsk");
+  if (deny.length) args.push("--disallowedTools", deny.join(","));
 
   // 선불 API 키가 섞이면 구독 대신 그쪽으로 청구된다
   const env = { ...process.env };
