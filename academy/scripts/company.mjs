@@ -119,10 +119,10 @@ const 물어보기 = async (prompt, maxTokens = 6000, 모양 = () => true) => {
     // 분석은 짧은 JSON 이라 글쓰기용 큰 모델까지 안 쓴다. 제미나이는 모델이 주소에 들어 있어 본문을 건드리지 않는다
     const 앤트로픽 = p.이름.startsWith("anthropic");
     if (앤트로픽 && 상한 && p.이름.includes("중계")) continue;
-    const model = 앤트로픽 ? 분석모델.anthropic : p.model;
+    const model = 앤트로픽 ? 분석모델.anthropic : p.이름 === "claude-code" ? "sonnet" : p.model;
     const 요청 = p.요청(`${prompt}\n\nJSON 객체 하나만 답하라. 다른 말은 붙이지 마라.`, maxTokens, { json: true });
     // Claude Code(구독)도 분석은 sonnet 으로 — 한도를 원장과 같이 쓰니 가볍게
-    const body = 앤트로픽 ? { ...요청, model } : p.이름 === "claude-code" ? { ...요청, model: "sonnet" } : 요청;
+    const body = 앤트로픽 ? { ...요청, model } : p.이름 === "claude-code" ? { ...요청, model, timeoutMs: 4 * 60 * 1000 } : 요청;
     const res = await 부르기(p.url, { method: "POST", headers: p.headers(p.key), body: JSON.stringify(body) });
     if (!res.ok) {
       const 본문 = await res.text();

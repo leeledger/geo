@@ -55,8 +55,9 @@ export const 오픈라우터 = () =>
  */
 const 클로드코드응답 = async (opts) => {
   const b = JSON.parse(opts.body);
-  const r = await 클로드코드(b.prompt, { model: b.model, system: b.system, tools: b.검색 ? ["WebSearch"] : [], maxTurns: b.검색 ? 14 : 3 });
-  return new Response(JSON.stringify(r), { status: r.ok ? 200 : r.인증실패 ? 401 : r.한도 ? 429 : 500, headers: { "content-type": "application/json" } });
+  const r = await 클로드코드(b.prompt, { model: b.model, system: b.system, tools: b.검색 ? ["WebSearch"] : [], maxTurns: b.검색 ? 14 : 3,
+    timeoutMs: b.timeoutMs ?? (b.검색 ? 12 : 8) * 60 * 1000 });
+  return new Response(JSON.stringify(r), { status: r.ok ? 200 : r.인증실패 ? 401 : r.한도 ? 429 : r.시간초과 ? 503 : 500, headers: { "content-type": "application/json" } });
 };
 
 export const 재시도 = async (url, opts, 횟수 = 3) => {

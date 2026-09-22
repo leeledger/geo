@@ -31,7 +31,7 @@ jobs:
 
       # 원장 Max 구독으로 도는 Claude Code. API 크레딧 없이 측정·초안·분석을 한다(2026-09-22)
       - name: Claude Code 설치
-        run: npm install -g @anthropic-ai/claude-code --silent
+        run: npm install -g @anthropic-ai/claude-code@2.1.278 --silent  # 로컬에서 시험한 판. 올릴 때는 플래그·출력·한도 문구를 다시 본다
 
       - name: 환경 준비
         working-directory: academy

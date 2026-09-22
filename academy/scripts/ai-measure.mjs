@@ -57,9 +57,11 @@ const ENGINES = [
         system: "너는 한국어로 답하는 일반 AI 도우미다. 사용자의 질문에 웹 검색으로 최신 정보를 찾아 답한다. 코딩과 무관한 질문도 똑같이 성실히 답한다.",
         tools: ["WebSearch"],
         model: e.model,
+        // 50분 작업에 20문항이다. 한 문항이 멈추면 나머지를 다 잃는다
+        timeoutMs: 3 * 60 * 1000,
       });
       // 구독 한도에 걸리면 나머지 질문도 똑같이 막힌다 — 429 로 넘겨 루프를 멈춘다
-      if (!r.ok) return { status: r.인증실패 ? 401 : r.한도 ? 429 : 0, error: r.error ?? "알 수 없음" };
+      if (!r.ok) return { status: r.인증실패 ? 401 : r.한도 ? 429 : r.시간초과 ? 503 : 0, error: r.error ?? "알 수 없음" };
       const citations = r.urls.map((u) => ({ domain: 도메인(u.url), title: u.title, url: u.url }));
       const answerUrls = r.text.match(/https?:\/\/[^\s)\]>"']+/g) ?? [];
       return { answer: r.text, citations, answerUrls };
@@ -315,7 +317,8 @@ const main = async () => {
       }
       if (r.error) {
         // 한도·키·모델 문제는 나머지 질문도 똑같이 막힌다. 계속 두드리지 않는다
-        if ([400, 401, 402, 403, 404, 413, 429].includes(r.status)) break;
+        // 503 은 Claude Code 가 멈춘 것(시간 초과·결과 없음) — 다음 문항도 같을 공산이 커 멈춘다
+        if ([400, 401, 402, 403, 404, 413, 429, 503].includes(r.status)) break;
         await 쉼(e.gap);
         continue;
       }
