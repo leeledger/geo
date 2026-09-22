@@ -875,3 +875,12 @@ Known Gaps (14b)
 - **KG(보안, Arch 에스컬레이트): 서버 액션 인증 누락** — lib/inquiry-actions.ts(addInquiry·resolveInquiry·markEnrolled) · lead-actions.ts(changeLeadStatus) · outreach-actions.ts(updateOutreach) · pilot-actions.ts(updatePilotTask·updateAudit·approveQuestions·updateQuestion·updateContent, createPilot 확인 필요) 에 `isAdmin()` 검사가 없다. 서버 액션은 공개 POST 끝점이라 액션 ID 를 알면 누구나 부른다. task-actions·draft-actions·brief-actions 는 검사한다. 14b 범위(액션·인증 변경 금지) 밖이라 안 고쳤다
 - KG: ops 를 admin.css·AdminNav 로 옮기기(위 결정) — `--bg:` 한 곳 조건
 - KG: 초안 카드는 초안 0편이라 실데이터 렌더를 못 봤다
+
+### 2026-09-23 — 관리자 보안 (세션)
+
+- Bob 14b 중 발견: 문의·리드·영업판·파일럿 서버 동작 11개에 관리자 검사가 없었다 → guard 추가(93fb90f). addClientInquiry 는 고객 전용 uuid 열쇠 공개 폼이라 제외
+- 옛 `?key=` 즐겨찾기는 /admin/enter 가 쿠키로 바꿔 준다 — KG-8b(키로 들어오면 저장 버튼이 막힘)도 같이 풀림
+- Richard Must: 운영에서 ADMIN_PASSWORD·ADMIN_TOKEN 이 둘 다 없으면 isAdmin 이 true 였다 → 운영은 잠금(4b14483)
+- 쿠키에 발급 시각 서명, 서버가 12시간 넘은 쿠키 거절(전에는 값이 영원히 같았다). 이 배포로 기존 로그인은 한 번 풀린다
+- safeAdminPath 한 곳 · 고객 기록표 선택지·uuid·KST 날짜 검사 · /admin Referrer-Policy no-referrer. 운영에서 확인: 새 쿠키 형식 200, 옛 쿠키 → 로그인, 헤더 있음
+- 원장 결정 대기: `?key=` 폐지 시점 · ADMIN_PASSWORD 따로 두기 · ADMIN_TOKEN 교체(앞 6글자가 세션 기록에 찍힘, Step 13)
