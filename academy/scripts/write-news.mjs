@@ -181,9 +181,17 @@ const main = async () => {
   // 출처를 본문 끝에 남긴다. 원장님이 30초에 검증하실 수 있어야 「객관성」이 말이 된다.
   // 검색 결과를 통째로 붙이면 안 읽은 문서·경쟁 학원까지 「출처」가 된다 — 지어내기와 같다.
   // 근거·본문에 주소나 도메인이 실제로 나온 것만 남긴다(2026-09-22, Claude Code 는 14턴 검색 결과가 다 온다)
-  const 쓴자리 = `${(post.근거 ?? []).join("\n")}\n${본문}`.toLowerCase();
+  // 근거가 {사실, 출처} 객체로 오면 join 이 [object Object] 가 된다 — 통째로 글자로 바꿔 본다
+  const 쓴자리 = `${JSON.stringify(post.근거 ?? [])}\n${본문}`.toLowerCase();
   const 도메인만 = (u) => { try { return new URL(u).hostname.replace(/^www\./, "").toLowerCase(); } catch { return ""; } };
-  const 쓴출처 = 출처.filter((s) => 쓴자리.includes(s.주소.toLowerCase()) || (도메인만(s.주소) && 쓴자리.includes(도메인만(s.주소))));
+  // 주소는 끝 슬래시·쿼리·해시를 떼고 맞춘다
+  const 다듬기 = (u) => String(u).toLowerCase().replace(/[?#].*$/, "").replace(/\/+$/, "");
+  // 도메인만으로 맞추는 건 그 도메인에서 온 검색 결과가 하나뿐일 때만 — blog.naver.com 하나 적었다고
+  // 그 도메인의 안 읽은 블로그가 전부 출처가 되면 안 된다
+  const 도메인수 = new Map();
+  for (const s of 출처) 도메인수.set(도메인만(s.주소), (도메인수.get(도메인만(s.주소)) ?? 0) + 1);
+  const 쓴출처 = 출처.filter((s) => 쓴자리.includes(다듬기(s.주소))
+    || (도메인만(s.주소) && 도메인수.get(도메인만(s.주소)) === 1 && 쓴자리.includes(도메인만(s.주소))));
   if (쓴출처.length) {
     본문 += `\n\n## 출처\n${쓴출처.map((s) => `- [${s.제목 || s.주소}](${s.주소})`).join("\n")}`;
   }

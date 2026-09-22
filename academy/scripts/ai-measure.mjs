@@ -61,7 +61,7 @@ const ENGINES = [
         timeoutMs: 3 * 60 * 1000,
       });
       // 구독 한도에 걸리면 나머지 질문도 똑같이 막힌다 — 429 로 넘겨 루프를 멈춘다
-      if (!r.ok) return { status: r.인증실패 ? 401 : r.한도 ? 429 : r.시간초과 ? 503 : 0, error: r.error ?? "알 수 없음" };
+      if (!r.ok) return { status: r.인증실패 ? 401 : r.한도 ? 429 : r.시간초과 ? 503 : String(r.error).startsWith("결과 없음") ? 500 : 0, error: r.error ?? "알 수 없음" };
       const citations = r.urls.map((u) => ({ domain: 도메인(u.url), title: u.title, url: u.url }));
       const answerUrls = r.text.match(/https?:\/\/[^\s)\]>"']+/g) ?? [];
       return { answer: r.text, citations, answerUrls };
@@ -317,8 +317,8 @@ const main = async () => {
       }
       if (r.error) {
         // 한도·키·모델 문제는 나머지 질문도 똑같이 막힌다. 계속 두드리지 않는다
-        // 503 은 Claude Code 가 멈춘 것(시간 초과·결과 없음) — 다음 문항도 같을 공산이 커 멈춘다
-        if ([400, 401, 402, 403, 404, 413, 429, 503].includes(r.status)) break;
+        // 503 은 Claude Code 시간 초과, 500 은 결과 없이 끝남(CLI 고장) — 다음 문항도 같을 공산이 커 멈춘다
+        if ([400, 401, 402, 403, 404, 413, 429, 500, 503].includes(r.status)) break;
         await 쉼(e.gap);
         continue;
       }

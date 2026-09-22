@@ -85,11 +85,15 @@ export async function 클로드코드(prompt, { system = 기본시스템, tools 
         if (m.type === "result") result = m;
       }
       const text = result?.result ?? "";
-      const 짧은글 = `${text.length < 400 ? text : ""}\n${err.slice(-600)}`;
+      // stderr 는 실패했을 때만 본다. 성공한 실행의 경고(토큰 만료 예고 등)로 멀쩡한 답을 실패로 뒤집으면 안 된다
+      const 실패함 = !result || result.is_error;
+      const 짧은글 = `${text.length < 400 ? text : ""}\n${실패함 ? err.slice(-600) : ""}`;
       const 인증실패 = 인증문구.test(짧은글);
-      const 한도 = !인증실패 && 한도문구.test(짧은글) && (result?.is_error || !result || text.length < 400);
+      const 한도 = !인증실패 && 한도문구.test(짧은글) && (실패함 || text.length < 400);
       if (!result) {
-        return 끝내기({ ok: false, 한도, 인증실패, 시간초과: !한도 && !인증실패, error: `결과 없음 (종료 ${code}) ${err.slice(-300)}`, text: "", urls: [...urls.values()] });
+        // 결과 없이 끝난 건 시간 초과가 아니다(CLI 고장·플래그 거절·설치 문제). 500 으로 가야 고장 일감이 선다 —
+        // 503(시간 초과)으로 두면 초안 쪽이 「돈·한도」로 보고 매주 조용히 건너뛴다
+        return 끝내기({ ok: false, 한도, 인증실패, error: `결과 없음 (종료 ${code}) ${err.slice(-300)}`, text: "", urls: [...urls.values()] });
       }
       const ok = !result.is_error && result.subtype === "success" && !한도 && !인증실패;
       끝내기({
