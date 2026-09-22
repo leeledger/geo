@@ -861,3 +861,17 @@ Known Gaps (추가)
 - KG: 조사 319(빙 R5) 는 「조치 중」으로 안 보인다 — 9/22 빙 주소 47개 제출은 bing-done.json 에만 있고 일감 근거·활동 어디에도 없다. 도구가 조치를 그 일감에 붙이는 연결(Richard Should (a)): 빙 제출 도구가 끝나면 R5 microsoft 조사에 근거 「<KST> 빙 제출 N개 — 크롤 대기」+ 관찰(+3일)
 - KG: 플레이스 측정이 9/09 뒤로 멈췄다. 9/24 부터 랜딩 플레이스 칸이 숨는다
 - KG: 「조사 내용 보기」 본문은 진단 결론을 plain 한 것이라 여전히 기술 문장(Bingbot·robots·IndexNow)이 남는다
+
+### Step 14b — 나머지 관리 화면 — BUILT · 배포됨 (Richard 검토 대기) · 커밋 fb324d0
+- 새 파일: web/app/admin/admin.css(토큰 한 곳 + .adm·.adm-top·.adm-nav·.adm-todo·.adm-card·.adm-btn·.adm-more·.adm-tw·.adm-empty) · admin/layout.tsx(import 만) · admin/AdminNav.tsx
+- 다시 짬: inquiry · drafts · /admin(리드) · outreach · pilots · pilots/[id] · login(공통 CSS 만). 액션·폼 이름·필드는 그대로(코드로 대조)
+- 결정(Bob): **ops 는 아직 안 옮겼다** — Richard 가 14a 를 보고 있어 14a 파일을 안 건드린다(호출자 지시). 그래서 `--bg:` 정의가 admin.css 와 ops/page.tsx 두 곳이다(인수 조건 미충족). 14a 통과 뒤 ops 토큰·링크 줄 → admin.css·AdminNav, AgentStrip 의 .lt → admin.css 로 옮기는 작은 단계가 남았다
+- 결정(Bob): 초안 카드의 본문은 자세히 안으로(원장이 읽으려면 한 번 누른다). 모델 이름은 화면에서 뺐다(내부 이름)
+- 결정(Bob): 문의 요약은 「이번 달」이 아니라 실제 달 이름 — inquirySummary 의 첫 줄은 기록이 있는 가장 최근 달이라 이번 달이 아닐 수 있다. 새 문의 날짜 기본값·리드 시각을 KST 로(UTC 함정)
+- 범위 밖이지만 고침(한 낱말): web/lib/pilots.ts `measured_on::text day` → `as day`. 예약어 별칭 문법 오류를 catch 가 삼켜 **파일럿 상세가 운영에서도 404** 였다(운영 확인). 없으면 14b 인수(페이지별 스크린샷)를 못 한다
+- 확인: 로컬·운영 모두 7화면 × 1280/390 — 맨 위 「지금 할 일」/「없음」(390 첫 화면 안) · 내부 이름 0 · 가로 스크롤 0 · 콘솔 오류 0 · 로그인 화면엔 이동 줄 없음. tsc 0. 폼은 안 눌렀다(운영 DB 에 안 씀). 초안이 0편이라 초안 카드 모양은 실데이터로 못 봤다
+
+Known Gaps (14b)
+- **KG(보안, Arch 에스컬레이트): 서버 액션 인증 누락** — lib/inquiry-actions.ts(addInquiry·resolveInquiry·markEnrolled) · lead-actions.ts(changeLeadStatus) · outreach-actions.ts(updateOutreach) · pilot-actions.ts(updatePilotTask·updateAudit·approveQuestions·updateQuestion·updateContent, createPilot 확인 필요) 에 `isAdmin()` 검사가 없다. 서버 액션은 공개 POST 끝점이라 액션 ID 를 알면 누구나 부른다. task-actions·draft-actions·brief-actions 는 검사한다. 14b 범위(액션·인증 변경 금지) 밖이라 안 고쳤다
+- KG: ops 를 admin.css·AdminNav 로 옮기기(위 결정) — `--bg:` 한 곳 조건
+- KG: 초안 카드는 초안 0편이라 실데이터 렌더를 못 봤다

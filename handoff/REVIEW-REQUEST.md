@@ -95,3 +95,40 @@ Ready for Review: YES
 - 「조치 중」은 근거 마지막 줄 단어(제출·등록·고침·합침…)로 판단한다. 319 는 조치가 어디에도 기록되지 않아 안 보인다(KG)
 - 수리공 「검토 불합격」을 막힘에서 뺐다 — 검토 관문이 제 일을 한 것으로 봄
 - repair.mjs 스위치 꺼짐 줄이 생기면 합침 0 보다 꺼짐이 먼저다
+
+---
+# Review Request — Step 14b
+Date: 2026-09-23
+Ready for Review: YES
+커밋 fb324d0 · push·배포·운영 확인 완료
+
+## Files Changed
+- web/app/admin/admin.css (새) — 관리 화면 토큰·공통 클래스 한 벌, globals 누수 끊기(:where, 특이도 0)
+- web/app/admin/layout.tsx (새) — admin.css import 만
+- web/app/admin/AdminNav.tsx (새) — 현황·초안·문의·리드·영업판·파일럿, aria-current
+- web/app/admin/inquiry/page.tsx — 결과 미입력(등록/안 함 = resolveInquiry) 맨 위 · 새 문의 폼(addInquiry, 필드 그대로) · 지난 기록 최근 10 카드 + 자세히 · 요약 한 줄(실제 달 이름) · 설명 문단 제거 · 날짜 기본값 KST
+- web/app/admin/drafts/page.tsx — 검토할 초안 N편 맨 위 · 카드: 제목·사실 확인 문장·도해 썸네일·발행(publishDraft, 도해 없으면 막힘)/버리기(discardDraft+confirm) · AI 티·짜임새는 걸릴 때 「N곳 — 보기」 · 자세히: 본문·검사 통과 문구·도해 다시 그리기(requeueIllustrate)·원문 되돌리기(revertDraft)·직접 고치기(saveDraft)
+- web/app/admin/page.tsx — 리드 카드(changeLeadStatus select), 새로 연락할 사람 맨 위, 지난 연락 자세히, 카드 안 자세히에 점수·등급·도메인·경로, 시각 KST
+- web/app/admin/outreach/page.tsx — 오늘 할 일(위 3곳 카드 + 통화문 펼침) · 나머지 7곳 자세히 · updateOutreach 필드 그대로
+- web/app/admin/pilots/page.tsx — 한 줄 압축 풀어 씀 · 진행 고객 맨 위 · 등록 폼(createPilot, 13필드 그대로) 자세히
+- web/app/admin/pilots/[id]/page.tsx — 풀어 씀 · 오늘 해야 할 일(기한 오늘·지남, 안 끝난 것) 맨 위 · 전체 업무·질문 20·측정 원장(엔진 이름만, 방법 이름 뺌)·정합성·콘텐츠 각각 details
+- web/app/admin/login/* — .adm 토큰으로, 버튼 adm-btn
+- web/lib/pilots.ts:19 — `measured_on::text as day` (파일럿 상세 404 원인)
+
+## 확인 (로컬 + 운영 같은 스크립트 shoot-b.cjs)
+| 화면 | 맨 위 | 390 첫 화면 위치 | 내부 이름 | 가로 | 콘솔 |
+|---|---|---|---|---|---|
+| 문의 | 결과 미입력 2건 | 111px | 0 | 0 | 0 |
+| 초안 | 검토할 초안 (없음) | 64px | 0 | 0 | 0 |
+| 리드 | 새로 연락할 사람 (없음) | 64px | 0 | 0 | 0 |
+| 영업판 | 오늘 할 일 — 위에서 3곳 | 134px | 0 | 0 | 0 |
+| 파일럿 | 진행 고객 1곳 | 100px | 0 | 0 | 0 |
+| 파일럿 상세 | 오늘 해야 할 일 7건 | 243px | 0 | 0 | 0 |
+| 로그인 | (폼만, 이동 줄 없음) | — | 0 | 0 | 0 |
+- 스크린샷: scratchpad b14/ (로컬) · b14-prod/ (운영) — {inquiry,drafts,leads,outreach,pilots,pilot,login}-{1280,390}-{first,full}.png
+- `--bg:` grep: admin.css · ops/page.tsx 두 곳 — ops 는 14a 검토 중이라 안 옮김(BUILD-LOG)
+
+## Open Questions
+- 서버 액션 4파일 인증 누락(BUILD-LOG KG, Arch 에스컬레이트) — 14b 범위 밖이라 안 고침
+- 초안 본문을 자세히로 접은 것 — 원장이 발행 전 읽으려면 한 번 누른다. 펼쳐 둘지
+- ops 옮기기는 14a 통과 뒤 작은 단계로
