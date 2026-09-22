@@ -2,7 +2,7 @@ import { isAdmin } from "@/lib/admin-auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { listDrafts } from "@/lib/drafts";
-import { saveDraft, publishDraft, discardDraft, revertDraft } from "@/lib/draft-actions";
+import { saveDraft, publishDraft, discardDraft, revertDraft, requeueIllustrate } from "@/lib/draft-actions";
 
 const HERE = "/admin/drafts";
 export const dynamic = "force-dynamic";
@@ -45,6 +45,8 @@ article.dr-card{background:var(--card);border:1px solid var(--line);border-radiu
 .dr-body p{margin:10px 0}
 .dr-body li{margin:4px 0}
 .dr-body .img{display:inline-block;font-size:12px;color:var(--mut);border:1px dashed var(--line);padding:4px 8px;border-radius:6px}
+.dr-body .imgp{display:block;margin:12px 0}
+.dr-body .imgp img{display:block;width:100%;height:auto;border-radius:10px;border:1px solid var(--line);margin-bottom:6px}
 details.dr-edit{border-top:1px solid var(--line);padding:12px 22px}
 details.dr-edit summary{cursor:pointer;font-size:13.5px;color:var(--ink2)}
 .dr-edit label{display:block;font-size:12px;color:var(--mut);margin:12px 0 5px}
@@ -54,6 +56,7 @@ details.dr-edit summary{cursor:pointer;font-size:13.5px;color:var(--ink2)}
 .dr button{font:inherit;font-size:14px;font-weight:700;border-radius:10px;padding:10px 16px;cursor:pointer;border:1px solid var(--line);background:var(--soft);color:var(--ink)}
 .dr button.pub{background:var(--acc);border-color:var(--acc);color:#1a1204}
 .dr button.del{color:var(--crit)}
+.dr button:disabled{opacity:.45;cursor:not-allowed}
 .dr-act small{color:var(--mut);font-size:12px}
 .dr-conf{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--mut)}
 @media (max-width:600px){.dr-head,.dr-check,.dr-body,.dr-act,details.dr-edit{padding-left:16px;padding-right:16px}}
@@ -62,10 +65,24 @@ details.dr-edit summary{cursor:pointer;font-size:13.5px;color:var(--ink2)}
 // 모델이 쓴 글이라 따옴표까지 막는다 — 링크 주소가 속성 밖으로 새지 않게
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 
+/**
+ * 도해 미리보기. 원장이 그림 속 글자·숫자까지 사실 확인한다(Richard 9/22).
+ * 에이전트 도해(/blog/img/<slug>/<name>.svg)는 발행 전에는 사이트가 안 내보내니 DB 의 SVG 를 data: 로 넣는다.
+ * <img> 로 그리므로 SVG 안 스크립트는 돌지 않는다. 손으로 넣은 public 도해는 사이트 주소로 연다
+ */
+function 미리보기(alt: string, src: string, slug: string, domain: string, images: Record<string, string>) {
+  const 에이전트 = /^\/blog\/img\/([^/]+)\/([a-z0-9-]+)\.svg$/.exec(src);
+  const 주소 = 에이전트
+    ? (에이전트[1] === slug && images[에이전트[2]] ? `data:image/svg+xml;base64,${Buffer.from(images[에이전트[2]]).toString("base64")}` : null)
+    : /^\/blog\/[a-z0-9가-힣-]+\/[\w.-]+\.(?:svg|png)$/.test(src) ? `https://${domain}${src}` : null;
+  const 글 = `<span class="img">도해: ${alt}${주소 ? "" : " (그림을 찾을 수 없음)"}</span>`;
+  return 주소 ? `<span class="imgp"><img src="${esc(주소)}" alt="${alt}" loading="lazy">${글}</span>` : 글;
+}
+
 /** 본문 마크다운을 읽을 수 있게만 바꾼다. 사이트와 똑같이 그리는 게 아니라 검토용이다 */
-function render(md: string) {
+function render(md: string, 그림: { slug: string; domain: string; images: Record<string, string> } = { slug: "", domain: "", images: {} }) {
   const inline = (s: string) => esc(s)
-    .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<span class="img">도해: $1</span>')
+    .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_, alt: string, src: string) => 미리보기(alt, src.replace(/&amp;/g, "&"), 그림.slug, 그림.domain, 그림.images))
     .replace(/\[([^\]]+)\]\((https?:[^)]+)\)/g, '<a href="$2" target="_blank" rel="noreferrer">$1</a>')
     .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
   const out: string[] = [];
@@ -112,6 +129,9 @@ export default async function DraftsPage({ searchParams }: { searchParams: Promi
           const 확인 = n.확인필요 ?? [];
           const 티 = n.AI티 ?? [];
           const 흠 = n.짜임새 ?? [];
+          // 도해는 무조건(원장 2026-09-22) — 없으면 발행 버튼을 막는다. 서버(publishDraft)도 한 번 더 막는다
+          const 도해수 = (d.body.match(/!\[[^\]]*\]\([^)]+\)/g) ?? []).length;
+          const 삽화 = n.삽화;
           return (
             <article key={d.slug} className="dr-card" id={d.slug}>
               <div className="dr-head">
@@ -132,6 +152,19 @@ export default async function DraftsPage({ searchParams }: { searchParams: Promi
                 {티.length ? <ul>{티.map((t, i) => <li key={i}>{t.why} — {t.sample.join(", ")}</li>)}</ul>
                   : <p className="okk">{d.task?.evidence?.includes("AI 티") ? "걸린 표현 없음" : "콘텐츠 담당이 아직 검사하지 않았습니다 (매시 실행)"}</p>}
                 {흠.length > 0 && <><h3>짜임새</h3><ul>{흠.map((s, i) => <li key={i}>{s}</li>)}</ul></>}
+                <h3>도해</h3>
+                {도해수 > 0
+                  ? <p className="okk">도해 {도해수}장 — 본문에 「도해: …」로 보입니다. 그림 속 글자와 숫자도 사실 확인해 주세요.</p>
+                  : <>
+                      <p style={{ margin: 0, fontSize: 13.5, color: "var(--warn)" }}>
+                        도해가 아직 없습니다 — 삽화 담당이 그리는 중입니다(매시 1편). 도해가 붙어야 발행할 수 있습니다.
+                        {삽화?.시도 ? ` 지금까지 ${삽화.시도}번 그렸고 검사에서 다 버려졌습니다.` : ""}
+                      </p>
+                      {(삽화?.버린것?.length ?? 0) > 0 && <ul>{삽화!.버린것!.slice(0, 4).map((s, i) => <li key={i}>{s}</li>)}</ul>}
+                      <form action={requeueIllustrate} style={{ marginTop: 8 }}>
+                        <input type="hidden" name="slug" value={d.slug} /><button type="submit">도해 다시 그리기</button>
+                      </form>
+                    </>}
                 {n.다듬음 && <p className="okk" style={{ marginTop: 8 }}>{n.다듬음}</p>}
                 {n.원문 && (
                   <details style={{ marginTop: 8 }}>
@@ -142,7 +175,7 @@ export default async function DraftsPage({ searchParams }: { searchParams: Promi
                 )}
               </div>
 
-              <div className="dr-body" dangerouslySetInnerHTML={{ __html: render(d.body) }} />
+              <div className="dr-body" dangerouslySetInnerHTML={{ __html: render(d.body, { slug: d.slug, domain: d.domain, images: d.images }) }} />
 
               <details className="dr-edit">
                 <summary>직접 고치기</summary>
@@ -158,9 +191,9 @@ export default async function DraftsPage({ searchParams }: { searchParams: Promi
               <div className="dr-act">
                 <form action={publishDraft}>
                   <input type="hidden" name="slug" value={d.slug} />
-                  <button type="submit" className="pub">사실 확인했음 · 발행</button>
+                  <button type="submit" className="pub" disabled={도해수 === 0}>사실 확인했음 · 발행</button>
                 </form>
-                <small>발행 주소: {d.domain}/blog/{d.slug}</small>
+                <small>{도해수 === 0 ? "도해가 붙으면 발행할 수 있습니다 · " : ""}발행 주소: {d.domain}/blog/{d.slug}</small>
                 <form action={discardDraft} style={{ marginLeft: "auto" }}>
                   <input type="hidden" name="slug" value={d.slug} />
                   <label className="dr-conf"><input type="checkbox" name="confirm" value="yes" required /> 버리기 확인</label>

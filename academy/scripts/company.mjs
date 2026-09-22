@@ -200,6 +200,8 @@ const 상태 = (id, status, patch = {}) =>
 
 /** 크레딧·잔액 때문에 막힌 것인가. 고장과 갈라야 한다 */
 const 뒤 = (h) => new Date(Date.now() + h * 3600 * 1000).toISOString();
+/** 다음 KST 자정 (하루 몫이 다시 차는 때) */
+const 내일 = () => { const d = new Date(Date.now() + 9 * 3600 * 1000); d.setUTCHours(24, 1, 0, 0); return new Date(d.getTime() - 9 * 3600 * 1000).toISOString(); };
 const 오늘 = () => new Date().toLocaleString("sv-SE", { timeZone: "Asia/Seoul" }).slice(0, 16);
 
 // ─────────────────────────────────────────── 1. 출근 기록
@@ -279,7 +281,7 @@ const 계획 = async (clients, { latest: latestRuns, ok: ghOk }) => {
   // 도해 없는 초안 — 도해는 무조건이다(원장 2026-09-22). 붙을 때까지 다시 그리고, 두 번 넘게 못 붙이면 사람에게도 알린다 (Step 12, illustrate.mjs)
   for (const p of await q(`select slug, title, client_id, coalesce((review_notes->'삽화'->>'시도')::int, 0) 시도,
                              review_notes->'삽화'->'버린것' 버린것 from academy.posts
-                            where not published and position('![' in body) = 0 order by created_at`)) {
+                            where not published and position('![' in body) = 0 and length(body) >= 600 order by created_at`)) {
     await 일감({ client_id: p.client_id, agent: "content", kind: "illustrate", key: `illustrate-${p.slug}`, priority: 16,
       title: `도해 그리기: ${p.title}`, detail: "초안에 도해 2~3장을 그려 붙입니다. 본문에 없는 숫자·다른 고객사 이름·값에 안 맞는 막대가 든 그림은 버립니다.",
       payload: { slug: p.slug }, link: `${ADMIN}/admin/drafts#${p.slug}` });
@@ -530,6 +532,7 @@ const EXEC = {
         evidence: `${오늘()} 도해 ${o.시도}번째 시도 — 다 버림, 다시 그림 (${끝(o.버린것.join(" / "), 300)})` };
       case "대상없음": return { status: "닫힘", evidence: `${오늘()} 이미 그림이 있거나 발행됐거나 없음` };
       // 한도·설정 없음은 고장이 아니다. 실패로 세어 사람에게 넘기면 진짜 고장이 묻힌다
+      case "하루몫": return { status: "대기", nextTry: 내일(), evidence: `${오늘()} 삽화 하루 몫을 다 씀 — 내일 (${끝(o.오류, 80)})` };
       case "한도": return { status: "대기", nextTry: 뒤(6), evidence: `${오늘()} Claude 한도 — 미룸 (${끝(o.오류, 120)})` };
       case "클로드없음": return { status: "대기", nextTry: 뒤(12), evidence: `${오늘()} Claude Code 가 없어 미룸` };
       case "고쳐짐": return { status: "실패", attempt: true, nextTry: 뒤(1), error: `그리는 사이 본문이 고쳐져 넣지 않음 — 새 본문으로 다시` };

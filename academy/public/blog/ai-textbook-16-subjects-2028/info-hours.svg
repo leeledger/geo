@@ -37,17 +37,17 @@
     <!-- 초 5~6 -->
     <text x="72" y="222" font-size="15" font-weight="700" fill="#DCE3EC">초등 5~6학년</text>
     <text x="72" y="244" font-size="12.5" fill="#6E7A8C">실과 안의 정보</text>
-    <rect x="250" y="200" width="149.6" height="16" data-value="17" data-chart="hours" rx="4" fill="#3A4556"/>
+    <rect x="250" y="200" width="149.6" height="16" data-value="17" data-chart="hours" data-orient="h" rx="4" fill="#3A4556"/>
     <text x="408" y="213" font-family="'IBM Plex Mono',ui-monospace,monospace" font-size="13" fill="#8A94A6">17 전</text>
-    <rect x="250" y="222" width="299.2" data-value="34" data-chart="hours" height="20" rx="4" fill="url(#now)"/>
+    <rect x="250" y="222" width="299.2" data-value="34" data-chart="hours" data-orient="h" height="20" rx="4" fill="url(#now)"/>
     <text x="559" y="238" font-family="'IBM Plex Mono',ui-monospace,monospace" font-size="14" font-weight="700" fill="#FFE2AE">34시간 이상</text>
 
     <!-- 중 -->
     <text x="72" y="302" font-size="15" font-weight="700" fill="#DCE3EC">중학교</text>
     <text x="72" y="324" font-size="12.5" fill="#6E7A8C">정보 (3년)</text>
-    <rect x="250" y="280" width="299.2" data-value="34" data-chart="hours" height="16" rx="4" fill="#3A4556"/>
+    <rect x="250" y="280" width="299.2" data-value="34" data-chart="hours" data-orient="h" height="16" rx="4" fill="#3A4556"/>
     <text x="558" y="293" font-family="'IBM Plex Mono',ui-monospace,monospace" font-size="13" fill="#8A94A6">34 전</text>
-    <rect x="250" y="302" width="598.4" data-value="68" data-chart="hours" height="20" rx="4" fill="url(#now)"/>
+    <rect x="250" y="302" width="598.4" data-value="68" data-chart="hours" data-orient="h" height="20" rx="4" fill="url(#now)"/>
     <text x="838" y="317" text-anchor="end" font-family="'IBM Plex Mono',ui-monospace,monospace" font-size="14" font-weight="700" fill="#1A140C">68시간 이상</text>
 
     <!-- 범례 -->

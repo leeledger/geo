@@ -7,7 +7,7 @@
  * 학원 사이트는 git push 로 배포되지 않는다. 그래서 그림은 글처럼 DB(academy.post_images)에 두고
  * 사이트가 /blog/img/<slug>/<name>.svg 로 내보낸다(app/blog/img/[slug]/[name]/route.ts).
  *
- * 한 번에 1편. 대상은 발행 전이고 본문에 그림(![)이 없는 초안 — 도해는 무조건이다(원장 2026-09-22). 그림이 붙을 때까지
+ * 한 번에 1편, 하루 ILLUSTRATE_MAX_PER_DAY(기본 6)회까지. 대상은 발행 전이고 본문에 그림(![)이 없는 600자 이상 초안 — 도해는 무조건이다(원장 2026-09-22). 그림이 붙을 때까지
  * 다시 그린다(시도 수는 review_notes.삽화.시도, 두 번 넘게 못 붙이면 company.mjs 가 사람 대기를 세운다).
  * Claude Code(구독)에 본문을 주고 도해 2~3장을 받는다. 모델 말을 믿지 않고 스크립트가 검사한다 —
  *   XML 로 읽히는가 · 금지 요소(스크립트·이벤트·외부 주소) · 본문에 없는 숫자 · 다른 고객사 이름 · 크기 60KB · 폭 960
@@ -40,6 +40,8 @@ const SLUG = 값("--slug");
 const TASK = Number(값("--task")) || null;
 const 최대크기 = 60 * 1024;
 const 최대장수 = 3;
+/** 삽화는 하루(KST) 이만큼만 부른다. 빈 값은 기본값 — Actions 는 안 정한 변수를 "" 로 넘긴다 */
+const 하루몫 = () => { const v = String(process.env.ILLUSTRATE_MAX_PER_DAY ?? "").trim(); const n = Number(v); return v && Number.isInteger(n) && n >= 0 ? n : 6; };
 
 const pool = process.env.DATABASE_URL ? new Pool((() => {
   const u = new URL(process.env.DATABASE_URL);
@@ -56,12 +58,46 @@ const 한줄 = (s, n = 200) => String(s ?? "").replace(/\s+/g, " ").trim().slice
 /**
  * 새 패키지 없이 태그 짝·속성 따옴표·엔티티만 본다. 브라우저는 깨진 SVG 에 빨간 오류 화면을 그리고,
  * 그게 PNG 로 구워진 전례가 있다(CLAUDE.md). 읽히지 않으면 버린다. 돌려주는 값: 오류 문장 또는 null
+ *
+ * 읽으면서 허용 목록도 본다(보안 칸에 이유를 쌓는다). 막을 것을 적는 방식은 접두어(<h:script>·x:href)와
+ * CSS 이스케이프(\75rl(·@\69mport)를 못 막았다(Richard 9/22) — 이제 되는 것만 적는다.
+ * 네이버 이관 때 이 SVG 를 원장 PC 의 Chromium 이 최상위 문서로 연다(svg-to-png.mjs). 거기서 스크립트가 돌면 안 된다
  */
+const 허용요소 = new Set(["svg", "g", "defs", "title", "desc", "rect", "circle", "ellipse", "line", "polyline", "polygon", "path",
+  "text", "tspan", "linearGradient", "radialGradient", "stop", "filter", "feDropShadow", "feGaussianBlur", "feOffset", "feMerge",
+  "feMergeNode", "feFlood", "feComposite", "feBlend", "feColorMatrix", "clipPath", "mask", "pattern", "use", "symbol", "marker", "style"]);
+const SVGNS = "http://www.w3.org/2000/svg";
+const XLINKNS = "http://www.w3.org/1999/xlink";
+/** XML 파서가 값을 읽을 때처럼 엔티티를 푼다 — 검사는 브라우저가 볼 값으로 한다(「&#x75;rl(」 같은 우회) */
+const 엔티티풀기 = (v) => String(v)
+  .replace(/&#x([0-9a-fA-F]+);/g, (_, h) => String.fromCodePoint(parseInt(h, 16)))
+  .replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(Number(d)))
+  .replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, "&");
+/** url(…) 는 문서 안 참조(#id)만. 이스케이프(\)는 어디서든 버린다 — CSS 가 \75 를 u 로 읽는다 */
+const 주소검사 = (값, 어디, 보안) => {
+  if (값.includes("\\")) 보안.push(`${어디}에 \\ (CSS 이스케이프)`);
+  if (/javascript:/i.test(값.replace(/\s+/g, ""))) 보안.push(`${어디}에 javascript:`);
+  for (const m of 값.matchAll(/url\(\s*['"]?([^'")]*)/gi)) if (!m[1].trim().startsWith("#")) 보안.push(`외부 주소 url(${한줄(m[1], 60)}) — ${어디}`);
+};
+const 속성검사 = (태그, 이름, 원값, 보안) => {
+  const v = 엔티티풀기(원값);
+  if (이름.includes(":")) {
+    const 됨 = (이름 === "xmlns:xlink" && v === XLINKNS) || (이름 === "xlink:href" && v.trim().startsWith("#"));
+    if (!됨) 보안.push(`허락 안 한 속성 ${이름}="${한줄(v, 40)}"`);
+    return;
+  }
+  if (이름 === "xmlns" && v !== SVGNS) 보안.push(`xmlns 가 SVG 가 아님 (${한줄(v, 40)})`);
+  if (/^on/i.test(이름)) 보안.push(`이벤트 속성 ${이름}`);
+  if (이름 === "href" && !v.trim().startsWith("#")) 보안.push(`외부 주소 href="${한줄(v, 60)}"`);
+  // 읽는 글(aria-label 등)에는 \ 가 올 수 있다. 그 밖의 값은 CSS 로 읽힐 수 있어 주소 검사를 한다
+  if (!/^(?:aria-label|aria-description|title)$/.test(이름)) 주소검사(v, `<${태그} ${이름}>`, 보안);
+  if (이름 === "style" && v.includes("@")) 보안.push(`<${태그} style> 에 @ 규칙`);
+};
 const 엔티티틀림 = /&(?!(?:amp|lt|gt|quot|apos|#\d+|#x[0-9a-fA-F]+);)/;
 const 이름 = "[A-Za-z_][\\w:.-]*";
 const 속성들 = new RegExp(`\\s+(${이름})\\s*=\\s*(?:"([^"<]*)"|'([^'<]*)')`, "gy");
 const 여는태그 = new RegExp(`^<(${이름})([\\s\\S]*?)\\s*(/?)>$`);
-const XML검사 = (src) => {
+const XML검사 = (src, 보안 = []) => {
   let s = String(src).trim(); // trim 은 BOM 도 지운다
   if (/<!DOCTYPE|<!ENTITY/i.test(s)) return "DOCTYPE·ENTITY 선언";
   s = s.replace(/^<\?xml[^?]*\?>\s*/, "");
@@ -76,7 +112,8 @@ const XML검사 = (src) => {
     위치 = 조각.lastIndex;
     const t = m[0];
     if (t.startsWith("<!--")) { if (t.slice(4, -3).includes("--")) return "주석 안에 --"; continue; }
-    if (t.startsWith("<![CDATA[")) { if (!쌓임.length) return "뿌리 밖 CDATA"; continue; }
+    // CDATA 안은 엔티티를 안 풀고 검사를 비껴간다. 도해에 쓸 일이 없다
+    if (t.startsWith("<![CDATA[")) { 보안.push("CDATA 는 쓰지 않는다"); continue; }
     if (t.startsWith("</")) {
       const 닫는 = new RegExp(`^</(${이름})\\s*>$`).exec(t);
       if (!닫는) return `닫는 태그 모양 ${t.slice(0, 40)}`;
@@ -97,9 +134,12 @@ const XML검사 = (src) => {
         if (본것.has(a[1])) return `속성 두 번: ${a[1]}`;
         본것.add(a[1]);
         if (엔티티틀림.test(a[2] ?? a[3] ?? "")) return `속성 값에 날 & (${a[1]}) — &amp; 로 써야 함`;
+        속성검사(태그, a[1], a[2] ?? a[3] ?? "", 보안);
         끝 = 속성들.lastIndex;
       }
       if (속성글.slice(끝).trim()) return `속성 모양 <${태그} …${속성글.slice(끝, 끝 + 30)}`;
+      // 접두어 붙은 요소(<h:script>·<x:foreignObject>)도, image·a·animate·set·foreignObject·script 도 목록에 없다
+      if (!허용요소.has(태그)) 보안.push(`허락 안 한 요소 <${태그}>`);
       if (!쌓임.length) {
         if (뿌리++) return "뿌리 요소가 둘";
         if (태그 !== "svg") return `뿌리가 svg 가 아님 (${태그})`;
@@ -109,6 +149,11 @@ const XML검사 = (src) => {
     }
     if (!쌓임.length) { if (t.trim()) return "뿌리 밖 글자"; continue; }
     if (엔티티틀림.test(t)) return `글자에 날 & — &amp; 로 써야 함 (${한줄(t, 30)})`;
+    if (쌓임.at(-1) === "style") {
+      const css = 엔티티풀기(t);
+      주소검사(css, "<style>", 보안);
+      if (css.includes("@")) 보안.push("<style> 에 @ 규칙 (@import·@font-face 등)");
+    }
   }
   if (쌓임.length) return `닫히지 않은 태그 <${쌓임.at(-1)}>`;
   if (!뿌리) return "svg 요소가 없음";
@@ -149,30 +194,50 @@ const 축검사 = (svg) => {
  * 막대 길이가 값에 비례하는가 — data-value 를 단 rect 를 data-chart 별로 묶어, 폭 또는 높이 ÷ 값이 2% 안으로 같아야 한다.
  * 글자를 넣으려고 막대를 줄이면 그림이 거짓말을 한다(원장 지시 2026-09-22)
  */
+const 속값 = (속성, k) => new RegExp(`(?:^|\\s)${k}\\s*=\\s*["']([^"']*)["']`).exec(속성)?.[1];
+const 퍼짐 = (v) => (Math.max(...v) - Math.min(...v)) / (Math.max(...v) || 1);
+/**
+ * 막대처럼 생겼는데 data-value 가 없는가 — 모서리가 작은(rx ≤ 6) 얇은 rect 둘 이상이 한쪽 굵기가 같고 길이만 10% 넘게 갈리고,
+ * 그림에 수 글자가 있으면 막대 그림으로 본다. 둥근 알약(흐름 단계)·같은 크기 카드·범례 칸은 여기 안 걸린다(Richard 9/22)
+ */
+const 막대모양 = (svg) => {
+  const 칸 = [...svg.matchAll(/<rect\b([^>]*)>/g)].map((m) => m[1]).filter((a) => !/\sdata-value\s*=/.test(a))
+    .map((a) => ({ w: Number(속값(a, "width")), h: Number(속값(a, "height")), rx: Number(속값(a, "rx") ?? 0) }))
+    .filter((r) => Number.isFinite(r.w) && Number.isFinite(r.h) && r.rx <= 6);
+  const 묶음 = (굵기, 길이) => {
+    const by = new Map();
+    for (const r of 칸.filter((r) => r[굵기] <= 40)) by.set(r[굵기], [...(by.get(r[굵기]) ?? []), r[길이]]);
+    return [...by.values()].some((v) => v.length >= 2 && 퍼짐(v) > 0.1);
+  };
+  return /\d/.test(그림글자(svg)) && (묶음("h", "w") || 묶음("w", "h"));
+};
+
 const 막대검사 = (svg) => {
   const 차트들 = new Map();
   const 이유 = [];
   for (const m of svg.matchAll(/<([A-Za-z]+)\b([^>]*\sdata-value\s*=\s*["']([^"']*)["'][^>]*)>/g)) {
     const [, 태그, 속성, 값글] = m;
     if (태그 !== "rect") { 이유.push(`data-value 는 rect 에만 (${태그})`); continue; }
-    const 속 = (k) => new RegExp(`\\s${k}\\s*=\\s*["']([^"']*)["']`).exec(속성)?.[1];
-    const 값 = Number(값글), w = Number(속("width")), h = Number(속("height"));
+    const 값 = Number(값글), w = Number(속값(속성, "width")), h = Number(속값(속성, "height"));
     if (!/^\d+(?:\.\d+)?$/.test(값글.trim()) || !Number.isFinite(w) || !Number.isFinite(h)) { 이유.push(`막대 값·크기가 수가 아님 (data-value="${값글}")`); continue; }
-    const 차트 = 속("data-chart") ?? "기본";
-    차트들.set(차트, [...(차트들.get(차트) ?? []), { 값, w, h }]);
+    // 방향은 그린 쪽이 밝힌다 — 크기로 짐작하면 속일 틈이 남는다
+    const 방향 = 속값(속성, "data-orient");
+    if (방향 !== "h" && 방향 !== "v") { 이유.push(`막대에 data-orient="h|v" 가 없음 (data-value="${값글}")`); continue; }
+    const 차트 = 속값(속성, "data-chart") ?? "기본";
+    차트들.set(차트, [...(차트들.get(차트) ?? []), { 값, w, h, 방향 }]);
   }
   const 비례 = (막대들, k) => {
     if (막대들.some((b) => b.값 === 0 && b[k] > 1)) return false;
     const r = 막대들.filter((b) => b.값 > 0).map((b) => b[k] / b.값);
     return r.length < 2 || (Math.max(...r) - Math.min(...r)) / Math.max(...r) <= 0.02;
   };
-  // 길이 쪽은 크기가 더 크게 갈리는 쪽이다(가로 막대면 폭). 둘 중 아무 쪽이나 맞으면 통과로 두면
-  // 값이 같은 두 막대는 높이가 같아서 폭을 줄여도 통과한다
-  const 퍼짐 = (막대들, k) => { const v = 막대들.map((b) => b[k]); return (Math.max(...v) - Math.min(...v)) / (Math.max(...v) || 1); };
   for (const [차트, 막대들] of 차트들) {
-    const k = 퍼짐(막대들, "w") >= 퍼짐(막대들, "h") ? "w" : "h";
+    const 방향들 = new Set(막대들.map((b) => b.방향));
+    if (방향들.size > 1) { 이유.push(`차트 「${차트}」 막대 방향이 섞임`); continue; }
+    const k = 방향들.has("h") ? "w" : "h";
     if (!비례(막대들, k)) 이유.push(`차트 「${차트}」 막대 길이가 값에 비례하지 않음 (${막대들.map((b) => `${b.값}→${b.w}×${b.h}`).join(", ")})`);
   }
+  if (!차트들.size && (/\sdata-axis\s*=/.test(svg) || 막대모양(svg))) 이유.push("막대 그림인데 data-value 가 없음 — 길이를 값과 맞춰 볼 수 없다");
   return 이유;
 };
 
@@ -187,22 +252,11 @@ const 한장검사 = ({ svg, alt }, 재료, 말들) => {
   if (!String(alt ?? "").trim()) 이유.push("alt 가 비었음");
   const 크기 = Buffer.byteLength(svg, "utf8");
   if (크기 > 최대크기) 이유.push(`크기 ${Math.round(크기 / 1024)}KB > 60KB`);
-  const xml = XML검사(svg);
+  // 허용 목록(요소·속성·스타일) — 사이트 경로가 CSP 로 한 번 더 막지만, 저장부터 안 한다
+  const 보안 = [];
+  const xml = XML검사(svg, 보안);
   if (xml) 이유.push(`XML 오류: ${xml}`);
-
-  // 금지 요소 — 사이트 경로가 CSP 로 한 번 더 막지만, 저장부터 안 한다
-  if (/<script/i.test(svg)) 이유.push("스크립트 <script>");
-  if (/<(?:foreignObject|iframe|object|embed)\b/i.test(svg)) 이유.push("허락 안 한 요소 (foreignObject·iframe·object·embed)");
-  if (/\son[a-z]+\s*=/i.test(svg)) 이유.push("이벤트 속성 on*=");
-  if (/javascript:/i.test(svg)) 이유.push("javascript: 주소");
-  if (/@import/i.test(svg)) 이유.push("스타일 @import");
-  for (const m of svg.matchAll(/\s(?:xlink:)?href\s*=\s*(?:"([^"]*)"|'([^']*)')/gi)) {
-    const v = (m[1] ?? m[2]).trim();
-    if (!v.startsWith("#")) 이유.push(`외부 주소 href="${한줄(v, 60)}"`);
-  }
-  for (const m of svg.matchAll(/url\(\s*['"]?([^'")]*)/gi)) {
-    if (!m[1].trim().startsWith("#")) 이유.push(`외부 주소 url(${한줄(m[1], 60)})`);
-  }
+  이유.push(...new Set(보안));
 
   // 규격 — 폭 960, 모양은 사이트 도해와 같게
   if (!/<svg\b[^>]*\sxmlns\s*=\s*["']http:\/\/www\.w3\.org\/2000\/svg["']/.test(svg)) 이유.push("xmlns 없음 (img 로 안 그려짐)");
@@ -298,7 +352,7 @@ const 프롬프트 = (post) => [
   "형태 — 내용에 맞게 고른다",
   "- 날짜가 이어지면 연표(시안→앰버 그라데이션 레일, 마디마다 아이콘) · 개수는 단위 차트(한 칸 = 1) · 크기 비교는 막대 · 「A 와 B」는 비교 카드 · 과정은 알약 모양 흐름(→)",
   "- 막대: 축 하나, 옅은 점선 격자(#223040), 모서리 4px. 막대 길이는 값에 정확히 비례한다 — 글자를 넣으려고 막대를 줄이지 마라, 글자가 안 들어가면 막대 끝 안쪽에 쓴다",
-  "  · 값을 나타내는 막대마다 <rect … data-value=\"값\" data-chart=\"차트이름\"> 를 단다. 스크립트가 폭(또는 높이)이 값에 2% 안으로 비례하는지 재고, 어긋나면 버린다",
+  "  · 값을 나타내는 막대마다 <rect … data-value=\"값\" data-chart=\"차트이름\" data-orient=\"h\"> 를 단다(가로 막대 h, 세로 막대 v). 스크립트가 그 방향의 길이가 값에 2% 안으로 비례하는지 재고, 어긋나면 버린다. 막대처럼 보이는데 data-value 가 없어도 버린다",
   "  · 축 눈금 글자는 <text data-axis=\"차트이름\">20</text> 처럼 단다. 눈금은 0 부터 같은 간격이어야 한다. 눈금 말고는 data-axis 를 쓰지 않는다",
   "  · 계열이 둘 이상이면 범례, 값은 막대에 바로 적는다",
   "- 계열 색(어두운 바탕에서 검증된 것): #1F9E90, #7C8AF2, #C27A14",
@@ -316,7 +370,9 @@ const 프롬프트 = (post) => [
   "XML·보안 (어기면 버린다)",
   "- 글자 속 & 는 반드시 &amp; 로. < > 도 &lt; &gt;. 안 그러면 XML 이 깨진다",
   "- aria-label 에 그림의 내용 전체를 문장으로 적는다. 그림을 못 보는 쪽에도 뜻이 남아야 한다",
-  "- <script>, on*= 속성, <foreignObject>, <image>, 외부 주소(href·url(...))는 쓰지 않는다. 그라데이션·필터 참조 url(#id) 만 된다",
+  `- 쓸 수 있는 요소는 이것뿐이다: ${[...허용요소].join(", ")}. 접두어 붙은 요소(h:…)·a·image·animate·set·foreignObject·script 는 버린다`,
+  "- 접두어 속성은 xmlns:xlink 와 xlink:href=\"#…\" 만. on*= 속성, 외부 주소(href·url(...))는 버린다. 참조는 url(#id)·href=\"#id\" 만 된다",
+  "- CSS 에 \\ (이스케이프)와 @ 규칙을 쓰지 않는다. CDATA 도 쓰지 않는다",
   "- 한 장 60KB 이하",
   "",
   "글 — 짧게. 번역체·과장 형용사(놀라운·혁신적인·필수적인)·빈 강조 금지. 「우리 학원으로 오세요」 같은 권유나 불안을 파는 말 금지",
@@ -366,7 +422,7 @@ const 대상들 = (slug = null, n = 1) => q(
   `select slug, title, body, client_id, updated_at::text as updated,
     to_char(updated_at at time zone 'Asia/Seoul', 'YYYY-MM-DD HH24:MI') as kst,
     coalesce((review_notes->'삽화'->>'시도')::int, 0) as 시도 from academy.posts
-    where not published and position('![' in body) = 0 and ($1::text is null or slug = $1)
+    where not published and position('![' in body) = 0 and length(body) >= 600 and ($1::text is null or slug = $1)
     order by 시도, created_at limit $2`, [slug, n]);
 
 const 끝냄 = (r) => { console.log(`ILLUSTRATE=${JSON.stringify(r)}`); };
@@ -378,6 +434,11 @@ const 그리기 = async () => {
   if (!post) return 끝냄({ 상태: "대상없음", slug: SLUG });
   console.log(`삽화 · ${KST()} KST · ${post.slug} 「${post.title}」 (${post.body.length}자)`);
   if (!클로드코드있음()) return 끝냄({ 상태: "클로드없음", slug: post.slug });
+  // 하루 몫 — 구독 호출 몫(측정 아닌 20)을 삽화가 다 먹으면 주간 글·감사·수리·영업이 조용히 선다(Richard 9/22)
+  const 몫 = 하루몫();
+  const [오늘] = await q(`select count(*)::int n from geo.claude_calls where purpose='illustrate'
+    and (at at time zone 'Asia/Seoul')::date = (now() at time zone 'Asia/Seoul')::date`);
+  if (오늘.n >= 몫) return 끝냄({ 상태: "하루몫", slug: post.slug, 오류: `오늘 삽화 ${오늘.n}회 — 하루 ${몫}회` });
 
   const 말들 = await 남의말(post.client_id);
   const r = await 클로드코드(프롬프트(post), {
@@ -438,7 +499,7 @@ const 살펴보기 = async () => {
   const rows = await 대상들(null, 50);
   const [n] = await q(`select count(*)::int n, count(*) filter (where purpose='illustrate')::int ill from geo.claude_calls
     where (at at time zone 'Asia/Seoul')::date = (now() at time zone 'Asia/Seoul')::date`).catch(() => [null]);
-  console.log(`삽화 대상 ${rows.length}편 · Claude Code ${클로드코드있음() ? "있음" : "없음"} · 오늘 호출 ${n ? `${n.n}회 (illustrate ${n.ill}회)` : "못 셈"}`);
+  console.log(`삽화 대상 ${rows.length}편 · Claude Code ${클로드코드있음() ? "있음" : "없음"} · 오늘 호출 ${n ? `${n.n}회 (illustrate ${n.ill}/${하루몫()}회)` : "못 셈"}`);
   for (const r of rows) console.log(`  - ${r.slug} 「${r.title}」 ${r.body.length}자 · 고친 때 ${r.kst} KST`);
   if (rows.length) console.log(`다음에 그릴 글: ${rows[0].slug} (claude 를 부르지 않았습니다)`);
 };
@@ -453,7 +514,7 @@ const 시험 = async () => {
     `<text x="40" y="80" fill="#F5A623">${글자}</text></svg>`;
   const 좋은 = 틀("1단계 블록 코딩 → 2단계 파이썬 · 로봇&amp;코딩 도구");
   let y = 100;
-  const 막대 = (값, 폭) => `<rect x="100" y="${(y += 30)}" width="${폭}" height="16" rx="4" data-value="${값}" data-chart="c" fill="#1F9E90"/>`;
+  const 막대 = (값, 폭) => `<rect x="100" y="${(y += 30)}" width="${폭}" height="16" rx="4" data-value="${값}" data-chart="c" data-orient="h" fill="#1F9E90"/>`;
   const 축 = (눈금들) => 눈금들.map((t, i) => `<text data-axis="c" x="${100 + i * 100}" y="340">${t}</text>`).join("");
   const 사례 = [
     ["좋은 도해", 좋은, "두 단계 도해. 1단계 블록 코딩, 2단계 파이썬.", true],
@@ -481,9 +542,28 @@ const 시험 = async () => {
     ["막대를 줄임 (30 인데 1 의 20배)", 틀("블록", { 속: 막대(30, 200) + 막대(1, 10) }), "도해", false],
     ["같은 값 막대 하나만 줄임", 틀("블록", { 속: 막대(30, 300) + 막대(30, 250) }), "도해", false],
     ["막대 값이 본문에 없음", 틀("블록", { 속: 막대(45, 450) + 막대(30, 300) }), "도해", false],
-    ["축 눈금 0·10·20·30분", 틀("블록", { 속: 축(["0", "10", "20", "30분"]) }), "도해", true],
+    ["축 눈금 0·10·20·30분 + 막대", 틀("블록", { 속: 축(["0", "10", "20", "30분"]) + 막대(30, 300) + 막대(1, 10) }), "도해", true],
     ["축 눈금에 지어낸 수 숨기기", 틀("블록", { 속: 축(["0", "87"]) + 축(["45"]) }), "도해", false],
     ["축 눈금에 글자", 틀("블록", { 속: 축(["0", "합격률 87%"]) }), "도해", false],
+    ["막대 방향(data-orient) 없음", 틀("블록", { 속: 막대(30, 300).replace(' data-orient="h"', "") }), "도해", false],
+    ["data-value 없는 막대 그림", 틀("블록", { 속: '<rect x="100" y="120" width="300" height="16" rx="4"/><rect x="100" y="150" width="10" height="16" rx="4"/>' }), "도해", false],
+    ["눈금만 있고 data-value 없음", 틀("블록", { 속: 축(["0", "10"]) }), "도해", false],
+    ["둥근 알약 흐름은 막대가 아님", 틀("1단계 → 2단계", { 속: '<rect x="100" y="120" width="120" height="36" rx="18"/><rect x="260" y="120" width="180" height="36" rx="18"/>' }), "도해", true],
+    // Richard 9/22 — 접두어·이스케이프·요소로 걸러내기를 비껴가던 것
+    ["접두어 스크립트 <h:script>", 틀("블록", { 속: '<h:script xmlns:h="http://www.w3.org/1999/xhtml">fetch(1)</h:script>' }), "도해", false],
+    ["접두어 <x:foreignObject>", 틀("블록", { 속: '<x:foreignObject xmlns:x="http://www.w3.org/2000/svg"><rect/></x:foreignObject>' }), "도해", false],
+    ["x:href", 틀("블록", { 속: '<use x:href="https://evil.example/x.svg#a" xmlns:x="http://www.w3.org/1999/xlink"/>' }), "도해", false],
+    ["<image href=https>", 틀("블록", { 속: '<image href="https://evil.example/p.png" width="9" height="9"/>' }), "도해", false],
+    ["<image href=#>", 틀("블록", { 속: '<image href="#a" width="9" height="9"/>' }), "도해", false],
+    ["CSS 이스케이프 \\75rl(", 틀("블록", { 속: '<style>rect{fill:\\75rl(https://evil.example/p.svg)}</style>' }), "도해", false],
+    ["CSS @\\69mport", 틀("블록", { 속: '<style>@\\69mport "https://evil.example/x.css";</style>' }), "도해", false],
+    ["style 속성 이스케이프", 틀("블록", { 속: '<rect width="9" height="9" style="fill:\\75rl(https://evil.example/p.svg)"/>' }), "도해", false],
+    ["엔티티로 쓴 url(", 틀("블록", { 속: '<rect width="9" height="9" fill="&#x75;rl(https://evil.example/p.svg)"/>' }), "도해", false],
+    ["<animate attributeName=href>", 틀("블록", { 속: '<use href="#g"><animate attributeName="href" to="https://evil.example/x.svg#a"/></use>' }), "도해", false],
+    ["<set>", 틀("블록", { 속: '<set attributeName="fill" to="red"/>' }), "도해", false],
+    ["<a> 링크", 틀("블록", { 속: '<a href="#g"><text>눌러</text></a>' }), "도해", false],
+    ["CDATA", 틀("블록", { 속: "<style><![CDATA[rect{fill:red}]]></style>" }), "도해", false],
+    ["<style> 안의 안전한 규칙", 틀("블록", { 속: "<style>.t{fill:#F5A623;font-weight:700}</style>" }), "도해", true],
   ];
   let 틀림 = 0;
   console.log("도해 검사 시험");

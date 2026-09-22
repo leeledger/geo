@@ -36,7 +36,12 @@ if (!files.length) {
 }
 
 const browser = await chromium.launch();
-const page = await browser.newPage({ deviceScaleFactor: scale });
+// SVG 를 최상위 문서로 연다 — 에이전트가 그린 DB 도해도 여기로 온다(naver-blog-post.mjs). 원장 PC 에서 그 안의 스크립트가 돌거나
+// 바깥으로 요청이 나가면 안 된다: 자바스크립트를 끄고, file: 말고는 다 끊는다(Richard 9/22). parsererror 확인은 Playwright 가
+// 따로 돌리는 evaluate 라 자바스크립트를 꺼도 된다
+const context = await browser.newContext({ deviceScaleFactor: scale, javaScriptEnabled: false });
+await context.route("**/*", (r) => (r.request().url().startsWith("file:") ? r.continue() : r.abort()));
+const page = await context.newPage();
 
 let bad = 0;
 for (const f of files) {

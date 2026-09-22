@@ -8,8 +8,10 @@ export type Draft = {
   id: number; slug: string; title: string; summary: string; body: string; category: string;
   tags: string[]; clientId: number; clientName: string; domain: string;
   createdAt: string; updatedAt: string;
-  notes: { 확인필요?: string[]; 짜임새?: string[]; AI티?: { why: string; sample: string[] }[]; 모델?: string; 질문?: string | null; 경쟁출처?: string[]; 다듬음?: string; 원문?: string };
+  notes: { 확인필요?: string[]; 짜임새?: string[]; AI티?: { why: string; sample: string[] }[]; 모델?: string; 질문?: string | null; 경쟁출처?: string[]; 다듬음?: string; 원문?: string; 삽화?: { 장수?: number; 버린것?: string[]; 쓴날?: string; 시도?: number } };
   task: { status: string; evidence: string } | null;
+  /** 삽화 담당이 그린 도해(academy.post_images) 이름 → SVG. 초안 그림은 공개 경로가 안 내보내서 여기서 읽는다 */
+  images: Record<string, string>;
 };
 
 export async function listDrafts(clientId?: number): Promise<Draft[]> {
@@ -34,9 +36,15 @@ export async function listDrafts(clientId?: number): Promise<Draft[]> {
          from academy.posts p join geo.clients c on c.id = p.client_id
         where not p.published and ($1::int is null or p.client_id = $1) order by p.created_at desc`, [clientId ?? null]);
   });
+  // 초안 그림은 사이트(/blog/img)가 발행 전에는 안 내보낸다 — 검토 화면이 DB 에서 직접 읽어 미리 보여 준다
+  const imgs: { slug: string; name: string; svg: string }[] = rows.length
+    ? (await inqPool().query(`select slug, name, svg from academy.post_images where slug = any($1)`, [rows.map((r) => r.slug)])
+        .catch(() => ({ rows: [] }))).rows
+    : [];
   return rows.map((r) => ({
     id: Number(r.id), slug: r.slug, title: r.title, summary: r.summary, body: r.body, category: r.category,
     tags: r.tags ?? [], clientId: r.client_id, clientName: r.client_name, domain: r.domain,
     createdAt: r.created_at, updatedAt: r.updated_at, notes: r.notes ?? {}, task: r.task,
+    images: Object.fromEntries(imgs.filter((i) => i.slug === r.slug).map((i) => [i.name, i.svg])),
   }));
 }
