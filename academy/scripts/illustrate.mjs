@@ -7,11 +7,13 @@
  * 학원 사이트는 git push 로 배포되지 않는다. 그래서 그림은 글처럼 DB(academy.post_images)에 두고
  * 사이트가 /blog/img/<slug>/<name>.svg 로 내보낸다(app/blog/img/[slug]/[name]/route.ts).
  *
- * 한 번에 1편. 대상은 발행 전이고 본문에 그림(![)이 없고 review_notes.삽화 가 없는 초안.
- * Claude Code(구독)에 본문을 주고 도해 1~2장을 받는다. 모델 말을 믿지 않고 스크립트가 검사한다 —
+ * 한 번에 1편. 대상은 발행 전이고 본문에 그림(![)이 없는 초안 — 도해는 무조건이다(원장 2026-09-22). 그림이 붙을 때까지
+ * 다시 그린다(시도 수는 review_notes.삽화.시도, 두 번 넘게 못 붙이면 company.mjs 가 사람 대기를 세운다).
+ * Claude Code(구독)에 본문을 주고 도해 2~3장을 받는다. 모델 말을 믿지 않고 스크립트가 검사한다 —
  *   XML 로 읽히는가 · 금지 요소(스크립트·이벤트·외부 주소) · 본문에 없는 숫자 · 다른 고객사 이름 · 크기 60KB · 폭 960
+ *   · 막대 길이가 data-value 에 비례하는가 · 축 눈금이 0 부터 같은 간격인가
  * 통과한 것만 넣는다. 본문 수정은 updated_at 조건으로 — 원장이 그사이 고쳤으면 덮어쓰지 않는다.
- * 다 버려졌어도 초안은 그대로, 이유만 review_notes.삽화 에 남긴다(발행은 어차피 사람이 한다).
+ * 다 버려졌으면 초안은 그대로, 이유와 시도 수만 review_notes.삽화 에 남긴다. 발행은 검토 화면이 도해 없는 초안을 막는다.
  *
  *   node scripts/illustrate.mjs --dry                 대상만 본다 (claude 부르지 않음)
  *   node scripts/illustrate.mjs [--slug X] [--task N] 1편 그린다 — 마지막 줄 ILLUSTRATE={...} 를 company.mjs 가 읽는다
@@ -37,7 +39,7 @@ const MODE = argv.includes("--test") ? "test" : argv.includes("--dry") ? "dry" :
 const SLUG = 값("--slug");
 const TASK = Number(값("--task")) || null;
 const 최대크기 = 60 * 1024;
-const 최대장수 = 2;
+const 최대장수 = 3;
 
 const pool = process.env.DATABASE_URL ? new Pool((() => {
   const u = new URL(process.env.DATABASE_URL);
@@ -115,10 +117,63 @@ const XML검사 = (src) => {
 
 // ─────────────────────────────────────────── 한 장 검사
 /** 그림 속 사람이 읽는 글자 — <text> 등 태그 사이 글자 + aria-label·title 속성. 태그 자리는 띄운다(「3」「5」 가 「35」로 붙지 않게) */
+const 축글자꼴 = /<text\b[^>]*\sdata-axis\s*=\s*["']([^"']*)["'][^>]*>([\s\S]*?)<\/text>/gi;
 const 그림글자 = (svg) => {
-  const 속성 = [...svg.matchAll(/\s(?:aria-label|aria-description|title)\s*=\s*(?:"([^"]*)"|'([^']*)')/gi)].map((m) => m[1] ?? m[2]);
-  const 글 = svg.replace(/<style[\s\S]*?<\/style>/gi, " ").replace(/<!--[\s\S]*?-->/g, " ").replace(/<[^>]+>/g, " ");
+  const 속성 = [...svg.matchAll(/\s(?:aria-label|aria-description|title|data-value)\s*=\s*(?:"([^"]*)"|'([^']*)')/gi)].map((m) => m[1] ?? m[2]);
+  // 축 눈금(data-axis)은 따로 본다 — 0·20·40 은 본문의 주장이 아니라 잣대다(축검사)
+  const 글 = svg.replace(축글자꼴, " ").replace(/<style[\s\S]*?<\/style>/gi, " ").replace(/<!--[\s\S]*?-->/g, " ").replace(/<[^>]+>/g, " ");
   return 풀기([글, ...속성].join(" ")).replace(/\s+/g, " ").trim();
+};
+
+/**
+ * 축 눈금은 0 부터 같은 간격인 수만 된다(단위 글자 3자까지). 아무 수나 data-axis 를 달아 숫자 검사를 빠져나가지 못하게
+ */
+const 축검사 = (svg) => {
+  const 축들 = new Map();
+  for (const m of svg.matchAll(축글자꼴)) {
+    const 글 = 풀기(m[2].replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim();
+    const n = /^(\d+(?:\.\d+)?)\s*[가-힣a-zA-Z%]{0,3}$/.exec(글);
+    if (!n) return [`축 눈금이 수가 아님 「${한줄(글, 20)}」`];
+    축들.set(m[1], [...(축들.get(m[1]) ?? []), Number(n[1])]);
+  }
+  const 이유 = [];
+  for (const [축, 값들] of 축들) {
+    const v = [...new Set(값들)].sort((a, b) => a - b);
+    const 간격 = v[1] - v[0];
+    if (v.length < 2 || v[0] !== 0 || v.some((x, i) => Math.abs(x - i * 간격) > 1e-9)) 이유.push(`축 「${축}」 눈금이 0 부터 같은 간격이 아님 (${v.join(", ")})`);
+  }
+  return 이유;
+};
+
+/**
+ * 막대 길이가 값에 비례하는가 — data-value 를 단 rect 를 data-chart 별로 묶어, 폭 또는 높이 ÷ 값이 2% 안으로 같아야 한다.
+ * 글자를 넣으려고 막대를 줄이면 그림이 거짓말을 한다(원장 지시 2026-09-22)
+ */
+const 막대검사 = (svg) => {
+  const 차트들 = new Map();
+  const 이유 = [];
+  for (const m of svg.matchAll(/<([A-Za-z]+)\b([^>]*\sdata-value\s*=\s*["']([^"']*)["'][^>]*)>/g)) {
+    const [, 태그, 속성, 값글] = m;
+    if (태그 !== "rect") { 이유.push(`data-value 는 rect 에만 (${태그})`); continue; }
+    const 속 = (k) => new RegExp(`\\s${k}\\s*=\\s*["']([^"']*)["']`).exec(속성)?.[1];
+    const 값 = Number(값글), w = Number(속("width")), h = Number(속("height"));
+    if (!/^\d+(?:\.\d+)?$/.test(값글.trim()) || !Number.isFinite(w) || !Number.isFinite(h)) { 이유.push(`막대 값·크기가 수가 아님 (data-value="${값글}")`); continue; }
+    const 차트 = 속("data-chart") ?? "기본";
+    차트들.set(차트, [...(차트들.get(차트) ?? []), { 값, w, h }]);
+  }
+  const 비례 = (막대들, k) => {
+    if (막대들.some((b) => b.값 === 0 && b[k] > 1)) return false;
+    const r = 막대들.filter((b) => b.값 > 0).map((b) => b[k] / b.값);
+    return r.length < 2 || (Math.max(...r) - Math.min(...r)) / Math.max(...r) <= 0.02;
+  };
+  // 길이 쪽은 크기가 더 크게 갈리는 쪽이다(가로 막대면 폭). 둘 중 아무 쪽이나 맞으면 통과로 두면
+  // 값이 같은 두 막대는 높이가 같아서 폭을 줄여도 통과한다
+  const 퍼짐 = (막대들, k) => { const v = 막대들.map((b) => b[k]); return (Math.max(...v) - Math.min(...v)) / (Math.max(...v) || 1); };
+  for (const [차트, 막대들] of 차트들) {
+    const k = 퍼짐(막대들, "w") >= 퍼짐(막대들, "h") ? "w" : "h";
+    if (!비례(막대들, k)) 이유.push(`차트 「${차트}」 막대 길이가 값에 비례하지 않음 (${막대들.map((b) => `${b.값}→${b.w}×${b.h}`).join(", ")})`);
+  }
+  return 이유;
 };
 
 /**
@@ -156,13 +211,31 @@ const 한장검사 = ({ svg, alt }, 재료, 말들) => {
   if (!vb || Number(vb[1]) !== 960 || (w && Number(w) !== 960)) 이유.push(`폭이 960 이 아님 (viewBox ${vb ? `${vb[1]}×${vb[2]}` : "없음"}${w ? ` · width ${w}` : ""})`);
   if (!/aria-label\s*=\s*["'][^"']{10,}/.test(svg)) 이유.push("aria-label 에 내용이 없음");
 
-  // 지어낸 숫자 — 그림 글자와 alt 의 숫자는 본문에 통째로 있어야 한다 (sales.mjs 와 같은 검사, masks.mjs)
+  // 차트 — 막대는 값에 비례, 축 눈금은 0 부터 같은 간격
+  이유.push(...막대검사(svg), ...축검사(svg));
+
+  // 지어낸 숫자 — 그림 글자·alt·막대 값의 숫자는 본문에 통째로 있어야 한다 (sales.mjs 와 같은 검사, masks.mjs)
   const 모르는 = 수검사(`${그림글자(svg)} ${alt ?? ""}`, 재료);
   if (모르는.length) 이유.push(`본문에 없는 수: ${모르는.slice(0, 6).join(", ")}`);
   // 다른 고객사 — 조합되면 특정된다
   const 걸림 = 가림검사(`${svg}\n${alt ?? ""}`, 말들);
   if (걸림.length) 이유.push(`가릴 말: ${걸림.slice(0, 4).join(", ")}`);
   return 이유;
+};
+
+/**
+ * 숫자 검사의 재료 = 제목 + 본문 + 본문 날짜의 점 표기. 연표는 「2026년 8월 27일」을 「2026.08.27」로 줄여 쓴다 —
+ * 같은 날짜라 지어낸 수가 아니다(참고 예시 timeline.svg). 날짜가 아닌 수는 넓히지 않는다
+ */
+const 재료로 = (post) => {
+  const 원 = `${post.title}\n${post.body}`;
+  const 두자리 = (n) => String(n).padStart(2, "0");
+  const 점 = [];
+  for (const [, y, mo, d] of 원.matchAll(/(\d{4})년\s*(\d{1,2})월(?:\s*(\d{1,2})일)?/g)) {
+    점.push(`${y}.${mo}`, `${y}.${두자리(mo)}`);
+    if (d) 점.push(`${y}.${mo}.${d}`, `${y}.${두자리(mo)}.${두자리(d)}`);
+  }
+  return `${원}\n${점.join(" ")}`;
 };
 
 // ─────────────────────────────────────────── 본문에 끼우기
@@ -205,29 +278,53 @@ const 저장 = async (client, { slug, body, updated, 그림들, 기록 }) => {
 };
 
 // ─────────────────────────────────────────── 프롬프트
-const 참고그림 = () => fs.readFileSync(new URL("../public/blog/koding-kurikyulleom-sunseo/grading-shift.svg", import.meta.url), "utf8");
+/**
+ * 참고 예시 — 2026-09-22 원장 지시 「도해를 좀더 보기좋게」로 새 스타일을 손으로 그린 세 장(아이콘 연표·단위 차트·시수 막대).
+ * 옛 참고(grading-shift.svg)는 카드 두 장뿐이라 그림이 다 비슷하게 나왔다
+ */
+const 참고들 = ["timeline", "recognized-textbook", "info-hours"];
+const 참고그림 = () => 참고들.map((n) => `<!-- 참고: ${n}.svg -->\n${fs.readFileSync(new URL(`../public/blog/ai-textbook-16-subjects-2028/${n}.svg`, import.meta.url), "utf8").trim()}`).join("\n\n");
 
 const 프롬프트 = (post) => [
-  "아래는 학원 블로그 초안이다. 이 글의 뼈대를 설명하는 도해(SVG) 1~2장을 그려라. 그림이 설명하는 대목 바로 앞에 놓는다.",
+  "아래는 학원 블로그 초안이다. 이 글의 뼈대를 설명하는 도해(SVG) 2~3장을 그려라. 그림이 설명하는 대목 바로 앞에 놓는다.",
   "",
-  "지킬 것 (어기면 스크립트가 그 그림을 버린다)",
-  "- 본문에 없는 숫자·사실을 그림에 넣지 마라. 그림과 alt 의 숫자는 본문에 똑같이 있는 것만 쓴다. 「세 배」「두 달」 같은 수 표현도 본문에 그대로 있는 것만",
-  "- 숫자는 본문과 같은 모양으로 쓴다. 「2026년 8월 27일」을 「2026.8.27」로, 「세 가지」를 「3가지」로 바꾸면 본문에 없는 수로 보고 버린다",
-  "- 지어낸 사례·통계·인용을 넣지 마라. 본문의 주장과 판단 기준을 구조로 보여 준다(비교·단계·순서·갈림길)",
-  "- 크기 960 폭: <svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 960 H\" width=\"960\" height=\"H\" role=\"img\" aria-label=\"…\">, H 는 300~560",
-  "- 팔레트는 사이트 것: 배경 #0B0F16, 앰버 #F5A623, 시안 #3DD6C4. 글자는 'Noto Sans KR', 라벨은 'IBM Plex Mono'",
-  "- 글자 속 & 는 반드시 &amp; 로 쓴다. < > 도 &lt; &gt;. 안 그러면 XML 이 깨진다",
-  "- aria-label 에 그림의 내용을 문장으로 적는다. 그림을 못 보는 쪽에도 뜻이 남아야 한다",
-  "- <script>, on*= 속성, <foreignObject>, <image>, 외부 주소(href·url(...))는 쓰지 않는다. 그라데이션 참조 url(#id) 만 된다",
-  "- 한 장 60KB 이하. 학원·회사 이름, 지역명, 전화번호를 넣지 않는다",
-  "- 글자는 짧게. 번역체·과장 형용사(놀라운·혁신적인·필수적인)·빈 강조 금지. 「우리 학원으로 오세요」 같은 권유나 불안을 파는 말 금지",
+  "사실 (어기면 스크립트가 그 그림을 버린다)",
+  "- 본문에 없는 숫자·사실을 그림에 넣지 마라. 그림 글자·aria-label·alt·data-value 의 숫자는 본문에 똑같이 있는 것만 쓴다. 「세 배」「두 달」 같은 수 표현도 본문에 그대로 있는 것만",
+  "- 숫자는 본문과 같은 모양으로 쓴다. 「세 가지」를 「3가지」로 바꾸면 본문에 없는 수로 보고 버린다. 날짜만 「2026년 8월 27일」→「2026.08.27」처럼 점으로 줄여도 된다",
+  "- 지어낸 사례·통계·인용을 넣지 마라. 학원·회사 이름, 지역명, 전화번호를 넣지 않는다",
+  "",
+  "형태 — 내용에 맞게 고른다",
+  "- 날짜가 이어지면 연표(시안→앰버 그라데이션 레일, 마디마다 아이콘) · 개수는 단위 차트(한 칸 = 1) · 크기 비교는 막대 · 「A 와 B」는 비교 카드 · 과정은 알약 모양 흐름(→)",
+  "- 막대: 축 하나, 옅은 점선 격자(#223040), 모서리 4px. 막대 길이는 값에 정확히 비례한다 — 글자를 넣으려고 막대를 줄이지 마라, 글자가 안 들어가면 막대 끝 안쪽에 쓴다",
+  "  · 값을 나타내는 막대마다 <rect … data-value=\"값\" data-chart=\"차트이름\"> 를 단다. 스크립트가 폭(또는 높이)이 값에 2% 안으로 비례하는지 재고, 어긋나면 버린다",
+  "  · 축 눈금 글자는 <text data-axis=\"차트이름\">20</text> 처럼 단다. 눈금은 0 부터 같은 간격이어야 한다. 눈금 말고는 data-axis 를 쓰지 않는다",
+  "  · 계열이 둘 이상이면 범례, 값은 막대에 바로 적는다",
+  "- 계열 색(어두운 바탕에서 검증된 것): #1F9E90, #7C8AF2, #C27A14",
+  "",
+  "모양 — 참고 예시와 같은 체계",
+  "- <svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 960 H\" width=\"960\" height=\"H\" role=\"img\" aria-label=\"…\">, H 는 360~560",
+  "- 배경은 #111827→#0B0F16 대각 그라데이션, 필요하면 옅은 원형 강조 빛 하나",
+  "- 머리: 키커 한 줄(IBM Plex Mono 12px, letter-spacing 2.5, 시안 #3DD6C4) + 굵은 30px 제목(#F1F4F8) + 15px 부제(#8A94A6)",
+  "- 카드: 세로 그라데이션 #18202C→#121821, 모서리 14~16px, 1px #263241 테두리, feDropShadow 그림자",
+  "- 강조 카드는 하나만 앰버로: #2A2013→#1A150E, 테두리 #6A4A17 또는 #8A5E1A, 앰버 알약 배지",
+  "- 아이콘은 path 로 그린 단순한 선(stroke 2, 둥근 이음)을 테두리 원 안에 넣는다",
+  "- 맨 아래 한 줄 요약 띠(#141B25, 테두리 #2A3544) — 판단 기준을 한 문장으로",
+  "- 글자는 'Noto Sans KR', 라벨·숫자는 'IBM Plex Mono'",
+  "",
+  "XML·보안 (어기면 버린다)",
+  "- 글자 속 & 는 반드시 &amp; 로. < > 도 &lt; &gt;. 안 그러면 XML 이 깨진다",
+  "- aria-label 에 그림의 내용 전체를 문장으로 적는다. 그림을 못 보는 쪽에도 뜻이 남아야 한다",
+  "- <script>, on*= 속성, <foreignObject>, <image>, 외부 주소(href·url(...))는 쓰지 않는다. 그라데이션·필터 참조 url(#id) 만 된다",
+  "- 한 장 60KB 이하",
+  "",
+  "글 — 짧게. 번역체·과장 형용사(놀라운·혁신적인·필수적인)·빈 강조 금지. 「우리 학원으로 오세요」 같은 권유나 불안을 파는 말 금지",
   "",
   "before 는 본문에 글자 그대로 있는 문구(10~30자)다. 가능하면 그 그림이 설명하는 소제목 줄(## …)이나 문단 첫머리를 그대로 옮긴다.",
   "alt 는 그림의 내용을 한두 문장으로. 대괄호를 쓰지 않는다. name 은 영문 소문자와 - 로 된 짧은 이름.",
   "",
   '형식 — JSON 객체 하나만 답한다. 다른 말·코드블록 표시는 붙이지 않는다: {"images":[{"name":"…","alt":"…","before":"…","svg":"<svg …>…</svg>"}]}',
   "",
-  "참고 예시 (사이트에 실린 도해 한 장. 이 모양과 색을 따른다):",
+  "참고 예시 (사이트에 실린 도해 세 장. 이 체계를 따르되 내용에 맞는 형태를 고른다):",
   참고그림(),
   "",
   `제목: ${post.title}`,
@@ -265,10 +362,10 @@ const 남의말 = async (clientId) => {
 // ─────────────────────────────────────────── 대상
 const 대상들 = (slug = null, n = 1) => q(
   `select slug, title, body, client_id, updated_at::text as updated,
-    to_char(updated_at at time zone 'Asia/Seoul', 'YYYY-MM-DD HH24:MI') as kst from academy.posts
-    where not published and position('![' in body) = 0 and not (coalesce(review_notes,'{}'::jsonb) ? '삽화')
-      and ($1::text is null or slug = $1)
-    order by created_at limit $2`, [slug, n]);
+    to_char(updated_at at time zone 'Asia/Seoul', 'YYYY-MM-DD HH24:MI') as kst,
+    coalesce((review_notes->'삽화'->>'시도')::int, 0) as 시도 from academy.posts
+    where not published and position('![' in body) = 0 and ($1::text is null or slug = $1)
+    order by 시도, created_at limit $2`, [slug, n]);
 
 const 끝냄 = (r) => { console.log(`ILLUSTRATE=${JSON.stringify(r)}`); };
 
@@ -288,7 +385,7 @@ const 그리기 = async () => {
   if (!r.ok) return 끝냄({ 상태: r.한도 ? "한도" : "실패", slug: post.slug, 오류: 한줄(r.error, 300) });
 
   const 받은 = 답읽기(r.text);
-  const 재료 = `${post.title}\n${post.body}`;
+  const 재료 = 재료로(post);
   const 버린것 = [];
   const 그림들 = [];
   if (!받은) 버린것.push(`답이 JSON 이 아님 (${r.text.length}자)`);
@@ -303,11 +400,11 @@ const 그리기 = async () => {
   }
   for (const b of 버린것) console.log(`  ✗ ${b}`);
 
-  const 기록 = { 장수: 그림들.length, 버린것, 쓴날: KST(), ...(r.callId ? { 호출: r.callId } : {}) };
+  const 기록 = { 장수: 그림들.length, 버린것, 쓴날: KST(), 시도: post.시도 + 1, ...(r.callId ? { 호출: r.callId } : {}) };
   if (!그림들.length) {
     await q(`update academy.posts set review_notes = coalesce(review_notes,'{}'::jsonb) || jsonb_build_object('삽화', $2::jsonb)
       where slug=$1 and not published`, [post.slug, JSON.stringify(기록)]);
-    return 끝냄({ 상태: "다버림", slug: post.slug, 장수: 0, 버린것 });
+    return 끝냄({ 상태: "다버림", slug: post.slug, 장수: 0, 시도: 기록.시도, 버린것 });
   }
 
   let body = post.body;
@@ -353,6 +450,9 @@ const 시험 = async () => {
     `<defs><linearGradient id="g"><stop offset="0" stop-color="#0B0F16"/></linearGradient></defs><rect width="960" height="360" fill="url(#g)"/>${속}` +
     `<text x="40" y="80" fill="#F5A623">${글자}</text></svg>`;
   const 좋은 = 틀("1단계 블록 코딩 → 2단계 파이썬 · 로봇&amp;코딩 도구");
+  let y = 100;
+  const 막대 = (값, 폭) => `<rect x="100" y="${(y += 30)}" width="${폭}" height="16" rx="4" data-value="${값}" data-chart="c" fill="#1F9E90"/>`;
+  const 축 = (눈금들) => 눈금들.map((t, i) => `<text data-axis="c" x="${100 + i * 100}" y="340">${t}</text>`).join("");
   const 사례 = [
     ["좋은 도해", 좋은, "두 단계 도해. 1단계 블록 코딩, 2단계 파이썬.", true],
     ["파싱 오류 — 날 &", 틀("로봇 & 코딩"), "도해", false],
@@ -373,6 +473,13 @@ const 시험 = async () => {
     ["다른 고객사 도메인", 틀("ilog.ai.kr"), "도해", false],
     ["폭 800", 좋은.replace(/960/g, "800"), "도해", false],
     ["60KB 초과", 틀("블록", { 속: `<!-- ${"x".repeat(62 * 1024)} -->` }), "도해", false],
+    ["막대 비례 (30·1·2)", 틀("블록", { 속: 막대(30, 300) + 막대(1, 10) + 막대(2, 20) }), "도해", true],
+    ["막대를 줄임 (30 인데 1 의 20배)", 틀("블록", { 속: 막대(30, 200) + 막대(1, 10) }), "도해", false],
+    ["같은 값 막대 하나만 줄임", 틀("블록", { 속: 막대(30, 300) + 막대(30, 250) }), "도해", false],
+    ["막대 값이 본문에 없음", 틀("블록", { 속: 막대(45, 450) + 막대(30, 300) }), "도해", false],
+    ["축 눈금 0·10·20·30분", 틀("블록", { 속: 축(["0", "10", "20", "30분"]) }), "도해", true],
+    ["축 눈금에 지어낸 수 숨기기", 틀("블록", { 속: 축(["0", "87"]) + 축(["45"]) }), "도해", false],
+    ["축 눈금에 글자", 틀("블록", { 속: 축(["0", "합격률 87%"]) }), "도해", false],
   ];
   let 틀림 = 0;
   console.log("도해 검사 시험");
@@ -381,6 +488,18 @@ const 시험 = async () => {
     const ok = (이유.length === 0) === 통과;
     if (!ok) 틀림++;
     console.log(`  ${ok ? "✓" : "✗"} ${이름} — ${통과 ? "통과해야 함" : "버려야 함"} · ${이유.length ? `버림: ${이유.join(" · ")}` : "통과"}`);
+  }
+
+  // 참고 예시(손으로 그린 새 스타일)는 그 글 본문을 재료로 검사를 통과해야 한다 — 못 넘으면 검사가 너무 좁거나 예시가 틀렸다
+  const [원글] = pool ? await q(`select title, body from academy.posts where slug='ai-textbook-16-subjects-2028'`) : [];
+  if (원글) {
+    console.log("참고 예시 검사 (ai-textbook-16-subjects-2028 본문이 재료)");
+    for (const n of 참고들) {
+      const svg = fs.readFileSync(new URL(`../public/blog/ai-textbook-16-subjects-2028/${n}.svg`, import.meta.url), "utf8");
+      const 이유 = 한장검사({ svg, alt: "도해" }, 재료로(원글), 말들);
+      if (이유.length) 틀림++;
+      console.log(`  ${이유.length ? "✗" : "✓"} ${n}.svg — 통과해야 함 · ${이유.length ? `버림: ${이유.join(" · ")}` : "통과"}`);
+    }
   }
 
   console.log("끼우는 자리 시험");

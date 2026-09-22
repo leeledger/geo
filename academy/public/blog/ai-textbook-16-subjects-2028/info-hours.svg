@@ -31,23 +31,23 @@
       <line x1="778" y1="180" x2="778" y2="360" stroke-dasharray="2 5"/>
     </g>
     <g font-family="'IBM Plex Mono',ui-monospace,monospace" font-size="11.5" fill="#5D6878" text-anchor="middle">
-      <text x="250" y="378">0</text><text x="426" y="378">20</text><text x="602" y="378">40</text><text x="778" y="378">60시간</text>
+      <text data-axis="hours" x="250" y="378">0</text><text data-axis="hours" x="426" y="378">20</text><text data-axis="hours" x="602" y="378">40</text><text data-axis="hours" x="778" y="378">60시간</text>
     </g>
 
     <!-- 초 5~6 -->
     <text x="72" y="222" font-size="15" font-weight="700" fill="#DCE3EC">초등 5~6학년</text>
     <text x="72" y="244" font-size="12.5" fill="#6E7A8C">실과 안의 정보</text>
-    <rect x="250" y="200" width="149.6" height="16" rx="4" fill="#3A4556"/>
+    <rect x="250" y="200" width="149.6" height="16" data-value="17" data-chart="hours" rx="4" fill="#3A4556"/>
     <text x="408" y="213" font-family="'IBM Plex Mono',ui-monospace,monospace" font-size="13" fill="#8A94A6">17 전</text>
-    <rect x="250" y="222" width="299.2" height="20" rx="4" fill="url(#now)"/>
+    <rect x="250" y="222" width="299.2" data-value="34" data-chart="hours" height="20" rx="4" fill="url(#now)"/>
     <text x="559" y="238" font-family="'IBM Plex Mono',ui-monospace,monospace" font-size="14" font-weight="700" fill="#FFE2AE">34시간 이상</text>
 
     <!-- 중 -->
     <text x="72" y="302" font-size="15" font-weight="700" fill="#DCE3EC">중학교</text>
     <text x="72" y="324" font-size="12.5" fill="#6E7A8C">정보 (3년)</text>
-    <rect x="250" y="280" width="299.2" height="16" rx="4" fill="#3A4556"/>
+    <rect x="250" y="280" width="299.2" data-value="34" data-chart="hours" height="16" rx="4" fill="#3A4556"/>
     <text x="558" y="293" font-family="'IBM Plex Mono',ui-monospace,monospace" font-size="13" fill="#8A94A6">34 전</text>
-    <rect x="250" y="302" width="598.4" height="20" rx="4" fill="url(#now)"/>
+    <rect x="250" y="302" width="598.4" data-value="68" data-chart="hours" height="20" rx="4" fill="url(#now)"/>
     <text x="838" y="317" text-anchor="end" font-family="'IBM Plex Mono',ui-monospace,monospace" font-size="14" font-weight="700" fill="#1A140C">68시간 이상</text>
 
     <!-- 범례 -->

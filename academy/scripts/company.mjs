@@ -276,12 +276,25 @@ const 계획 = async (clients, { latest: latestRuns, ok: ghOk }) => {
       title: `초안 검토: ${p.title}`, detail: "AI 티를 검사하고 다듬은 뒤, 사실 확인·발행을 원장에게 넘깁니다.",
       payload: { slug: p.slug }, link: `${ADMIN}/admin/drafts#${p.slug}` });
   }
-  // 도해 없는 초안 — 원장이 사실 확인할 때 그림도 같이 보게 발행 전에 붙인다 (Step 12, illustrate.mjs)
-  for (const p of await q(`select slug, title, client_id from academy.posts where not published and position('![' in body) = 0
-                             and not (coalesce(review_notes,'{}'::jsonb) ? '삽화') order by created_at`)) {
+  // 도해 없는 초안 — 도해는 무조건이다(원장 2026-09-22). 붙을 때까지 다시 그리고, 두 번 넘게 못 붙이면 사람에게도 알린다 (Step 12, illustrate.mjs)
+  for (const p of await q(`select slug, title, client_id, coalesce((review_notes->'삽화'->>'시도')::int, 0) 시도,
+                             review_notes->'삽화'->'버린것' 버린것 from academy.posts
+                            where not published and position('![' in body) = 0 order by created_at`)) {
     await 일감({ client_id: p.client_id, agent: "content", kind: "illustrate", key: `illustrate-${p.slug}`, priority: 16,
-      title: `도해 그리기: ${p.title}`, detail: "초안에 도해 1~2장을 그려 붙입니다. 본문에 없는 숫자·다른 고객사 이름이 든 그림은 버립니다.",
+      title: `도해 그리기: ${p.title}`, detail: "초안에 도해 2~3장을 그려 붙입니다. 본문에 없는 숫자·다른 고객사 이름·값에 안 맞는 막대가 든 그림은 버립니다.",
       payload: { slug: p.slug }, link: `${ADMIN}/admin/drafts#${p.slug}` });
+    if (p.시도 >= 2) {
+      await 일감({ client_id: p.client_id, agent: "content", kind: "human", key: `illustrate-human-${p.slug}`, priority: 25, status: "사람 대기",
+        title: `도해를 못 붙임: ${p.title}`,
+        detail: `삽화 담당이 ${p.시도}번 그렸지만 검사에서 다 버려졌습니다. 삽화 담당은 계속 다시 그립니다. 급하면 Claude 세션에서 그려 넣어 주세요.\n마지막에 버린 이유: ${끝((p.버린것 ?? []).join(" / "), 400)}`,
+        link: `${ADMIN}/admin/drafts#${p.slug}` });
+    }
+  }
+  // 발행본은 도해 없이 나가면 안 된다 — 이미 나간 글은 사람이 본 것이라 에이전트가 손대지 않고 사람에게 올린다
+  for (const p of await q(`select slug, title, client_id from academy.posts where published and position('![' in body) = 0 order by published_at`)) {
+    await 일감({ client_id: p.client_id, agent: "content", kind: "human", key: `noimg-${p.slug}`, priority: 30, status: "사람 대기",
+      title: `도해 없이 발행된 글: ${p.title}`, detail: "발행본은 에이전트가 고치지 않습니다. Claude 세션에서 도해를 그려 public/blog/<슬러그>/ 에 넣고 본문에 끼워 주세요.",
+      link: `https://${clients.find((c) => c.id === p.client_id)?.domain ?? "robotncoding.com"}/blog/${p.slug}` });
   }
 
   // 상담 결과 미입력 · 새 리드
@@ -309,7 +322,7 @@ const 계획 = async (clients, { latest: latestRuns, ok: ghOk }) => {
   const open = await q(`select id, client_id, dedupe_key, title from geo.agent_tasks
     where status in ('대기','관찰','사람 대기','로컬 대기','실패') and not coalesce((payload->>'sticky')::boolean, false)
       and (case when dedupe_key like 'wf-%' then 'gh'
-                when dedupe_key like 'review-%' or dedupe_key like 'illustrate-%' then 'drafts'
+                when dedupe_key like 'review-%' or dedupe_key like 'illustrate-%' or dedupe_key like 'noimg-%' then 'drafts'
                 when dedupe_key in ('inquiry-result', 'lead-new') then 'db'
                 when dedupe_key like 'login-%' then 'local'
                 else 'scout' end) = any($1)`, [[...읽음]]);
@@ -512,7 +525,9 @@ const EXEC = {
     const link = `${ADMIN}/admin/drafts#${slug}`;
     switch (o?.상태) {
       case "붙임": return { status: "완료", link, evidence: `${오늘()} 도해 ${o.장수}장 붙임${o.버린것?.length ? ` · 버림 ${o.버린것.length}장 (${끝(o.버린것.join(" / "), 200)})` : ""}` };
-      case "다버림": return { status: "완료", link, evidence: `${오늘()} 도해를 다 버림 — 초안은 그대로 (${끝(o.버린것.join(" / "), 300)})` };
+      // 도해는 무조건 — 다 버려졌어도 닫지 않고 다시 그린다. 두 번까지는 다음 시간, 그 뒤로는 6시간 간격(구독 한도를 원장과 같이 쓴다)
+      case "다버림": return { status: "대기", attempt: true, nextTry: 뒤(o.시도 >= 2 ? 6 : 1), link,
+        evidence: `${오늘()} 도해 ${o.시도}번째 시도 — 다 버림, 다시 그림 (${끝(o.버린것.join(" / "), 300)})` };
       case "대상없음": return { status: "닫힘", evidence: `${오늘()} 이미 그림이 있거나 발행됐거나 없음` };
       // 한도·설정 없음은 고장이 아니다. 실패로 세어 사람에게 넘기면 진짜 고장이 묻힌다
       case "한도": return { status: "대기", nextTry: 뒤(6), evidence: `${오늘()} Claude 한도 — 미룸 (${끝(o.오류, 120)})` };
