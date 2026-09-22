@@ -21,6 +21,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { Pool } from "pg";
+import { MASKS } from "../masks.mjs";
 
 for (const l of fs.readFileSync(new URL("../.env.local", import.meta.url), "utf8").split(/\r?\n/)) {
   const m = /^([A-Z_]+)=(.*)$/.exec(l);
@@ -54,9 +55,48 @@ const crawl = (await pool.query(`
 const firstHit = (await pool.query(
   `select min(seen_at) t from academy.crawl_hits where client_id=$1`, [CLIENT_ID],
 )).rows[0]?.t;
-const snaps = (await pool.query(
-  `select day, posts, crawl_total, vendors from academy.snapshots order by day`,
-)).rows;
+/**
+ * 크롤러는 두 갈래로 나눠 센다. 판별표(academy/lib/bots.ts)가 이미 「AI 학습·검색」과 「검색 색인」 두 칸으로 나뉘어 있다 —
+ * 검색 색인 칸이 Googlebot·Bingbot·Yeti·DuckDuckBot 이다. Applebot·Amazonbot·meta-externalagent 는 그 표에서 AI 칸이라 AI 로 센다.
+ * 전에는 둘을 합쳐 「AI 크롤러 방문」이라 적었다 — 검색 크롤러 590회가 AI 로 들어가 과장이었다(2026-09-22 정정)
+ */
+const 검색봇 = new Set(["Googlebot", "Bingbot", "Yeti", "DuckDuckBot"]);
+const AI인가 = (bot) => !검색봇.has(bot);
+
+/**
+ * 일별 기록 — academy.snapshots.crawl_total 은 고객사를 가리지 않고 crawl_hits 전체를 센다(snapshot 라우트).
+ * 그래서 17일차 누적 1822 가 머리 숫자 1486 보다 컸다(다른 고객사 방문 포함). 이 고객사 행만, 한 정의로 다시 센다.
+ * 누적 = 그날 KST 자정까지. 날짜는 스냅샷이 찍힌 날들을 그대로 쓴다
+ */
+const snaps = (await pool.query(`
+  select s.day::text as day,
+    (select count(*)::int from academy.posts p where p.client_id=$1 and p.published
+        and p.published_at < ((s.day + 1)::timestamp at time zone 'Asia/Seoul')) posts,
+    (select count(*)::int from academy.crawl_hits h where h.client_id=$1 and not (h.bot = any($2))
+        and h.seen_at < ((s.day + 1)::timestamp at time zone 'Asia/Seoul')) ai_total,
+    (select count(*)::int from academy.crawl_hits h where h.client_id=$1 and h.bot = any($2)
+        and h.seen_at < ((s.day + 1)::timestamp at time zone 'Asia/Seoul')) search_total,
+    (select array_agg(distinct h.vendor order by h.vendor) from academy.crawl_hits h where h.client_id=$1
+        and h.seen_at < ((s.day + 1)::timestamp at time zone 'Asia/Seoul')) vendors
+  from academy.snapshots s order by s.day`, [CLIENT_ID, [...검색봇]])).rows;
+
+/**
+ * 명시 허용 수와 판별 수는 저장소 파일에서 센다. 전에는 손으로 적은 「17종」(타임라인)과 진단 도구가 센 「11종」(진단표)이
+ * 한 페이지에 같이 있었다 — 정의가 달랐다. 이제 둘 다 robots.txt 에서 센 같은 숫자다
+ */
+const robots = (() => {
+  try { return fs.readFileSync(new URL("../public/robots.txt", import.meta.url), "utf8"); } catch { return ""; }
+})();
+// Daum 은 판별표에 없지만 검색 색인 크롤러다(카카오 검색)
+const 검색색인 = (bot) => 검색봇.has(bot) || bot === "Daum";
+const 허용봇 = [...robots.matchAll(/User-agent:\s*(\S+)\s*\n\s*Allow:\s*\//gi)].map((m) => m[1]).filter((b) => b !== "*");
+const 허용 = { 전체: 허용봇.length, AI: 허용봇.filter((b) => !검색색인(b)).length, 검색: 허용봇.filter(검색색인).length };
+const 판별봇 = (() => {
+  try {
+    return [...fs.readFileSync(new URL("../lib/bots.ts", import.meta.url), "utf8").matchAll(/\[\/[^\n]*?\/i,\s*"([^"]+)"/g)].map((m) => m[1]);
+  } catch { return []; }
+})();
+const 판별 = { 전체: 판별봇.length, AI: 판별봇.filter(AI인가).length, 검색: 판별봇.filter((b) => !AI인가(b)).length };
 const hitPaths = (await pool.query(
   `select path, count(*)::int n from academy.crawl_hits where client_id=$1 group by path order by n desc limit 6`, [CLIENT_ID],
 )).rows;
@@ -98,23 +138,7 @@ try {
     path.resolve(process.cwd(), "..", "probe", "data", "scans", "robotncoding.com.json"), "utf8"));
 } catch {}
 
-/** 가림 규칙. 긴 말부터 — 「송파런」을 「송파」보다 먼저 바꿔야 한다. */
-const MASKS = [
-  [/로봇\s*(?:&|앤)\s*코딩\s*학원/g, "[학원명]"],
-  [/로봇앤코딩|로봇&코딩/g, "[학원명]"],
-  [/(?:www\.)?robotncoding\.com/g, "[사이트]"],
-  [/강남점 카카오채널/g, "같은 이름 다른 지점 카카오채널"],
-  [/learns\.academy 대치동/g, "다른 지역 학원 목록"],
-  [/송파런/g, "지역 학원 정보 사이트"],
-  [/로보티즈/g, "학원 브랜드 A"],
-  [/디랩/g, "학원 브랜드 B"],
-  [/글로벌리더센터/g, "학원 브랜드 C"],
-  [/서울(?:특별시)?\s*/g, ""],
-  [/송파구|송파/g, "[구]"],
-  [/석촌동|석촌/g, "[동]"],
-  [/잠실|헬리오시티|가락/g, "[생활권]"],
-  [/\/blog\/[a-z0-9-]+/g, "/blog/(글)"],
-];
+// 가림 규칙(MASKS)은 academy/masks.mjs 에 있다 — sales.mjs 의 가림 검사와 같은 목록을 쓴다
 const mask = (s) => PRIVATE ? String(s) : MASKS.reduce((t, [re, r]) => t.replace(re, r), String(s));
 const esc = (s) => mask(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
@@ -140,16 +164,17 @@ const BASELINE = [
 ];
 
 const CHECK_KO = {
-  crawler: "AI 크롤러 허용", llmstxt: "llms.txt", sitemap: "사이트맵",
+  crawler: "크롤러 허용", llmstxt: "llms.txt", sitemap: "사이트맵",
   ssr: "JS 없이 본문", schema: "구조화 데이터", chunk: "문단 구조", patterns: "콘텐츠 패턴",
 };
 
+// 착수일에 손으로 적은 「스키마 19종」은 진단표(20종)와 어긋났고 데이터로 다시 확인할 수 없어 뺐다(2026-09-22)
 const TIMELINE = [
   ["09.05", "착수 · 검색 계층 기준선 측정", "6개 질의 전부 미노출. 상위에 개별 학원 홈페이지가 하나도 없고 전부 디렉터리였다."],
-  ["09.05", "사이트 구축 · 도메인 연결", "robotncoding.com. AI 크롤러 17종 명시 허용, llms.txt, 스키마 19종."],
+  ["09.05", "사이트 구축 · 도메인 연결", `robotncoding.com. 크롤러를 User-agent 별로 명시 허용(지금 robots.txt 기준 AI ${허용.AI}종 · 검색 ${허용.검색}종), llms.txt, 구조화 데이터(종류 수는 아래 진단표).`],
   ["09.05", "네이버 블로그 32편 이관", "네이버는 robots.txt 로 AI 크롤러를 전부 막는다. 그 글들은 AI 에게 존재하지 않는 문서였다. 사진 69장 자체 호스팅."],
   ["09.05", "검색엔진 등록", "구글·빙·네이버 소유확인. 사이트맵 34 URL, RSS 32편 제출."],
-  ["09.05", "크롤러 감지 설치", "AI·검색 크롤러 24종을 판별해 방문을 기록. 결과 지표보다 먼저 움직이는 유일한 선행지표."],
+  ["09.05", "크롤러 감지 설치", `크롤러를 판별해 방문을 기록(지금 판별표 기준 AI ${판별.AI}종 · 검색 ${판별.검색}종). 결과 지표보다 먼저 움직이는 유일한 선행지표.`],
   ["09.05", "일별 스냅샷 자동화", "GitHub Actions 가 매일 기록을 남긴다."],
   ["09.06", "구글 비즈니스 프로필 등록", "구글 AI 개요와 Gemini 가 지역 질의에 이 데이터를 직접 쓴다. 대표자 본인인증이 필요해 대행이 불가능한 항목이다."],
   ["09.06", "오늘학교 아카데미 등재 신청", "「송파구 코딩학원」 목록에 없던 것을 채웠다. 심사 대기중."],
@@ -269,7 +294,8 @@ footer{padding:40px 0 68px;margin-top:42px;border-top:1px solid var(--line);colo
     <div class="kpi hi"><div class="v">${scan ? scan.total : "—"}<small>/100</small></div><div class="k">사이트 진단 (착수 시 83)</div></div>
     <div class="kpi"><div class="v">${posts.n}<small>편</small></div><div class="k">공개 문서 (착수 시 0)</div></div>
     <div class="kpi"><div class="v">${Number(posts.chars).toLocaleString()}<small>자</small></div><div class="k">본문 합계</div></div>
-    <div class="kpi"><div class="v">${crawl.reduce((s, r) => s + r.hits, 0)}<small>회</small></div><div class="k">AI 크롤러 방문</div></div>
+    <div class="kpi"><div class="v">${crawl.filter((r) => AI인가(r.bot)).reduce((s, r) => s + r.hits, 0)}<small>회</small></div><div class="k">AI 크롤러 방문</div></div>
+    <div class="kpi"><div class="v">${crawl.filter((r) => !AI인가(r.bot)).reduce((s, r) => s + r.hits, 0)}<small>회</small></div><div class="k">검색 크롤러 방문 (구글·빙·네이버 등)</div></div>
   </div>
 ${scan ? `
   <div class="tw"><table>
@@ -278,7 +304,7 @@ ${scan ? `
       <td>${CHECK_KO[k] || k}</td>
       <td class="m"><span class="bar"><i style="width:${v.score}%"></i></span>${v.score}</td>
       <td class="m">${esc(
-        k === "crawler" ? `${v.bots.length}종 명시 허용` :
+        k === "crawler" ? `AI ${허용.AI}종 · 검색 ${허용.검색}종 명시 허용 (robots.txt)` :
         k === "sitemap" ? `${v.urls} URL` :
         k === "ssr" ? `평균 본문 ${v.avgTextLen}자 · 빈약 ${v.thinPages}쪽` :
         k === "schema" ? `${v.types.length}종 · 오류 ${v.invalid}` :
@@ -288,7 +314,7 @@ ${scan ? `
     </tbody>
   </table></div>` : ""}
 
-  <h2><span class="n">04</span>AI 크롤러 방문</h2>
+  <h2><span class="n">04</span>크롤러 방문 — AI 와 검색 색인을 나눠 셉니다</h2>
   <p class="sub">
     "AI 답변에 불리는가"는 몇 주가 걸리는 결과 지표입니다.
     그 전에 움직이는 유일한 선행지표가 <b>크롤러가 실제로 왔는가</b>이고,
@@ -296,20 +322,20 @@ ${scan ? `
   </p>
 ${crawl.length ? `
   <div class="tw"><table>
-    <thead><tr><th>크롤러</th><th>소속</th><th>방문</th><th>페이지</th><th>최초</th><th>최근</th></tr></thead>
+    <thead><tr><th>크롤러</th><th>구분</th><th>소속</th><th>방문</th><th>페이지</th><th>최초</th><th>최근</th></tr></thead>
     <tbody>${crawl.map((r) => `<tr>
-      <td><b>${esc(r.bot)}</b></td><td class="m">${esc(r.vendor)}</td>
+      <td><b>${esc(r.bot)}</b></td><td class="m">${AI인가(r.bot) ? "AI" : "검색"}</td><td class="m">${esc(r.vendor)}</td>
       <td class="m">${r.hits}</td><td class="m">${r.pages}</td>
       <td class="m">${day(r.first_seen)}</td><td class="m">${day(r.last_seen)}</td></tr>`).join("")}
     </tbody>
   </table></div>
   <div class="box"><p>
-    <b>첫 방문 ${d(firstHit)}.</b> 도메인을 연결한 다음 날 새벽입니다.
+    <b>첫 크롤러 방문 ${d(firstHit)}.</b> 도메인을 연결한 다음 날 새벽입니다.
     ${crawl.some((r) => r.vendor === "anthropic")
       ? "ClaudeBot 이 robots.txt 를 먼저 읽고 이관한 블로그 글을 가져갔습니다."
       : ""}
     ${(() => {
-      const search = crawl.filter((r) => /Googlebot|Bingbot|Yeti/i.test(r.bot));
+      const search = crawl.filter((r) => !AI인가(r.bot));
       if (!search.length) return "아직 검색 색인 크롤러는 오지 않았습니다 — 색인 요청 직후라 정상입니다.";
       return "검색 색인 크롤러도 왔습니다 — "
         + search.map((r) => `${esc(r.bot)} ${r.hits}회`).join(", ") + ".";
@@ -317,7 +343,7 @@ ${crawl.length ? `
   </p></div>
 ${hitPaths.length ? `
   <div class="tw"><table>
-    <thead><tr><th>많이 읽힌 경로</th><th>횟수</th></tr></thead>
+    <thead><tr><th>많이 읽힌 경로 (AI·검색 합계)</th><th>횟수</th></tr></thead>
     <tbody>${hitPaths.map((p) => `<tr><td class="m">${esc(p.path)}</td><td class="m">${p.n}</td></tr>`).join("")}</tbody>
   </table></div>` : ""}
 ` : `<div class="box"><p>아직 방문 기록이 없습니다. 색인 요청 직후에는 정상입니다.</p></div>`}
@@ -379,12 +405,12 @@ ${serpFirst.length ? `
 
 ${snaps.length > 1 ? `
   <h2><span class="n">08</span>일별 기록</h2>
-  <p class="sub">GitHub Actions 가 매일 자동으로 남깁니다.</p>
+  <p class="sub">이 학원 사이트에 온 방문만, 그날 자정(한국 시각)까지 누적해 셉니다. 위 머리 숫자와 같은 정의입니다.</p>
   <div class="tw"><table>
-    <thead><tr><th>${PRIVATE ? "날짜" : "일차"}</th><th>문서</th><th>누적 크롤러 방문</th><th>엔진</th></tr></thead>
+    <thead><tr><th>${PRIVATE ? "날짜" : "일차"}</th><th>문서</th><th>누적 AI 크롤러</th><th>누적 검색 크롤러</th><th>엔진</th></tr></thead>
     <tbody>${snaps.map((s) => `<tr>
-      <td class="m">${day(s.day)}</td>
-      <td class="m">${s.posts}</td><td class="m">${s.crawl_total}</td>
+      <td class="m">${day(`${s.day}T12:00:00+09:00`)}</td>
+      <td class="m">${s.posts}</td><td class="m">${s.ai_total}</td><td class="m">${s.search_total}</td>
       <td class="m">${(s.vendors || []).join(", ") || "—"}</td></tr>`).join("")}
     </tbody>
   </table></div>` : ""}
