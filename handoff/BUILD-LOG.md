@@ -613,3 +613,22 @@ Known Gaps
 - KG: auto/fix-319 수리안에 `pages_total ≥ 10` 조건이 없다(감사관 R5 와 다름). 검토자가 못 잡았다
 - KG: 확인 실행은 수리와 무관한 실패(DB 연결 시간 초과 등)에도 되돌린다
 - KG: write.yml 처럼 실제로 일하는(구독을 쓰는) 워크플로도 확인 실행으로 돌 수 있다
+
+### Step 10 — Richard 1차 반영 — BUILT (재검토 대기)
+*Date: 2026-09-22 · Bob*
+
+- 결정(Arch): 견습 — 처음 5건은 스스로 합치지 않는다. run 은 가지+검토 pass 에서 멈추고 「자동 수리 승인 대기」 일감(사람 대기)에 `gh workflow run repair.yml -f mode=merge -f task=<id>` 를 단다. 원장이 merge 로 합친 수리가 7일 되돌림 없이 5건 쌓이고 되돌림·멈춤이 없으면 무인 전환(activity 「견습 끝」)
+- 결정(Arch): 합친 뒤 확인 실행은 company·scout·audit·watch 만. write·optimize 는 안 돌린다(초안 작성·측정 비용). 쓰는 워크플로가 없으면 node --check 와 다음 정기 실행·감사에 맡긴다
+- 결정: 재현 명령을 뺐다 — 모델이 고친 코드를 비밀을 든 채 돌리는 길이었다(Richard Must 1)
+- 결정: dry 행은 합칠 수 없다. 승인 합치기는 base 가 움직이면 가드·검토를 다시 한다. rebase 는 안 쓴다 — main 이 수리 파일을 바꿨으면 포기
+- 결정: 합치기 전에 「합치는 중」+merge_sha 를 먼저 쓴다. 1시간 넘게 합치는 중이거나 확인 결과 없는 합침은 되돌린다. 잡 75분
+- 결정: 되돌리기는 수리 파일만 merge^ 모양으로 + BUILD-LOG 에 「되돌림」 줄. git revert 는 BUILD-LOG 끝에서 거의 늘 충돌한다. 되돌리기가 한 번이라도 실패하면 즉시 멈춤
+- 결정: 가드가 새 환경변수·새 호스트·네트워크/프로세스 모듈·eval·동적 import·환경변수+네트워크 한 줄을 막는다. 수리공과 검토자는 같은 진단을 읽어 같은 주입에 함께 넘어갈 수 있다
+- 결정: claude-code.mjs capRequired — 호출 수를 못 세면 부르지 않는다(수리·검토·감사관)
+- 사람이 띄운 run 은 REPAIR_ENABLED 가 꺼져 있어도 승인 대기까지 간다(main 무관). 정해진 시각 run 은 꺼져 있으면 claude 를 안 부른다
+- 결과: 가드 시험 13/13 (run 35704828321) · 되돌리기 시험 3/3, BUILD-LOG 가 그사이 움직인 경우 포함 (run 35704877806) · 조사 319 run → 검토 fail(9번이 pages_total≥10·14일 제외 누락을 잡음) → 사람 대기 (run 35704962357)
+- repairs 2(auto/fix-319 efe75d8) 는 `dry 폐기`·verdict void 로 막았다
+
+Known Gaps
+- KG: 승인 대기 일감·mode=merge·무인 전환은 아직 끝까지 돈 적이 없다(319 수리안이 검토에서 떨어짐)
+- KG: 조사 319 는 사람 대기. 수리공 두 번째 안도 R5 조건을 못 맞췄다 — 사람이 scout.mjs 에 R5 조건 그대로 넣는 게 빠르다
