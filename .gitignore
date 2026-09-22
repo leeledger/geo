@@ -42,3 +42,4 @@ scratch-leads-backup.json
 
 # 디자인 캔버스 조립본 (2MB, 작업 파일에서 다시 만든다)
 design/**/*-page.html
+tools/heartbeat.log
