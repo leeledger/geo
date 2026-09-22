@@ -16,6 +16,8 @@ import { fileURLToPath } from "node:url";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const REPO = "leeledger/geo";
+// company.yml 만 깨운다. repair.yml 을 여기서 띄우면 원장 계정이 triggering_actor 로 찍혀
+// repair.mjs 가 「사람이 띄운 실행」으로 알아듣는다(합치기 권한 판단이 흔들린다 — Richard 14a)
 const 한계분 = 70;
 const LOG = path.join(HERE, "heartbeat.log");
 const 기록 = (s) => {
