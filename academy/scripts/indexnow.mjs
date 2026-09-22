@@ -105,12 +105,20 @@ for (const c of clients) {
   }
 
   const body = { host: c.domain, key, keyLocation: `https://${c.domain}/${key}.txt`, urlList: list };
+  // 네이버는 홈(루트) 주소를 「Invalid urls」 422 로 거절한다. 하위 주소는 받는다(2026-09-22 확인).
+  // 홈 하나 때문에 묶음 전체가 실패로 찍혀, 빙은 접수했는데도 에이전트가 사흘 내리 「색인 알림 실패」를 적었다
+  const 루트 = (x) => /^https?:\/\/[^/]+\/?$/.test(x);
   for (const ep of ENDPOINTS) {
+    const 보낼것 = ep.name === "Naver" ? list.filter((x) => !루트(x)) : list;
+    if (!보낼것.length) {
+      console.log(`  ${ep.name.padEnd(6)} 건너뜀 · 홈 주소는 받지 않습니다 (서치어드바이저 「웹 페이지 수집」으로 요청)`);
+      continue;
+    }
     try {
       const r = await fetch(ep.url, {
         method: "POST",
         headers: { "content-type": "application/json; charset=utf-8" },
-        body: JSON.stringify(body),
+        body: JSON.stringify({ ...body, urlList: 보낼것 }),
       });
       const txt = await r.text().catch(() => "");
       // 200 = 접수, 202 = 접수했고 키 확인 중, 400/403/422 = 문제
