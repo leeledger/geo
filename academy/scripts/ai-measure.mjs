@@ -57,6 +57,7 @@ const ENGINES = [
         system: "너는 한국어로 답하는 일반 AI 도우미다. 사용자의 질문에 웹 검색으로 최신 정보를 찾아 답한다. 코딩과 무관한 질문도 똑같이 성실히 답한다.",
         tools: ["WebSearch"],
         model: e.model,
+        purpose: "measure", // 하루 상한에서 측정 몫을 먼저 쓴다
         // 50분 작업에 20문항이다. 한 문항이 멈추면 나머지를 다 잃는다
         timeoutMs: 3 * 60 * 1000,
       });

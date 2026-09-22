@@ -13,6 +13,7 @@
  *
  *   const r = await 클로드코드("질문", { tools: ["WebSearch"] })
  *   r.ok · r.text · r.urls(검색 결과로 읽은 주소) · r.error · r.한도 · r.인증실패 · r.시간초과 · r.거절(권한에 막힌 도구 호출)
+ *   r.callId (geo.claude_calls 행) · 옵션 purpose(measure·writer·audit·repair…) · taskId
  */
 import { spawn, execFile } from "node:child_process";
 import fs from "node:fs";
@@ -28,7 +29,56 @@ const 기본시스템 = "너는 한국어로 답하는 일반 도우미다. 코�
 const 한도문구 = /usage limit|limit reached|hit your limit|rate.?limit|resets\b|API Error: 429/i;
 const 인증문구 = /Failed to authenticate|Invalid bearer token|API Error: 401|OAuth token/i;
 
-export async function 클로드코드(prompt, { system = 기본시스템, tools = [], model = "sonnet", maxTurns = 8, timeoutMs = 5 * 60 * 1000, cwd = null, envDrop = [], allow = [], deny = [] } = {}) {
+// ─────────────────────────────────────────── 하루 상한 · 호출 기록
+/**
+ * 모든 호출자(측정·초안·분석·감사·수리)가 같은 구독 한도를 쓴다. 한 곳이 폭주하면 원장 Claude 까지 멈춘다.
+ * 그래서 호출마다 geo.claude_calls 에 한 줄 남기고, 오늘(KST) 센 수가 상한을 넘으면 부르지 않는다.
+ * 측정이 먼저다 — 측정 아닌 호출은 CLAUDE_MEASURE_RESERVE(기본 20) 만큼 남겨 두고 멈춘다 (Step 10, 2026-09-22)
+ * 상한에 걸린 것은 「한도」로 돌려준다. 호출자들은 한도를 실패로 세지 않는다
+ */
+const 정수 = (v, d) => { const n = Number(v ?? d); return Number.isInteger(n) && n >= 0 ? n : d; };
+let 기록q = null;
+let 표준비 = null;
+/** DB 를 이미 연 호출자는 자기 쿼리 함수를 준다(감사관은 부르기 전에 DATABASE_URL 을 환경에서 지운다) */
+export const 클로드기록연결 = (q) => { 기록q = q; };
+const 기록쿼리 = async () => {
+  if (!기록q && process.env.DATABASE_URL) {
+    const { default: pg } = await import("pg");
+    const u = new URL(process.env.DATABASE_URL);
+    u.searchParams.delete("sslmode");
+    // allowExitOnIdle — 이 풀 때문에 부른 스크립트가 끝나지 않고 매달리면 안 된다
+    const pool = new pg.Pool({ connectionString: u.toString(), ssl: { rejectUnauthorized: process.env.DATABASE_SSL_INSECURE !== "true" }, max: 1, allowExitOnIdle: true });
+    기록q = (s, p = []) => pool.query(s, p).then((r) => r.rows);
+  }
+  if (기록q && !표준비) {
+    표준비 = 기록q(`create table if not exists geo.claude_calls (id bigserial primary key, at timestamptz not null default now(),
+      purpose text not null, ok boolean not null, secs int, cost_usd numeric, task_id bigint, note text not null default '')`);
+  }
+  if (표준비) await 표준비;
+  return 기록q;
+};
+
+export async function 클로드코드(prompt, opts = {}) {
+  const purpose = opts.purpose ?? "기타";
+  const q = await 기록쿼리().catch((e) => { console.log(`  ⚠ claude 호출 기록 못 함: ${e.message}`); return null; });
+  if (q) {
+    const [{ n }] = await q(`select count(*)::int n from geo.claude_calls
+      where (at at time zone 'Asia/Seoul')::date = (now() at time zone 'Asia/Seoul')::date`).catch(() => [{ n: 0 }]);
+    const 상한 = 정수(process.env.CLAUDE_DAILY_MAX, 40);
+    const 몫 = purpose === "measure" ? 상한 : 상한 - 정수(process.env.CLAUDE_MEASURE_RESERVE, 20);
+    if (n >= 몫) return { ok: false, 한도: true, 상한: true, error: `하루 상한 — 오늘 ${n}회 (${purpose} 몫 ${몫})`, text: "", urls: [], 거절: [] };
+  }
+  const 시작 = Date.now();
+  const r = await 한번부르기(prompt, opts);
+  if (q) {
+    const [row] = await q(`insert into geo.claude_calls (purpose, ok, secs, cost_usd, task_id, note) values ($1,$2,$3,$4,$5,$6) returning id`,
+      [purpose, r.ok, Math.round((Date.now() - 시작) / 1000), r.cost ?? null, opts.taskId ?? null, String(r.error ?? "").slice(0, 300)]).catch(() => []);
+    r.callId = row?.id ?? null;
+  }
+  return r;
+}
+
+async function 한번부르기(prompt, { system = 기본시스템, tools = [], model = "sonnet", maxTurns = 8, timeoutMs = 5 * 60 * 1000, cwd = null, envDrop = [], allow = [], deny = [] } = {}) {
   // cwd 를 주면 그 폴더에서 돈다(감사관이 저장소를 읽는다). 안 주면 빈 임시 폴더 — 지우는 것도 임시 폴더일 때만
   const dir = cwd ?? fs.mkdtempSync(path.join(os.tmpdir(), "cc-"));
   const args = ["-p", "--output-format", "stream-json", "--verbose", "--model", model, "--max-turns", String(maxTurns),

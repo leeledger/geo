@@ -203,7 +203,7 @@ const 뒤 = (h) => new Date(Date.now() + h * 3600 * 1000).toISOString();
 const 오늘 = () => new Date().toLocaleString("sv-SE", { timeZone: "Asia/Seoul" }).slice(0, 16);
 
 // ─────────────────────────────────────────── 1. 출근 기록
-const WORKFLOWS = { "watch.yml": "ops", "scout.yml": "ops", "serp.yml": "measure", "snapshot.yml": "deliver", "write.yml": "content", "optimize.yml": "improve", "audit.yml": "ops" };
+const WORKFLOWS = { "watch.yml": "ops", "scout.yml": "ops", "serp.yml": "measure", "snapshot.yml": "deliver", "write.yml": "content", "optimize.yml": "improve", "audit.yml": "ops", "repair.yml": "ops" };
 const gh = async (path, init = {}) => {
   if (!process.env.GH_TOKEN) return null;
   const r = await fetch(`https://api.github.com/repos/${REPO}${path}`, {
