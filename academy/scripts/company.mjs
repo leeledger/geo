@@ -516,7 +516,7 @@ const EXEC = {
         order by path limit 100`, [c.id, vendor]);
     if (!miss.length) return { status: "완료", evidence: `${오늘()} ${vendor} 가 안 읽은 쪽이 없음` };
     if (t.attempts >= 3) {
-      const how = { openai: "Bing Webmaster Tools 에서 URL 제출 (OpenAI 는 빙 색인에 기댑니다)", naver: "네이버 서치어드바이저 수집 요청·사이트맵 제출 (캡차가 떠 사람 몫)", google: "서치콘솔 사이트맵·색인 요청", anthropic: "외부 링크를 늘리는 수밖에 없습니다" }[vendor] ?? "robots·링크 구조 점검";
+      const how = { openai: "Bing Webmaster Tools 에서 URL 제출 (OpenAI 는 빙 색인에 크게 기댑니다)", microsoft: "Bing Webmaster Tools 에서 URL 제출", naver: "네이버 서치어드바이저 수집 요청·사이트맵 제출 (캡차가 떠 사람 몫)", google: "서치콘솔 사이트맵·색인 요청", anthropic: "외부 링크를 늘리는 수밖에 없습니다" }[vendor] ?? "robots·링크 구조 점검";
       return { status: "사람 대기", attempt: true, evidence: `${오늘()} 3주 동안 IndexNow 로 밀어도 ${vendor} 미수집 ${miss.length}쪽`, error: how };
     }
     const r = 실행(["scripts/indexnow.mjs", "--client", c.slug, ...miss.map((m) => m.path)]);

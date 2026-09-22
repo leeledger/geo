@@ -51,10 +51,11 @@ for (const c of clients) {
   const P = [c.id];
 
   // ── 1. 엔진별 커버리지가 크게 갈리는가
+  // microsoft(빙)이 비교군에서 빠져 있어 IndexNow 재전송 루프를 한 번도 안 탔다 (2026-09-22 R5 감사)
   const cov = await q(`
     select vendor, coverage_pct::float pct, pages_crawled::int p, pages_total::int t
       from academy.coverage_by_vendor where client_id = $1`, P).catch(() => []);
-  const major = cov.filter((r) => ["openai", "anthropic", "google", "naver"].includes(r.vendor));
+  const major = cov.filter((r) => ["openai", "anthropic", "google", "naver", "microsoft"].includes(r.vendor));
   if (major.length >= 2) {
     const hi = Math.max(...major.map((r) => r.pct));
     for (const r of major) {
