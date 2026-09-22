@@ -254,23 +254,28 @@ const 실행 = async () => {
   for (const t of targets) {
     const 재료 = `${리포트글} ${JSON.stringify(t)}`;
     let 글 = String(초안.call?.[t.id] ?? "");
-    const 검사 = 글 ? 초안검사(글, 재료, 말들) : null;
+    const 원문 = 글;
+    // 통화 상대 자기 이름은 통화문에 나와도 된다. 가릴 말 목록에 영업 후보 이름이 든 건 공개본 때문이다 — 다른 후보 이름은 여전히 안 된다
+    // (9/22 첫 실행에서 이걸 빼먹어 claude 초안 10개를 전부 버렸다)
+    const 검사 = 글 ? 초안검사(글, 재료, 말들.filter((m) => m !== t.name)) : null;
     const 주의 = 검사 && !검사.ok ? `(claude 초안을 버림 — ${[...검사.모르는숫자.map((x) => `재료에 없는 숫자 ${x}`), ...검사.걸림.map((x) => `가릴 말 ${x}`)].join(", ")})\n` : "";
     if (!글 || !검사.ok) { 글 = 통화틀(t); if (주의) 버림++; }
     await 사람대기({ key: `call-${t.id}-${t.next_due}`, priority: 20, link: `${ADMIN}/admin/outreach`,
       title: `영업 전화: ${t.name} (${t.district}) — 연락일 ${t.next_due} 지남`,
       detail: `${주의}다음 할 일: ${t.next_action}\n\n통화문 초안 (보내기·전화는 원장님이 합니다):\n${글}\n\n통화 뒤 /admin/outreach 에 결과와 다음 연락일을 적으면 이 일감은 다음 주에 다시 안 뜹니다.`,
-      payload: { target_id: t.id } });
+      // 버린 초안도 남긴다 — 왜 버렸는지 사람이 볼 수 있게. 원장 줄 본문에는 안 싣는다
+      payload: { target_id: t.id, ...(주의 ? { 버린초안: 원문.slice(0, 2000) } : {}) } });
   }
   for (const l of leads) {
     const 재료 = `${리포트글} ${JSON.stringify(l)}`;
     let 글 = String(초안.reply?.[l.id] ?? "");
+    const 원문 = 글;
     const 검사 = 글 ? 초안검사(글, 재료, 말들) : null;
     const 주의 = 검사 && !검사.ok ? `(claude 초안을 버림 — ${[...검사.모르는숫자.map((x) => `재료에 없는 숫자 ${x}`), ...검사.걸림.map((x) => `가릴 말 ${x}`)].join(", ")})\n` : "";
     if (!글 || !검사.ok) { 글 = 답장틀(l); if (주의) 버림++; }
     await 사람대기({ key: `lead-reply-${l.id}`, priority: 10, link: `${ADMIN}/admin`,
       title: `리드 답장: ${l.company || l.name || "이름 없음"} — ${l.created} 에 남김`,
-      detail: `${주의}답장 초안 (보내는 건 원장님이 합니다):\n${글}`, payload: { lead_id: l.id } });
+      detail: `${주의}답장 초안 (보내는 건 원장님이 합니다):\n${글}`, payload: { lead_id: l.id, ...(주의 ? { 버린초안: 원문.slice(0, 2000) } : {}) } });
   }
 
   // 한 주 한 줄 — 전부 DB 에서 센 값
