@@ -25,19 +25,19 @@ for (const url of 목록) {
   await p.goto("https://search.brave.com/submit-url", { waitUntil: "domcontentloaded" });
   await p.waitForTimeout(3000);
   await p.locator("input[type=text]").first().fill(url);
+  // 누르기 전에 찍어 둔다. 캡차 없이 바로 접수되는 때가 있어, 누른 뒤에 찍으면 이미 「Success」라 변화가 안 보인다(2026-09-22)
+  const 처음글 = await p.evaluate(() => document.body.innerText);
   await p.locator("button.captcha-button, button[type=submit]").first().click().catch(() => {});
   console.log(`\n${url}\n  캡차가 뜨면 창에서 풀어 주세요 (최대 3분). 제출되면 자동으로 다음으로 넘어갑니다.`);
 
-  // 제출되면 입력 칸이 비거나 안내 문구가 바뀐다. 무엇이 뜨는지 확인한 적이 없어 둘 다 본다
-  const 처음글 = await p.evaluate(() => document.body.innerText);
+  // 접수되면 「Success · Thank you for your submission」 이 뜬다 (2026-09-22 원장 화면으로 확인)
   const t0 = Date.now();
   let 됨 = false;
   while (Date.now() - t0 < 180000) {
     await p.waitForTimeout(2000);
-    const 지금 = await p.evaluate(() => ({ text: document.body.innerText, v: document.querySelector("input[type=text]")?.value ?? "" })).catch(() => null);
+    const 지금 = await p.evaluate(() => document.body.innerText).catch(() => null);
     if (!지금) continue;
-    if (/success|submitted|thank|received|완료|접수/i.test(지금.text) && 지금.text !== 처음글) { 됨 = true; break; }
-    if (지금.v === "" && 지금.text !== 처음글) { 됨 = true; break; }
+    if (/Thank you for your submission/i.test(지금) || (/success/i.test(지금) && 지금 !== 처음글)) { 됨 = true; break; }
   }
   const 끝글 = (await p.evaluate(() => document.body.innerText).catch(() => "")).replace(/\s+/g, " ").slice(0, 160);
   console.log(됨 ? `  ✓ 제출된 것으로 보입니다 · ${끝글}` : `  ✗ 3분 안에 확인이 안 됐습니다 · ${끝글}`);
