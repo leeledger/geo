@@ -10,6 +10,25 @@ import Brief from "./Brief";
 /** 로그인 뒤 돌아올 자리 */
 const HERE = "/admin/ops";
 
+/**
+ * 크롤러마다 「어디에 쓰이나」. 원장 지적(2026-09-22): 표만 봐서는 뭘 뜻하는지 모르겠다.
+ * direct = AI 가 답할 때 찾아보는 검색 색인. 여기가 낮으면 학습용이 다 읽어도 인용이 안 된다
+ * (Claude 는 Brave, ChatGPT 검색·Copilot 은 빙 — 메모리 claude-search-needs-brave · openai-crawl-needs-bing)
+ */
+const VENDOR_USE: Record<string, { use: string; direct?: boolean }> = {
+  google: { use: "구글 검색 · 구글 AI 답변", direct: true },
+  naver: { use: "네이버 검색", direct: true },
+  microsoft: { use: "빙 검색 → ChatGPT 검색 · Copilot", direct: true },
+  openai: { use: "ChatGPT 학습 · 검색" },
+  anthropic: { use: "Claude 학습 (답할 때는 Brave 를 찾는다)" },
+  meta: { use: "메타 AI 학습" },
+  amazon: { use: "알렉사 등 아마존 AI" },
+  apple: { use: "애플 검색 · Siri" },
+  perplexity: { use: "퍼플렉시티 검색", direct: true },
+  duckduckgo: { use: "덕덕고 (결과 대부분은 빙에서)" },
+  brave: { use: "Brave 검색 → Claude 웹 검색", direct: true },
+};
+
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
@@ -360,14 +379,19 @@ export default async function OpsPage({
         </details>
         {d.ok && <>
         <h2>크롤러 커버리지</h2>
-        <p className="sub">전체 {d.crawl.totalPages}쪽 중 몇 쪽을 읽어 갔는가.</p>
+        <p className="sub">
+          전체 {d.crawl.totalPages}쪽 중 몇 쪽을 읽어 갔는가. 읽어 간 것과 AI 답에 인용되는 것은 다르다 —
+          학습용 로봇이 다 읽어도, 답할 때 찾아보는 검색 색인에 없으면 안 나온다.
+          <b> ★ 가 붙은 줄이 AI 답변 검색에 직결된다.</b>
+        </p>
         <div className="ops-tw">
           <table>
-            <thead><tr><th>크롤러</th><th>방문</th><th>읽은 쪽</th><th>커버리지</th></tr></thead>
+            <thead><tr><th>크롤러</th><th>어디에 쓰이나</th><th>방문</th><th>읽은 쪽</th><th>커버리지</th></tr></thead>
             <tbody>
               {d.crawl.vendors.map((v) => (
                 <tr key={v.vendor}>
-                  <td><b>{v.vendor}</b></td>
+                  <td><b>{VENDOR_USE[v.vendor]?.direct ? "★ " : ""}{v.vendor}</b></td>
+                  <td>{VENDOR_USE[v.vendor]?.use ?? "—"}</td>
                   <td className="m">{v.hits}</td>
                   <td className="m">{v.pages}</td>
                   <td className="m">
@@ -376,7 +400,12 @@ export default async function OpsPage({
                   </td>
                 </tr>
               ))}
-              {!d.crawl.vendors.length && <tr><td colSpan={4}>기록 없음</td></tr>}
+              {!d.crawl.vendors.length && <tr><td colSpan={5}>기록 없음</td></tr>}
+              <tr>
+                <td><b>★ brave</b></td>
+                <td>{VENDOR_USE.brave.use}</td>
+                <td colSpan={3} className="m">로봇이 이름을 밝히지 않아 여기서 못 센다 — 측정(claude-code-web)의 인용으로 본다</td>
+              </tr>
             </tbody>
           </table>
         </div>

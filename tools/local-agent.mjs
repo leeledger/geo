@@ -157,6 +157,15 @@ try {
     if (r.ok) await 로그인됨("google");
     await 활동("deliver", "구글 색인 요청", r.ok,`${끝(r.out, 200)} · 로컬 일감 ${closed}/${gscTasks.length} 완료`);
   }
+  // ── 빙 주소 제출: 하루 100개 한도. 사이트맵에서 아직 안 낸 주소만 낸다(bing-done.json).
+  // 사이트맵은 「Success」인데 Bingbot 이 47쪽 중 5쪽만 읽었다(2026-09-22) — 빙이 ChatGPT 검색·Copilot 의 색인이다
+  const 빙 = 돌리기("bing-submit-urls.mjs", [], 10);
+  if (/로그인이 풀렸습니다/.test(빙.out)) {
+    await 사람로그인("microsoft", "빙 웹마스터");
+    await 활동("deliver", "빙 주소 제출 멈춤", false, "로그인 필요");
+  } else {
+    await 활동("deliver", "빙 주소 제출", 빙.ok, 끝(빙.out, 200));
+  }
   기록(`끝 (네이버 ${네이버막힘 ? "로그인 필요" : "정상"})`);
 } catch (e) {
   기록(`실패 ${e.message}`);
