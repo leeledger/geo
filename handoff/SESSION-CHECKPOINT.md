@@ -1,7 +1,19 @@
-# Session Checkpoint — 2026-09-12
+# Session Checkpoint — 2026-09-22
 *Read this before reading anything else. If it covers current state, skip BUILD-LOG.*
 
 ---
+
+## Where We Stopped (2026-09-22 밤) — 무인 운영: 감사관·수리공
+
+원장 지시: 「이 CLI 창이 실행 중이지 않아도 에이전트가 사이티드를 운영해야 한다」. 운영은 GitHub Actions, 세션은 만드는 곳.
+
+- **LLM = 원장 Max 구독.** API 는 둘 다 죽음(OpenRouter 산 적 없음, Anthropic 선불 소진). `claude -p` 머리 없이(academy/scripts/claude-code.mjs), 시크릿 CLAUDE_CODE_OAUTH_TOKEN. 변수 WRITER_PROVIDER=claude-code · MEASURE_ENGINES=claude-code-web · MEASURE_EVERY_DAYS=3. 하루 호출 상한 CLAUDE_DAILY_MAX(40)·측정 몫 20(geo.claude_calls)
+- **서버에서 도는 것:** company 매시 · audit 06:35(감사관+조사관, Step 9) · repair 06:50(수리공, Step 10) · optimize(측정→판정) · write 월 06:07 · scout/watch/serp/snapshot. 원장 PC: local-agent 12:40·19:10(네이버 이관 QR·지도 포함, 구글 색인)
+- **수리공(Step 10):** REPAIR_ENABLED 꺼짐. 켜는 건 원장(권한 분류기가 에이전트의 스위치 켜기를 막음 — 우회 금지). 견습: 처음 5건은 「자동 수리 승인 대기」 일감 → 원장이 `gh workflow run repair.yml -f mode=merge -f task=<id>` 로 승인. 7일 버틴 승인 5건 뒤 무인 전환(단 fetch/process 가 든 수정은 늘 승인). 켜는 절차는 handoff/REVIEW-FEEDBACK.md
+- **발견:** Claude 웹 검색(Brave 색인)에 robotncoding.com 0건 → Claude 가 우리 주소를 남의 학원에 붙임. 홈·/blog Brave 제출(9/22). 다음 측정 9/25 에 인용 변화 확인. 메모리 claude-search-needs-brave
+- **남은 설계:** Step 11 영업 담당(ARCHITECT-BRIEF.md). 319(빙 수집률 — scout 가 4곳만 봄)은 수리공이 조건을 두 번 놓쳐 사람 대기 — 손으로 고치는 편이 빠르다(Known Gaps)
+- **원장 대기:** 상담 결과 2건 · 초안 사실 확인 · 플레이스 대표 키워드 「잠실코딩학원」 · 수리공 스위치
+- 다음 세션: audit/repair 첫 06:35·06:50 실행 로그, 9/25 측정의 Brave 효과, Step 11
 
 ## Where We Stopped (2026-09-17 23시 갱신) — 에이전트 회사 가동
 
