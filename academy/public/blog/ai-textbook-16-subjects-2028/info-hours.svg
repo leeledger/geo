@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 480" width="960" height="480" role="img"
+     aria-label="이미 의무로 정해진 정보 수업 시수. 2022 개정 교육과정(교육부 고시 제2022-33호). 초등학교 5~6학년 실과 안의 정보는 17시간에서 34시간 이상으로, 중학교 정보는 34시간에서 68시간 이상으로 늘었다. 권고가 아니라 의무 편성이다. 학교알리미나 학교 홈페이지의 교육과정 편성표에서 실제 편성 시수를 확인할 수 있다.">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#111827"/><stop offset="1" stop-color="#0B0F16"/>
+    </linearGradient>
+    <linearGradient id="now" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#C27A14"/><stop offset="1" stop-color="#F5A623"/>
+    </linearGradient>
+    <linearGradient id="card" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#18202C"/><stop offset="1" stop-color="#121821"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="160%">
+      <feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#000" flood-opacity="0.45"/>
+    </filter>
+  </defs>
+  <rect width="960" height="480" fill="url(#bg)"/>
+
+  <g font-family="'Noto Sans KR',system-ui,sans-serif">
+    <text x="56" y="62" font-family="'IBM Plex Mono',ui-monospace,monospace" font-size="12" letter-spacing="2.5" fill="#3DD6C4">2022 개정 교육과정 · 교육부 고시 제2022-33호</text>
+    <text x="56" y="100" font-size="30" font-weight="800" fill="#F1F4F8">2028년을 기다릴 필요 없는 숫자</text>
+    <text x="56" y="130" font-size="15" fill="#8A94A6">정보 수업 시수 — 권고가 아니라 의무 편성</text>
+
+    <rect x="44" y="156" width="872" height="236" rx="16" fill="url(#card)" stroke="#263241" filter="url(#shadow)"/>
+
+    <!-- 축: 0~70시간, 0 은 x=250, 1시간 = 8.8px -->
+    <g stroke="#223040" stroke-width="1">
+      <line x1="250" y1="180" x2="250" y2="360"/>
+      <line x1="426" y1="180" x2="426" y2="360" stroke-dasharray="2 5"/>
+      <line x1="602" y1="180" x2="602" y2="360" stroke-dasharray="2 5"/>
+      <line x1="778" y1="180" x2="778" y2="360" stroke-dasharray="2 5"/>
+    </g>
+    <g font-family="'IBM Plex Mono',ui-monospace,monospace" font-size="11.5" fill="#5D6878" text-anchor="middle">
+      <text x="250" y="378">0</text><text x="426" y="378">20</text><text x="602" y="378">40</text><text x="778" y="378">60시간</text>
+    </g>
+
+    <!-- 초 5~6 -->
+    <text x="72" y="222" font-size="15" font-weight="700" fill="#DCE3EC">초등 5~6학년</text>
+    <text x="72" y="244" font-size="12.5" fill="#6E7A8C">실과 안의 정보</text>
+    <rect x="250" y="200" width="149.6" height="16" rx="4" fill="#3A4556"/>
+    <text x="408" y="213" font-family="'IBM Plex Mono',ui-monospace,monospace" font-size="13" fill="#8A94A6">17 전</text>
+    <rect x="250" y="222" width="299.2" height="20" rx="4" fill="url(#now)"/>
+    <text x="559" y="238" font-family="'IBM Plex Mono',ui-monospace,monospace" font-size="14" font-weight="700" fill="#FFE2AE">34시간 이상</text>
+
+    <!-- 중 -->
+    <text x="72" y="302" font-size="15" font-weight="700" fill="#DCE3EC">중학교</text>
+    <text x="72" y="324" font-size="12.5" fill="#6E7A8C">정보 (3년)</text>
+    <rect x="250" y="280" width="299.2" height="16" rx="4" fill="#3A4556"/>
+    <text x="558" y="293" font-family="'IBM Plex Mono',ui-monospace,monospace" font-size="13" fill="#8A94A6">34 전</text>
+    <rect x="250" y="302" width="598.4" height="20" rx="4" fill="url(#now)"/>
+    <text x="838" y="317" text-anchor="end" font-family="'IBM Plex Mono',ui-monospace,monospace" font-size="14" font-weight="700" fill="#1A140C">68시간 이상</text>
+
+    <!-- 범례 -->
+    <g font-size="12.5">
+      <rect x="626" y="168" width="14" height="10" rx="2" fill="#3A4556"/><text x="646" y="178" fill="#8A94A6">전</text>
+      <rect x="682" y="168" width="14" height="10" rx="2" fill="url(#now)"/><text x="702" y="178" fill="#8A94A6">지금 (이상, 의무)</text>
+    </g>
+  </g>
+
+  <g font-family="'Noto Sans KR',system-ui,sans-serif">
+    <rect x="44" y="408" width="872" height="48" rx="12" fill="#141B25" stroke="#2A3544"/>
+    <text x="68" y="438" font-size="14" fill="#DCE3EC"><tspan fill="#3DD6C4" font-weight="700">확인하는 법</tspan>  학교알리미나 학교 홈페이지의 교육과정 편성표에서 실제 편성 시수를 숫자로 본다</text>
+  </g>
+</svg>

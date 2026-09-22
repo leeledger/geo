@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540" width="960" height="540" role="img"
+     aria-label="16개 과목이 개발되지만 모든 학교에 생기는 것은 아니다. 초등학교 6개, 중학교 2개, 고등학교 8개 과목. 교과서 종류는 셋이다. 국정은 전국이 같은 책, 검정은 정해진 목록에서 고른다, 이번 AI 교과서는 인정교과서로 시도교육감 인정 심의를 거쳐 학교가 선택한다. 학교가 교육과정에 편성해야 아이가 그 수업을 듣는다.">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#111827"/><stop offset="1" stop-color="#0B0F16"/>
+    </linearGradient>
+    <linearGradient id="card" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#18202C"/><stop offset="1" stop-color="#121821"/>
+    </linearGradient>
+    <linearGradient id="hot" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2B2112"/><stop offset="1" stop-color="#1A140C"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="160%">
+      <feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#000" flood-opacity="0.45"/>
+    </filter>
+  </defs>
+  <rect width="960" height="540" fill="url(#bg)"/>
+
+  <g font-family="'Noto Sans KR',system-ui,sans-serif">
+    <text x="56" y="62" font-family="'IBM Plex Mono',ui-monospace,monospace" font-size="12" letter-spacing="2.5" fill="#3DD6C4">'16개 과목 개발'을 어떻게 읽을까</text>
+    <text x="56" y="100" font-size="30" font-weight="800" fill="#F1F4F8">개발은 16개, 우리 학교에 열리는 건 학교가 정한다</text>
+
+    <!-- 왼쪽: 16칸 단위 차트 -->
+    <rect x="44" y="140" width="400" height="352" rx="16" fill="url(#card)" stroke="#263241" filter="url(#shadow)"/>
+    <text x="72" y="178" font-size="15" font-weight="700" fill="#DCE3EC">과목 수 · 학교급별</text>
+
+    <!-- 초 6 -->
+    <text x="72" y="222" font-size="14" fill="#9AA5B5">초등학교</text>
+    <g fill="#1F9E90">
+      <rect x="160" y="204" width="34" height="26" rx="5"/><rect x="198" y="204" width="34" height="26" rx="5"/>
+      <rect x="236" y="204" width="34" height="26" rx="5"/><rect x="274" y="204" width="34" height="26" rx="5"/>
+      <rect x="312" y="204" width="34" height="26" rx="5"/><rect x="350" y="204" width="34" height="26" rx="5"/>
+    </g>
+    <text x="396" y="222" font-family="'IBM Plex Mono',ui-monospace,monospace" font-size="15" font-weight="700" fill="#DCE3EC">6</text>
+
+    <!-- 중 2 -->
+    <text x="72" y="276" font-size="14" fill="#9AA5B5">중학교</text>
+    <g fill="#7C8AF2">
+      <rect x="160" y="258" width="34" height="26" rx="5"/><rect x="198" y="258" width="34" height="26" rx="5"/>
+    </g>
+    <text x="244" y="276" font-family="'IBM Plex Mono',ui-monospace,monospace" font-size="15" font-weight="700" fill="#DCE3EC">2</text>
+
+    <!-- 고 8 (두 줄) -->
+    <text x="72" y="330" font-size="14" fill="#9AA5B5">고등학교</text>
+    <g fill="#C27A14">
+      <rect x="160" y="312" width="34" height="26" rx="5"/><rect x="198" y="312" width="34" height="26" rx="5"/>
+      <rect x="236" y="312" width="34" height="26" rx="5"/><rect x="274" y="312" width="34" height="26" rx="5"/>
+      <rect x="312" y="312" width="34" height="26" rx="5"/><rect x="350" y="312" width="34" height="26" rx="5"/>
+      <rect x="160" y="342" width="34" height="26" rx="5"/><rect x="198" y="342" width="34" height="26" rx="5"/>
+    </g>
+    <text x="244" y="360" font-family="'IBM Plex Mono',ui-monospace,monospace" font-size="15" font-weight="700" fill="#DCE3EC">8</text>
+
+    <line x1="72" y1="396" x2="416" y2="396" stroke="#263241"/>
+    <text x="72" y="428" font-size="14" fill="#9AA5B5">합계</text>
+    <text x="160" y="430" font-family="'IBM Plex Mono',ui-monospace,monospace" font-size="24" font-weight="700" fill="#F1F4F8">16<tspan font-family="'Noto Sans KR',system-ui,sans-serif" font-size="14" font-weight="400" fill="#9AA5B5"> 과목</tspan></text>
+    <text x="72" y="466" font-size="12.5" fill="#6E7A8C">고등학교 8개는 선택과목 성격이 강하다</text>
+
+    <!-- 오른쪽: 교과서 세 종류 -->
+    <text x="484" y="178" font-size="15" font-weight="700" fill="#DCE3EC">교과서는 세 종류</text>
+
+    <rect x="484" y="196" width="432" height="72" rx="14" fill="url(#card)" stroke="#263241"/>
+    <text x="508" y="228" font-size="17" font-weight="800" fill="#8A94A6">국정</text>
+    <text x="508" y="252" font-size="13.5" fill="#6E7A8C">전국이 같은 책을 쓴다</text>
+
+    <rect x="484" y="280" width="432" height="72" rx="14" fill="url(#card)" stroke="#263241"/>
+    <text x="508" y="312" font-size="17" font-weight="800" fill="#8A94A6">검정</text>
+    <text x="508" y="336" font-size="13.5" fill="#6E7A8C">정해진 목록에서 고른다</text>
+
+    <rect x="484" y="364" width="432" height="128" rx="14" fill="url(#hot)" stroke="#8A5E1A" stroke-width="1.5" filter="url(#shadow)"/>
+    <rect x="836" y="378" width="66" height="24" rx="12" fill="#F5A623"/>
+    <text x="869" y="395" text-anchor="middle" font-size="12.5" font-weight="800" fill="#1A140C">이번 AI</text>
+    <text x="508" y="398" font-size="19" font-weight="800" fill="#FFF3DE">인정</text>
+    <text x="508" y="424" font-size="14" fill="#E6CFA5">시도교육감 인정 심의를 거쳐 학교가 선택</text>
+    <!-- 흐름 -->
+    <g font-size="13" font-weight="700">
+      <rect x="508" y="444" width="96" height="30" rx="15" fill="#1F1810" stroke="#6A4A17"/>
+      <text x="556" y="464" text-anchor="middle" fill="#E6CFA5">심의 통과</text>
+      <path d="M612 459 h18" stroke="#F5A623" stroke-width="2"/><path d="M626 454 l6 5 l-6 5" fill="none" stroke="#F5A623" stroke-width="2"/>
+      <rect x="640" y="444" width="112" height="30" rx="15" fill="#1F1810" stroke="#6A4A17"/>
+      <text x="696" y="464" text-anchor="middle" fill="#E6CFA5">학교가 편성</text>
+      <path d="M760 459 h18" stroke="#F5A623" stroke-width="2"/><path d="M774 454 l6 5 l-6 5" fill="none" stroke="#F5A623" stroke-width="2"/>
+      <rect x="788" y="444" width="112" height="30" rx="15" fill="#F5A623"/>
+      <text x="844" y="464" text-anchor="middle" fill="#1A140C">아이가 듣는다</text>
+    </g>
+  </g>
+
+  <text x="480" y="522" text-anchor="middle" font-family="'Noto Sans KR',system-ui,sans-serif" font-size="13.5" fill="#8A94A6">옆 학교에 생긴 과목이 우리 아이 학교에는 없을 수 있다</text>
+</svg>

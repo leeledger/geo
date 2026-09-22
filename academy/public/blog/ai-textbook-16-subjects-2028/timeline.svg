@@ -1,0 +1,98 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540" width="960" height="540" role="img"
+     aria-label="AI 교과서가 수업에 들어오기까지. 2026년 8월 27일 교육부 발표, 16개 과목 개발. 2027년 1학기 학교 현장 시범 적용. 2027년 하반기 시도교육청 인정 심의. 2028년 3월 수업 적용. 그때 지금 초등학교 5학년은 중학교 1학년, 지금 중학교 2학년은 고등학교 1학년이 된다.">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#111827"/><stop offset="1" stop-color="#0B0F16"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.82" cy="0.18" r="0.55">
+      <stop offset="0" stop-color="#F5A623" stop-opacity="0.16"/><stop offset="1" stop-color="#F5A623" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="rail" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#3DD6C4"/><stop offset="1" stop-color="#F5A623"/>
+    </linearGradient>
+    <linearGradient id="card" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#18202C"/><stop offset="1" stop-color="#121821"/>
+    </linearGradient>
+    <linearGradient id="cardHot" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2A2013"/><stop offset="1" stop-color="#1A150E"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="160%">
+      <feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#000" flood-opacity="0.45"/>
+    </filter>
+  </defs>
+  <rect width="960" height="540" fill="url(#bg)"/>
+  <rect width="960" height="540" fill="url(#glow)"/>
+
+  <g font-family="'Noto Sans KR',system-ui,sans-serif">
+    <text x="56" y="62" font-family="'IBM Plex Mono',ui-monospace,monospace" font-size="12" letter-spacing="2.5" fill="#3DD6C4">교육부 발표 · 2026.08.27</text>
+    <text x="56" y="100" font-size="30" font-weight="800" fill="#F1F4F8">AI 교과서가 수업에 들어오기까지</text>
+    <text x="56" y="130" font-size="15" fill="#8A94A6">초 6 · 중 2 · 고 8, 모두 16개 과목 · 학교가 고르는 인정교과서</text>
+
+    <!-- 레일 -->
+    <rect x="120" y="226" width="720" height="4" rx="2" fill="url(#rail)" opacity="0.9"/>
+
+    <!-- 1 발표 -->
+    <g transform="translate(120,228)">
+      <circle r="26" fill="#0E1A1C" stroke="#3DD6C4" stroke-width="2.5"/>
+      <!-- 확성기 -->
+      <path d="M-10 -5 h6 l10 -7 v24 l-10 -7 h-6 z" fill="none" stroke="#3DD6C4" stroke-width="2" stroke-linejoin="round"/>
+      <path d="M10 -4 q5 4 0 8" fill="none" stroke="#3DD6C4" stroke-width="2" stroke-linecap="round"/>
+    </g>
+    <!-- 2 시범 -->
+    <g transform="translate(360,228)">
+      <circle r="26" fill="#11191E" stroke="#6FC9B8" stroke-width="2.5"/>
+      <!-- 플라스크 -->
+      <path d="M-5 -12 h10 M-3 -12 v8 l-9 14 q-1 3 2 3 h20 q3 0 2 -3 l-9 -14 v-8" fill="none" stroke="#6FC9B8" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+      <path d="M-7 5 h14" stroke="#6FC9B8" stroke-width="2" stroke-linecap="round"/>
+    </g>
+    <!-- 3 심의 -->
+    <g transform="translate(600,228)">
+      <circle r="26" fill="#1A1812" stroke="#D9B45A" stroke-width="2.5"/>
+      <!-- 도장 -->
+      <path d="M-6 -13 h12 v8 l6 5 v5 h-24 v-5 l6 -5 z" fill="none" stroke="#D9B45A" stroke-width="2" stroke-linejoin="round"/>
+      <path d="M-13 12 h26" stroke="#D9B45A" stroke-width="2" stroke-linecap="round"/>
+    </g>
+    <!-- 4 수업 -->
+    <g transform="translate(840,228)">
+      <circle r="32" fill="#F5A623" opacity="0.14"/>
+      <circle r="26" fill="#241A0C" stroke="#F5A623" stroke-width="3"/>
+      <!-- 책 -->
+      <path d="M-13 -9 q7 -3 13 1 q6 -4 13 -1 v19 q-7 -3 -13 1 q-6 -4 -13 -1 z" fill="none" stroke="#F5A623" stroke-width="2" stroke-linejoin="round"/>
+      <path d="M0 -8 v19" stroke="#F5A623" stroke-width="2"/>
+    </g>
+
+    <!-- 카드 -->
+    <g filter="url(#shadow)">
+      <rect x="44" y="282" width="200" height="132" rx="14" fill="url(#card)" stroke="#263241"/>
+      <rect x="284" y="282" width="200" height="132" rx="14" fill="url(#card)" stroke="#263241"/>
+      <rect x="524" y="282" width="200" height="132" rx="14" fill="url(#card)" stroke="#263241"/>
+      <rect x="764" y="282" width="172" height="132" rx="14" fill="url(#cardHot)" stroke="#6A4A17"/>
+    </g>
+    <text x="64" y="314" font-family="'IBM Plex Mono',ui-monospace,monospace" font-size="13" fill="#3DD6C4">2026.08.27</text>
+    <text x="64" y="346" font-size="19" font-weight="800" fill="#EEF2F6">교육부 발표</text>
+    <text x="64" y="374" font-size="13.5" fill="#9AA5B5">16개 과목 교과서를</text>
+    <text x="64" y="394" font-size="13.5" fill="#9AA5B5">현장 교사가 집필</text>
+
+    <text x="304" y="314" font-family="'IBM Plex Mono',ui-monospace,monospace" font-size="13" fill="#6FC9B8">2027 · 1학기</text>
+    <text x="304" y="346" font-size="19" font-weight="800" fill="#EEF2F6">시범 적용</text>
+    <text x="304" y="374" font-size="13.5" fill="#9AA5B5">학교 현장에서</text>
+    <text x="304" y="394" font-size="13.5" fill="#9AA5B5">활용성 검증</text>
+
+    <text x="544" y="314" font-family="'IBM Plex Mono',ui-monospace,monospace" font-size="13" fill="#D9B45A">2027 · 하반기</text>
+    <text x="544" y="346" font-size="19" font-weight="800" fill="#EEF2F6">인정 심의</text>
+    <text x="544" y="374" font-size="13.5" fill="#9AA5B5">시도교육청이 심의</text>
+    <text x="544" y="394" font-size="13.5" fill="#9AA5B5">→ 학교가 고를 목록</text>
+
+    <text x="784" y="314" font-family="'IBM Plex Mono',ui-monospace,monospace" font-size="13" fill="#F5A623">2028.03</text>
+    <text x="784" y="346" font-size="19" font-weight="800" fill="#FFF3DE">수업 적용</text>
+    <text x="784" y="374" font-size="13.5" fill="#C9A97A">학교가 편성한</text>
+    <text x="784" y="394" font-size="13.5" fill="#C9A97A">과목만 열린다</text>
+
+    <!-- 그때 우리 아이 -->
+    <text x="56" y="466" font-family="'IBM Plex Mono',ui-monospace,monospace" font-size="12" letter-spacing="2" fill="#8A94A6">2028년 3월, 그때 우리 아이는</text>
+    <rect x="56" y="482" width="250" height="36" rx="18" fill="#141B25" stroke="#2A3544"/>
+    <text x="181" y="505" text-anchor="middle" font-size="14.5" fill="#DCE3EC">지금 초5 → <tspan font-weight="800" fill="#F5A623">중학교 1학년</tspan></text>
+    <rect x="322" y="482" width="250" height="36" rx="18" fill="#141B25" stroke="#2A3544"/>
+    <text x="447" y="505" text-anchor="middle" font-size="14.5" fill="#DCE3EC">지금 중2 → <tspan font-weight="800" fill="#F5A623">고등학교 1학년</tspan></text>
+  </g>
+</svg>
