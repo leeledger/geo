@@ -13,7 +13,10 @@
 - **발견:** Claude 웹 검색(Brave 색인)에 robotncoding.com 0건 → Claude 가 우리 주소를 남의 학원에 붙임. 홈·/blog Brave 제출(9/22). 다음 측정 9/25 에 인용 변화 확인. 메모리 claude-search-needs-brave
 - **남은 설계:** Step 11 영업 담당(ARCHITECT-BRIEF.md). 319(빙 수집률 — scout 가 4곳만 봄)은 수리공이 조건을 두 번 놓쳐 사람 대기 — 손으로 고치는 편이 빠르다(Known Gaps)
 - **원장 대기:** 상담 결과 2건 · 초안 사실 확인 · 플레이스 대표 키워드 「잠실코딩학원」 · 수리공 스위치
-- 다음 세션: audit/repair 첫 06:35·06:50 실행 로그, 9/25 측정의 Brave 효과, Step 11
+- **Step 11 영업 담당**(sales.yml 월 08:10): 케이스 리포트 갱신(유출 검사 통과해야 공개, AI 888·검색 598 로 정정), 주간 전화 묶음 1건. 자동 발송 없음
+- **Step 12 삽화 담당**(company 일감 illustrate): 초안마다 도해 2~3장 → DB academy.post_images → /blog/img 경로(발행 글만, CSP sandbox). 기준 스타일 = academy/public/blog/ai-textbook-16-subjects-2028/*.svg. 도해 없으면 발행 불가. 하루 6회. 600자 미만 제외
+- 2023nyeon-buteo… 글은 세션이 비공개로 돌림(카페 링크 한 줄, 제목 사실과 다름)
+- 다음 세션: audit/repair 첫 06:35·06:50 로그, 9/25 측정의 Brave 효과, 첫 실제 초안의 도해 품질, 다음 월요일 sales AI 대본
 
 ## Where We Stopped (2026-09-17 23시 갱신) — 에이전트 회사 가동
 
