@@ -828,6 +828,9 @@ try {
   if (MODE === "guard-test") 가드시험();
   else {
     if (!TOKEN) throw new Error("GH_TOKEN 없음 — 푸시·확인 실행을 못 한다");
+    // 이 스크립트는 checkout -f 로 가지를 오간다. 로컬에서 고치던 파일이 있으면 날아간다 — 깨끗할 때만 돈다
+    const 더러움 = 바뀜();
+    if (더러움.length) throw new Error(`작업 트리가 깨끗하지 않다 (${더러움.slice(0, 5).map((x) => x.file).join(", ")}) — 커밋하거나 stash 한 뒤 돌린다`);
     await ensure();
     const 원래가지 = git("rev-parse", "--abbrev-ref", "HEAD");
     const 원래커밋 = git("rev-parse", "HEAD");
