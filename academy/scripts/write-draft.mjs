@@ -234,7 +234,8 @@ const main = async () => {
       const 오류본문 = await res.text();
       console.log("생성 실패:", res.status, `(${공급자.이름})`);
       console.log(오류본문.slice(0, 2000));
-      막힘.push(`${공급자.이름} ${res.status}`);
+      // Anthropic 은 잔액 부족을 400 으로 준다. 돈 문제로 세야 「코드를 고쳐야 한다」 일감으로 잘못 올라가지 않는다
+      막힘.push(`${공급자.이름} ${/credit balance is too low/i.test(오류본문) ? 402 : res.status}`);
       continue;
     }
     const data = await res.json().catch(() => ({}));
@@ -263,8 +264,11 @@ const main = async () => {
   }
   if (!post) {
     console.log(`\n모든 공급자가 막혔습니다: ${막힘.join(" · ")}`);
-    // 예비가 있는데도 다 막혔으면 조용히 넘기지 않는다 — 회사 루프가 실패를 보고 운영 일감으로 올린다
-    process.exitCode = 1;
+    // 크레딧·한도·일시 과부하로만 막혔으면 고장이 아니라 돈·시간 문제다 — 78(건너뜀)로 끝내고,
+    // 충전은 측정 쪽이 올리는 크레딧 일감 한 곳에서 사람에게 넘긴다. 그 밖의 이유(400·404·JSON)면 고장이라 1
+    const 돈이나한도 = 막힘.every((m) => / (402|429|503)$/.test(m));
+    if (돈이나한도) console.log("크레딧이나 한도에만 막혔습니다. 대시보드의 크레딧 일감을 보세요. 다음 실행에서 다시 해 봅니다.");
+    process.exitCode = 돈이나한도 ? 78 : 1;
     return;
   }
   if (고쳐읽음) console.log("  (본문에 진짜 줄바꿈이 들어와 고쳐 읽었습니다)");
