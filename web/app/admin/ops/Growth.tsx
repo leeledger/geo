@@ -1,544 +1,367 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-import type { Client } from "@/lib/ops";
+import type { Client, Ops } from "@/lib/ops";
 import { addDays, delta, type Delta, type Growth as G } from "@/lib/growth";
+import { engineName } from "@/lib/agents";
 import CoverageChart, { type CovSeries } from "./CoverageChart";
 
 /**
- * 현황판 맨 위 「성장 — 늘고 있나」.
+ * ③ 크고 있나 — 카드 4장, ④ 답변 색인 차트 하나. 「그 밖의 숫자」와 표는 GrowthMore(자세히 안).
  *
- * 지표마다 지금 값 · 같은 조건 이전 값 대비 변화 · 추세선 · 뜻 / 좋아지려면.
- * 증감률(%)은 쓰지 않는다 — 작은 수에서 +300% 같은 소리가 나온다. 절대 차와 이전 값만.
- * 변화 색은 상태색(--ok/--crit/--mut)이고 기호와 글자가 같이 간다. 색만으로 뜻을 싣지 않는다.
+ * 카드 = 머리문장(숫자 굵게) / 비교 줄(이전 값 + 변화 단어) / 선택 하나(추세선 또는 링크). 3줄 이내.
+ * 증감률(%)은 쓰지 않는다 — 작은 수에서 +300% 같은 소리가 나온다. 이전 값을 그대로 적는다.
+ * 변화는 기호+단어+색이 같이 간다. 색만으로 뜻을 싣지 않는다.
+ * 비교 로직은 growth.ts 그대로 — 여기서 새로 짜지 않는다.
  */
 
 /** 계열색. 검증된 셋만, 순서 고정 — 넷째를 만들지 않는다 (validate_palette: 밝은·어두운 판 모두 통과) */
 const SERIES_COLOR: Record<string, string> = { google: "#1F9E90", naver: "#7C8AF2", microsoft: "#C27A14" };
 const RIVAL_NAME: Record<string, string> = { naver_all: "네이버 통합", naver: "네이버 웹문서", bing: "빙" };
+/** 「구글이·네이버가·빙이」 — 받침에 따라 */
+const SUBJECT: Record<string, string> = { google: "구글이", naver: "네이버가", microsoft: "빙이" };
 
 const CSS = `
-.gr{margin-top:6px}
-.gr h2{margin-top:34px}
 .gr .sub{word-break:keep-all}
-.gr-verdict{background:var(--sunk);border:1px solid var(--line);border-radius:12px;padding:12px 16px;
-  font-size:14px;color:var(--ink2);word-break:keep-all;line-height:1.6}
-.gr-verdict b{color:var(--ink);font-weight:800}
-.gr-verdict .n{font-weight:800;color:var(--ink);margin-left:3px}
-.gr-verdict small{color:var(--mut);font-size:12px;margin-left:4px}
-.gr-verdict .sep{color:var(--faint);margin:0 8px}
-.gr-eb{font-size:11.5px;letter-spacing:.06em;color:var(--mut);font-weight:700;margin:20px 0 8px;word-break:keep-all}
-.gr-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:11px}
-.gr-cell .gr-eb{margin-top:0}
-.gr-grid.more{margin-top:20px}
-@media(min-width:900px){.gr-tile.wide{grid-column:span 2}}
-.gr-pairs .gr-line{font-size:12px;color:var(--ink2)}
-.gr-pairs .gr-line b{font-weight:700;color:var(--ink)}
-.gr-tile{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:15px 17px;
-  display:flex;flex-direction:column;gap:7px;min-width:0;word-break:keep-all;height:100%;box-sizing:border-box}
-.gr-name{font-size:13px;font-weight:700;color:var(--ink2);display:flex;gap:7px;align-items:baseline;flex-wrap:wrap}
-.gr-tag{font-size:10.5px;font-weight:600;color:var(--mut);border:1px solid var(--line);border-radius:5px;padding:1px 6px}
-.gr-val{font-size:26px;font-weight:800;letter-spacing:-.02em;color:var(--ink);line-height:1.15}
-.gr-val small{font-size:13px;font-weight:600;color:var(--mut);margin-left:5px;letter-spacing:0}
-.gr-val.none{font-size:18px;color:var(--mut);font-weight:700}
-.gr-ch{font-size:12.5px;font-weight:600;line-height:1.45}
-.gr-ch.ok{color:var(--ok)} .gr-ch.crit{color:var(--crit)} .gr-ch.mut{color:var(--mut)}
-.gr-ch em{font-style:normal;font-weight:500;color:var(--mut);margin-left:6px;font-size:11.5px}
-.gr-line{font-size:12.5px;color:var(--ink2);line-height:1.5}
-.gr-line.gr-any{overflow-wrap:anywhere}
-.gr-line a{color:var(--acc);text-decoration:none;font-weight:700}
-.gr-key{display:inline-block;width:12px;height:2px;border-radius:1px;vertical-align:middle;margin-right:5px}
-.gr-mean,.gr-do{font-size:12px;color:var(--mut);line-height:1.5}
-.gr-mean b,.gr-do b{color:var(--ink2);font-weight:700;margin-right:5px}
-.gr-do a{color:var(--acc);text-decoration:none;font-weight:700}
-.gr-foot{font-size:11.5px;color:var(--faint);line-height:1.5;border-top:1px solid var(--soft);padding-top:7px}
-.gr-pairs{display:flex;flex-direction:column;gap:4px}
-.gr-spark{position:relative;height:32px}
-.gr-spark svg{display:block;width:100%;height:32px;overflow:visible}
+.gr-grid{display:grid;grid-template-columns:1fr;gap:12px;margin-top:14px}
+@media(min-width:760px){.gr-grid{grid-template-columns:1fr 1fr}}
+.gc{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:16px 18px;
+  display:flex;flex-direction:column;gap:6px;min-width:0;word-break:keep-all}
+.gc-h{font-size:21px;font-weight:700;line-height:1.45;letter-spacing:-.02em;margin:0;color:var(--ink)}
+.gc-h b{font-weight:900;color:var(--ink)}
+.gc-h .gc-s{font-size:16px;font-weight:600;color:var(--ink2);letter-spacing:0}
+.gc-h.none{color:var(--ink2)}
+.gc-c{font-size:16px;color:var(--ink2);line-height:1.55;margin:0}
+.gc-d{color:var(--mut);font-size:14px}
+.gc-x a{color:var(--acc);text-decoration:none;font-weight:700;font-size:16px}
+.gw{font-weight:700;white-space:nowrap}
+.gw.ok{color:var(--ok)} .gw.crit{color:var(--crit)} .gw.mut{color:var(--ink2)}
+.gr-spark{position:relative;height:40px}
+.gr-spark svg{display:block;width:100%;height:40px;overflow:visible}
 .gr-dot{position:absolute;width:8px;height:8px;border-radius:50%;background:var(--acc);
   box-shadow:0 0 0 2px var(--card);transform:translate(-50%,-50%)}
-.gr-dot.live{background:var(--card);box-shadow:none;border:2px solid var(--faint);box-sizing:border-box}
-.gr-nospark{font-size:11.5px;color:var(--faint);height:32px;display:flex;align-items:center}
-.gr-bars{position:relative;height:32px;display:flex;align-items:flex-end;gap:2px;border-bottom:1px solid var(--line)}
-.gr-bars i{display:block;flex:0 1 24px;max-width:24px;background:var(--faint);border-radius:4px 4px 0 0}
-.gr-bars i.part{opacity:.45}
-.gr-bars i.now{background:var(--acc)}
-.gr-goal{position:absolute;left:0;right:0;border-top:1px solid var(--mut);pointer-events:none}
-.gr-card{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:16px 18px;margin-top:20px}
-.gr-card h3{font-size:14.5px;font-weight:800;margin:0;letter-spacing:-.02em}
-.gr-card .d{font-size:12.5px;color:var(--mut);margin:4px 0 10px;word-break:keep-all}
+.gr-card{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:16px 18px;margin-top:14px}
+.gr-card h2{margin:0 0 4px}
+.gr-card .d{font-size:16px;color:var(--ink2);margin:0 0 12px;word-break:keep-all;line-height:1.55}
 .gr-chart{position:relative}
-.gr-legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--ink2);margin-bottom:6px}
+.gr-legend{display:flex;gap:16px;flex-wrap:wrap;font-size:14px;color:var(--ink2);margin-bottom:6px}
 .gr-legend i{display:inline-block;width:14px;height:2px;border-radius:1px;vertical-align:middle;margin-right:6px}
 .gr-plot{position:relative;outline:none;border-radius:6px}
 .gr-plot:focus-visible{box-shadow:0 0 0 2px var(--acc)}
 .gr-plot svg{display:block}
-.gr-ax{fill:var(--mut);font-size:11px;font-variant-numeric:tabular-nums}
-.gr-end{fill:var(--ink);font-size:12px;font-weight:700}
+.gr-ax{fill:var(--ink2);font-size:14px;font-variant-numeric:tabular-nums}
+.gr-end{fill:var(--ink);font-size:14px;font-weight:700}
 .gr-tip{position:absolute;top:6px;background:var(--sunk);border:1px solid var(--line);border-radius:9px;
-  padding:8px 11px;font-size:12.5px;pointer-events:none;white-space:nowrap;box-shadow:0 6px 18px rgba(0,0,0,.35)}
-.gr-tip-d{font-size:11px;color:var(--mut);margin-bottom:4px}
+  padding:8px 11px;font-size:14px;pointer-events:none;white-space:nowrap;box-shadow:0 6px 18px rgba(0,0,0,.35)}
+.gr-tip-d{font-size:14px;color:var(--ink2);margin-bottom:4px}
 .gr-tip-r{display:flex;align-items:center;gap:7px;line-height:1.6}
 .gr-tip-r i{display:inline-block;width:12px;height:2px;border-radius:1px}
 .gr-tip-r b{color:var(--ink);font-weight:800}
-.gr-tip-r span{color:var(--mut)}
+.gr-tip-r span{color:var(--ink2)}
 .gr-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
-.gr-empty{font-size:13px;color:var(--mut);margin:8px 0}
-.gr details{margin-top:14px;background:transparent;border:1px solid var(--line);border-radius:13px;box-shadow:none}
-.gr details[open]{border-color:var(--line);box-shadow:none}
-.gr summary{padding:13px 18px;font-size:13.5px;color:var(--ink2);font-weight:700}
-.gr summary::after{color:var(--mut);font-size:18px}
-.gr summary:focus-visible{outline:2px solid var(--acc);outline-offset:-2px}
-.gr-tv{padding:0 16px 16px}
-.gr details h3{font-size:13.5px;margin:12px 0 0;color:var(--ink2)}
-.gr details h3 + .ops-tw{margin-top:8px}
-.gr td.n{font-variant-numeric:tabular-nums;white-space:nowrap}
-.gr .err{margin-top:14px}
+.gr-empty{font-size:16px;color:var(--ink2);margin:8px 0}
+.gm h3{font-size:17px;font-weight:800;margin:26px 0 8px;color:var(--ink)}
+.gm h3:first-child{margin-top:4px}
+.gm dl{margin:0;display:grid;gap:10px}
+.gm dt{font-weight:800;font-size:16px}
+.gm dd{margin:2px 0 0;font-size:16px;color:var(--ink2);line-height:1.55;word-break:keep-all}
+.gm dd b{color:var(--ink);font-weight:700;margin-right:6px}
+.gm td.n{font-variant-numeric:tabular-nums;white-space:nowrap}
 `;
 
 const md = (d: string) => `${Number(d.slice(5, 7))}/${Number(d.slice(8, 10))}`;
 const n = (v: number) => v.toLocaleString("ko-KR");
-const signed = (v: number) => (v > 0 ? `+${n(v)}` : v < 0 ? `−${n(-v)}` : "0");
 
-type Verdict = "better" | "worse" | "same" | "none" | "neutral";
-function verdict(d: Delta | null): Verdict {
-  if (!d || d.dir === "none") return "none";
-  if (d.good === "neutral") return "neutral";
-  if (d.dir === "flat") return "same";
-  return d.dir === d.good ? "better" : "worse";
+/** 변화 단어 — 기호+단어+색. 좋은 방향이면 --ok, 나쁜 방향이면 --crit */
+function Word({ d }: { d: Delta | null }) {
+  if (!d) return <span className="gw mut">확인 못함</span>;
+  if (d.dir === "none") return <span className="gw mut">아직 비교 전</span>;
+  if (d.dir === "flat") return <span className="gw mut">그대로</span>;
+  if (d.good === "neutral") return null;
+  const good = d.dir === d.good;
+  return <span className={`gw ${good ? "ok" : "crit"}`}>{d.dir === "up" ? "▲ 늘었음" : "▼ 줄었음"}</span>;
 }
-const VERDICT_WORD: Record<Verdict, string> = { better: "좋아짐", worse: "나빠짐", same: "", none: "", neutral: "" };
 
-/** 변화 줄 — 기호 + 절대 차 + 이전 값. 없으면 없다고 적는다 */
-function Change({ d, unit, prevLabel, noneText = "비교할 이전 값 없음", what = "", text }: {
-  d: Delta | null; unit: string; prevLabel: string; noneText?: string; what?: string;
-  /** 차·이전 값 대신 쓸 글 (AI: 「공통 11문항: 언급 3→3 · 인용 0→0」) */
-  text?: string;
-}) {
-  if (!d) return <div className="gr-ch mut">확인 못함</div>;
-  const v = verdict(d);
-  if (v === "none") return <div className="gr-ch mut">{noneText}</div>;
-  const diff = (d.now ?? 0) - (d.prev ?? 0);   // none 이면 위에서 끝났다 — 여기 오면 둘 다 있다
-  const cls = v === "better" ? "ok" : v === "worse" ? "crit" : "mut";
-  const body = d.dir === "flat" ? "그대로" : `${what}${signed(diff)}${unit}`;
-  const line = text ?? `${body} · ${prevLabel} ${n(d.prev ?? 0)}${unit}`;
-  // 중립은 기호를 안 붙인다 — 방향은 부호가 말한다. 대시와 마이너스가 겹치면 「그대로」인지 「줄었음」인지 안 읽힌다
-  if (v === "neutral") return <div className="gr-ch mut">{line} · 중립</div>;
-  const sym = d.dir === "up" ? "▲" : d.dir === "down" ? "▼" : "–";
+function Card({ head, none, cmp, extra }: { head: ReactNode; none?: boolean; cmp?: ReactNode; extra?: ReactNode }) {
   return (
-    <div className={`gr-ch ${cls}`}>
-      {sym} {line}
-      {v !== "same" && <em>{VERDICT_WORD[v]}</em>}
+    <div className="gc">
+      <p className={`gc-h${none ? " none" : ""}`}>{head}</p>
+      {cmp && <p className="gc-c">{cmp}</p>}
+      {extra && <div className="gc-x">{extra}</div>}
     </div>
   );
 }
 
-/**
- * 추세선 — 선은 --faint, 마지막 완전한 날 점만 --acc. null 은 끊는다(0 으로 메우지 않는다).
- * live = 마지막 값이 오늘(진행 중)이다. 선에서 빼고 흐린 속 빈 점으로만 둔다 — 비교에 안 쓰는 값이다.
- */
-function Spark({ values, days, unit, live = false }: { values: (number | null)[]; days: string[]; unit: string; live?: boolean }) {
-  const today = live ? values[values.length - 1] : null;
-  const line = live ? values.slice(0, -1) : values;
-  const got = line.map((v, i) => ({ v, i })).filter((p): p is { v: number; i: number } => p.v !== null);
-  if (got.length === 0) return <div className="gr-nospark">기록 없음</div>;
-  if (got.length < 2) return <div className="gr-nospark">추세를 그리기엔 기록이 1회</div>;
-  const max = Math.max(1, ...got.map((p) => p.v), today ?? 0);
+/** 추세선 — 선은 --faint, 마지막 점만 --acc. null 은 끊는다(0 으로 메우지 않는다) */
+function Spark({ values, days, unit }: { values: (number | null)[]; days: string[]; unit: string }) {
+  const got = values.map((v, i) => ({ v, i })).filter((p): p is { v: number; i: number } => p.v !== null);
+  if (got.length < 2) return null;
+  const max = Math.max(1, ...got.map((p) => p.v));
   const X = (i: number) => (values.length === 1 ? 50 : (i / (values.length - 1)) * 100);
-  const Y = (v: number) => 28 - (v / max) * 24;
+  const Y = (v: number) => 36 - (v / max) * 32;
   let d = "";
   let pen = false;
-  line.forEach((v, i) => {
+  values.forEach((v, i) => {
     if (v === null) { pen = false; return; }
     d += `${pen ? "L" : "M"}${X(i).toFixed(2)},${Y(v).toFixed(2)}`;
     pen = true;
   });
   const a = got[0], z = got[got.length - 1];
   return (
-    <div className="gr-spark" role="img"
-         aria-label={`${md(days[a.i])} ${n(a.v)}${unit} → ${md(days[z.i])} ${n(z.v)}${unit}`
-           + (live && today !== null ? ` · 오늘 ${md(days[days.length - 1])} ${n(today)}${unit}(진행 중, 비교에 안 씀)` : "")}>
-      <svg viewBox="0 0 100 32" preserveAspectRatio="none" aria-hidden="true">
+    <div className="gr-spark" role="img" aria-label={`${md(days[a.i])} ${n(a.v)}${unit} → ${md(days[z.i])} ${n(z.v)}${unit}`}>
+      <svg viewBox="0 0 100 40" preserveAspectRatio="none" aria-hidden="true">
         <path d={d} fill="none" stroke="var(--faint)" strokeWidth={2} vectorEffect="non-scaling-stroke"
               strokeLinejoin="round" strokeLinecap="round" />
       </svg>
       <span className="gr-dot" style={{ left: `${X(z.i)}%`, top: Y(z.v) }} />
-      {live && today !== null && (
-        <span className="gr-dot live" style={{ left: `${X(values.length - 1)}%`, top: Y(today) }}
-              title={`오늘 ${n(today)}${unit} · 진행 중`} />
-      )}
     </div>
   );
 }
 
-function Tile({ name, tag, wide, children }: { name: string; tag?: string; wide?: boolean; children: ReactNode }) {
-  return (
-    <div className={`gr-tile${wide ? " wide" : ""}`}>
-      <div className="gr-name">{name}{tag && <span className="gr-tag">{tag}</span>}</div>
-      {children}
-    </div>
-  );
-}
-const Mean = ({ children }: { children: ReactNode }) => <div className="gr-mean"><b>뜻</b>{children}</div>;
-const Do = ({ children }: { children: ReactNode }) => <div className="gr-do"><b>좋아지려면</b>{children}</div>;
-const NoVal = ({ text = "확인 못함" }: { text?: string }) => <div className="gr-val none">{text}</div>;
-
-const pairName = (engine: string, method: string) => (engine === method ? engine : `${engine} · ${method}`);
-
-export default function Growth({ g, err, client }: { g: G | null; err?: string; client: Client | null }) {
-  if (!g) {
-    return (
-      <div className="gr">
-        <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <h2>성장 — 늘고 있나</h2>
-        <div className="err">성장 지표를 못 읽었습니다 — {err ?? "이유 모름"}</div>
-      </div>
-    );
-  }
-  const T = g.today;
-  const Yd = addDays(T, -1);          // 비교 창의 끝 = 어제
-  const weekAgo = addDays(Yd, -7);
-
-  /* AI — 가장 최근 쌍 */
-  const aiTop = g.ai?.[0] ?? null;
-  const aiLast = aiTop ? aiTop.rounds[aiTop.rounds.length - 1] : null;
-  const aiDelta: Delta | null = g.ai === null ? null
-    : aiTop?.compare ? delta(aiTop.compare.mentioned[1], aiTop.compare.mentioned[0], "up")
-    : delta(null, null, "up");
-
-  /* 커버리지 — 셋 중 가장 낮은 곳 */
+/** 커버리지 — 셋 중 가장 낮은 곳과 그 비교(어제 대 7일 전). 카드와 자세히가 같이 쓴다 */
+function lowest(g: G) {
   const cov = g.coverage;
+  const Yd = addDays(g.today, -1);
+  const weekAgo = addDays(Yd, -7);
   const covNow = cov?.series.map((s) => ({ s, now: s.points[s.points.length - 1]?.pages ?? 0 })) ?? [];
-  const low = covNow.length && cov && cov.total > 0
-    ? covNow.reduce((m, x) => (x.now < m.now ? x : m))
-    : null;
+  const low = covNow.length && cov && cov.total > 0 ? covNow.reduce((m, x) => (x.now < m.now ? x : m)) : null;
   // 값은 지금(오늘까지 누적), 비교는 어제 대 그 7일 전 — 오늘은 진행 중이라 비교에 안 넣는다
   const lowAt = (day: string) => (low ? low.s.points.find((p) => p.day === day)?.pages ?? null : null);
   const covDelta: Delta | null = cov === null ? null : low ? delta(lowAt(Yd), lowAt(weekAgo), "up") : delta(null, null, "up");
-  const lowSpark = low ? g.days.map((d) => low.s.points.find((p) => p.day === d)?.pages ?? null) : [];
+  return { cov, low, covDelta };
+}
 
-  /* 경쟁 검색어 */
-  const rv = g.rival;
-  const rivalDelta: Delta | null = rv === null ? null
-    : delta(rv.latest ? rv.latest.won : null, rv.latest && rv.prev ? rv.prev.won : null, "up");
+export default function Growth({ g, err }: { g: G | null; err?: string }) {
+  if (!g) {
+    return (
+      <section className="gr">
+        <style dangerouslySetInnerHTML={{ __html: CSS }} />
+        <h2>크고 있나</h2>
+        <div className="err">성장 숫자를 못 읽었습니다 — {err ?? "이유 모름"}</div>
+      </section>
+    );
+  }
 
-  /* 크롤러 — 중립 */
-  const cr = g.crawl;
-  const crawlSum = (k: "now" | "prev") => cr ? (cr.search[k] ?? 0) + (cr.ai[k] ?? 0) + (cr.other[k] ?? 0) : 0;
-  const crawlDelta: Delta | null = cr ? delta(crawlSum("now"), crawlSum("prev"), "neutral") : null;
-  const crawlOther = cr ? (cr.other.now ?? 0) + (cr.other.prev ?? 0) > 0 : false;
+  /* 1 AI 답변 — 가장 최근 엔진·방법 쌍. 같은 쌍의 두 회차 공통 질문으로만 비교 */
+  const aiTop = g.ai?.[0] ?? null;
+  const aiLast = aiTop ? aiTop.rounds[aiTop.rounds.length - 1] : null;
 
-  /* 발행 */
+  /* 2 답변 색인 */
+  const { cov, low, covDelta } = lowest(g);
+
+  /* 3 글 · 4 문의 */
   const ps = g.posts;
   const postsEver = ps ? ps.weekly.reduce((s, w) => s + w.n, 0) : 0;
-  const postsDelta: Delta | null = ps === null ? null : postsEver ? ps.last7 : delta(null, null, "up");
-
-  /* 문의 */
   const iq = g.inquiries;
-  const inqDelta: Delta | null = iq === null ? null : iq.ever ? iq.last30 : delta(null, null, "up");
-
-  const judged: { name: string; d: Delta | null }[] = [
-    { name: "AI 답변", d: aiDelta },
-    { name: "커버리지", d: covDelta },
-    { name: "경쟁 검색어", d: rivalDelta },
-    { name: "학원 문의", d: inqDelta },
-    { name: "발행", d: postsDelta },
-    { name: "사이티드 리드", d: g.sales?.leads30 ?? null },
-    { name: "에이전트 실패", d: g.agents?.fail7 ?? null },
-  ];
-  const bucket = (v: Verdict) => judged.filter((j) => verdict(j.d) === v).map((j) => j.name);
-  const verdicts: [string, string[]][] = [
-    ["좋아진 것", bucket("better")], ["그대로", bucket("same")],
-    ["나빠진 것", bucket("worse")], ["비교 못 함", bucket("none")],
-  ];
 
   const chartSeries: CovSeries[] = cov
     ? cov.series.map((s) => ({ vendor: s.vendor, label: s.label, color: SERIES_COLOR[s.vendor], points: s.points }))
     : [];
+
+  return (
+    <>
+      <section className="gr" aria-labelledby="gr-h">
+        <style dangerouslySetInnerHTML={{ __html: CSS }} />
+        <h2 id="gr-h">크고 있나</h2>
+        <p className="sub">어제까지 7일을 그 전 7일과 비교합니다. 문의는 30일.</p>
+        <div className="gr-grid">
+          {/* 1 AI 답변 */}
+          {g.ai === null ? <Card none head="AI 답변 — 확인 못함" />
+            : !aiTop || !aiLast ? <Card none head="AI 답변 측정 기록이 아직 없습니다" />
+            : (
+              <Card
+                head={<>
+                  {engineName(aiTop.engine)}에게 물은 {aiLast.prompts}개 중 <b>{aiLast.mentioned}번</b> 학원 이름이 나왔습니다
+                  <span className="gc-s"> · {aiLast.cited > 0 ? `사이트 인용 ${aiLast.cited}번` : "사이트 인용은 아직 0"}</span>
+                </>}
+                cmp={aiTop.compare ? <>
+                  {md(aiTop.compare.prevDay)} 같은 질문 {aiTop.compare.common}개: {aiTop.compare.mentioned[0]}번 → {aiTop.compare.mentioned[1]}번{" "}
+                  <Word d={delta(aiTop.compare.mentioned[1], aiTop.compare.mentioned[0], "up")} />
+                  <span className="gc-d"> · {md(aiLast.day)} 측정</span>
+                </> : <>
+                  <span className="gw mut">아직 비교 전</span> — 한 번 더 재야 합니다
+                  <span className="gc-d"> · {md(aiLast.day)} 측정</span>
+                </>}
+                extra={aiTop.rounds.length >= 3
+                  ? <Spark values={aiTop.rounds.map((r) => r.mentioned)} days={aiTop.rounds.map((r) => r.day)} unit="번" />
+                  : undefined}
+              />
+            )}
+
+          {/* 2 답변 색인 — 셋 중 가장 낮은 곳 */}
+          {cov === null ? <Card none head="답변 색인 — 확인 못함" />
+            : cov.total === 0 || !low ? <Card none head="사이트 쪽 목록이 없습니다" />
+            : (
+              <Card
+                head={<>{SUBJECT[low.s.vendor] ?? low.s.label} 우리 {cov.total}쪽 중 <b>{low.now}쪽</b>을 읽었습니다</>}
+                cmp={covDelta && covDelta.dir !== "none"
+                  ? <>7일 전 {covDelta.prev}쪽 <Word d={covDelta} /></>
+                  : <Word d={covDelta} />}
+              />
+            )}
+
+          {/* 3 글 */}
+          {ps === null ? <Card none head="글 — 확인 못함" /> : (
+            <Card
+              head={<>최근 7일 글 <b>{ps.last7.now ?? 0}편</b> · 목표 주 1편</>}
+              cmp={postsEver ? <>
+                그 전 7일 {ps.last7.prev ?? 0}편
+                {ps.sinceDays !== null && ` · 마지막 글 ${ps.sinceDays === 0 ? "오늘" : `${ps.sinceDays}일 전`}`}{" "}
+                <Word d={ps.last7} />
+              </> : "착수 뒤 글이 아직 없습니다"}
+              extra={(ps.last7.now ?? 0) === 0 ? <Link href="/admin/drafts">초안 보러 가기 →</Link> : undefined}
+            />
+          )}
+
+          {/* 4 문의 */}
+          {iq === null ? <Card none head="학원 문의 — 확인 못함" />
+            : !iq.ever ? (
+              <Card none head="상담 기록이 아직 없습니다"
+                    extra={<Link href="/admin/inquiry">기록하러 가기 →</Link>} />
+            ) : (
+              <Card
+                head={<>최근 30일 학원 문의 <b>{n(iq.last30.now ?? 0)}건</b></>}
+                cmp={<>그 전 30일 {n(iq.last30.prev ?? 0)}건 <Word d={iq.last30} /></>}
+                extra={iq.unresolved > 0 ? <Link href="/admin/inquiry">결과 미입력 {iq.unresolved}건 →</Link> : undefined}
+              />
+            )}
+        </div>
+      </section>
+
+      {/* ④ 차트 하나 */}
+      <section className="gr gr-card" aria-labelledby="cov-h">
+        <h2 id="cov-h">AI 가 답할 때 찾는 검색 색인 — 우리 쪽이 몇 쪽 들어갔나</h2>
+        {cov === null ? <p className="gr-empty">확인 못함</p> : <>
+          <p className="d">구글·네이버·빙이 지금 있는 {cov.total}쪽 중 한 번이라도 읽어 간 쪽 수. 착수부터 누적.</p>
+          <CoverageChart total={cov.total} series={chartSeries} />
+        </>}
+      </section>
+    </>
+  );
+}
+
+/**
+ * ⑤ 자세히 안 — 숫자 읽는 법 · 그 밖의 숫자 · 날짜별·주별 표.
+ * 엔진은 사람 이름으로만, 방법 이름은 쓰지 않는다.
+ */
+export function GrowthMore({ g, client, place }: { g: G | null; client: Client | null; place: Ops["place"] }) {
+  const T = g?.today ?? "";
+  const rv = g?.rival ?? null;
+  const rivalDelta: Delta | null = rv === null ? null
+    : delta(rv.latest ? rv.latest.won : null, rv.latest && rv.prev ? rv.prev.won : null, "up");
+  const cr = g?.crawl ?? null;
+  const cov = g?.coverage ?? null;
   const covDays = cov?.series[0]?.points.map((p) => p.day) ?? [];
   const covAt = (day: string) => {
     if (!cov || !covDays.length || day < covDays[0]) return null;
     const d = day > T ? T : day;
     return cov.series.map((s) => s.points.find((p) => p.day === d)?.pages ?? null);
   };
-
   const weekLabel = (week: string, partialDays: number | null) => {
     if (partialDays === null) return `${md(week)} 주`;
     return addDays(week, 6) >= T ? `${md(week)} 주 (${partialDays}일째)` : `${md(week)} 주 (착수 뒤 ${partialDays}일)`;
   };
-  const postWeek = new Map(ps?.weekly.map((w) => [w.week, w]) ?? []);
+  const postWeek = new Map(g?.posts?.weekly.map((w) => [w.week, w]) ?? []);
 
   return (
-    <div className="gr">
-      <style dangerouslySetInnerHTML={{ __html: CSS }} />
-      <h2>성장 — 늘고 있나</h2>
-      <p className="sub">
-        어제까지 7일을 그 전 7일과 비교합니다(문의·리드는 30일). 오늘은 진행 중이라 비교에서 뺐습니다 — 추세선의 속 빈 점.
-        경쟁 검색어·AI 측정은 하루 한 번 재는 값이라 엔진이 다 돈 날이면 오늘 값을 씁니다. 오늘 {T} KST
-      </p>
+    // CSS 는 같은 화면의 Growth 가 넣는다 (못 읽어도 넣는다)
+    <div className="gm">
+      <h3>숫자 읽는 법</h3>
+      <dl>
+        <div><dt>AI 답변</dt>
+          <dd><b>뜻</b>AI 에게 학원을 물었을 때 이름이 나오는가. 재는 방법이 다르면 합치지 않습니다.</dd>
+          <dd><b>좋아지려면</b>같은 방법으로 다시 잽니다. 사이트 인용은 그 AI 가 찾는 검색 색인에 들어가야 생깁니다.</dd></div>
+        <div><dt>답변 색인</dt>
+          <dd><b>뜻</b>AI 가 답할 때 찾는 검색 색인에 우리 쪽이 몇 쪽 들어갔나. 구글·네이버·빙 중 제일 적은 곳을 카드에 씁니다.</dd>
+          <dd><b>좋아지려면</b>제일 낮은 곳을 밉니다. 빙이면 빙 제출과 색인 알림 — ChatGPT 검색과 Copilot 이 빙을 씁니다.
+            Claude 가 찾는 Brave 는 로봇이 이름을 안 밝혀 여기서 못 셉니다. AI 답변 측정의 인용으로 봅니다.</dd></div>
+        <div><dt>글</dt>
+          <dd><b>뜻</b>주 1편이 끊기면 크롤러가 뜸해지고 레퍼런스가 늙습니다.</dd>
+          <dd><b>좋아지려면</b>이번 주 0편이면 초안 검토 → 발행.</dd></div>
+        <div><dt>학원 문의</dt>
+          <dd><b>뜻</b>노출이 실제 문의로 이어졌나. 상담에서 “어떻게 알고 오셨어요”로만 잽니다.</dd>
+          <dd><b>좋아지려면</b>상담마다 30초 기록.</dd></div>
+        <div><dt>비교 규칙</dt>
+          <dd>어제로 끝나는 완전한 날끼리 비교합니다. 오늘은 진행 중이라 뺍니다. 비교할 이전 값이 없으면 「아직 비교 전」.</dd></div>
+      </dl>
 
-      <div className="gr-verdict">
-        <b>어제까지 7일</b> —{" "}
-        {verdicts.map(([label, names], i) => (
-          <span key={label}>
-            {i > 0 && <span className="sep">·</span>}
-            {label}<span className="n">{names.length}</span>
-            {names.length > 0 && <small>({names.join("·")})</small>}
-          </span>
-        ))}
-      </div>
+      <h3>그 밖의 숫자</h3>
+      {!g ? <p className="gr-empty">확인 못함</p> : (
+        <dl>
+          <div><dt>지역·업종 검색 (학원 이름 없이)</dt>
+            <dd>{rv === null ? "확인 못함" : !rv.latest ? "기록 없음" : <>
+              {md(rv.latest.day)} — {rv.latest.total}개 중 <b>{rv.latest.won}개</b>에서 나옴
+              {" "}({rv.latest.byEngine.map((e) => `${RIVAL_NAME[e.engine] ?? "기타"} ${e.hit}${e.best !== null && e.hit > 0 ? `·최고 ${e.best}위` : ""}`).join(" · ")})
+              {rv.prev ? <> · {md(rv.prev.day)} {rv.prev.won}개 </> : " "}<Word d={rivalDelta} />
+            </>}</dd></div>
+          <div><dt>로봇 방문 — 어제까지 7일</dt>
+            <dd>{!cr ? "확인 못함" : <>
+              검색 색인 {n(cr.search.now ?? 0)}회 · 그 전 {n(cr.search.prev ?? 0)}회 / AI 학습 {n(cr.ai.now ?? 0)}회 · 그 전 {n(cr.ai.prev ?? 0)}회
+              {(cr.other.now ?? 0) + (cr.other.prev ?? 0) > 0 && ` / 기타 ${n(cr.other.now ?? 0)}회 · 그 전 ${n(cr.other.prev ?? 0)}회`}
+            </>}</dd></div>
+          <div><dt>플레이스 최고 순위</dt>
+            <dd>{place.length ? <><b>{place[0].rank}위</b>{place[0].query}</> : "안 쟀습니다"}</dd></div>
+          <div><dt>사이티드 리드·무료 진단 — 어제까지 30일 (사이티드 전체)</dt>
+            <dd>{!g.sales ? "확인 못함" : <>
+              리드 {n(g.sales.leads30.now ?? 0)}건 · 그 전 {n(g.sales.leads30.prev ?? 0)}건 <Word d={g.sales.leads30} />
+              {" "}· 무료 진단 {n(g.sales.scans30.now ?? 0)}회 · 그 전 {n(g.sales.scans30.prev ?? 0)}회
+            </>}</dd></div>
+          <div><dt>에이전트 실패 — 어제까지 7일</dt>
+            <dd>{!g.agents ? "확인 못함" : <>
+              {n(g.agents.fail7.now ?? 0)}건 · 그 전 {n(g.agents.fail7.prev ?? 0)}건 <Word d={g.agents.fail7} />
+              {" "}· 전체 활동 {n(g.agents.total7)}건
+            </>}</dd></div>
+        </dl>
+      )}
 
-      <div className="gr-eb">① 레퍼런스 증거</div>
-      <div className="gr-grid">
-        {/* AI 답변 */}
-        <Tile name="AI 답변" wide>
-          {g.ai === null ? <NoVal /> : !aiTop || !aiLast ? <NoVal text="기록 없음" /> : (
-            <div className="gr-val">
-              언급 {aiLast.mentioned}/{aiLast.prompts}<small>· 인용 {aiLast.cited}/{aiLast.prompts}</small>
-            </div>
-          )}
-          {aiTop && !aiTop.compare ? (
-            <div className="gr-ch mut">
-              {aiTop.rounds.length < 2 ? "이 방법으로는 1회차 — 비교할 이전 회차 없음" : "비교 불가 — 두 회차 공통 문항 없음"}
-            </div>
-          ) : aiTop?.compare ? (
-            <Change d={aiDelta} unit="" prevLabel=""
-                    text={`${md(aiTop.compare.prevDay)}→${md(aiLast!.day)} 공통 ${aiTop.compare.common}문항: 언급 ${aiTop.compare.mentioned[0]}→${aiTop.compare.mentioned[1]} · 인용 ${aiTop.compare.cited[0]}→${aiTop.compare.cited[1]}`} />
-          ) : <Change d={aiDelta} unit="" prevLabel="" />}
-          {aiTop && <Spark values={aiTop.rounds.map((r) => r.mentioned)} days={aiTop.rounds.map((r) => r.day)} unit="건 언급" />}
-          {g.ai && g.ai.length > 0 && (
-            <div className="gr-pairs">
-              {g.ai.map((p) => {
-                const r = p.rounds[p.rounds.length - 1];
-                return (
-                  <div className="gr-line gr-any" key={p.engine + p.method}>
-                    <b>{pairName(p.engine, p.method)}</b> · {md(r.day)} · 언급 {r.mentioned}/{r.prompts} · 인용 {r.cited}/{r.prompts}
-                    {" — "}
-                    {p.compare
-                      ? `공통 ${p.compare.common}문항: 언급 ${p.compare.mentioned[0]}→${p.compare.mentioned[1]} · 인용 ${p.compare.cited[0]}→${p.compare.cited[1]}`
-                      : p.rounds.length < 2 ? "이 방법으로는 1회차 — 비교할 이전 회차 없음" : "비교 불가 — 공통 문항 없음"}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-          <Mean>AI 가 학원 이름을 부르는가. 엔진·방법이 다르면 합치지 않는다</Mean>
-          <Do>같은 엔진·방법으로 다시 잰다. 인용은 그 엔진이 찾는 검색 색인에 들어가야 생긴다</Do>
-        </Tile>
-
-        {/* ★ 답변 색인 커버리지 */}
-        <Tile name="★ 답변 색인 커버리지">
-          {cov === null ? <NoVal /> : cov.total === 0 ? <NoVal text="쪽 목록 없음" /> : low && (
-            <div className="gr-val">{low.s.label} {low.now}<small>/ {cov.total}쪽</small></div>
-          )}
-          <Change d={covDelta} unit="쪽" prevLabel=""
-                  text={covDelta && covDelta.dir !== "none" && covDelta.dir !== "flat"
-                    ? `${signed((covDelta.now ?? 0) - (covDelta.prev ?? 0))}쪽 · ${md(weekAgo)} ${covDelta.prev}쪽 → ${md(Yd)} ${covDelta.now}쪽`
-                    : covDelta?.dir === "flat" ? `그대로 · ${md(weekAgo)}·${md(Yd)} 모두 ${covDelta.now}쪽` : undefined} />
-          {low && <Spark values={lowSpark} days={g.days} unit="쪽" live />}
-          {cov && cov.total > 0 && (
-            <div className="gr-line">
-              {covNow.map((x, i) => (
-                <span key={x.s.vendor}>
-                  {i > 0 && " · "}
-                  <i className="gr-key" style={{ background: SERIES_COLOR[x.s.vendor] }} />{x.s.label} {x.now}
-                </span>
-              ))}
-              {` — 지금 ${cov.total}쪽 기준`}
-            </div>
-          )}
-          <Mean>AI 가 답할 때 찾는 검색 색인에 우리 쪽이 몇 쪽 들어갔나</Mean>
-          <Do>제일 낮은 곳을 민다. 빙이면 빙 제출·IndexNow — ChatGPT 검색과 Copilot 이 빙을 쓴다</Do>
-          <div className="gr-foot">Brave(→Claude)는 로봇이 이름을 안 밝혀 여기서 못 센다. AI 답변 칸의 claude-code-web 인용으로 본다</div>
-        </Tile>
-
-        {/* 경쟁 검색어 */}
-        <Tile name="경쟁 검색어">
-          {rv === null ? <NoVal /> : !rv.latest ? <NoVal text="기록 없음" /> : (
-            <div className="gr-val">{rv.latest.won}/{rv.latest.total}<small>{md(rv.latest.day)}</small></div>
-          )}
-          <Change d={rivalDelta} unit="개" prevLabel={rv?.prev ? md(rv.prev.day) : ""} />
-          {rv && rv.latest && <Spark values={rv.daily.map((x) => x.won)} days={rv.daily.map((x) => x.day)} unit="개" />}
-          {rv?.latest && (
-            <div className="gr-line">
-              {rv.latest.byEngine.map((e) =>
-                `${RIVAL_NAME[e.engine] ?? e.engine} ${e.hit}${e.best !== null && e.hit > 0 ? `(최고 ${e.best}위)` : ""}`).join(" · ")}
-            </div>
-          )}
-          {rv && rv.partialDays.length > 0 && (
-            <div className="gr-line">{rv.partialDays.map(md).join("·")} 은 일부 엔진만 잼 — 뺐다</div>
-          )}
-          <Mean>학원 이름 없이 지역·업종으로 찾을 때 나오는가</Mean>
-          <Do>그 검색어에 답하는 글을 쓰고 색인을 민다</Do>
-        </Tile>
-
-        {/* 크롤러 방문 — 중립 */}
-        <Tile name="크롤러 방문" tag="중립">
-          {cr === null ? <NoVal /> : (
-            <div className="gr-val">{n(crawlSum("now"))}<small>회 · 어제까지 7일</small></div>
-          )}
-          <Change d={crawlDelta} unit="회" prevLabel="그 전 7일" />
-          {cr && <Spark values={cr.daily.map((x) => x.search + x.ai + x.other)} days={cr.daily.map((x) => x.day)} unit="회" live />}
-          {cr && (
-            <div className="gr-line">
-              검색 색인 {n(cr.search.now ?? 0)} · 그 전 {n(cr.search.prev ?? 0)} / AI {n(cr.ai.now ?? 0)} · 그 전 {n(cr.ai.prev ?? 0)}
-              {crawlOther && ` / 기타 ${n(cr.other.now ?? 0)} · 그 전 ${n(cr.other.prev ?? 0)}`}
-            </div>
-          )}
-          <Mean>로봇이 다녀간 횟수. 한 번 다 읽고 나면 줄어든다</Mean>
-          <Do>횟수보다 커버리지를 본다. 새 글을 내면 다시 온다</Do>
-        </Tile>
-
-        {/* 학원 문의 */}
-        <Tile name="학원 문의">
-          {iq === null ? <NoVal /> : !iq.ever ? <NoVal text="기록 없음" /> : (
-            <div className="gr-val">{n(iq.last30.now ?? 0)}<small>건 · 어제까지 30일</small></div>
-          )}
-          <Change d={inqDelta} unit="건" prevLabel="그 전 30일" />
-          {iq && (iq.last30.now ?? 0) > 0 && (
-            <div className="gr-line">{iq.bySource.map((s) => `${s.source} ${s.n}`).join(" · ")}</div>
-          )}
-          {iq && iq.ever > 0 && (iq.last30.now ?? 0) === 0 && (
-            <div className="gr-line">0건 — 노출이 문의로 이어지는지 아직 못 잰다</div>
-          )}
-          {iq && !iq.ever && <div className="gr-line">상담 기록이 아직 없다 — 노출이 문의로 이어지는지 못 잰다</div>}
-          {iq && iq.unresolved > 0 && (
-            <div className="gr-line"><Link href="/admin/inquiry">결과 미입력 {iq.unresolved}건 →</Link></div>
-          )}
-          <Mean>노출이 실제 문의로 이어졌나. 상담에서 “어떻게 알고 오셨어요”로만 잰다</Mean>
-          <Do>상담마다 30초 기록</Do>
-        </Tile>
-      </div>
-
-      <div className="gr-grid more">
-        <div className="gr-cell">
-          <div className="gr-eb">② 꾸준한 발행</div>
-          <Tile name="발행">
-            {ps === null ? <NoVal /> : !postsEver ? <NoVal text="기록 없음" /> : (
-              <div className="gr-val">{ps.last7.now}<small>편 · 어제까지 7일</small></div>
-            )}
-            <Change d={postsDelta} unit="편" prevLabel="그 전 7일" />
-            {ps && postsEver > 0 && (() => {
-              const top = Math.max(2, ...ps.weekly.map((w) => w.n));
-              return (
-                <div className="gr-bars" role="img"
-                     aria-label={ps.weekly.map((w) => `${md(w.week)} 주 ${w.n}편`).join(", ")}>
-                  <span className="gr-goal" style={{ bottom: `${(1 / top) * 100}%` }} />
-                  {ps.weekly.map((w, i) => (
-                    <i key={w.week}
-                       className={`${w.partialDays !== null ? "part" : ""} ${i === ps.weekly.length - 1 ? "now" : ""}`}
-                       style={{ height: `${(w.n / top) * 100}%` }}
-                       title={`${md(w.week)} 주${w.partialDays !== null ? ` · ${w.partialDays}일째` : ""} · ${w.n}편`} />
-                  ))}
-                </div>
-              );
-            })()}
-            {ps && postsEver > 0 && (
-              <div className="gr-line">
-                마지막 {ps.sinceDays === 0 ? "오늘" : `${ps.sinceDays ?? "?"}일 전`} · 연속 {ps.streakWeeks}주 · 가는 선이 주 1편
-              </div>
-            )}
-            {ps && !postsEver && <div className="gr-line">이 고객사 글은 이 DB 에 없다</div>}
-            <Mean>주 1편이 끊기면 크롤러가 뜸해지고 레퍼런스가 늙는다</Mean>
-            <Do>이번 주 0편이면 초안 검토 → 발행</Do>
-          </Tile>
-        </div>
-
-        <div className="gr-cell">
-          <div className="gr-eb">③ 첫 고객</div>
-          <Tile name="사이티드 리드·진단" tag="사이티드 전체">
-            {g.sales === null ? <NoVal /> : (
-              <div className="gr-val">{n(g.sales.leads30.now ?? 0)}<small>건 · 리드 어제까지 30일</small></div>
-            )}
-            <Change d={g.sales?.leads30 ?? null} unit="건" prevLabel="그 전 30일" />
-            {g.sales && (
-              <div className="gr-line">무료 진단 {n(g.sales.scans30.now ?? 0)}회 · 사내 재진단 제외</div>
-            )}
-            <Mean>첫 고객 후보가 들어오고 있나</Mean>
-            <Do>영업판의 통화 대상부터 <Link href="/admin/outreach">영업판 →</Link></Do>
-          </Tile>
-        </div>
-
-        <div className="gr-cell">
-          <div className="gr-eb">운영</div>
-          <Tile name="막힌 곳">
-            {g.agents === null ? <NoVal /> : (
-              <div className="gr-val">{n(g.agents.waitingHuman)}<small>건 · 사람 대기</small></div>
-            )}
-            <Change d={g.agents?.fail7 ?? null} unit="건" what="실패 " prevLabel="그 전 7일" />
-            {g.agents && (
-              <div className="gr-line">
-                실패 7일 {n(g.agents.fail7.now ?? 0)} / 활동 {n(g.agents.total7)} · 그 전 7일 실패 {n(g.agents.fail7.prev ?? 0)}
-              </div>
-            )}
-            <Mean>에이전트가 멈춘 자리</Mean>
-            <Do>사람 대기부터 푼다 — 아래 에이전트 판</Do>
-          </Tile>
-        </div>
-      </div>
-
-      <div className="gr-card">
-        <h3>★ 답변 색인 커버리지 — 착수부터 누적</h3>
-        {cov === null ? <p className="gr-empty">확인 못함</p> : <>
-          <p className="d">지금 있는 {cov.total}쪽 중 한 번이라도 읽어 간 쪽. 과거에는 없던 쪽도 분모에 들어 있다</p>
-          <CoverageChart total={cov.total} series={chartSeries} />
-        </>}
-      </div>
-
-      <details>
-        <summary>표로 보기</summary>
-        <div className="gr-tv">
-
-        <h3>★ 답변 색인 커버리지 — 날짜별 (지금 {cov?.total ?? "?"}쪽 기준 누적)</h3>
-        <div className="ops-tw">
-          <table>
-            <thead><tr><th>날짜</th><th>구글</th><th>네이버</th><th>빙</th></tr></thead>
-            <tbody>
-              {cov && covDays.map((day, i) => (
-                <tr key={day}>
-                  <td>{md(day)}</td>
-                  {cov.series.map((s) => <td className="n" key={s.vendor}>{s.points[i].pages}</td>)}
-                </tr>
-              ))}
-              {(!cov || !covDays.length) && <tr><td colSpan={4}>{cov ? "기록 없음" : "확인 못함"}</td></tr>}
-            </tbody>
-          </table>
-        </div>
-
-        <h3>주별 요약 (월요일 시작 KST · 착수 {client ? md(client.startedOn) : "?"} 주부터)</h3>
-        <div className="ops-tw">
-          <table>
-            <thead>
-              <tr>
-                <th>주</th><th>발행</th><th>크롤러 검색/AI/기타</th><th>★커버리지 구/네/빙</th>
-                <th>경쟁 검색어</th><th>AI 측정 회차</th><th>문의</th>
+      <h3>답변 색인 — 날짜별 (지금 {cov?.total ?? "?"}쪽 기준 누적)</h3>
+      <div className="ops-tw">
+        <table>
+          <thead><tr><th>날짜</th><th>구글</th><th>네이버</th><th>빙</th></tr></thead>
+          <tbody>
+            {cov && covDays.map((day, i) => (
+              <tr key={day}>
+                <td>{md(day)}</td>
+                {cov.series.map((s) => <td className="n" key={s.vendor}>{s.points[i].pages}</td>)}
               </tr>
-            </thead>
-            <tbody>
-              {(g.weeks ?? []).map((w) => {
-                const end = addDays(w.week, 6) > T ? T : addDays(w.week, 6);
-                const c = covAt(end);
-                const rounds = (g.ai ?? []).flatMap((p) =>
-                  p.rounds.filter((r) => r.day >= w.week && r.day <= end).map((r) => `${p.engine} ${md(r.day)}`));
-                const pw = postWeek.get(w.week);
-                return (
-                  <tr key={w.week}>
-                    <td>{weekLabel(w.week, w.partialDays)}</td>
-                    <td className="n">{pw ? `${pw.n}편` : "확인 못함"}</td>
-                    <td className="n">{w.search ?? "?"} / {w.ai ?? "?"} / {w.other ?? "?"}</td>
-                    <td className="n">{c ? c.map((v) => v ?? "—").join(" / ") : "—"}</td>
-                    <td className="n">{w.rival ? `${w.rival.won}/${w.rival.total} (${md(w.rival.day)})` : "기록 없음"}</td>
-                    <td>{rounds.length ? rounds.join(" · ") : "—"}</td>
-                    <td className="n">{w.inquiries === null ? "확인 못함" : `${w.inquiries}건`}</td>
-                  </tr>
-                );
-              })}
-              {!g.weeks && <tr><td colSpan={7}>확인 못함</td></tr>}
-            </tbody>
-          </table>
-        </div>
-        </div>
-      </details>
+            ))}
+            {(!cov || !covDays.length) && <tr><td colSpan={4}>{cov ? "기록 없음" : "확인 못함"}</td></tr>}
+          </tbody>
+        </table>
+      </div>
+
+      <h3>주별 요약 (월요일 시작 · 착수 {client ? md(client.startedOn) : "?"} 주부터)</h3>
+      <div className="ops-tw">
+        <table>
+          <thead>
+            <tr>
+              <th>주</th><th>글</th><th>로봇 방문 검색/AI/기타</th><th>답변 색인 구/네/빙</th>
+              <th>지역·업종 검색</th><th>AI 측정</th><th>문의</th>
+            </tr>
+          </thead>
+          <tbody>
+            {(g?.weeks ?? []).map((w) => {
+              const end = addDays(w.week, 6) > T ? T : addDays(w.week, 6);
+              const c = covAt(end);
+              const rounds = (g?.ai ?? []).flatMap((p) =>
+                p.rounds.filter((r) => r.day >= w.week && r.day <= end).map((r) => `${engineName(p.engine)} ${md(r.day)}`));
+              const pw = postWeek.get(w.week);
+              return (
+                <tr key={w.week}>
+                  <td>{weekLabel(w.week, w.partialDays)}</td>
+                  <td className="n">{pw ? `${pw.n}편` : "확인 못함"}</td>
+                  <td className="n">{w.search ?? "?"} / {w.ai ?? "?"} / {w.other ?? "?"}</td>
+                  <td className="n">{c ? c.map((v) => v ?? "—").join(" / ") : "—"}</td>
+                  <td className="n">{w.rival ? `${w.rival.won}/${w.rival.total} (${md(w.rival.day)})` : "기록 없음"}</td>
+                  <td>{rounds.length ? rounds.join(" · ") : "—"}</td>
+                  <td className="n">{w.inquiries === null ? "확인 못함" : `${w.inquiries}건`}</td>
+                </tr>
+              );
+            })}
+            {!g?.weeks && <tr><td colSpan={7}>확인 못함</td></tr>}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

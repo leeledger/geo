@@ -1,0 +1,370 @@
+import { pool } from "./ops";
+
+/**
+ * 에이전트 직원 — 지금. 현황판 ② 실시간 줄이 읽는 것.
+ *
+ * 원장(9/22): 「실시간으로 에이전트 직원들이 일을 잘 처리하고 있는지 보여야 해」.
+ * 판정은 서버에서 한다. 못 읽으면 「확인 못함」 — 정상으로 칠하지 않는다.
+ *
+ * 직원은 회사 전체의 직원이다. 고객사마다 따로 있지 않다 — 그래서 고객사로 거르지 않는다.
+ * (GitHub 실행 기록을 옮긴 줄은 첫 고객사 번호로 적혀서, 고객사로 거르면 아이로그 화면에선 전부 「지연」이 된다)
+ *
+ * 정해진 시각은 .github/workflows/*.yml 의 cron 을 KST 로 옮긴 상수다.
+ * ★ yml 의 cron 을 바꾸면 여기도 바꾼다. 안 바꾸면 멀쩡한 직원이 「지연」으로 뜬다.
+ */
+
+/** 화면 글자는 AgentStrip 의 LABEL (클라이언트가 이 파일을 불러오면 pg 까지 딸려 간다 — 타입만 가져간다) */
+export type AgentState = "unknown" | "off" | "stuck" | "late" | "working" | "idle" | "ok";
+
+/** 활동 한 줄 (geo.agent_activity + 그 일감의 kind) */
+export type Act = { agent: string; action: string; ok: boolean; summary: string; at: string; kind: string | null };
+/** 안 끝난 일감 */
+export type OpenTask = { agent: string; kind: string; status: string; title: string; updatedAt: string };
+
+export type AgentRow = {
+  id: string;
+  name: string;
+  state: AgentState;
+  /** 상태의 이유. 정상이면 null — 화면은 마지막 한 일을 대신 보여 준다 */
+  reason: string | null;
+  last: { at: string; text: string; ok: boolean } | null;
+  next: string | null;
+  today: { ok: number; fail: number };
+};
+
+export type Agents = {
+  ok: boolean;
+  /** 서버가 읽은 시각(ISO). 화면의 「n분 전」 기준점과 「마지막 HH:MM」 */
+  at: string;
+  rows: AgentRow[];
+  /** 오늘(KST) Claude 호출 수. cap 은 env CLAUDE_DAILY_MAX — 없으면 null 이고 화면은 상한을 안 쓴다 */
+  claude: { n: number; cap: number | null } | null;
+  err?: string;
+};
+
+/**
+ * 정해진 일 하나.
+ * wf        GitHub 자동 작업 이름(yml 파일 이름). 회사 루프가 「자동 작업 {wf}」로 옮겨 적는다
+ * self      그 일이 스스로 남기는 활동 (agent, action). 옮긴 줄과 둘 다 있으면 둘 중 하나만 있어도 「했다」
+ * times     KST HH:MM. dow 가 있으면 그 요일만(0=일, 1=월)
+ * hourly    매시 몇 분 — 시각 대신 「2시간 무소식」 하나로 판정
+ * countMirror  옮긴 줄을 오늘 건수에 세는가. 스스로 활동을 적는 일은 안 센다(이중 계산) — 단 옮긴 줄이 실패면 실패로 센다
+ */
+type Job = {
+  name: string;
+  wf?: string;
+  self?: { agent: string; action?: string };
+  times?: string[];
+  dow?: number;
+  hourly?: number;
+  countMirror: boolean;
+};
+
+type Role = { id: string; name: string; agents: string[]; jobs: Job[] };
+
+/* yml 의 cron 을 바꾸면 여기도 — cron 은 UTC, 여기는 KST(+9) */
+export const ROLES: Role[] = [
+  {
+    id: "ops", name: "운영·감사관", agents: ["ops", "audit"],
+    jobs: [
+      { name: "회사 루프", self: { agent: "ops", action: "회사 루프" }, hourly: 23, countMirror: false },            // company.yml  23 * * * *
+      { name: "사이트 점검", wf: "watch", countMirror: true,                                                        // watch.yml    11 */3 * * *
+        times: ["00:11", "03:11", "06:11", "09:11", "12:11", "15:11", "18:11", "21:11"] },
+      { name: "감사", wf: "audit", self: { agent: "audit" }, times: ["06:35"], countMirror: false },                 // audit.yml    35 21 * * *
+      { name: "문제 정찰", wf: "scout", times: ["06:37"], countMirror: true },                                       // scout.yml    37 21 * * *
+    ],
+  },
+  {
+    id: "repair", name: "수리공", agents: ["repair"],
+    jobs: [{ name: "수리", wf: "repair", self: { agent: "repair" }, times: ["06:50"], countMirror: false }],        // repair.yml   50 21 * * *
+  },
+  {
+    id: "measure", name: "측정", agents: ["measure", "improve"],
+    jobs: [
+      { name: "AI 답변 측정·판정", wf: "optimize", times: ["07:05"], countMirror: true },                            // optimize.yml 5 22 * * *
+      { name: "검색 노출 측정", wf: "serp", times: ["07:41"], countMirror: true },                                   // serp.yml     41 22 * * *
+    ],
+  },
+  {
+    id: "content", name: "콘텐츠", agents: ["content"],
+    // 검토 일감은 회사 루프(매시)가 집어 간다 — 그건 운영 줄의 회사 루프로 본다
+    jobs: [{ name: "주간 초안 작성", wf: "write", times: ["06:07"], dow: 1, countMirror: true }],                   // write.yml    7 21 * * 0 (월 06:07 KST)
+  },
+  {
+    // 콘텐츠 활동 중 일감 kind 가 illustrate 인 것. 회사 루프가 집어 가고 하루 6회 상한 — 정해진 시각이 없다
+    id: "illustrate", name: "삽화", agents: ["content"], jobs: [],
+  },
+  {
+    id: "deliver", name: "유통", agents: ["deliver"],
+    jobs: [
+      { name: "색인 알림", wf: "snapshot", times: ["03:23"], countMirror: true },                                    // snapshot.yml 23 18 * * *
+      // 원장 PC 의 로컬 에이전트. PC 가 꺼져 있으면 기록이 없다 — 그것도 알려야 할 일이다
+      { name: "원장 PC 작업", self: { agent: "deliver", action: "로컬 에이전트 출근" }, times: ["12:40", "19:10"], countMirror: false },
+    ],
+  },
+  {
+    id: "sales", name: "영업", agents: ["sales"],
+    jobs: [{ name: "영업 주간 정리", wf: "sales", self: { agent: "sales", action: "영업 주간" }, times: ["08:10"], dow: 1, countMirror: false }], // sales.yml 10 23 * * 0
+  },
+];
+
+/** 회사 루프가 옮겨 적은 「자동 작업 X」를 사람 말로 */
+export const WORKFLOW_PLAIN: Record<string, string> = {
+  watch: "사이트 점검", scout: "문제 정찰", serp: "검색 노출 측정", snapshot: "색인 알림", write: "주간 초안 작성",
+  optimize: "AI 답변 측정·판정", audit: "감사", repair: "수리", sales: "영업 주간 정리", company: "회사 루프",
+};
+
+/** 옮겨 적기가 최대 1시간 늦다(회사 루프 매시 :23) + GitHub 예약 실행 자체가 늦게 뜨는 몫. 그래서 90분 */
+export const LATE_GRACE_MIN = 90;
+/** 매시 도는 회사 루프는 이만큼 조용하면 지연 */
+export const HOURLY_SILENT_MIN = 120;
+/** 「일하는 중」은 실행 중 일감이 이 안에 갱신됐을 때만. 그보다 오래면 멈춘 채 남은 표시일 수 있다 */
+export const WORKING_FRESH_MIN = 30;
+
+/* ─────────────────────────────── 쉬운 말 */
+
+/** 엔진 표기 — 문자열 안에 무엇이 들었나로만 가른다. 방법(method) 이름은 쓰지 않는다 */
+export function engineName(s: string): string {
+  const t = s.toLowerCase();
+  if (t.includes("claude")) return "Claude";
+  if (/gpt|openai|chatgpt/.test(t)) return "ChatGPT";
+  if (t.includes("perplexity")) return "퍼플렉시티";
+  if (t.includes("gemini")) return "Gemini";
+  return "AI";
+}
+
+/**
+ * 화면에 내놓을 한 줄. 주소·경로·표 이름·해시·옵션·파일 이름을 지우고 엔진 키를 사람 이름으로.
+ * 데이터는 안 고친다 — 보여 줄 때만.
+ */
+export function plain(s: string | null | undefined): string {
+  let t = String(s ?? "");
+  t = t.replace(/https?:\/\/\S+/g, "");
+  t = t.replace(/\b([a-z]+)\.yml\b/gi, (_, w: string) => WORKFLOW_PLAIN[w.toLowerCase()] ?? "자동 작업");
+  t = t.replace(/(^|[\s(])\/[^\s)]*/g, "$1");                          // /admin/outreach · /home/runner/...
+  t = t.replace(/\b[a-z][\w-]*\/[\w/.:-]+/gi, "");                     // auto/fix-319 같은 가지·경로
+  t = t.replace(/\bgeo\.\w+/g, "");
+  t = t.replace(/\b[\w-]+\.(?:mjs|cjs|js|ts|tsx|json|sql)\b(?::\d+)?/gi, "");
+  t = t.replace(/\b(?=[0-9a-f]*[a-f])(?=[0-9a-f]*\d)[0-9a-f]{7,}\b/gi, "");   // 커밋 해시
+  t = t.replace(/(^|\s)--[\w-]+(?:=\S+)?/g, "$1");
+  t = t.replace(/\bapi-[\w.-]+/gi, "AI");
+  t = t.replace(/[\w.-]*openrouter[\w.-]*/gi, "AI");
+  t = t.replace(/[\w.-]*(?:claude|anthropic)[\w.-]*/gi, "Claude");
+  t = t.replace(/[\w.-]*(?:chatgpt|openai|gpt)[\w.-]*/gi, "ChatGPT");
+  t = t.replace(/[\w.-]*perplexity[\w.-]*/gi, "퍼플렉시티");
+  t = t.replace(/[\w.-]*gemini[\w.-]*/gi, "Gemini");
+  t = t.replace(/microsoft(?=[^a-z]|$)/gi, "빙").replace(/빙를/g, "빙을").replace(/빙가/g, "빙이").replace(/빙는/g, "빙은").replace(/빙와/g, "빙과");
+  t = t.replace(/\bvendor\b/gi, "");
+  t = t.replace(/\s*\(?최고\s*\d+(?:\.\d+)?\s*%\)?/g, "");
+  t = t.replace(/\s*\d+(?:\.\d+)?\s*%/g, "");
+  t = t.replace(/\(\s*\)/g, "").replace(/\s+([,)])/g, "$1").replace(/(·\s*){2,}/g, "· ").replace(/\s+/g, " ").trim();
+  return t.replace(/^[·—:\s-]+|[·—:\s-]+$/g, "");
+}
+
+const MIRROR = /^자동 작업 ([a-z]+)$/;
+
+/** 활동 한 줄을 사람 말로. 옮긴 줄의 summary(「schedule · success」 류)는 버린다 */
+export function said(a: Act): string {
+  const m = MIRROR.exec(a.action);
+  if (m) return `${WORKFLOW_PLAIN[m[1]] ?? "자동 작업"} ${a.ok ? "성공" : "실패"}`;
+  const head = plain(a.action);
+  const tail = plain(a.summary);
+  return tail ? `${head} · ${tail}` : head;
+}
+
+/* ─────────────────────────────── 역할 가르기 */
+
+const JOB_BY_WF = new Map(ROLES.flatMap((r) => r.jobs.filter((j) => j.wf).map((j) => [j.wf!, { role: r.id, job: j }] as const)));
+
+export function roleOfAct(a: Act): string | null {
+  const m = MIRROR.exec(a.action);
+  if (m) return JOB_BY_WF.get(m[1])?.role ?? null;   // 옮긴 줄은 agent 가 ops 로 적혀 있어도 이름으로 가른다
+  return roleOfAgent(a.agent, a.kind);
+}
+
+function roleOfAgent(agent: string, kind: string | null): string | null {
+  if (agent === "content") return kind === "illustrate" ? "illustrate" : "content";
+  return ROLES.find((r) => r.id !== "illustrate" && r.agents.includes(agent))?.id ?? null;
+}
+
+/* ─────────────────────────────── KST 시각 */
+
+const KST_MS = 9 * 3600 * 1000;
+const kstDay = (t: number) => new Date(t + KST_MS).toISOString().slice(0, 10);
+const kstHm = (t: number) => new Date(t + KST_MS).toISOString().slice(11, 16);
+const dowOf = (day: string) => new Date(`${day}T00:00:00Z`).getUTCDay();
+const at = (day: string, hm: string) => Date.parse(`${day}T${hm}:00+09:00`);
+const plusDays = (day: string, n: number) => kstDay(Date.parse(`${day}T12:00:00+09:00`) + n * 86400000);
+
+/** 오늘 KST 로 이미 지난 가장 최근 시각 (요일 제한 반영). 없으면 null */
+function lastSlot(j: Job, now: number): { t: number; hm: string } | null {
+  if (!j.times) return null;
+  const day = kstDay(now);
+  if (j.dow !== undefined && dowOf(day) !== j.dow) return null;
+  const past = j.times.map((hm) => ({ t: at(day, hm), hm })).filter((s) => s.t <= now);
+  return past.length ? past[past.length - 1] : null;
+}
+
+function nextSlot(jobs: Job[], now: number): number | null {
+  let best: number | null = null;
+  const keep = (t: number) => { if (t > now && (best === null || t < best)) best = t; };
+  for (const j of jobs) {
+    if (j.hourly !== undefined) {
+      const h = Math.floor(now / 3600000) * 3600000 + j.hourly * 60000;   // KST 는 UTC+9 정시 차라 시 단위 내림이 같다
+      keep(h > now ? h : h + 3600000);
+      continue;
+    }
+    for (let k = 0; k <= 7; k++) {
+      const day = plusDays(kstDay(now), k);
+      if (j.dow !== undefined && dowOf(day) !== j.dow) continue;
+      for (const hm of j.times ?? []) keep(at(day, hm));
+    }
+  }
+  return best;
+}
+
+function fmtNext(t: number | null, now: number): string | null {
+  if (t === null) return null;
+  const d = kstDay(t), today = kstDay(now);
+  if (d === today) return kstHm(t);
+  if (d === plusDays(today, 1)) return `내일 ${kstHm(t)}`;
+  return `${"일월화수목금토"[dowOf(d)]} ${kstHm(t)}`;
+}
+
+const matches = (j: Job, a: Act) =>
+  (j.wf !== undefined && a.action === `자동 작업 ${j.wf}`) ||
+  (j.self !== undefined && a.agent === j.self.agent && (j.self.action === undefined || a.action === j.self.action));
+
+/* ─────────────────────────────── 판정 (순수 함수 — 시각을 받아서 node 로 시험한다) */
+
+export type JudgeInput = {
+  /** 이 역할의 활동, 최신이 앞 */
+  acts: Act[];
+  /** 이 역할의 안 끝난 일감 */
+  tasks: OpenTask[];
+  /** geo.settings repair_paused (수리공만 의미 있음) */
+  paused?: boolean;
+};
+
+export function judge(role: Role, input: JudgeInput, now: number): AgentRow {
+  const { acts, tasks } = input;
+  const latest = acts[0] ?? null;
+  const base = {
+    id: role.id, name: role.name,
+    last: latest ? { at: latest.at, text: said(latest), ok: latest.ok } : null,
+    next: fmtNext(nextSlot(role.jobs, now), now),
+    today: countToday(role, acts, now),
+  };
+  const row = (state: AgentState, reason: string | null): AgentRow => ({ ...base, state, reason });
+
+  // 꺼짐 — 수리공 스위치. 켜는 건 원장님 (에이전트가 켜지 않는다)
+  if (role.id === "repair") {
+    const own = acts.find((a) => a.agent === "repair");
+    if (input.paused) {
+      const why = acts.find((a) => a.agent === "repair" && a.summary.startsWith("수리공 멈춤 — "));
+      const text = why ? plain(why.summary.replace(/^수리공 멈춤 — /, "").replace(/\s*\(.*$/, "")) : "";
+      return row("off", `멈춤 — ${text || "사람이 풀 때까지"}`);
+    }
+    if (own && own.summary.startsWith("스위치 꺼짐")) return row("off", "스위치 꺼짐 — 켜는 건 원장님");
+  }
+
+  // 막힘 — 가장 최근 활동이 실패 (그 뒤 성공이 있었다면 그게 가장 최근이다)
+  if (latest && !latest.ok) return row("stuck", said(latest));
+
+  // 지연
+  for (const j of role.jobs) {
+    if (j.hourly !== undefined) {
+      const last = acts.find((a) => matches(j, a));
+      if (!last || now - Date.parse(last.at) > HOURLY_SILENT_MIN * 60000) {
+        return row("late", `${j.name} 기록이 ${HOURLY_SILENT_MIN / 60}시간 넘게 없습니다`);
+      }
+      continue;
+    }
+    const s = lastSlot(j, now);
+    if (!s || now - s.t < LATE_GRACE_MIN * 60000) continue;
+    if (!acts.some((a) => matches(j, a) && Date.parse(a.at) >= s.t)) {
+      return row("late", `${j.name} ${s.hm} 예정이었는데 기록이 없습니다`);
+    }
+  }
+
+  // 일하는 중
+  const run = tasks.find((t) => t.status === "실행 중" && now - Date.parse(t.updatedAt) <= WORKING_FRESH_MIN * 60000);
+  if (run) return row("working", plain(run.title));
+
+  // 쉬는 중 — 정해진 시각이 없는 역할만
+  if (!role.jobs.length) {
+    const recent = latest && now - Date.parse(latest.at) <= 24 * 3600000;
+    const open = tasks.some((t) => t.status !== "완료" && t.status !== "닫힘");
+    if (!recent && !open) return row("idle", "할 일 없음");
+  }
+
+  return row("ok", null);
+}
+
+function countToday(role: Role, acts: Act[], now: number) {
+  const today = kstDay(now);
+  let ok = 0, fail = 0;
+  for (const a of acts) {
+    if (kstDay(Date.parse(a.at)) !== today) continue;
+    const m = MIRROR.exec(a.action);
+    if (m) {
+      const j = JOB_BY_WF.get(m[1])?.job;
+      if (!j) continue;
+      if (!j.countMirror) { if (!a.ok) fail++; continue; }   // 스스로 적는 일 — 옮긴 줄은 실패만
+    }
+    if (a.ok) ok++; else fail++;
+  }
+  return { ok, fail };
+}
+
+/* ─────────────────────────────── 읽기 */
+
+const iso = (v: unknown) => (v instanceof Date ? v.toISOString() : new Date(String(v)).toISOString());
+
+function claudeCap(): number | null {
+  const n = Number(process.env.CLAUDE_DAILY_MAX);
+  return Number.isInteger(n) && n > 0 ? n : null;   // 없으면 상한을 지어내지 않는다
+}
+
+export async function readAgents(now = Date.now()): Promise<Agents> {
+  const stamp = new Date(now).toISOString();
+  const unknown = (err: string): Agents => ({
+    ok: false, at: stamp, err, claude: null,
+    rows: ROLES.map((r) => ({ id: r.id, name: r.name, state: "unknown", reason: "상태를 못 읽었습니다", last: null, next: null, today: { ok: 0, fail: 0 } })),
+  });
+  try {
+    const p = pool();
+    // 10일 — 주 1회 일(월요일 초안·영업)의 마지막 활동까지 덮는다
+    const { rows: ar } = await p.query(
+      `select a.agent, a.action, a.ok, coalesce(a.summary, '') as summary, a.at, t.kind
+         from geo.agent_activity a left join geo.agent_tasks t on t.id = a.task_id
+        where a.at > now() - interval '10 days'
+        order by a.at desc`);
+    const { rows: tr } = await p.query(
+      `select agent, kind, status, title, updated_at from geo.agent_tasks where status not in ('완료', '닫힘')`);
+    const { rows: sr } = await p.query(`select value from geo.settings where key = 'repair_paused'`);
+    let claude: Agents["claude"] = null;
+    try {
+      const { rows: [c] } = await p.query(
+        `select count(*)::int as n from geo.claude_calls
+          where (at at time zone 'Asia/Seoul')::date = (now() at time zone 'Asia/Seoul')::date`);
+      claude = { n: c.n, cap: claudeCap() };
+    } catch (e) { console.error("claude_calls 읽기 실패", e); }
+
+    const acts: Act[] = ar.map((r) => ({ agent: r.agent, action: r.action, ok: !!r.ok, summary: r.summary, at: iso(r.at), kind: r.kind ?? null }));
+    const tasks: OpenTask[] = tr.map((r) => ({ agent: r.agent, kind: r.kind, status: r.status, title: r.title, updatedAt: iso(r.updated_at) }));
+    const paused = sr[0]?.value === "true";
+
+    return {
+      ok: true, at: stamp, claude,
+      rows: ROLES.map((r) => judge(r, {
+        acts: acts.filter((a) => roleOfAct(a) === r.id),
+        tasks: tasks.filter((t) => roleOfAgent(t.agent, t.kind) === r.id),
+        paused: r.id === "repair" ? paused : false,
+      }, now)),
+    };
+  } catch (e) {
+    console.error("에이전트 상태 읽기 실패", e);
+    return unknown(e instanceof Error ? e.message : String(e));
+  }
+}

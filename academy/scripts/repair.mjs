@@ -625,7 +625,12 @@ const 수리 = async () => {
   const [멈춤] = await q(`select value from geo.settings where key='repair_paused'`);
   if (멈춤?.value === "true") { console.log("  수리공 멈춤 (geo.settings repair_paused=true) — 사람이 풀어야 한다"); return; }
   if (!손으로 && !정해진) { console.log(`  사람이 띄운 실행이 아니다 (${process.env.REPAIR_EVENT ?? ""} · ${띄운이 || "띄운 이 없음"}) — 지난 수리 확인만 한다`); return; }
-  if (!ENABLED && !손으로) { console.log("  REPAIR_ENABLED 꺼짐 — 정해진 시각 실행은 지난 수리 확인만 한다"); return; }
+  if (!ENABLED && !손으로) {
+    console.log("  REPAIR_ENABLED 꺼짐 — 정해진 시각 실행은 지난 수리 확인만 한다");
+    // 스위치는 GitHub 변수라 현황판이 못 읽는다. 활동으로 남겨야 수리공 줄이 「꺼짐」으로 보인다
+    await 활동(true, "스위치 꺼짐 — 지난 수리 확인만 했습니다");
+    return;
+  }
   if (MODE === "run" && (await 오늘수리수()) >= MAX_PER_DAY) { console.log(`  오늘 수리 ${MAX_PER_DAY}건을 했다 — 내일`); return; }
   if (!클로드코드있음()) { console.log("  Claude Code 없음 — 건너뜀"); return; }
   const [t] = await q(`select * from geo.agent_tasks where kind='investigate' and status='수리 대기' and payload->'diagnosis'->>'분류' = 'code'
@@ -682,7 +687,11 @@ const 수리 = async () => {
 /** 원장 승인 — 승인 대기 수리안을 다시 검사하고 합친다. base 가 움직였으면 검토를 다시 받는다(Richard 9/22) */
 const 승인합치기 = async () => {
   if (!손으로) { console.log(`  merge 는 사람만 띄운다 (${띄운이 || "띄운 이 없음"}) — 합치지 않는다`); return; }
-  if (!ENABLED) { console.log("  REPAIR_ENABLED 꺼짐 — 합치지 않는다 (원장이 저장소 변수를 켜야 한다)"); return; }
+  if (!ENABLED) {
+    console.log("  REPAIR_ENABLED 꺼짐 — 합치지 않는다 (원장이 저장소 변수를 켜야 한다)");
+    await 활동(true, "스위치 꺼짐 — 합치지 않았습니다");
+    return;
+  }
   if (!TASK) throw new Error("merge 는 task 가 있어야 한다 (-f task=<조사 id>)");
   const [멈춤] = await q(`select value from geo.settings where key='repair_paused'`);
   if (멈춤?.value === "true") { console.log("  수리공 멈춤 — 합치지 않는다"); return; }

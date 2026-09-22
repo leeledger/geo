@@ -104,7 +104,7 @@ export default function CoverageChart({ total, series }: { total: number; series
         className="gr-plot"
         tabIndex={0}
         role="group"
-        aria-label={`★ 답변 색인 커버리지 선그래프, ${md(days[0])}부터 ${md(days[last])}까지. 좌우 화살표로 날짜를 옮긴다. 날짜별 값은 아래 표로 보기에 있다`}
+        aria-label={`답변 색인에 들어간 쪽 수 선그래프, ${md(days[0])}부터 ${md(days[last])}까지. 좌우 화살표로 날짜를 옮긴다. 날짜별 값은 아래 자세히의 표에 있다`}
         onKeyDown={onKey}
         onFocus={() => setIdx((i) => i ?? last)}
         onBlur={() => setIdx(null)}

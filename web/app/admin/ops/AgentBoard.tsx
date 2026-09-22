@@ -1,5 +1,5 @@
 import type { Ops } from "@/lib/ops";
-import { finishTask, resolveNaverAttempt } from "@/lib/task-actions";
+import { plain } from "@/lib/agents";
 import "./agent-board.css";
 
 type Status = "attention" | "review" | "recorded" | "unknown";
@@ -118,46 +118,12 @@ export default function AgentBoard({ data: d, clientName }: { data: Ops; clientN
     reason: "최근 상태와 성과를 확인할 수 없습니다. 0건이나 정상 상태로 표시하지 않습니다.",
     next: "데이터 연결을 확인한 뒤 다시 조회합니다.", last: null, metric: "—",
   });
-  const attention = agents.filter((a) => a.status === "attention" || a.status === "review");
-  const humanTasks = W.tasks.filter((t) => t.status === "사람 대기");
-  const localTasks = W.tasks.filter((t) => t.status === "로컬 대기");
-  const working = W.tasks.filter((t) => t.status === "실행 중" || t.status === "대기" || t.status === "실패").length;
-  const NAME: Record<string, string> = Object.fromEntries(roles.map((r) => [r.id, r.name]));
   return (
     <section className="staff-board" aria-labelledby="staff-title">
       <div className="staff-heading">
         <div><p className="staff-eyebrow">TEAM OVERVIEW</p><h2 id="staff-title">직원별 업무 현황</h2><p>{clientName} · 일감 표와 실제 활동 기록</p></div>
-        <span className="staff-refresh">5분마다 갱신 · 한국 시각</span>
       </div>
-      <div className="staff-summary">
-        <div><span className="staff-summary-label">지금 살펴볼 일</span><strong>{!d.ok ? "상태를 확인할 수 없습니다" : humanTasks.length ? `원장님이 하실 일 ${humanTasks.length}건` : attention.length ? `${attention.length}개 담당 업무에 확인할 일이 있습니다` : "에이전트들이 스스로 처리 중입니다"}</strong><p>{W.ok ? `자동으로 처리할 일감 ${working}건 · PC 에서 할 일 ${localTasks.length}건` : "회사 루프 기록을 아직 읽지 못했습니다."}</p>{d.ok && attention.length > 0 && <nav className="staff-priorities" aria-label="확인할 담당 업무">{attention.map((a) => <a key={a.id} href={`#staff-${a.id}`}>{a.name} 확인 ↓</a>)}</nav>}</div>
-        <div className="staff-count"><b>{d.ok ? humanTasks.length : "—"}</b><span>원장님 할 일</span></div>
-        <div className="staff-count"><b>{d.ok && W.ok ? working : "—"}</b><span>자동 처리 중</span></div>
-      </div>
-
-      {W.ok && humanTasks.length > 0 && (
-        <div className="staff-todo" aria-label="원장님이 하실 일">
-          <h3>원장님이 하실 일</h3>
-          <ol>
-            {humanTasks.map((t) => (
-              <li key={t.id}>
-                <div><b>{t.title}</b><span>{NAME[t.agent] ?? t.agent} · {t.error || t.detail}</span></div>
-                {t.kind === "naver-attempt"
-                  ? <form action={resolveNaverAttempt} className="staff-naver">
-                      <input type="hidden" name="id" value={t.id} />
-                      <input name="logNo" placeholder="네이버 글 번호 또는 주소" aria-label="네이버 글 번호" />
-                      <button type="submit" name="outcome" value="posted" className="staff-done">올라가 있음</button>
-                      <button type="submit" name="outcome" value="retry" className="staff-done alt">안 올라감 · 다시</button>
-                    </form>
-                  : t.link ? <a href={t.link.replace(/^https:\/\/geo-rose-nine\.vercel\.app/, "")}>{t.link.includes("/admin/drafts") ? "읽고 발행하기" : "열기"} →</a>
-                  : <form action={finishTask}><input type="hidden" name="id" value={t.id} /><button type="submit" className="staff-done">했어요</button></form>}
-              </li>
-            ))}
-          </ol>
-        </div>
-      )}
-
-      <p className="staff-caveat">카드는 일감 표(geo.agent_tasks)와 실제 활동 기록(geo.agent_activity)을 읽습니다. 회사 루프는 매시 23분, 개선 루프는 매일 07:05, 로그인이 필요한 일은 원장 PC 에서 12:40·19:10 에 돕니다.</p>
+      <p className="staff-caveat">카드는 일감 목록과 실제 활동 기록을 읽습니다. 회사 루프는 매시 23분, 개선 루프는 매일 07:05, 로그인이 필요한 일은 원장 PC 에서 12:40·19:10 에 돕니다.</p>
       <div className="staff-grid">
         {agents.map((a) => (
           <article key={a.id} className={`staff-card ${a.status}`} id={`staff-${a.id}`}>
@@ -168,7 +134,7 @@ export default function AgentBoard({ data: d, clientName }: { data: Ops; clientN
             {a.queue && <div className="staff-queue"><span>자동 대기 <b>{a.queue.wait + a.queue.run}</b></span><span>관찰 <b>{a.queue.watch}</b></span><span>원장님 <b>{a.queue.human}</b></span><span>PC <b>{a.queue.local}</b></span></div>}
             <div className="staff-evidence"><div><span>{a.lastLabel}</span><time>{d.ok ? stamp(a.last) : "확인 불가"}</time></div><div><span>{a.metricLabel}</span><strong>{a.metric}</strong></div></div>
             <details><summary>최근 활동 · 담당 업무</summary>
-              {a.acts.length > 0 && <ul className="staff-acts">{a.acts.slice(0, 6).map((x, i) => <li key={i} className={x.ok ? "" : "bad"}><time>{stamp(x.at)}</time> {x.action}{x.summary ? ` — ${x.summary}` : ""}{x.runUrl?.startsWith("http") && <> · <a href={x.runUrl} target="_blank" rel="noreferrer">로그</a></>}</li>)}</ul>}
+              {a.acts.length > 0 && <ul className="staff-acts">{a.acts.slice(0, 6).map((x, i) => <li key={i} className={x.ok ? "" : "bad"}><time>{stamp(x.at)}</time> {plain(x.action)}{x.summary ? ` — ${plain(x.summary)}` : ""}{x.runUrl?.startsWith("http") && <> · <a href={x.runUrl} target="_blank" rel="noreferrer">로그</a></>}</li>)}</ul>}
               <p>{a.jobs}</p>
             </details>
           </article>

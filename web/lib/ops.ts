@@ -80,7 +80,6 @@ export type Ops = {
     activity: { agent: string; action: string; ok: boolean; summary: string; at: string; runUrl: string | null }[];
   };
   recent: { title: string; slug: string; at: string }[];
-  firstSeen: { engine: string; query: string; day: string }[];
   /**
    * 자리마다 마지막으로 실제로 뭔가 일어난 시각.
    *
@@ -96,8 +95,6 @@ export type Ops = {
   };
 
   /* 자리별 성과에 쓰는 값들 */
-  daysMeasured: number;      // 며칠째 재고 있는가
-  withImages: number;        // 도해가 붙은 글
   totalHits: number;         // 크롤러 총 방문
   vendorCount: number;       // 다녀간 크롤러 종류
 };
@@ -227,10 +224,7 @@ export async function readOps(client?: Client): Promise<Ops> {
     agentLoop: { day: null, status: "기록 없음", diagnosis: "실행 기록 없음", action: "오늘의 개선 루프를 실행합니다.", evidence: "", startedAt: null, completedAt: null, engines: "", history: [] },
     company: { ok: false, tasks: [], activity: [] },
     recent: [],
-    firstSeen: [],
     lastAt: { content: null, deliver: null, crawler: null, measure: null, next: null },
-    daysMeasured: 0,
-    withImages: 0,
     totalHits: 0,
     vendorCount: 0,
   };
@@ -357,12 +351,6 @@ export async function readOps(client?: Client): Promise<Ops> {
       select title, slug, published_at::text at from ${S}.posts
        where ${ME} and published order by published_at desc limit 5`);
 
-    // day 를 그냥 별칭으로 쓰면 "syntax error at or near day" 가 난다.
-    // 예약어라 AS 를 붙이거나 다른 이름을 써야 한다.
-    const firstSeen = await q(`
-      select engine, query, min(day)::text as first_day from ${S}.serp_checks
-       where ${ME} and hit group by engine, query order by min(day) limit 6`);
-
     // 자리마다 마지막 활동 시각. 하나라도 없으면 null 로 두고 화면에서 「기록 없음」이라 적는다.
     const [seen] = await q(`
       select
@@ -374,16 +362,11 @@ export async function readOps(client?: Client): Promise<Ops> {
 
     const [more] = await q(`
       select
-        (select count(distinct day)::int from ${S}.serp_checks where ${ME}) as days_measured,
-        (select count(*)::int from ${S}.posts
-          where ${ME} and published and body like '%![%') as with_images,
         (select count(*)::int from ${S}.crawl_hits where ${ME}) as total_hits,
         (select count(distinct vendor)::int from ${S}.crawl_hits where ${ME}) as vendor_count`);
 
     return {
       ok: true,
-      daysMeasured: more.days_measured,
-      withImages: more.with_images,
       totalHits: more.total_hits,
       vendorCount: more.vendor_count,
       posts: {
@@ -421,7 +404,6 @@ export async function readOps(client?: Client): Promise<Ops> {
       agentLoop,
       company,
       recent: recent.map((r) => ({ title: r.title, slug: r.slug, at: r.at })),
-      firstSeen: firstSeen.map((r) => ({ engine: r.engine, query: r.query, day: r.first_day })),
     };
   } catch (e) {
     return { ...empty, err: e instanceof Error ? e.message : String(e) };
