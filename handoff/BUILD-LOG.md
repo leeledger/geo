@@ -585,3 +585,13 @@ Known Gaps
 - 결정: 다시 열린 조사는 지문(신호의 핵심 사실)이 같으면 직전 진단 재사용. unknown 은 재사용 안 하고 두 번이면 사람 대기. 진단 실패는 payload.diag_fail 로 따로 세서 3번이면 사람 대기
 - 결정: 근거는 `파일:줄`·URL 만, audit.mjs 자신은 제외(순환 근거)
 - 시험 중 러너→DB ETIMEDOUT 1회(run 35701689476) — 다시 돌려 통과. 반복되면 감사 자체 실패로 회사 루프가 wf-audit 일감을 연다
+
+### Step 9 — Richard 2차 Should Fix (통과 후) — COMPLETE
+*Date: 2026-09-22 · Bob*
+
+- 칸막이 시험이 「열려야 할 것」도 증명한다: Read handoff/BUILD-LOG.md 첫 줄 일치 · Glob academy/scripts/*.mjs 개수 일치 · 저장소 안 경로가 CLI 거절에 하나라도 있으면 실패
+- 다시 열린 조사는 payload diag_fail·diag_unknown 도 0 으로 (attempts 와 같이)
+- 진단 재사용은 이번 실행에서 닫힘→대기로 다시 열린 조사만. 원장이 손으로 대기로 돌린 건 다시 진단한다
+
+Known Gaps
+- KG: R1 은 실패 묶음이 7일 창 안에서 조건(3건·2일)을 채울 때만 「풀림」을 본다. 실패가 창 밖으로 나간 뒤에 성공이 오면 풀림 증거가 안 잡혀 사람 대기 R1 조사가 남는다 — Arch 결정 (a) 의 보수적인 쪽. 원장이 닫으면 된다
