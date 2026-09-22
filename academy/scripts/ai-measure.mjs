@@ -318,18 +318,30 @@ const main = async () => {
 
   // 크레딧이 없으면 웹 검색을 쓰는 측정이 통째로 막힌다(무료 모델도 검색은 유료다).
   // 돈 쓰는 일은 사람만 할 수 있으니 일감으로 올려 대시보드에 띄운다 — 로그에만 남기면 아무도 안 본다
-  const 크레딧막힘 = 요약.some((s) => /Insufficient credits|402/.test(s));
+  // Anthropic 은 잔액이 바닥나면 402 가 아니라 400 「credit balance is too low」 로 답한다(2026-09-22).
+  // 그걸 못 알아봐서 크레딧 일감을 「해결됨」으로 닫아 버렸다. 선불이다 — 월 청구라 적었던 BUILD-LOG 는 틀렸다
+  const 크레딧막힘 = 요약.some((s) => /Insufficient credits|402|credit balance is too low/i.test(s));
+  const 앤트로픽막힘 = 요약.some((s) => /credit balance is too low/i.test(s));
+  // 닫는 건 실제로 한 번이라도 잰 날만. 건너뛴 날(주기)이나 다른 이유로 실패한 날에 닫으면 거짓 완료다
+  const 실제로잼 = 요약.some((s) => /오늘 [1-9]\d*\/\d+ 측정/.test(s));
   await q(
     크레딧막힘
       ? `insert into geo.agent_tasks (client_id, agent, kind, dedupe_key, title, detail, status, priority, payload, link)
-         values ($1,'measure','human','openrouter-credits',
-           'OpenRouter 크레딧이 없어 AI 답변 측정이 멈췄습니다',
-           '무료 모델도 웹 검색을 켜면 요청당 약 $0.007 이 크레딧에서 나갑니다. 하루 20문항 기준 월 약 $5 입니다. 충전하면 다음 실행부터 자동으로 다시 잽니다.',
-           '사람 대기', 5, '{"sticky":true}'::jsonb, 'https://openrouter.ai/settings/credits')
-         on conflict (client_id, dedupe_key) do update set status='사람 대기', updated_at=now()`
-      : `update geo.agent_tasks set status='완료', done_at=now(), updated_at=now()
-          where client_id=$1 and dedupe_key='openrouter-credits' and status='사람 대기'`,
-    [client.id],
+         values ($1,'measure','human','openrouter-credits', $2, $3, '사람 대기', 5, '{"sticky":true}'::jsonb, $4)
+         on conflict (client_id, dedupe_key) do update set status='사람 대기', title=excluded.title, detail=excluded.detail,
+           link=excluded.link, done_at=null, updated_at=now()`
+      : 실제로잼
+        ? `update geo.agent_tasks set status='완료', done_at=now(), updated_at=now()
+            where client_id=$1 and dedupe_key='openrouter-credits' and status='사람 대기'`
+        : `select 1`,
+    크레딧막힘
+      ? [client.id,
+         앤트로픽막힘 ? "Anthropic 크레딧이 바닥나 AI 답변 측정이 멈췄습니다" : "OpenRouter 크레딧이 없어 AI 답변 측정이 멈췄습니다",
+         앤트로픽막힘
+           ? "Claude 웹 검색으로 20문항을 3일에 한 번 잽니다. 한 번 약 $0.8, 한 달 약 $8 입니다. 초안 쓰기(편당 약 $0.09)도 같은 잔액을 씁니다. 충전하면 다음 실행부터 자동으로 다시 잽니다."
+           : "무료 모델도 웹 검색을 켜면 요청당 약 $0.007 이 크레딧에서 나갑니다. 하루 20문항 기준 월 약 $5 입니다. 충전하면 다음 실행부터 자동으로 다시 잽니다.",
+         앤트로픽막힘 ? "https://console.anthropic.com/settings/billing" : "https://openrouter.ai/settings/credits"]
+      : 실제로잼 ? [client.id] : [],
   ).catch((e) => console.log("  ⚠ 크레딧 일감 기록 실패", e.message));
 
   console.log(`\n${client.name} · ${오늘} AI 자동 측정`);

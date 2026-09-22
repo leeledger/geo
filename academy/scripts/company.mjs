@@ -123,7 +123,13 @@ const 물어보기 = async (prompt, maxTokens = 6000, 모양 = () => true) => {
     const 요청 = p.요청(`${prompt}\n\nJSON 객체 하나만 답하라. 다른 말은 붙이지 마라.`, maxTokens, { json: true });
     const body = 앤트로픽 ? { ...요청, model } : 요청;
     const res = await 부르기(p.url, { method: "POST", headers: p.headers(p.key), body: JSON.stringify(body) });
-    if (!res.ok) { 코드들.push(res.status); 막힘.push(`${p.이름} ${res.status} ${끝(await res.text(), 120)}`); continue; }
+    if (!res.ok) {
+      const 본문 = await res.text();
+      // Anthropic 은 잔액 부족을 402 가 아니라 400 으로 준다. 크레딧 문제로 세야 고장으로 안 쌓인다
+      코드들.push(/credit balance is too low/i.test(본문) ? 402 : res.status);
+      막힘.push(`${p.이름} ${res.status} ${끝(본문, 120)}`);
+      continue;
+    }
     const text = p.text(await res.json().catch(() => ({})));
     const json = 읽기(text);
     if (json) return { json, 공급자: `${p.이름}/${model}` };
