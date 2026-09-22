@@ -684,3 +684,12 @@ Known Gaps
 Known Gaps
 - KG: academy/app/api/snapshot 라우트가 academy.snapshots 에 고객사를 가리지 않고 센 숫자(crawl_total·posts·vendors)를 쓴다. 케이스 리포트는 이제 그 숫자를 안 쓰지만 표 자체는 그대로 섞여 있다
 - KG: 타임라인의 나머지 손 기록(사진 69장 · 사이트맵 34 URL · 188자→933자)은 그날 손으로 잰 것이라 데이터로 다시 확인하지 않았다
+
+### 정정 2 — 케이스 리포트 크롤러 분류 (2026-09-22)
+*Date: 2026-09-22 · Bob (Arch 지시, Richard 발견)*
+
+- **틀렸던 것**: 첫 정정(7f46a15)의 「AI 895 · 검색 591」은 Applebot 7회를 AI 로 셌다. Applebot 은 Siri·Spotlight·Safari 검색용이고 AI 학습 허용은 Applebot-Extended 토큰이 따로 한다 — 우리 robots.txt 도 둘을 따로 적는다. 바로잡은 값은 **AI 888 · 검색 598** (합 1486 그대로)
+- 분류 정의가 두 벌이었다(「검색이 아니면 AI」와 「Daum 은 검색」). 이제 academy/lib/bots.ts 의 두 칸을 그대로 읽어 한 표로 쓰고, 어느 칸에도 없는 봇은 「기타」 — AI 로 부풀리지 않는 쪽이 기본. bots.ts 에서 Applebot 을 검색 칸으로 옮겼다(Applebot-Extended 가 먼저 걸려 판별 결과는 안 바뀐다 — 학원 사이트 재배포 필요 없음)
+- robots.txt 수: 「AI 13」에 방문하지 않는 제어 토큰(Google-Extended·Applebot-Extended)이 들어 있었다 → 「User-agent 17개 명시 허용 — 크롤러 AI 10 · 검색 4 · 기타 1(Daum) + 방문하지 않는 학습 허용 토큰 2」
+- 페이지 문장: 07 「지금 세면 전 엔진 0% 가 나올 것이 뻔하다」는 06 의 측정 회차(ChatGPT 부분 측정 1/2 인용 포함)와 어긋나 「같은 방법으로 반복 측정」으로. 06 「인용하는 문서의 대부분이 제3자 지면」은 센 비율이 없어 「첫 기준선에서는 …제3자 지면이었습니다」로 좁혔다
+- sales.mjs --push 가 커밋 직전에 가림 검사를 한 번 더 한다

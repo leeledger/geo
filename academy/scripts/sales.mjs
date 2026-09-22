@@ -186,6 +186,14 @@ const 올리기 = async () => {
   const 가림 = (s) => (TOKEN ? String(s ?? "").split(TOKEN).join("***") : String(s ?? ""));
   if (git("diff", "--quiet", "--", 공개본경로).status === 0) { console.log("  공개본 바뀐 것 없음 — 커밋 안 함"); return; }
   if (!TOKEN) throw new Error("GH_TOKEN 없음 — 푸시 못 함");
+  // 푸시 단계는 워킹 트리에 있는 무엇이든 올린다. 앞 단계를 믿지 말고 커밋 직전에 한 번 더 본다(Richard 9/22)
+  const 걸림 = 가림검사(fs.readFileSync(공개본, "utf8"), await 가릴말());
+  if (걸림.length) {
+    git("checkout", "--", 공개본경로);
+    await 사람대기({ key: "case-report-leak", title: "케이스 리포트 공개본에 가릴 말이 남아 커밋을 멈췄습니다", priority: 5,
+      detail: `커밋 직전 검사에서 걸린 말: ${걸림.join(", ")}\n공개본은 그대로입니다. academy/masks.mjs 를 고친 뒤 sales.yml 을 다시 돌립니다.` });
+    throw new Error(`커밋 직전 가림 검사에 걸림 ${걸림.length}개 — 커밋 안 함`);
+  }
   const 원격 = `https://x-access-token:${TOKEN}@github.com/${REPO}.git`;
   git("add", "--", 공개본경로);
   const c = git("-c", "user.name=sales-bot", "-c", "user.email=41898282+github-actions[bot]@users.noreply.github.com", "commit", "-q", "-m",

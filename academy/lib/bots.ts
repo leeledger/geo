@@ -21,7 +21,6 @@ const TABLE: [RegExp, string, string][] = [
   [/Google-Extended/i,        "Google-Extended",   "google"],
   [/Google-CloudVertexBot/i,  "Vertex",            "google"],
   [/Applebot-Extended/i,      "Applebot-Extended", "apple"],
-  [/Applebot/i,               "Applebot",          "apple"],
   [/meta-externalagent/i,     "meta-externalagent","meta"],
   [/FacebookBot/i,            "FacebookBot",       "meta"],
   [/Bytespider/i,             "Bytespider",        "bytedance"],
@@ -31,6 +30,9 @@ const TABLE: [RegExp, string, string][] = [
   [/cohere-ai/i,              "cohere-ai",         "cohere"],
   [/Diffbot/i,                "Diffbot",           "diffbot"],
   // ── 검색 색인 (AI 답변의 전제)
+  // Applebot 은 Siri·Spotlight·Safari 검색용이다. AI 학습 허용은 Applebot-Extended 토큰이 따로 한다(2026-09-22 정정).
+  // Applebot-Extended 가 위 칸에서 먼저 걸리므로 순서를 바꿔도 판별은 같다
+  [/Applebot/i,               "Applebot",          "apple"],
   [/Googlebot/i,              "Googlebot",         "google"],
   [/bingbot|BingPreview/i,    "Bingbot",           "microsoft"],
   [/Yeti/i,                   "Yeti",              "naver"],

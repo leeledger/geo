@@ -56,12 +56,19 @@ const firstHit = (await pool.query(
   `select min(seen_at) t from academy.crawl_hits where client_id=$1`, [CLIENT_ID],
 )).rows[0]?.t;
 /**
- * 크롤러는 두 갈래로 나눠 센다. 판별표(academy/lib/bots.ts)가 이미 「AI 학습·검색」과 「검색 색인」 두 칸으로 나뉘어 있다 —
- * 검색 색인 칸이 Googlebot·Bingbot·Yeti·DuckDuckBot 이다. Applebot·Amazonbot·meta-externalagent 는 그 표에서 AI 칸이라 AI 로 센다.
- * 전에는 둘을 합쳐 「AI 크롤러 방문」이라 적었다 — 검색 크롤러 590회가 AI 로 들어가 과장이었다(2026-09-22 정정)
+ * 크롤러 분류는 판별표(academy/lib/bots.ts) 한 곳에서 읽는다 — 「AI 학습·검색」 칸과 「검색 색인」 칸.
+ * 어느 칸에도 없는 봇은 「기타」다. AI 로 부풀리지 않는 쪽이 기본이다(전에는 「검색이 아니면 AI」라 새 봇이 AI 로 들어갔다).
+ * 전에는 둘을 합쳐 「AI 크롤러 방문」이라 적었고(검색 590회 포함), 다음엔 Applebot(검색용)을 AI 로 셌다 — 2026-09-22 두 번 정정
  */
-const 검색봇 = new Set(["Googlebot", "Bingbot", "Yeti", "DuckDuckBot"]);
-const AI인가 = (bot) => !검색봇.has(bot);
+const 판별표 = (() => {
+  try { return fs.readFileSync(new URL("../lib/bots.ts", import.meta.url), "utf8"); } catch { return ""; }
+})();
+const 칸이름 = (글) => [...글.matchAll(/\[\/[^\n]*?\/i,\s*"([^"]+)"/g)].map((m) => m[1]);
+const 경계 = 판별표.indexOf("// ── 검색 색인");
+if (경계 < 0) throw new Error("bots.ts 에서 「검색 색인」 칸을 못 찾음 — 분류 없이 숫자를 내지 않는다");
+const AI봇 = new Set(칸이름(판별표.slice(0, 경계)));
+const 검색봇 = new Set(칸이름(판별표.slice(경계)));
+const 분류 = (bot) => (AI봇.has(bot) ? "AI" : 검색봇.has(bot) ? "검색" : "기타");
 
 /**
  * 일별 기록 — academy.snapshots.crawl_total 은 고객사를 가리지 않고 crawl_hits 전체를 센다(snapshot 라우트).
@@ -72,13 +79,13 @@ const snaps = (await pool.query(`
   select s.day::text as day,
     (select count(*)::int from academy.posts p where p.client_id=$1 and p.published
         and p.published_at < ((s.day + 1)::timestamp at time zone 'Asia/Seoul')) posts,
-    (select count(*)::int from academy.crawl_hits h where h.client_id=$1 and not (h.bot = any($2))
-        and h.seen_at < ((s.day + 1)::timestamp at time zone 'Asia/Seoul')) ai_total,
     (select count(*)::int from academy.crawl_hits h where h.client_id=$1 and h.bot = any($2)
+        and h.seen_at < ((s.day + 1)::timestamp at time zone 'Asia/Seoul')) ai_total,
+    (select count(*)::int from academy.crawl_hits h where h.client_id=$1 and h.bot = any($3)
         and h.seen_at < ((s.day + 1)::timestamp at time zone 'Asia/Seoul')) search_total,
     (select array_agg(distinct h.vendor order by h.vendor) from academy.crawl_hits h where h.client_id=$1
         and h.seen_at < ((s.day + 1)::timestamp at time zone 'Asia/Seoul')) vendors
-  from academy.snapshots s order by s.day`, [CLIENT_ID, [...검색봇]])).rows;
+  from academy.snapshots s order by s.day`, [CLIENT_ID, [...AI봇], [...검색봇]])).rows;
 
 /**
  * 명시 허용 수와 판별 수는 저장소 파일에서 센다. 전에는 손으로 적은 「17종」(타임라인)과 진단 도구가 센 「11종」(진단표)이
@@ -87,16 +94,17 @@ const snaps = (await pool.query(`
 const robots = (() => {
   try { return fs.readFileSync(new URL("../public/robots.txt", import.meta.url), "utf8"); } catch { return ""; }
 })();
-// Daum 은 판별표에 없지만 검색 색인 크롤러다(카카오 검색)
-const 검색색인 = (bot) => 검색봇.has(bot) || bot === "Daum";
+/**
+ * robots.txt 의 User-agent 줄에는 방문하는 크롤러와 방문하지 않는 제어 토큰이 섞여 있다.
+ * Google-Extended·Applebot-Extended 는 「AI 학습에 써도 된다」는 허락 표시일 뿐 따로 오지 않는다 — 크롤러 수에 넣지 않는다
+ */
+const 제어토큰 = new Set(["Google-Extended", "Applebot-Extended"]);
 const 허용봇 = [...robots.matchAll(/User-agent:\s*(\S+)\s*\n\s*Allow:\s*\//gi)].map((m) => m[1]).filter((b) => b !== "*");
-const 허용 = { 전체: 허용봇.length, AI: 허용봇.filter((b) => !검색색인(b)).length, 검색: 허용봇.filter(검색색인).length };
-const 판별봇 = (() => {
-  try {
-    return [...fs.readFileSync(new URL("../lib/bots.ts", import.meta.url), "utf8").matchAll(/\[\/[^\n]*?\/i,\s*"([^"]+)"/g)].map((m) => m[1]);
-  } catch { return []; }
-})();
-const 판별 = { 전체: 판별봇.length, AI: 판별봇.filter(AI인가).length, 검색: 판별봇.filter((b) => !AI인가(b)).length };
+const 허용크롤러 = 허용봇.filter((b) => !제어토큰.has(b));
+const 허용 = { 전체: 허용봇.length, 토큰: 허용봇.length - 허용크롤러.length,
+  AI: 허용크롤러.filter((b) => 분류(b) === "AI").length, 검색: 허용크롤러.filter((b) => 분류(b) === "검색").length, 기타: 허용크롤러.filter((b) => 분류(b) === "기타").length };
+const 판별 = { AI: AI봇.size, 검색: 검색봇.size };
+const 허용글 = `User-agent ${허용.전체}개 명시 허용 — 크롤러 AI ${허용.AI} · 검색 ${허용.검색}${허용.기타 ? ` · 기타 ${허용.기타}` : ""} + 방문하지 않는 학습 허용 토큰 ${허용.토큰}`;
 const hitPaths = (await pool.query(
   `select path, count(*)::int n from academy.crawl_hits where client_id=$1 group by path order by n desc limit 6`, [CLIENT_ID],
 )).rows;
@@ -171,10 +179,10 @@ const CHECK_KO = {
 // 착수일에 손으로 적은 「스키마 19종」은 진단표(20종)와 어긋났고 데이터로 다시 확인할 수 없어 뺐다(2026-09-22)
 const TIMELINE = [
   ["09.05", "착수 · 검색 계층 기준선 측정", "6개 질의 전부 미노출. 상위에 개별 학원 홈페이지가 하나도 없고 전부 디렉터리였다."],
-  ["09.05", "사이트 구축 · 도메인 연결", `robotncoding.com. 크롤러를 User-agent 별로 명시 허용(지금 robots.txt 기준 AI ${허용.AI}종 · 검색 ${허용.검색}종), llms.txt, 구조화 데이터(종류 수는 아래 진단표).`],
+  ["09.05", "사이트 구축 · 도메인 연결", `robotncoding.com. 크롤러를 User-agent 별로 명시 허용(지금 robots.txt 기준 ${허용글}), llms.txt, 구조화 데이터(종류 수는 아래 진단표).`],
   ["09.05", "네이버 블로그 32편 이관", "네이버는 robots.txt 로 AI 크롤러를 전부 막는다. 그 글들은 AI 에게 존재하지 않는 문서였다. 사진 69장 자체 호스팅."],
   ["09.05", "검색엔진 등록", "구글·빙·네이버 소유확인. 사이트맵 34 URL, RSS 32편 제출."],
-  ["09.05", "크롤러 감지 설치", `크롤러를 판별해 방문을 기록(지금 판별표 기준 AI ${판별.AI}종 · 검색 ${판별.검색}종). 결과 지표보다 먼저 움직이는 유일한 선행지표.`],
+  ["09.05", "크롤러 감지 설치", `크롤러를 판별해 방문을 기록(지금 판별표 기준 AI ${판별.AI}종 · 검색 ${판별.검색}종 · 그 밖은 「기타」). 결과 지표보다 먼저 움직이는 유일한 선행지표.`],
   ["09.05", "일별 스냅샷 자동화", "GitHub Actions 가 매일 기록을 남긴다."],
   ["09.06", "구글 비즈니스 프로필 등록", "구글 AI 개요와 Gemini 가 지역 질의에 이 데이터를 직접 쓴다. 대표자 본인인증이 필요해 대행이 불가능한 항목이다."],
   ["09.06", "오늘학교 아카데미 등재 신청", "「송파구 코딩학원」 목록에 없던 것을 채웠다. 심사 대기중."],
@@ -184,7 +192,7 @@ const TIMELINE = [
 const TODO = [
   ["오늘학교 등재 확인", "심사 대기중. 통과되면 「송파구 코딩학원」 목록에 들어간다."],
   ["런즈 · 순위닷 등재", "같은 문안을 재사용한다. 표현이 갈리면 AI 가 다른 학원으로 볼 수 있다."],
-  ["엔진별 인용률 측정", "색인이 잡힌 뒤에 센다. 지금 세면 전 엔진 0% 가 나올 것이 뻔하다."],
+  ["같은 방법으로 반복 측정", "엔진·질문·수집 방식을 바꾸지 않고 주기적으로 다시 잰다. 방법이 다른 회차끼리는 비율을 합치지 않는다."],
 ];
 
 const TITLE = PRIVATE ? "로봇&amp;코딩학원 · AI 노출 리포트" : "자사 실증 기록 · 수도권 코딩·로봇 학원 · AI 노출 리포트";
@@ -294,8 +302,9 @@ footer{padding:40px 0 68px;margin-top:42px;border-top:1px solid var(--line);colo
     <div class="kpi hi"><div class="v">${scan ? scan.total : "—"}<small>/100</small></div><div class="k">사이트 진단 (착수 시 83)</div></div>
     <div class="kpi"><div class="v">${posts.n}<small>편</small></div><div class="k">공개 문서 (착수 시 0)</div></div>
     <div class="kpi"><div class="v">${Number(posts.chars).toLocaleString()}<small>자</small></div><div class="k">본문 합계</div></div>
-    <div class="kpi"><div class="v">${crawl.filter((r) => AI인가(r.bot)).reduce((s, r) => s + r.hits, 0)}<small>회</small></div><div class="k">AI 크롤러 방문</div></div>
-    <div class="kpi"><div class="v">${crawl.filter((r) => !AI인가(r.bot)).reduce((s, r) => s + r.hits, 0)}<small>회</small></div><div class="k">검색 크롤러 방문 (구글·빙·네이버 등)</div></div>
+    <div class="kpi"><div class="v">${crawl.filter((r) => 분류(r.bot) === "AI").reduce((s, r) => s + r.hits, 0)}<small>회</small></div><div class="k">AI 크롤러 방문</div></div>
+    <div class="kpi"><div class="v">${crawl.filter((r) => 분류(r.bot) === "검색").reduce((s, r) => s + r.hits, 0)}<small>회</small></div><div class="k">검색 크롤러 방문 (구글·빙·네이버·애플 등)</div></div>${crawl.some((r) => 분류(r.bot) === "기타") ? `
+    <div class="kpi"><div class="v">${crawl.filter((r) => 분류(r.bot) === "기타").reduce((s, r) => s + r.hits, 0)}<small>회</small></div><div class="k">분류 안 된 크롤러</div></div>` : ""}
   </div>
 ${scan ? `
   <div class="tw"><table>
@@ -304,7 +313,7 @@ ${scan ? `
       <td>${CHECK_KO[k] || k}</td>
       <td class="m"><span class="bar"><i style="width:${v.score}%"></i></span>${v.score}</td>
       <td class="m">${esc(
-        k === "crawler" ? `AI ${허용.AI}종 · 검색 ${허용.검색}종 명시 허용 (robots.txt)` :
+        k === "crawler" ? `${허용글} (robots.txt)` :
         k === "sitemap" ? `${v.urls} URL` :
         k === "ssr" ? `평균 본문 ${v.avgTextLen}자 · 빈약 ${v.thinPages}쪽` :
         k === "schema" ? `${v.types.length}종 · 오류 ${v.invalid}` :
@@ -324,7 +333,7 @@ ${crawl.length ? `
   <div class="tw"><table>
     <thead><tr><th>크롤러</th><th>구분</th><th>소속</th><th>방문</th><th>페이지</th><th>최초</th><th>최근</th></tr></thead>
     <tbody>${crawl.map((r) => `<tr>
-      <td><b>${esc(r.bot)}</b></td><td class="m">${AI인가(r.bot) ? "AI" : "검색"}</td><td class="m">${esc(r.vendor)}</td>
+      <td><b>${esc(r.bot)}</b></td><td class="m">${분류(r.bot)}</td><td class="m">${esc(r.vendor)}</td>
       <td class="m">${r.hits}</td><td class="m">${r.pages}</td>
       <td class="m">${day(r.first_seen)}</td><td class="m">${day(r.last_seen)}</td></tr>`).join("")}
     </tbody>
@@ -335,7 +344,7 @@ ${crawl.length ? `
       ? "ClaudeBot 이 robots.txt 를 먼저 읽고 이관한 블로그 글을 가져갔습니다."
       : ""}
     ${(() => {
-      const search = crawl.filter((r) => !AI인가(r.bot));
+      const search = crawl.filter((r) => 분류(r.bot) === "검색");
       if (!search.length) return "아직 검색 색인 크롤러는 오지 않았습니다 — 색인 요청 직후라 정상입니다.";
       return "검색 색인 크롤러도 왔습니다 — "
         + search.map((r) => `${esc(r.bot)} ${r.hits}회`).join(", ") + ".";
@@ -393,7 +402,7 @@ ${serpFirst.length ? `
     <p><b>이 케이스에는 약점이 있습니다.</b> 학원 대표가 곧 이 프로젝트의 의뢰인이라
     사이트를 즉시 고칠 수 있었습니다. 실제 고객사는 도메인 권한·개발팀·결재 라인이 있어
     같은 작업에 몇 주가 걸립니다. <b>다음 고객사에서 시험할 것은 기술이 아니라 리드타임입니다.</b></p>
-    <p>측정에서 드러난 대로 AI 가 인용하는 문서의 대부분이 제3자 지면이므로,
+    <p>첫 기준선에서는 AI 답에 학원 이름이 나올 때 출처가 학원 목록 같은 제3자 지면이었습니다. 그렇다면
     사이트를 못 건드리는 고객사에서도 성립할 가능성이 높습니다.
     다만 그때는 홈페이지 점수가 아니라 <b>제3자 지면 진입이 상품</b>이 됩니다.</p>
   </div>
