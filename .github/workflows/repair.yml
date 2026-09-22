@@ -62,5 +62,6 @@ jobs:
           REPAIR_MODE: ${{ inputs.mode || 'run' }}
           REPAIR_TASK: ${{ inputs.task }}
           REPAIR_EVENT: ${{ github.event_name }}
+          REPAIR_ACTOR: ${{ github.triggering_actor }}   # 봇이 다시 띄운 실행은 확인만 한다
           REPAIR_JOB_MINUTES: "75"
         run: node scripts/repair.mjs

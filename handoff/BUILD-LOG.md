@@ -632,3 +632,16 @@ Known Gaps
 Known Gaps
 - KG: 승인 대기 일감·mode=merge·무인 전환은 아직 끝까지 돈 적이 없다(319 수리안이 검토에서 떨어짐)
 - KG: 조사 319 는 사람 대기. 수리공 두 번째 안도 R5 조건을 못 맞췄다 — 사람이 scout.mjs 에 R5 조건 그대로 넣는 게 빠르다
+
+### Step 10 — Richard 2차 Should Fix 1~3 (켜기 전) — COMPLETE
+*Date: 2026-09-22 · Bob*
+
+- 결정: 「사람이 띄운 실행」 = workflow_dispatch 이면서 github.triggering_actor 가 비어 있지 않고 `[bot]` 이 아닐 때. 봇이 띄운 실행은 지난 수리 확인만 한다(수리 claude·승인 일감 없음). 봇이 띄운 merge 는 거절
+- 결정: company.mjs 는 repair.yml 실패를 다시 띄우거나 rerun 하지 않는다 — 사람 대기로만 올린다
+- 결정: 승인 합치기는 `repair-approve-<id>` 일감이 아직 사람 대기일 때만. 그 일감이 완료·닫힘·없음이면 수리 행 「거절」, 조사는 사람 대기, 그 조사는 더 자동 수리하지 않는다. 지난 수리 확인이 매 실행 거절을 찾아 적는다
+  - 거절하는 법: /admin/ops 「원장님이 하실 일」에서 승인 일감을 「완료」 표시(화면에 닫기 버튼은 없고 완료 표시만 있다 — task-actions.ts finishTask). 화면을 못 쓰면 `update geo.agent_tasks set status='닫힘' where dedupe_key='repair-approve-<id>';`
+- 결정: 가드가 `process[`·`Reflect.x(process`·`{ … env … } = process` 를 막는다. 추가 줄에 `fetch(`·`request(`·`.post(`·`process` 가 하나라도 있으면 needs_owner — 견습이 끝나도 스스로 합치지 않고 늘 원장 승인(문자열 검사로는 조립한 주소를 다 못 막는다)
+- 결과: 가드 시험 21/21 (Actions 결과는 REVIEW-REQUEST)
+
+Known Gaps
+- KG: 합친 뒤 확인 실행은 워크플로의 결론(success)만 본다. company.mjs 처럼 안에서 오류를 잡고 0 으로 끝나는 스크립트는 수리가 깨뜨려도 「성공」으로 나온다

@@ -42,8 +42,11 @@ const TASK = (() => { const v = 인자("--task") ?? process.env.REPAIR_TASK; ret
 const 정수 = (v, d) => { if (v === undefined || v === null || String(v).trim() === "") return d; const n = Number(v); return Number.isInteger(n) && n >= 0 ? n : d; };
 const MAX_PER_DAY = 정수(process.env.REPAIR_MAX_PER_DAY, 1);
 const ENABLED = process.env.REPAIR_ENABLED === "1";
-// 사람이 띄운 실행인가. 정해진 시각 실행(schedule)은 킬 스위치가 꺼져 있으면 claude 를 안 부른다
-const 손으로 = process.env.GITHUB_ACTIONS ? process.env.REPAIR_EVENT === "workflow_dispatch" : true;
+// 사람이 띄운 실행인가 — dispatch 이면서 띄운 이가 봇이 아닐 때만. 회사 루프가 실패한 작업을 다시 띄우면 dispatch 로 보인다(Richard 9/22).
+// 봇이 띄운 실행은 확인만 한다(수리 claude·승인 일감 없음, merge 거절). 정해진 시각 실행은 킬 스위치가 꺼져 있으면 확인만
+const 띄운이 = String(process.env.REPAIR_ACTOR ?? "").trim();
+const 손으로 = process.env.GITHUB_ACTIONS ? process.env.REPAIR_EVENT === "workflow_dispatch" && 띄운이 !== "" && !/\[bot\]$/.test(띄운이) : true;
+const 정해진 = process.env.GITHUB_ACTIONS ? process.env.REPAIR_EVENT === "schedule" : false;
 const REPO = process.env.GITHUB_REPOSITORY || "leeledger/geo";
 const TOKEN = process.env.GH_TOKEN;
 const ROOT = fileURLToPath(new URL("../..", import.meta.url));
@@ -160,6 +163,8 @@ const 줄검사 = (file, 추가, 원래) => {
       if (!new RegExp(`process\\.env(\\.${이름}\\b|\\[\\s*["'\`]${이름}["'\`])`).test(원래)) 문제.push(`새 환경변수 process.env.${이름} (${file})`);
     }
     if (/process\.env\[\s*[^"'`\s]/.test(l)) 문제.push(`환경변수 이름을 값으로 고름 (${file})`);
+    // process["env"]·Reflect.get(process, …)·const { env } = process 는 위 검사를 비껴간다
+    if (/\bprocess\s*\[/.test(l) || /Reflect\s*\.\s*\w+\s*\(\s*process\b/.test(l) || /\{[^}]*\benv\b[^}]*\}\s*=\s*process\b/.test(l)) 문제.push(`process 를 우회해 읽음 (${file})`);
     if (/\bprocess\.env\b(?!\s*[.[])/.test(l)) 문제.push(`process.env 를 통째로 씀 (${file})`);
     for (const m of l.matchAll(/https?:\/\/([^/\s'"`)]+)/g)) {
       const 호스트 = m[1];
@@ -178,6 +183,11 @@ const 줄검사 = (file, 추가, 원래) => {
   }
   return [...new Set(문제)];
 };
+/**
+ * 문자열 검사로는 다 못 막는다 — fetch(row.url + k)·"https:" + "//…" 처럼 주소를 조립하면 호스트 검사를 비껴간다(Richard 9/22).
+ * 네트워크·환경에 닿는 줄이 하나라도 있으면 견습이 끝나도 스스로 합치지 않는다. 승인으로는 합칠 수 있다
+ */
+const 사람봐야 = (추가) => 추가.some((l) => /\bfetch\s*\(|\brequest\s*\(|\.post\s*\(|\bprocess\b/.test(l));
 
 /** 바뀐 파일 목록 — 시작 전에 이미 있던 변경(로컬 작업 트리)은 뺀다 */
 // git() 은 출력을 trim 한다 — 첫 줄 앞의 공백(" M")이 날아가 파일 이름이 한 글자 잘린다. 여기선 날것을 쓴다
@@ -187,7 +197,7 @@ const 바뀜 = (before = new Set()) => execFileSync("git", ["-c", "core.quotepat
 
 const 가드 = (base, files) => {
   const 문제 = [];
-  const 결과 = { files: files.map((x) => x.file), 줄: 0 };
+  const 결과 = { files: files.map((x) => x.file), 줄: 0, needs_owner: false };
   if (!files.length) 문제.push("바뀐 것이 없다");
   for (const { code, file } of files) {
     if (!허용.test(file)) 문제.push(`허용 경로 밖: ${file}`);
@@ -203,6 +213,7 @@ const 가드 = (base, files) => {
     const 삭제 = diff.split("\n").filter((l) => l.startsWith("-") && !l.startsWith("---")).length;
     결과.줄 += 추가.length + 삭제;
     문제.push(...줄검사(file, 추가, git시도("show", `${base}:${file}`).out));
+    if (사람봐야(추가)) 결과.needs_owner = true;
     const 검사 = spawnSync(process.execPath, ["--check", path.join(ROOT, file)], { encoding: "utf8" });
     if (검사.status !== 0) 문제.push(`node --check 실패: ${file} ${끝(검사.stderr, 200)}`);
   }
@@ -406,7 +417,24 @@ const 돌려보기 = async (작업) => {
 };
 
 // ─────────────────────────────────────────── 0. 지난 수리 확인
+/** 원장이 승인 일감을 닫았거나 완료 표시함 = 거절. 행은 「거절」, 조사는 사람 대기 — 같은 조사를 다시 자동 수리하지 않는다 */
+const 거절처리 = async (rep, task, 상태) => {
+  await 수리갱신(rep.id, { status: "거절", note: `${KST()} 승인 일감이 「${상태}」 — 원장 거절로 본다` });
+  if (task) await 일감(task.id, "사람 대기", { evidence: `${KST()} 원장이 자동 수리안을 거절함 (수리 ${rep.id}) — 다시 자동 수리하지 않음`,
+    detail: `자동 수리안(${rep.branch})을 거절했습니다. 이 조사는 더 자동으로 고치지 않습니다. Claude 세션에서 봅니다.` });
+  await 활동(true, `수리안 거절 (수리 ${rep.id}, 승인 일감 ${상태})`, task?.id);
+  console.log(`  ✗ 수리 ${rep.id} 거절 — 승인 일감 ${상태}`);
+};
+
 const 지난수리확인 = async () => {
+  const 대기 = await q(`select r.*, a.status 승인상태 from geo.repairs r join geo.agent_tasks t on t.id = r.task_id
+      left join geo.agent_tasks a on a.client_id = t.client_id and a.dedupe_key = 'repair-approve-' || r.task_id
+    where r.status = '승인 대기'`);
+  for (const rep of 대기) {
+    if (rep.승인상태 === "사람 대기") continue;
+    const [task] = await q(`select * from geo.agent_tasks where id=$1`, [rep.task_id]);
+    await 거절처리(rep, task, rep.승인상태 ?? "승인 일감 없음");
+  }
   const reps = await q(`select r.*, to_char(coalesce(r.merged_at, r.updated_at) at time zone 'Asia/Seoul', 'YYYY-MM-DD HH24:MI') made,
       extract(epoch from now() - coalesce(r.merged_at, r.updated_at)) / 3600 as 시간 from geo.repairs r where status in ('합치는 중','합침') order by id`);
   for (const rep of reps) {
@@ -501,7 +529,7 @@ const 만들기 = async (t, base) => {
   const pb = 푸시(`+HEAD:refs/heads/${가지}`);
   console.log(`  가지 ${가지} ${head.slice(0, 7)} 푸시 ${pb.ok ? "됨" : `실패 ${끝(pb.out, 160)}`}`);
   if (!pb.ok) throw new Error(`가지 푸시 실패 ${끝(pb.out, 160)}`);
-  return { 가지, base, head, files: g.files, 줄: g.줄, 요약, 검토, diff };
+  return { 가지, base, head, files: g.files, 줄: g.줄, 요약, 검토, diff, needs_owner: g.needs_owner };
 };
 
 // ─────────────────────────────────────────── 2. 합치기
@@ -586,7 +614,8 @@ const 승인일감 = async (t, 안, repId) => {
         `바뀐 곳: ${안.files.join(", ")} (줄 ${안.줄})`, 줄수,
         `가지: https://github.com/${REPO}/compare/main...${안.가지}`,
         `승인(합치기): ${명령}`,
-        "거절: 이 일감을 닫으면 됩니다. 가지는 남고 main 은 그대로입니다."].join("\n"),
+        "거절: /admin/ops 「원장님이 하실 일」에서 이 일감을 「완료」로 표시하면 거절로 봅니다(합치지 않음). 다음 수리공 실행이 거절로 적고 이 조사는 더 자동 수리하지 않습니다. 가지는 남고 main 은 그대로입니다.",
+        `화면을 못 쓰면: update geo.agent_tasks set status='닫힘' where dedupe_key='repair-approve-${t.id}';`].join("\n"),
       JSON.stringify({ sticky: true, task_id: t.id, repair_id: Number(repId), 명령 }), `https://github.com/${REPO}/compare/main...${안.가지}`]);
   await 일감(t.id, "수리 승인 대기", { evidence: `${KST()} 수리안 가지 ${안.가지} ${안.head.slice(0, 7)} · 검토 ${안.검토.verdict} — 원장 승인 대기 (수리 ${repId})` });
   console.log(`  → 승인 대기: ${명령}`);
@@ -595,7 +624,8 @@ const 승인일감 = async (t, 안, repId) => {
 const 수리 = async () => {
   const [멈춤] = await q(`select value from geo.settings where key='repair_paused'`);
   if (멈춤?.value === "true") { console.log("  수리공 멈춤 (geo.settings repair_paused=true) — 사람이 풀어야 한다"); return; }
-  if (!ENABLED && !손으로 && MODE === "run") { console.log("  REPAIR_ENABLED 꺼짐 — 정해진 시각 실행은 지난 수리 확인만 한다"); return; }
+  if (!손으로 && !정해진) { console.log(`  사람이 띄운 실행이 아니다 (${process.env.REPAIR_EVENT ?? ""} · ${띄운이 || "띄운 이 없음"}) — 지난 수리 확인만 한다`); return; }
+  if (!ENABLED && !손으로) { console.log("  REPAIR_ENABLED 꺼짐 — 정해진 시각 실행은 지난 수리 확인만 한다"); return; }
   if (MODE === "run" && (await 오늘수리수()) >= MAX_PER_DAY) { console.log(`  오늘 수리 ${MAX_PER_DAY}건을 했다 — 내일`); return; }
   if (!클로드코드있음()) { console.log("  Claude Code 없음 — 건너뜀"); return; }
   const [t] = await q(`select * from geo.agent_tasks where kind='investigate' and status='수리 대기' and payload->'diagnosis'->>'분류' = 'code'
@@ -604,7 +634,7 @@ const 수리 = async () => {
   console.log(`  ▶ 조사 ${t.id} ${t.title}`);
 
   // 이미 합쳤던(확인됨·효과 없음·되돌림) 조사가 다시 열렸으면 같은 수리를 되풀이하지 않는다 — 사람에게(Richard 9/22)
-  const [전력] = await q(`select id, status from geo.repairs where task_id=$1 and status in ('확인됨','효과 없음','되돌림','되돌림 실패') order by id desc limit 1`, [t.id]);
+  const [전력] = await q(`select id, status from geo.repairs where task_id=$1 and status in ('확인됨','효과 없음','되돌림','되돌림 실패','거절') order by id desc limit 1`, [t.id]);
   if (전력) {
     await 일감(t.id, "사람 대기", { evidence: `${KST()} 자동 수리했던 조사가 다시 열림 (수리 ${전력.id} ${전력.status}) — 다시 고치지 않음`,
       detail: `이 신호는 자동 수리(수리 ${전력.id}, ${전력.status}) 뒤에 다시 떴습니다. 같은 수리를 되풀이하지 않습니다. Claude 세션에서 원인을 다시 봅니다.` });
@@ -626,7 +656,7 @@ const 수리 = async () => {
   const base = 가져오기();
   const 안 = await 만들기(t, base);
   if (!안) return;
-  const 행 = { task_id: t.id, branch: 안.가지, base_sha: base, head_sha: 안.head, files: 안.files, lines: 안.줄, review: 안.검토, checks: { 문제: [], 요약: 안.요약 } };
+  const 행 = { task_id: t.id, branch: 안.가지, base_sha: base, head_sha: 안.head, files: 안.files, lines: 안.줄, review: 안.검토, checks: { 문제: [], 요약: 안.요약, needs_owner: 안.needs_owner } };
   if (MODE === "dry") {
     const id = await 수리기록({ ...행, status: "dry", note: "--dry: 가지만 푸시, main 무관, 합칠 수 없음" });
     console.log(`  --dry 끝 (수리 ${id}). main 은 그대로`);
@@ -640,8 +670,8 @@ const 수리 = async () => {
     return;
   }
   const 무인 = ENABLED ? await 무인허용() : { ok: false, n: 0 };
-  if (!무인.ok) {
-    const id = await 수리기록({ ...행, status: "승인 대기", note: `견습 — 승인해 합친 수리 ${무인.n}/${견습건수}` });
+  if (!무인.ok || 안.needs_owner) {
+    const id = await 수리기록({ ...행, status: "승인 대기", note: 안.needs_owner ? "네트워크·환경에 닿는 줄이 있어 늘 원장 승인" : `견습 — 승인해 합친 수리 ${무인.n}/${견습건수}` });
     await 승인일감(t, 안, id);
     return;
   }
@@ -651,6 +681,7 @@ const 수리 = async () => {
 
 /** 원장 승인 — 승인 대기 수리안을 다시 검사하고 합친다. base 가 움직였으면 검토를 다시 받는다(Richard 9/22) */
 const 승인합치기 = async () => {
+  if (!손으로) { console.log(`  merge 는 사람만 띄운다 (${띄운이 || "띄운 이 없음"}) — 합치지 않는다`); return; }
   if (!ENABLED) { console.log("  REPAIR_ENABLED 꺼짐 — 합치지 않는다 (원장이 저장소 변수를 켜야 한다)"); return; }
   if (!TASK) throw new Error("merge 는 task 가 있어야 한다 (-f task=<조사 id>)");
   const [멈춤] = await q(`select value from geo.settings where key='repair_paused'`);
@@ -658,6 +689,9 @@ const 승인합치기 = async () => {
   const [rep] = await q(`select * from geo.repairs where task_id=$1 and status='승인 대기' order by id desc limit 1`, [TASK]);
   if (!rep) { console.log(`  조사 ${TASK} 에 승인 대기 수리안이 없다`); return; }
   const [t] = await q(`select * from geo.agent_tasks where id=$1`, [TASK]);
+  // 승인 일감이 아직 사람 대기일 때만 합친다. 닫았거나 완료 표시했으면 거절이다 — 나중에 누가 merge 를 돌려도 거절한 안이 들어가면 안 된다
+  const [승인] = await q(`select status from geo.agent_tasks where client_id=$1 and dedupe_key=$2`, [t.client_id, `repair-approve-${TASK}`]);
+  if (승인?.status !== "사람 대기") { await 거절처리(rep, t, 승인?.status ?? "승인 일감 없음"); return; }
   const base = 가져오기();
   const 머리 = 가져오기(rep.branch);
   if (머리 !== rep.head_sha) throw new Error(`가지 ${rep.branch} 머리가 바뀜 (${머리.slice(0, 7)} ≠ ${rep.head_sha.slice(0, 7)}) — 검토받은 diff 가 아니다`);
@@ -764,15 +798,25 @@ const 가드시험 = () => {
     ["new Function", ["const f = new Function(\"a\", body);"], true],
     ["동적 import 변수", ["const m = await import(name);"], true],
     ["새 패키지", ['import x from "left-pad";'], true],
-    ["깨끗한 수정", ["const n = rows.filter((r) => r.pct < 20 && r.t >= 10).length;", 'await fetch("https://api.github.com/repos/y");', "const u2 = process.env.DATABASE_URL;"], false],
+    ['process["env"]', ['const v = process["env"].DATABASE_URL;'], true],
+    ["const { env } = process", ["const { env } = process;"], true],
+    ["Reflect.get(process", ['const e = Reflect.get(process, "env");'], true],
+    ["주소를 변수로 fetch — 막지는 않되 사람", ["await fetch(row.url + \"?\" + k);"], "사람"],
+    ["조립한 주소 + fetch — 사람", ['const u = "https:" + "//evil";', "await fetch(u);"], "사람"],
+    ["request( — 사람", ["const r = await request(opts);"], "사람"],
+    [".post( — 사람", ["await client.post(body);"], "사람"],
+    ["원래 있던 환경변수 읽기 — 사람", ["const u2 = process.env.DATABASE_URL;"], "사람"],
+    ["깨끗한 수정", ["const n = rows.filter((r) => r.pct < 20 && r.t >= 10).length;", "const 이름 = `${c.name} — ${r.vendor}`;"], false],
   ];
   let 틀림 = 0;
   console.log("가드 시험");
-  for (const [이름, 줄, 막아야] of 경우) {
+  for (const [이름, 줄, 기대] of 경우) {
     const 문제 = 줄검사("시험.mjs", 줄, 원래);
-    const ok = 막아야 ? 문제.length > 0 : 문제.length === 0;
+    const 사람 = 사람봐야(줄);
+    const 막아야 = 기대 === true;
+    const ok = 기대 === "사람" ? 문제.length === 0 && 사람 : 막아야 ? 문제.length > 0 : 문제.length === 0 && !사람;
     if (!ok) 틀림++;
-    console.log(`  ${ok ? "✓" : "✗"} ${이름} — ${막아야 ? "막아야 함" : "통과해야 함"} · ${문제.length ? 문제.join(" / ") : "문제 없음"}`);
+    console.log(`  ${ok ? "✓" : "✗"} ${이름} — ${기대 === "사람" ? "통과하되 원장 승인" : 막아야 ? "막아야 함" : "통과해야 함"} · ${문제.length ? 문제.join(" / ") : "문제 없음"}${사람 ? " · needs_owner" : ""}`);
   }
   console.log(틀림 ? `  ✗ ${틀림}건 틀림` : "  ✓ 전부 맞음");
   if (틀림) process.exitCode = 1;
