@@ -62,12 +62,15 @@ export async function 클로드코드(prompt, { system = 기본시스템, tools 
       const text = result.result ?? "";
       // 구독 한도에 걸리면 성공처럼 끝나고 본문에 한도 안내가 온다
       const 한도 = /usage limit|limit reached|rate limit|resets at/i.test(text) && text.length < 400;
+      // 토큰이 틀리면 매 호출이 똑같이 401 이다. 부르는 쪽이 한 번에 멈추게 따로 알린다(2026-09-22, 20문항을 다 두드렸다)
+      const 인증실패 = /Failed to authenticate|Invalid bearer token|401/i.test(text) && text.length < 400;
       끝내기({
-        ok: !result.is_error && result.subtype === "success" && !한도,
+        ok: !result.is_error && result.subtype === "success" && !한도 && !인증실패,
         한도,
+        인증실패,
         text,
         urls: [...urls.values()],
-        error: result.is_error || 한도 ? text.slice(0, 300) || result.subtype : null,
+        error: result.is_error || 한도 || 인증실패 ? text.slice(0, 300) || result.subtype : null,
         cost: result.total_cost_usd ?? null,
       });
     });

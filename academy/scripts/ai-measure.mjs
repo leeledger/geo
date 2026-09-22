@@ -59,7 +59,7 @@ const ENGINES = [
         model: e.model,
       });
       // 구독 한도에 걸리면 나머지 질문도 똑같이 막힌다 — 429 로 넘겨 루프를 멈춘다
-      if (!r.ok) return { status: r.한도 ? 429 : 0, error: r.error ?? "알 수 없음" };
+      if (!r.ok) return { status: r.인증실패 ? 401 : r.한도 ? 429 : 0, error: r.error ?? "알 수 없음" };
       const citations = r.urls.map((u) => ({ domain: 도메인(u.url), title: u.title, url: u.url }));
       const answerUrls = r.text.match(/https?:\/\/[^\s)\]>"']+/g) ?? [];
       return { answer: r.text, citations, answerUrls };
