@@ -77,6 +77,8 @@ const 엔티티풀기 = (v) => String(v)
 const 주소검사 = (값, 어디, 보안) => {
   if (값.includes("\\")) 보안.push(`${어디}에 \\ (CSS 이스케이프)`);
   if (/javascript:/i.test(값.replace(/\s+/g, ""))) 보안.push(`${어디}에 javascript:`);
+  // url( 말고도 바깥 주소를 받는 CSS 함수가 있다(image-set("https://…") 등) — 주소 글자 자체를 버린다(Richard 9/22)
+  if (/https?:|\/\//i.test(값)) 보안.push(`${어디}에 바깥 주소`);
   for (const m of 값.matchAll(/url\(\s*['"]?([^'")]*)/gi)) if (!m[1].trim().startsWith("#")) 보안.push(`외부 주소 url(${한줄(m[1], 60)}) — ${어디}`);
 };
 const 속성검사 = (태그, 이름, 원값, 보안) => {
@@ -90,7 +92,7 @@ const 속성검사 = (태그, 이름, 원값, 보안) => {
   if (/^on/i.test(이름)) 보안.push(`이벤트 속성 ${이름}`);
   if (이름 === "href" && !v.trim().startsWith("#")) 보안.push(`외부 주소 href="${한줄(v, 60)}"`);
   // 읽는 글(aria-label 등)에는 \ 가 올 수 있다. 그 밖의 값은 CSS 로 읽힐 수 있어 주소 검사를 한다
-  if (!/^(?:aria-label|aria-description|title)$/.test(이름)) 주소검사(v, `<${태그} ${이름}>`, 보안);
+  if (!/^(?:aria-label|aria-description|title|xmlns)$/.test(이름)) 주소검사(v, `<${태그} ${이름}>`, 보안);
   if (이름 === "style" && v.includes("@")) 보안.push(`<${태그} style> 에 @ 규칙`);
 };
 const 엔티티틀림 = /&(?!(?:amp|lt|gt|quot|apos|#\d+|#x[0-9a-fA-F]+);)/;
@@ -563,6 +565,8 @@ const 시험 = async () => {
     ["<set>", 틀("블록", { 속: '<set attributeName="fill" to="red"/>' }), "도해", false],
     ["<a> 링크", 틀("블록", { 속: '<a href="#g"><text>눌러</text></a>' }), "도해", false],
     ["CDATA", 틀("블록", { 속: "<style><![CDATA[rect{fill:red}]]></style>" }), "도해", false],
+    ["<style> image-set(\"https://…\")", 틀("블록", { 속: '<style>rect{fill:image-set("https://evil.example/p.png" 1x)}</style>' }), "도해", false],
+    ["style 속성 image-set", 틀("블록", { 속: `<rect width="9" height="9" style='background:image-set("https://evil.example/p.png" 1x)'/>` }), "도해", false],
     ["<style> 안의 안전한 규칙", 틀("블록", { 속: "<style>.t{fill:#F5A623;font-weight:700}</style>" }), "도해", true],
   ];
   let 틀림 = 0;

@@ -751,3 +751,11 @@ Known Gaps
 Known Gaps
 - KG: 검토 화면 도해 미리보기(data:)는 도해 붙은 초안이 없어 운영에서 눈으로 못 봤다. 검토 화면에 보이는 시험 초안을 만들지 않기로 해서다 — 다음 실제 초안에서 본다
 - KG: 하루 몫 도달 → 다음 날 미룸, 재시도·사람 대기 경로는 아직 실제로 안 돌았다
+
+### Step 12 — Richard 통과 후 남은 두 가지 — COMPLETE
+*Date: 2026-09-22 · Bob*
+
+- 속성 값·CSS 에 `https?:`·`//` 가 있으면 버린다(xmlns 의 정확한 URI 두 개만 예외 — xmlns:xlink 는 접두어 칸에서 정확히 비교). url( 말고도 image-set("https://…") 같은 함수가 바깥 주소를 받는다. --test 에 <style>·style 속성 image-set 2건 추가, 전부 맞음
+
+Known Gaps
+- KG: data-value 없는 막대 그림 잡기(막대모양)는 rx ≤ 6 이고 굵기 ≤ 40 인 rect 만 본다. path 로 그린 막대나 rx 7 이상 막대는 빠져나간다 — 원장이 발행 전 검토 화면 미리보기에서 그림을 본다
