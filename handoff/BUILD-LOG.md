@@ -595,3 +595,21 @@ Known Gaps
 
 Known Gaps
 - KG: R1 은 실패 묶음이 7일 창 안에서 조건(3건·2일)을 채울 때만 「풀림」을 본다. 실패가 창 밖으로 나간 뒤에 성공이 오면 풀림 증거가 안 잡혀 사람 대기 R1 조사가 남는다 — Arch 결정 (a) 의 보수적인 쪽. 원장이 닫으면 된다
+
+### Step 10 — 수리공 — BUILT (Richard 검토 대기 · 실제 합치기 안 함)
+*Date: 2026-09-22 · Bob*
+
+- 새 파일: `academy/scripts/repair.mjs`, `.github/workflows/repair.yml`. 표 `geo.repairs`(+head_sha·note·updated_at), `geo.settings` 의 `repair_paused`
+- `claude-code.mjs`: 모든 호출을 geo.claude_calls 에 기록 · 하루 상한 CLAUDE_DAILY_MAX(40), 측정 아닌 호출은 CLAUDE_MEASURE_RESERVE(20) 를 남김 · purpose(measure·writer·audit·sandbox-test·repair·repair-review)
+- 결정: 수리공 claude 에 Bash 를 안 준다 — `node --check /proc/self/environ` 이 오류 메시지로 환경변수를 찍는다. 검사는 스크립트가
+- 결정: 재발 = 수리 뒤 신호가 사라졌다가 다시 뜸. 계속 떠 있으면 7일 뒤 「효과 없음」 사람 대기(되돌리지 않음). 확인 실행 실패는 같은 실행에서 즉시 되돌림 — Arch 확인 대기
+- 결정: 지난 dry 가 검토 pass 이고 가지 머리가 그대로면 run 이 claude 를 다시 안 부른다
+- 사건: Actions 는 설정 안 한 vars 를 "" 로 넘긴다. Number("")=0 이라 첫 dry 가 「하루 상한 0」으로 멈췄다(REPAIR_MAX_PER_DAY 도 같았다) — 빈 값은 기본값으로
+- 결과: 되돌리기 시험 통과(run 35703118038) · 조사 319 dry → scout.mjs 15줄, 검토 pass, 가지 auto/fix-319 efe75d8 (run 35703293668)
+- **안 한 것**: REPAIR_ENABLED=1 설정이 권한 분류기에서 거절돼 실제 main 합치기·확인 실행·자동 되돌리기·재발 판정은 안 돌았다
+
+Known Gaps
+- KG: 킬 스위치(REPAIR_ENABLED) 는 꺼져 있다. 켜는 것은 원장 결정 — `gh variable set REPAIR_ENABLED --body 1 --repo leeledger/geo`
+- KG: auto/fix-319 수리안에 `pages_total ≥ 10` 조건이 없다(감사관 R5 와 다름). 검토자가 못 잡았다
+- KG: 확인 실행은 수리와 무관한 실패(DB 연결 시간 초과 등)에도 되돌린다
+- KG: write.yml 처럼 실제로 일하는(구독을 쓰는) 워크플로도 확인 실행으로 돌 수 있다
