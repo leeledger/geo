@@ -62,9 +62,14 @@ const 기록쿼리 = async () => {
 export async function 클로드코드(prompt, opts = {}) {
   const purpose = opts.purpose ?? "기타";
   const q = await 기록쿼리().catch((e) => { console.log(`  ⚠ claude 호출 기록 못 함: ${e.message}`); return null; });
+  // capRequired — 수리·감사처럼 상한 안에서만 돌아야 하는 호출자는 셀 수 없으면 부르지 않는다(fail-closed, Richard 9/22)
+  const 못셈 = { ok: false, 한도: true, 상한: true, error: "호출 수를 못 셈 — 상한을 지킬 수 없어 부르지 않음", text: "", urls: [], 거절: [] };
+  if (!q && opts.capRequired) return 못셈;
   if (q) {
-    const [{ n }] = await q(`select count(*)::int n from geo.claude_calls
-      where (at at time zone 'Asia/Seoul')::date = (now() at time zone 'Asia/Seoul')::date`).catch(() => [{ n: 0 }]);
+    const [row] = await q(`select count(*)::int n from geo.claude_calls
+      where (at at time zone 'Asia/Seoul')::date = (now() at time zone 'Asia/Seoul')::date`).catch(() => [null]);
+    if (!row && opts.capRequired) return 못셈;
+    const n = row?.n ?? 0;
     const 상한 = 정수(process.env.CLAUDE_DAILY_MAX, 40);
     const 몫 = purpose === "measure" ? 상한 : 상한 - 정수(process.env.CLAUDE_MEASURE_RESERVE, 20);
     if (n >= 몫) return { ok: false, 한도: true, 상한: true, error: `하루 상한 — 오늘 ${n}회 (${purpose} 몫 ${몫})`, text: "", urls: [], 거절: [] };

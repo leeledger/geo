@@ -1,6 +1,7 @@
 # 수리공 — 감사관이 「code」로 분류한 조사를 고쳐 합치고, 틀렸으면 되돌린다 (academy/scripts/repair.mjs)
 #
-# 킬 스위치: 저장소 변수 REPAIR_ENABLED=1 일 때만 main 에 합친다. 없으면 지난 수리 확인(되돌리기)만 한다.
+# 킬 스위치: 저장소 변수 REPAIR_ENABLED=1 일 때만 main 에 합친다. 꺼져 있으면 정해진 시각 실행은 지난 수리 확인(되돌리기)만,
+# 사람이 띄운 run 은 승인 대기까지만 간다. 견습: 처음 5건은 원장이 mode=merge 로 승인해야 합쳐진다.
 # 가드(허용 경로·줄 수·토큰·문법·검토)는 전부 스크립트 안에 있다 — 브랜치 보호가 없다(무료 비공개 플랜).
 # GITHUB_TOKEN 은 workflows 권한이 없어 .github/ 를 고치는 수리는 원래 못 한다.
 #
@@ -13,9 +14,9 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "run: 수리·합치기 · dry: 가지·diff·검토까지만 · revert-test: 되돌리기 시험(main 무관)"
+        description: "run: 수리안 → 승인 대기(견습 끝나면 합침) · merge: 원장 승인 합치기 · dry: 가지·검토까지만 · revert-test · guard-test"
         type: choice
-        options: [run, dry, revert-test]
+        options: [run, merge, dry, revert-test, guard-test]
         default: run
       task:
         description: "조사 일감 id (비우면 우선순위 순)"
@@ -33,7 +34,8 @@ permissions:
 jobs:
   repair:
     runs-on: ubuntu-latest
-    timeout-minutes: 50
+    # 최악 경로: 설치 3 + 수리 15 + 검토 10 + (승인 합치기의 다시 검토 10) + 확인 대기 25 = 63분. 모자라면 스크립트가 합치지 않는다
+    timeout-minutes: 75
     steps:
       # 토큰을 .git/config 에 남기지 않는다 — 수리공 claude 가 Read 로 못 보게. 푸시는 스크립트가 주소에 실어 한다
       - uses: actions/checkout@v5
@@ -59,4 +61,6 @@ jobs:
           CLAUDE_DAILY_MAX: ${{ vars.CLAUDE_DAILY_MAX }}
           REPAIR_MODE: ${{ inputs.mode || 'run' }}
           REPAIR_TASK: ${{ inputs.task }}
+          REPAIR_EVENT: ${{ github.event_name }}
+          REPAIR_JOB_MINUTES: "75"
         run: node scripts/repair.mjs

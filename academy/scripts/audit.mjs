@@ -291,8 +291,8 @@ const 상태 = (id, status, patch = {}) =>
      where id=$1`,
     [id, status, patch.evidence ?? "", patch.error ?? null, patch.nextTry ?? null, patch.link ?? null, patch.attempt ? 1 : 0]);
 
-const 열린상태 = ["대기", "관찰", "사람 대기", "수리 대기", "수리 확인", "실패"];
-const 사람손 = ["사람 대기", "수리 대기", "수리 확인"]; // 여기 있는 조사는 신호가 안 보인다고 닫지 않는다 — 풀린 증거가 있어야 닫는다
+const 열린상태 = ["대기", "관찰", "사람 대기", "수리 대기", "수리 승인 대기", "수리 확인", "실패"];
+const 사람손 = ["사람 대기", "수리 대기", "수리 승인 대기", "수리 확인"]; // 여기 있는 조사는 신호가 안 보인다고 닫지 않는다 — 풀린 증거가 있어야 닫는다
 
 const 일감쓰기 = async () => {
   const 있던 = new Map((await q(`select id, client_id, dedupe_key, detail, status, payload from geo.agent_tasks where agent='audit' and kind='investigate'`))
@@ -385,8 +385,7 @@ const 지침 = `사이티드는 AI 답변에 고객사 이름이 불리게 만�
  "분류":"code|config|index|content|money|login|human|unknown",
  "기지":true,
  "근거":["파일:줄 또는 URL"],
- "다음":{"누가":"agent|local|human","할일":"30초 안에 끝낼 수 있게 구체적으로","파일":[]},
- "재현":"고친 뒤 확인할 명령 — --dry 를 지원하는 스크립트만, 예: node academy/scripts/x.mjs --dry. 없으면 빈 문자열"}`;
+ "다음":{"누가":"agent|local|human","할일":"30초 안에 끝낼 수 있게 구체적으로","파일":[]}}`;
 
 /**
  * 조사관 칸막이. envDrop 은 자식 환경에서만 지운다 — 부모(이 프로세스)의 /proc/<pid>/environ 에는 DATABASE_URL·GH_TOKEN 이,
@@ -402,6 +401,8 @@ const 칸막이 = {
     "Read(**/.env*)", "Grep(**/.env*)", "Glob(**/.env*)"],
   // 구독 인증(CLAUDE_CODE_OAUTH_TOKEN)만 남기고 비밀은 다 뺀다. 조사관은 DB·GitHub 를 직접 만지지 않는다
   envDrop: ["DATABASE_URL", "GH_TOKEN", "GITHUB_TOKEN", "LLM_PROXY_TOKEN", "LLM_PROXY_URL", "GEMINI_API_KEY", "GROQ_API_KEY"],
+  // 호출 수를 못 세면 부르지 않는다 — 하루 상한 밖에서 돌지 않게(Richard 9/22)
+  capRequired: true,
   model: "sonnet", maxTurns: 20, timeoutMs: 10 * 60 * 1000, system: 조사관,
 };
 
