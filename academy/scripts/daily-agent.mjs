@@ -114,7 +114,9 @@ const main = async () => {
   const rows = await q(
     `select prompt_id, measured_on::text as day, engine, mentioned, cited, citations, coalesce(raw->>'answer','') answer
        from academy.ai_measurements
-      where client_id=$1 and collection_method like 'api-%' and measured_on >= $2::date`, [c.id, 날더하기(오늘, -70)]);
+      -- 자동 측정만 본다. 구독으로 도는 Claude Code 측정도 자동이다(2026-09-22 전환) — 빠뜨리면 「오늘 측정 없음」으로 판정이 선다
+      where client_id=$1 and (collection_method like 'api-%' or collection_method like 'claude-code-headless-%')
+        and measured_on >= $2::date`, [c.id, 날더하기(오늘, -70)]);
   const runs = await q(
     `select id, run_day::text as run_day, status, action_kind, target_prompt, target_slug, verdict, effective_on::text as effective_on
        from geo.agent_runs where client_id=$1 and target_prompt is not null order by run_day`, [c.id]);
