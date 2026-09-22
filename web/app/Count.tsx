@@ -11,6 +11,8 @@ import { useEffect, useRef, useState } from "react";
  * 서버 렌더에는 진짜 값이 들어간다. 전에는 0 으로 그렸다가 올렸는데,
  * 스크립트를 안 돌리는 크롤러에게는 「크롤러 0곳 · 0회」로 읽혔다.
  * 그래서 이미 화면에 보이는 숫자는 건드리지 않고, 아래쪽 숫자만 0 에서 올린다.
+ *
+ * to 가 null 이면(못 읽음) 숫자를 지어내지 않고 「—」만 그린다.
  */
 export default function Count({
   to,
@@ -18,17 +20,17 @@ export default function Count({
   suffix = "",
   duration = 900,
 }: {
-  to: number;
+  to: number | null;
   decimals?: number;
   suffix?: string;
   duration?: number;
 }) {
-  const [v, setV] = useState(to);
+  const [v, setV] = useState(to ?? 0);
   const ref = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
     const el = ref.current;
-    if (!el) return;
+    if (!el || to === null) return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       setV(to);
       return;
@@ -59,6 +61,7 @@ export default function Count({
     return () => { io.disconnect(); cancelAnimationFrame(raf); };
   }, [to, duration]);
 
+  if (to === null) return <span ref={ref}>—</span>;
   return (
     <span ref={ref}>
       {v.toFixed(decimals)}

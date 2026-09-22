@@ -14,6 +14,7 @@ import Faq from "./Faq";
 import { SERVICES } from "@/lib/services";
 import { GUIDES } from "@/lib/guides";
 import { readOps } from "@/lib/ops";
+import { readPlaceRank } from "@/lib/place";
 import "./landing.css";
 
 /**
@@ -163,19 +164,22 @@ function Gauge({ v, label, note, delay }: { v: number; label: string; note: stri
 }
 
 export default async function Home() {
-  const ops = await readOps();
-  // DB 가 막혀도 랜딩이 0 을 띄우면 안 된다. 마지막으로 확인한 값을 바닥으로 쓴다.
-  const vendors = ops.ok && ops.vendorCount ? ops.vendorCount : 8;
-  const hits = ops.ok && ops.totalHits ? ops.totalHits : 460;
-  const posts = ops.ok && ops.posts.published ? ops.posts.published : 43;
-  const claudePages = ops.crawl.vendors.find((v) => /anthropic|claude/i.test(v.vendor))?.pages ?? 43;
+  const [ops, place] = await Promise.all([readOps(), readPlaceRank()]);
+  // 못 읽은 값은 null 이다. 예전 값을 바닥으로 깔지 않는다 — 그건 지어낸 숫자다(9/22 정정).
+  // null 이면 그 칸·그 문장을 숨긴다.
+  const vendors = ops.ok ? ops.vendorCount : null;
+  const hits = ops.ok ? ops.totalHits : null;
+  const posts = ops.ok ? ops.posts.published : null;
+  const claudePages = ops.ok ? ops.crawl.vendors.find((v) => /anthropic|claude/i.test(v.vendor))?.pages ?? null : null;
+  const crawled = vendors !== null && hits !== null;
   const caseDay = Math.max(1, Math.floor((Date.now() - START) / 86400000) + 1);
 
   // 경쟁 검색어 집계는 lib/ops.ts 한 곳에 둔다. 여기서 또 세면 대시보드와 갈라진다.
-  const webWins = ops.serp.rivalWon;
-  const webTotal = ops.serp.rivalTotal || 6;
+  const webTotal = ops.ok && ops.serp.rivalTotal ? ops.serp.rivalTotal : null;
+  const webWins = webTotal !== null ? ops.serp.rivalWon : null;
   // 플레이스는 「구 + 코딩학원」 검색어의 순위. 검색어 자체는 화면에 내지 않는다.
-  const placeRank = ops.place.find((p) => /구 코딩학원$/.test(p.query))?.rank ?? 2;
+  // 14일 안에 잰 것만, 측정일을 붙여서. 없으면 칸을 숨긴다 (lib/place.ts)
+  const placeDay = place ? `${Number(place.day.slice(5, 7))}/${place.day.slice(8, 10)}` : null;
 
   return (
     <>
@@ -205,18 +209,24 @@ export default async function Home() {
                   <div className="lp-pb-v"><b>{caseDay}</b><span>일차</span></div>
                   <div className="lp-pb-k">착수일부터 센 날</div>
                 </div>
-                <div className="lp-glass lp-pb">
-                  <div className="lp-pb-v"><b><Count to={vendors} /></b><span>곳</span></div>
-                  <div className="lp-pb-k">다녀간 AI·검색 크롤러</div>
-                </div>
-                <div className="lp-glass lp-pb">
-                  <div className="lp-pb-v"><b><Count to={hits} /></b><span>회</span></div>
-                  <div className="lp-pb-k">크롤러 누적 방문</div>
-                </div>
-                <div className="lp-glass lp-pb">
-                  <div className="lp-pb-v"><b><Count to={posts} /></b><span>편</span></div>
-                  <div className="lp-pb-k">AI 가 읽을 수 있게 된 글</div>
-                </div>
+                {vendors !== null && (
+                  <div className="lp-glass lp-pb">
+                    <div className="lp-pb-v"><b><Count to={vendors} /></b><span>곳</span></div>
+                    <div className="lp-pb-k">다녀간 AI·검색 크롤러</div>
+                  </div>
+                )}
+                {hits !== null && (
+                  <div className="lp-glass lp-pb">
+                    <div className="lp-pb-v"><b><Count to={hits} /></b><span>회</span></div>
+                    <div className="lp-pb-k">크롤러 누적 방문</div>
+                  </div>
+                )}
+                {posts !== null && (
+                  <div className="lp-glass lp-pb">
+                    <div className="lp-pb-v"><b><Count to={posts} /></b><span>편</span></div>
+                    <div className="lp-pb-k">AI 가 읽을 수 있게 된 글</div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -334,7 +344,7 @@ export default async function Home() {
                 </div>
                 <span className="lp-passed">
                   <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
-                  서버 기록 · 크롤러 {vendors}곳 · {hits}회
+                  {crawled ? `서버 기록 · 크롤러 ${vendors}곳 · ${hits}회` : "서버 기록 · 확인 중"}
                 </span>
               </div>
             </div>
@@ -512,6 +522,7 @@ export default async function Home() {
             </p>
 
             <div className="lp-case">
+              {webTotal !== null && (
               <div className="lp-glass lp-cx hi">
                 <div className="lp-cx-hd">
                   <span>경쟁 검색어 · 착수 때 → 지금</span>
@@ -522,16 +533,20 @@ export default async function Home() {
                   착수 때는 위쪽이 전부 오늘학교·순위닷 같은 학원 목록 사이트였고 학원 홈페이지는 한 곳도 없었습니다.
                 </p>
               </div>
+              )}
+              {place && (
               <div className="lp-glass lp-cx">
                 <div className="lp-cx-hd">
-                  <span>네이버 플레이스 · 「○○구 코딩학원」</span>
-                  <b><Count to={placeRank} />위</b>
+                  <span>네이버 플레이스 · 「○○구 코딩학원」 · {placeDay} 측정</span>
+                  <b><Count to={place.rank} />위</b>
                 </div>
                 <p>
                   네이버 AI 가 이 학원을 <b>「무선 인터넷과 남녀 구분 화장실을 제공합니다」</b>라고 소개하고 있었습니다.
                   소개글 188자가 대부분 의무 게시 안내문이었습니다. 933자로 다시 썼습니다.
                 </p>
               </div>
+              )}
+              {crawled && (
               <div className="lp-glass lp-cx">
                 <div className="lp-cx-hd">
                   <span>다녀간 크롤러 · {caseDay}일차</span>
@@ -542,6 +557,7 @@ export default async function Home() {
                   <b> 쌓아 둔 글 32편이 AI 에겐 없는 글</b>이었습니다. 사진 69장까지 막히지 않은 곳으로 옮겼습니다.
                 </p>
               </div>
+              )}
               <div className="lp-glass lp-cx hi">
                 <div className="lp-cx-hd">
                   <span>AI 답변 인용 · 첫 기준선</span>
@@ -573,7 +589,9 @@ export default async function Home() {
                   {FIRST_VISITS.map(([t, b, p]) => (
                     <div key={t}><span>{t}</span><span>{b}</span><span>{p}</span></div>
                   ))}
-                  <div className="dim"><span>…</span><span>{vendors}곳</span><span>{hits}회 방문 · ClaudeBot {claudePages}쪽</span></div>
+                  {crawled && (
+                    <div className="dim"><span>…</span><span>{vendors}곳</span><span>{hits}회 방문{claudePages !== null && ` · ClaudeBot ${claudePages}쪽`}</span></div>
+                  )}
                 </div>
                 <a className="lp-caselink" href={CASE_URL}>
                   전체 기록 보기
