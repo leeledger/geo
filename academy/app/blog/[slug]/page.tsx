@@ -21,8 +21,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const desc = post.summary || excerpt(post.body);
   // 공유 이미지를 안 주면 네이버·카카오가 본문 첫 SVG 를 한글 글꼴 없이 그려 글자가 네모로 나온다.
   // 도해는 PNG 로도 구워 두니(svg-to-png.mjs) 그쪽을 준다.
+  // 에이전트가 그린 /blog/img/...svg 는 DB 에만 있어 PNG 가 없다. SVG 를 주면 카드 글자가 네모로 깨지니 아예 안 준다(Step 12)
   const first = /!\[[^\]]*\]\((\/blog\/[^)\s]+)\)/.exec(post.body)?.[1];
-  const image = first?.replace(/\.svg$/, ".png");
+  const image = first && !first.startsWith("/blog/img/") ? first.replace(/\.svg$/, ".png") : undefined;
   return {
     title: post.title,
     description: desc,

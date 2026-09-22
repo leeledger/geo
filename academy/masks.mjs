@@ -41,3 +41,84 @@ export const 가릴모양 = [/\/blog\/[a-z0-9-]{3,}/];
  * 학원 수요는 구 경계를 넘는다. 강동은 붙어 있는 생활권이라 같이 본다
  */
 export const 같은지역구 = ["송파", "강동"];
+
+// ─────────────────────────────────────────── 검사 — sales.mjs(초안·공개본)와 illustrate.mjs(도해)가 같이 쓴다
+export const 전화 = /(?<!\d)(?:0\d{1,2}[-.\s)]\s*\d{3,4}[-.\s]\d{4}|01[016789]\d{7,8}|1[5-9]\d{2}-\d{4})(?!\d)/;
+
+/** 태그를 떼고(쪼갠 이름이 붙게) 엔티티·URL 인코딩을 푼다 */
+export const 풀기 = (s) => {
+  let t = String(s).replace(/<style[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, "")
+    .replace(/&#x([0-9a-f]+);?/gi, (_, h) => String.fromCodePoint(parseInt(h, 16)))
+    .replace(/&#(\d+);?/g, (_, d) => String.fromCodePoint(Number(d)))
+    .replace(/&amp;/g, "&").replace(/&nbsp;/g, " ").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"');
+  t = t.replace(/(?:%[0-9A-Fa-f]{2})+/g, (m) => { try { return decodeURIComponent(m); } catch { return m; } });
+  return t;
+};
+/** 띄어쓰기·구두점을 지우고 &·and 를 「앤」으로 — 「로봇 & 코딩」「robot and coding」을 같은 말로 본다 */
+const 정규화 = (s) => String(s).toLowerCase().replace(/\band\b/g, "앤").replace(/&/g, "앤").replace(/[^0-9a-z가-힣]/g, "");
+
+/** 걸린 말 목록을 돌려준다. 비었으면 통과. 원문 → 푼 글 → 정규화본 세 번 본다 */
+export const 가림검사 = (text, 말들) => {
+  const 원문 = String(text);
+  // 주소 속 URL 인코딩은 태그 안(href)에 있다 — 태그를 떼기 전에도 한 번 푼다
+  const 원문풀림 = 원문.replace(/(?:%[0-9A-Fa-f]{2})+/g, (m) => { try { return decodeURIComponent(m); } catch { return m; } });
+  const 푼글 = 풀기(원문);
+  const 접힌 = 정규화(푼글);
+  const 걸림 = new Set();
+  const 글들 = [원문, 원문풀림, 푼글].map((x) => x.toLowerCase());
+  for (const m of 말들) {
+    const low = m.toLowerCase();
+    // 두 글자 한글(가락·송파 등)은 앞 글자가 한글이면 남의 낱말이다(손가락). 그때는 안 센다
+    const 있음 = /^[가-힣]{2}$/.test(m)
+      ? 글들.some((g) => new RegExp(`(?<![가-힣])${m}`).test(g))
+      : 글들.some((g) => g.includes(low));
+    if (있음) { 걸림.add(m); continue; }
+    // 정규화본은 네 글자 이상만 — 두 글자 지역어를 공백까지 지운 글에서 찾으면 남의 낱말(「손가락」 등)에 걸린다. 짧은 말은 위 두 번으로 본다
+    const n = 정규화(m);
+    if (n.length >= 4 && 접힌.includes(n)) 걸림.add(`${m} (띄어쓰기·표기 바꿈)`);
+  }
+  for (const re of 가릴모양) { const x = 푼글.match(re); if (x) 걸림.add(`모양 ${x[0]}`); }
+  for (const x of 푼글.match(new RegExp(전화.source, "g")) ?? []) 걸림.add(`전화번호 ${x}`);
+  return [...걸림];
+};
+
+/**
+ * 고객사를 알아보게 하는 말 — 이름·도메인·표기(brandRe)·주소·전화 끝자리(presenceRe). 정규식 원문에서 글자만 꺼낸다.
+ * clients 는 clients.mjs 의 CLIENTS 모양
+ */
+export const 고객사말 = (clients) => {
+  const 말 = new Set();
+  for (const c of clients) {
+    말.add(c.name);
+    말.add(c.domain);
+    if (c.name.includes("&")) {
+      const 줄기 = c.name.replace(/학원$/, "");
+      for (const x of [c.name, 줄기]) { 말.add(x.replace("&", "&amp;")); 말.add(x.replace("&", "앤")); 말.add(x); }
+    }
+    for (const p of [String(c.brandRe?.source ?? ""), String(c.presenceRe?.source ?? "")].join("|").split("|")) {
+      const t = p.replace(/\\s\*/g, " ").replace(/-\?/g, "-").replace(/[\\^$()?*+[\]{}]/g, "").trim();
+      if (t.length >= 4) 말.add(t);
+    }
+  }
+  return [...말].filter(Boolean);
+};
+
+/**
+ * 지어낸 숫자를 잡는다. 전에는 `재료.includes(n)` 이라 「30%」도 재료 어딘가의 「30」 에 붙어 통과했다(Richard 9/22).
+ *   숫자는 재료의 숫자 토큰 집합에 통째로 있어야 하고,
+ *   단위가 붙은 수(「30%」「세 배」「두 달」)는 그 구절이 재료에 그대로 있어야 한다
+ * 재료에 없는 숫자·구절 목록을 돌려준다. 비었으면 통과. 예외 = 말투로 쓰는 구절(띄어쓰기 없이)
+ */
+const 숫자토큰 = (s) => new Set([...String(s).matchAll(/\d+(?:[.,]\d+)*/g)].map((m) => m[0].replace(/,/g, "")));
+const 한글수 = "다섯|여섯|일곱|여덟|아홉|스무|서른|마흔|수십|수백|몇십|한|두|세|네|열|쉰|백|천|만";
+const 단위 = "퍼센트|개월|주일|시간|군데|가지|%|배|명|건|곳|개|번|회|일|주|달|년|쪽|편|위|점|분";
+// 한글 수 앞에 한글이 붙어 있으면 수가 아니다 — 「중요한 점」「간단한 일」의 「한」 (도해 글자에서 흔하다, Step 12)
+const 단위구절 = new RegExp(`(?:\\d+(?:[.,]\\d+)*|(?<![가-힣])(?:${한글수}))\\s*(?:${단위})`, "g");
+const 접기 = (s) => String(s).replace(/\s+/g, "");
+export const 수검사 = (글, 재료, 예외 = new Set()) => {
+  const 재료수 = 숫자토큰(재료);
+  const 재료접힘 = 접기(재료);
+  const 모르는 = [...숫자토큰(글)].filter((n) => !재료수.has(n));
+  const 구절 = [...new Set([...String(글).matchAll(단위구절)].map((m) => 접기(m[0])))].filter((p) => !예외.has(p) && !재료접힘.includes(p));
+  return [...모르는, ...구절];
+};

@@ -27,6 +27,17 @@ create index if not exists posts_pub_idx
   on academy.posts (published, published_at desc nulls last);
 create index if not exists posts_cat_idx on academy.posts (category);
 
+-- 에이전트가 그린 도해 (Step 12). 학원 사이트는 git push 로 배포되지 않아 public/ 에 못 올린다 —
+-- 글처럼 DB 에 두고 /blog/img/<slug>/<name>.svg 로 내보낸다 (app/blog/img/[slug]/[name]/route.ts)
+create table if not exists academy.post_images (
+  slug       text not null,
+  name       text not null,
+  svg        text not null,
+  alt        text not null,
+  created_at timestamptz not null default now(),
+  unique (slug, name)
+);
+
 -- 공개 글만 보는 뷰 — 페이지 쪽에서 실수로 초안을 노출하지 않게 한다
 create or replace view academy.published_posts as
   select id, slug, title, summary, body, category, tags, cover_alt,

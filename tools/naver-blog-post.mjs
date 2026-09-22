@@ -32,6 +32,8 @@ import { chromium } from "playwright";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
+import os from "node:os";
+import { spawnSync } from "node:child_process";
 import { Pool } from "pg";
 
 const BLOG_ID = process.env.NAVER_BLOG_ID || "force11";
@@ -73,6 +75,9 @@ const pool = new Pool({
 const { rows } = await pool.query(
   `select slug, title, body, tags from academy.posts where slug = $1`, [slug],
 );
+// 에이전트가 그린 도해는 public/blog 가 아니라 DB 에 있다(/blog/img/<슬러그>/<이름>.svg, Step 12)
+const dbImgs = rows[0]?.body.includes(`/blog/img/${slug}/`)
+  ? (await pool.query(`select name, svg from academy.post_images where slug = $1`, [slug])).rows : [];
 await pool.end();
 if (!rows.length) { console.log(`${slug} 글이 없습니다.`); process.exit(1); }
 const post = rows[0];
@@ -86,6 +91,19 @@ const TAGS = [...new Set([...post.tags, ...LOCAL])].slice(0, 30);
 // 게다가 조용히 「그림 없음」으로 넘어가서 사진 0장짜리 글이 그대로 올라간다.
 // 60행처럼 파일 위치 기준으로 잡으면 어디서 돌리든 맞는다.
 const IMGDIR = fileURLToPath(new URL(`../academy/public/blog/${slug}/`, import.meta.url));
+
+/**
+ * DB 도해는 임시 폴더에 SVG 로 풀어 svg-to-png.mjs 로 굽는다. 파싱 오류면 그 도구가 멈추고 PNG 를 안 만든다 —
+ * 빨간 오류 화면이 올라가지 않는다. 구운 PNG 가 없는 그림은 아래 toBlocks 가 「그림 없음」으로 알린다
+ */
+const DBIMGDIR = path.join(os.tmpdir(), `naver-img-${slug}`);
+if (dbImgs.length) {
+  fs.rmSync(DBIMGDIR, { recursive: true, force: true });
+  fs.mkdirSync(DBIMGDIR, { recursive: true });
+  for (const im of dbImgs) fs.writeFileSync(path.join(DBIMGDIR, `${im.name}.svg`), im.svg);
+  const bake = spawnSync(process.execPath, [fileURLToPath(new URL("./svg-to-png.mjs", import.meta.url)), DBIMGDIR, "--scale", "1"], { encoding: "utf8" });
+  console.log(`DB 도해 ${dbImgs.length}장 굽기\n${(bake.stdout ?? "").trimEnd()}${bake.status ? `\n  ⚠ 굽기 실패 ${(bake.stderr ?? "").trim().slice(-300)}` : ""}`);
+}
 
 const PARA_BREAK = /\n\s*\n/;
 
@@ -105,7 +123,7 @@ function toBlocks(md) {
     const img = /^!\[[^\]]*\]\(([^)]+)\)$/.exec(s);
     if (img) {
       const file = path.basename(img[1]).replace(/\.svg$/, ".png");
-      const p = path.join(IMGDIR, file);
+      const p = path.join(img[1].startsWith("/blog/img/") ? DBIMGDIR : IMGDIR, file);
       if (fs.existsSync(p)) out.push({ img: p });
       else console.log(`  (그림 없음, 건너뜀: ${file})`);
       continue;
@@ -443,6 +461,13 @@ if (await box.isVisible().catch(() => false)) {
 if (DRY) {
   // 하단부(QR·지도·링크 카드)를 사람이 안 봐도 확인할 수 있게 찍어 둔다
   await page.keyboard.press("Escape");
+  // 본문 도해가 PNG 로 들어갔는지 — 첫 본문 사진(하단 QR 카드 앞)을 따로 찍는다
+  if (BLOCKS.some((b) => b.img)) {
+    await F.locator(".se-component.se-image").first().scrollIntoViewIfNeeded().catch(() => {});
+    await page.waitForTimeout(1500);
+    await page.screenshot({ path: path.join(process.cwd(), "naver-dry-image.png") });
+    console.log("  본문 첫 사진: naver-dry-image.png");
+  }
   await F.locator(".se-component").last().scrollIntoViewIfNeeded().catch(() => {});
   await page.waitForTimeout(1500);
   await page.screenshot({ path: path.join(process.cwd(), "naver-dry-bottom.png") });

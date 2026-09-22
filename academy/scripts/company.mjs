@@ -276,6 +276,13 @@ const 계획 = async (clients, { latest: latestRuns, ok: ghOk }) => {
       title: `초안 검토: ${p.title}`, detail: "AI 티를 검사하고 다듬은 뒤, 사실 확인·발행을 원장에게 넘깁니다.",
       payload: { slug: p.slug }, link: `${ADMIN}/admin/drafts#${p.slug}` });
   }
+  // 도해 없는 초안 — 원장이 사실 확인할 때 그림도 같이 보게 발행 전에 붙인다 (Step 12, illustrate.mjs)
+  for (const p of await q(`select slug, title, client_id from academy.posts where not published and position('![' in body) = 0
+                             and not (coalesce(review_notes,'{}'::jsonb) ? '삽화') order by created_at`)) {
+    await 일감({ client_id: p.client_id, agent: "content", kind: "illustrate", key: `illustrate-${p.slug}`, priority: 16,
+      title: `도해 그리기: ${p.title}`, detail: "초안에 도해 1~2장을 그려 붙입니다. 본문에 없는 숫자·다른 고객사 이름이 든 그림은 버립니다.",
+      payload: { slug: p.slug }, link: `${ADMIN}/admin/drafts#${p.slug}` });
+  }
 
   // 상담 결과 미입력 · 새 리드
   const inq = await q(`select client_id, count(*)::int n from academy.inquiries where enrolled is null group by client_id`).catch(() => null);
@@ -302,7 +309,7 @@ const 계획 = async (clients, { latest: latestRuns, ok: ghOk }) => {
   const open = await q(`select id, client_id, dedupe_key, title from geo.agent_tasks
     where status in ('대기','관찰','사람 대기','로컬 대기','실패') and not coalesce((payload->>'sticky')::boolean, false)
       and (case when dedupe_key like 'wf-%' then 'gh'
-                when dedupe_key like 'review-%' then 'drafts'
+                when dedupe_key like 'review-%' or dedupe_key like 'illustrate-%' then 'drafts'
                 when dedupe_key in ('inquiry-result', 'lead-new') then 'db'
                 when dedupe_key like 'login-%' then 'local'
                 else 'scout' end) = any($1)`, [[...읽음]]);
@@ -491,6 +498,28 @@ const EXEC = {
     return { status: "사람 대기", link: `${ADMIN}/admin/drafts#${slug}`,
       evidence: `${오늘()} AI 티 검사 ${티.length ? `걸림 ${티.length}종` : "걸린 표현 없음"}${다듬음 ? ` · ${다듬음}` : ""}`,
       error: "사실 확인 후 발행 (검토 화면에서 한 번에)" };
+  },
+
+  async illustrate(t) {
+    const slug = t.payload.slug;
+    // 매시 1편 — 구독 한도를 원장과 같이 쓴다. 이번 시간에 이미 그렸으면 다음 실행으로
+    const [최근] = await q(`select count(*)::int n from geo.claude_calls where purpose='illustrate' and at > now() - interval '50 minutes'`).catch(() => [null]);
+    if (!최근) return { status: "대기", nextTry: 뒤(1), evidence: `${오늘()} Claude 호출 수를 못 셈 — 다음 시간에` };
+    if (최근.n > 0) return { status: "대기", nextTry: 뒤(1), evidence: `${오늘()} 이번 시간 도해는 이미 1편 그림 — 다음 시간에` };
+    const r = 실행(["scripts/illustrate.mjs", "--slug", slug, "--task", String(t.id)], 12 * 60 * 1000);
+    let o = null;
+    try { o = JSON.parse(/^ILLUSTRATE=(.+)$/m.exec(r.out)?.[1] ?? ""); } catch { o = null; }
+    const link = `${ADMIN}/admin/drafts#${slug}`;
+    switch (o?.상태) {
+      case "붙임": return { status: "완료", link, evidence: `${오늘()} 도해 ${o.장수}장 붙임${o.버린것?.length ? ` · 버림 ${o.버린것.length}장 (${끝(o.버린것.join(" / "), 200)})` : ""}` };
+      case "다버림": return { status: "완료", link, evidence: `${오늘()} 도해를 다 버림 — 초안은 그대로 (${끝(o.버린것.join(" / "), 300)})` };
+      case "대상없음": return { status: "닫힘", evidence: `${오늘()} 이미 그림이 있거나 발행됐거나 없음` };
+      // 한도·설정 없음은 고장이 아니다. 실패로 세어 사람에게 넘기면 진짜 고장이 묻힌다
+      case "한도": return { status: "대기", nextTry: 뒤(6), evidence: `${오늘()} Claude 한도 — 미룸 (${끝(o.오류, 120)})` };
+      case "클로드없음": return { status: "대기", nextTry: 뒤(12), evidence: `${오늘()} Claude Code 가 없어 미룸` };
+      case "고쳐짐": return { status: "실패", attempt: true, nextTry: 뒤(1), error: `그리는 사이 본문이 고쳐져 넣지 않음 — 새 본문으로 다시` };
+      default: return { status: "실패", attempt: true, error: `도해 실패 ${끝(o?.오류 ?? r.out, 300)}` };
+    }
   },
 
   // ── 유통

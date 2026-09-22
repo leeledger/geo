@@ -28,7 +28,7 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { Pool } from "pg";
 import { CLIENTS } from "../clients.mjs";
-import { 가릴원문, 가릴모양, 같은지역구 } from "../masks.mjs";
+import { 가릴원문, 같은지역구, 가림검사, 고객사말, 수검사, 풀기 } from "../masks.mjs";
 import { 클로드코드, 클로드코드있음, 클로드기록연결 } from "./claude-code.mjs";
 
 const envFile = new URL("../.env.local", import.meta.url);
@@ -68,28 +68,14 @@ const 이번주 = () => {
 };
 
 // ─────────────────────────────────────────── 가림 검사
-const 전화 = /(?<!\d)(?:0\d{1,2}[-.\s)]\s*\d{3,4}[-.\s]\d{4}|01[016789]\d{7,8}|1[5-9]\d{2}-\d{4})(?!\d)/;
-
 /**
  * 공개본에 있으면 안 되는 말. 조합되면 특정된다 — 이름만이 아니라 지역·전화까지 (CLAUDE.md 「고객사는 가린다」).
  * masks.mjs 의 원문 쪽 말 + clients.mjs 이름·도메인·표기 + 영업 후보 이름.
  * 영업 후보 이름을 못 읽으면 멈춘다 — 조용히 빼고 통과하면 경쟁 학원 이름이 새도 모른다(Richard 9/22)
+ * 검사 함수(가림검사·수검사)는 masks.mjs 에 있다 — 도해 담당(illustrate.mjs)이 같이 쓴다(Step 12)
  */
 const 가릴말 = async ({ 후보 = true } = {}) => {
-  const 말 = new Set(가릴원문);
-  for (const c of CLIENTS) {
-    말.add(c.name);
-    말.add(c.domain);
-    if (c.name.includes("&")) {
-      const 줄기 = c.name.replace(/학원$/, "");
-      for (const x of [c.name, 줄기]) { 말.add(x.replace("&", "&amp;")); 말.add(x.replace("&", "앤")); 말.add(x); }
-    }
-    // 브랜드 표기(brandRe)와 주소·전화 끝자리(presenceRe — who-wins 가 「우리」를 알아보는 말). 정규식 원문에서 글자만 꺼낸다
-    for (const p of [String(c.brandRe?.source ?? ""), String(c.presenceRe?.source ?? "")].join("|").split("|")) {
-      const t = p.replace(/\\s\*/g, " ").replace(/-\?/g, "-").replace(/[\\^$()?*+[\]{}]/g, "").trim();
-      if (t.length >= 4) 말.add(t);
-    }
-  }
+  const 말 = new Set([...가릴원문, ...고객사말(CLIENTS)]);
   if (후보) {
     const rows = await q(`select name from geo.outreach_targets`); // 실패하면 throw — fail-closed
     for (const r of rows) if (r.name?.length >= 2) 말.add(r.name);
@@ -97,63 +83,13 @@ const 가릴말 = async ({ 후보 = true } = {}) => {
   return [...말].filter(Boolean);
 };
 
-/** 태그를 떼고(쪼갠 이름이 붙게) 엔티티·URL 인코딩을 푼다 */
-const 풀기 = (s) => {
-  let t = String(s).replace(/<style[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, "")
-    .replace(/&#x([0-9a-f]+);?/gi, (_, h) => String.fromCodePoint(parseInt(h, 16)))
-    .replace(/&#(\d+);?/g, (_, d) => String.fromCodePoint(Number(d)))
-    .replace(/&amp;/g, "&").replace(/&nbsp;/g, " ").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"');
-  t = t.replace(/(?:%[0-9A-Fa-f]{2})+/g, (m) => { try { return decodeURIComponent(m); } catch { return m; } });
-  return t;
-};
-/** 띄어쓰기·구두점을 지우고 &·and 를 「앤」으로 — 「로봇 & 코딩」「robot and coding」을 같은 말로 본다 */
-const 정규화 = (s) => String(s).toLowerCase().replace(/\band\b/g, "앤").replace(/&/g, "앤").replace(/[^0-9a-z가-힣]/g, "");
-
-/** 걸린 말 목록을 돌려준다. 비었으면 통과. 원문 → 푼 글 → 정규화본 세 번 본다 */
-const 가림검사 = (text, 말들) => {
-  const 원문 = String(text);
-  // 주소 속 URL 인코딩은 태그 안(href)에 있다 — 태그를 떼기 전에도 한 번 푼다
-  const 원문풀림 = 원문.replace(/(?:%[0-9A-Fa-f]{2})+/g, (m) => { try { return decodeURIComponent(m); } catch { return m; } });
-  const 푼글 = 풀기(원문);
-  const 접힌 = 정규화(푼글);
-  const 걸림 = new Set();
-  const 글들 = [원문, 원문풀림, 푼글].map((x) => x.toLowerCase());
-  for (const m of 말들) {
-    const low = m.toLowerCase();
-    // 두 글자 한글(가락·송파 등)은 앞 글자가 한글이면 남의 낱말이다(손가락). 그때는 안 센다
-    const 있음 = /^[가-힣]{2}$/.test(m)
-      ? 글들.some((g) => new RegExp(`(?<![가-힣])${m}`).test(g))
-      : 글들.some((g) => g.includes(low));
-    if (있음) { 걸림.add(m); continue; }
-    // 정규화본은 네 글자 이상만 — 두 글자 지역어를 공백까지 지운 글에서 찾으면 남의 낱말(「손가락」 등)에 걸린다. 짧은 말은 위 두 번으로 본다
-    const n = 정규화(m);
-    if (n.length >= 4 && 접힌.includes(n)) 걸림.add(`${m} (띄어쓰기·표기 바꿈)`);
-  }
-  for (const re of 가릴모양) { const x = 푼글.match(re); if (x) 걸림.add(`모양 ${x[0]}`); }
-  for (const x of 푼글.match(new RegExp(전화.source, "g")) ?? []) 걸림.add(`전화번호 ${x}`);
-  return [...걸림];
-};
-
 // ─────────────────────────────────────────── 초안 숫자 검사
-const 숫자토큰 = (s) => new Set([...String(s).matchAll(/\d+(?:[.,]\d+)*/g)].map((m) => m[0].replace(/,/g, "")));
-const 한글수 = "다섯|여섯|일곱|여덟|아홉|스무|서른|마흔|수십|수백|몇십|한|두|세|네|열|쉰|백|천|만";
-const 단위 = "퍼센트|개월|주일|시간|군데|가지|%|배|명|건|곳|개|번|회|일|주|달|년|쪽|편|위|점|분";
-const 단위구절 = new RegExp(`(?:\\d+(?:[.,]\\d+)*|(?:${한글수}))\\s*(?:${단위})`, "g");
 /** 틀 문장에서 쓰는 구절 — 주장이 아니라 말투다 */
 const 틀구절 = new Set(["세가지", "다섯건", "한달", "한곳", "한번"]);
-const 접기 = (s) => String(s).replace(/\s+/g, "");
-/**
- * 지어낸 숫자를 잡는다. 전에는 `재료.includes(n)` 이라 「30%」도 재료 어딘가의 「30」 에 붙어 통과했다(Richard 9/22).
- *   숫자는 재료의 숫자 토큰 집합에 통째로 있어야 하고,
- *   단위가 붙은 수(「30%」「세 배」「두 달」)는 그 구절이 재료에 그대로 있어야 한다
- */
 const 초안검사 = (초안, 재료, 말들, 금지말 = []) => {
-  const 재료수 = 숫자토큰(재료);
-  const 재료접힘 = 접기(재료);
-  const 모르는 = [...숫자토큰(초안)].filter((n) => !재료수.has(n));
-  const 구절 = [...new Set([...String(초안).matchAll(단위구절)].map((m) => 접기(m[0])))].filter((p) => !틀구절.has(p) && !재료접힘.includes(p));
+  const 모르는숫자 = 수검사(초안, 재료, 틀구절);
   const 걸림 = [...가림검사(초안, 말들), ...금지말.filter((w) => 초안.includes(w)).map((w) => `같은 지역 후보에게 쓰면 안 되는 말 「${w}」`)];
-  return { ok: !모르는.length && !구절.length && !걸림.length, 모르는숫자: [...모르는, ...구절], 걸림 };
+  return { ok: !모르는숫자.length && !걸림.length, 모르는숫자, 걸림 };
 };
 
 // ─────────────────────────────────────────── 1. 케이스 리포트 (쓰기만, 커밋은 --push)
