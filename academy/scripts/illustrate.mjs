@@ -209,7 +209,9 @@ const 한장검사 = ({ svg, alt }, 재료, 말들) => {
   const vb = /<svg\b[^>]*\sviewBox\s*=\s*["']\s*0[\s,]+0[\s,]+([\d.]+)[\s,]+([\d.]+)\s*["']/.exec(svg);
   const w = /<svg\b[^>]*\swidth\s*=\s*["']([\d.]+)/.exec(svg)?.[1];
   if (!vb || Number(vb[1]) !== 960 || (w && Number(w) !== 960)) 이유.push(`폭이 960 이 아님 (viewBox ${vb ? `${vb[1]}×${vb[2]}` : "없음"}${w ? ` · width ${w}` : ""})`);
-  if (!/aria-label\s*=\s*["'][^"']{10,}/.test(svg)) 이유.push("aria-label 에 내용이 없음");
+  // 큰따옴표 값 안의 작은따옴표(「'인정교과서'라는」)를 끝으로 읽으면 멀쩡한 그림을 버린다(9/22 서버 첫 실행)
+  const aria = /\saria-label\s*=\s*(?:"([^"]*)"|'([^']*)')/.exec(svg);
+  if (!aria || (aria[1] ?? aria[2]).trim().length < 10) 이유.push("aria-label 에 내용이 없음");
 
   // 차트 — 막대는 값에 비례, 축 눈금은 0 부터 같은 간격
   이유.push(...막대검사(svg), ...축검사(svg));
@@ -455,6 +457,8 @@ const 시험 = async () => {
   const 축 = (눈금들) => 눈금들.map((t, i) => `<text data-axis="c" x="${100 + i * 100}" y="340">${t}</text>`).join("");
   const 사례 = [
     ["좋은 도해", 좋은, "두 단계 도해. 1단계 블록 코딩, 2단계 파이썬.", true],
+    ["aria-label 안 작은따옴표", 좋은.replace('aria-label="두 단계로', `aria-label="'두 단계'로`), "도해", true],
+    ["aria-label 없음", 좋은.replace(/ aria-label="[^"]*"/, ""), "도해", false],
     ["파싱 오류 — 날 &", 틀("로봇 & 코딩"), "도해", false],
     ["파싱 오류 — 태그 짝", 틀("<tspan>블록</text>"), "도해", false],
     ["파싱 오류 — 안 닫힘", 좋은.replace("</svg>", ""), "도해", false],
