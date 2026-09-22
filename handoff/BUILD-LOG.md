@@ -573,3 +573,15 @@ Known Gaps
 - KG: `/admin/ops` 는 담당 카드(AgentBoard roles)에 audit 가 없어 `대기`·`수리 대기` 조사 일감이 카드에 안 뜬다. `사람 대기` 만 「원장님이 하실 일」에 뜬다. 이름표 한 줄 목록이 없어 brief 대로 손대지 않았다
 - 후속(b021963): audit 의 「감사」 행이 run_url 을 달면 company 출근기록이 그 실행을 「이미 봤다」로 건너뛴다 — run_url 을 비움. 재시험에서 「자동 작업 audit」 3행 확인, R1 두 건은 회복으로 닫힘
 - KG: company.yml schedule 이 실제로는 몇 시간씩 빈다(9/22 05:10Z 뒤 schedule 없음). R6 의 「3시간」이 GitHub cron 지연으로 걸릴 수 있다 — 한 주 보고 기준을 정할 것
+
+### Step 9 — Richard 1차 반영 — BUILT (재검토 대기)
+*Date: 2026-09-22 · Bob*
+
+- Must: 조사관 칸막이. `claude-code.mjs` 에 allow·deny(기본 빈 값). 조사관은 `Read/Grep/Glob(./**)`+WebSearch 만 허락, `dontAsk`, `//proc/**`·`~/.claude/**`·`**/.env*` 거절. envDrop 은 그대로. Actions run 35701778583 에서 CLI 권한 거절 6건(/proc/self·부모 pid environ·.env 표지·.env.local·~/.claude 자격증명·Grep /proc)을 로그로 확인
+- 결정(Arch): 조사관에게 WebFetch 없음 — 근거는 저장소 파일:줄과 facts 로 충분하고, 웹 글 속 지시 → 읽은 비밀을 주소로 내보내는 길을 막는다
+- 결정(Arch): 7일 창을 벗어난 것은 풀린 게 아니다. 사람 대기·수리 대기 조사는 규칙이 본 **회복 증거**가 있을 때만 닫는다. 대기·관찰·실패는 신호가 사라지면 닫는다
+- 결정(Arch): 구독 토큰 인증 실패는 `claude-auth` 사람 대기 일감 하나로(setup-token → gh secret set). 이후 호출이 되면 저절로 완료
+- 결정: 칸막이 시험의 증거는 모델 답이 아니라 CLI 의 `permission_denials`. 첫 시험에서 모델이 도구를 안 부르고 스스로 거절해 증명이 안 됐다
+- 결정: 다시 열린 조사는 지문(신호의 핵심 사실)이 같으면 직전 진단 재사용. unknown 은 재사용 안 하고 두 번이면 사람 대기. 진단 실패는 payload.diag_fail 로 따로 세서 3번이면 사람 대기
+- 결정: 근거는 `파일:줄`·URL 만, audit.mjs 자신은 제외(순환 근거)
+- 시험 중 러너→DB ETIMEDOUT 1회(run 35701689476) — 다시 돌려 통과. 반복되면 감사 자체 실패로 회사 루프가 wf-audit 일감을 연다
