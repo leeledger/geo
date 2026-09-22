@@ -177,13 +177,27 @@ const main = async () => {
       continue;
     }
     if (r.status !== "완료" || !r.effective_on) continue;
-    const 전 = 창(r.target_prompt, 날더하기(r.effective_on, -14), r.effective_on);
-    const 후 = 창(r.target_prompt, 날더하기(r.effective_on, 7));
+    /**
+     * 전후는 같은 엔진끼리만 잰다. 2026-09-22 에 측정이 openrouter → claude-code-web 로 바뀌었다.
+     * 섞으면 「전」은 한 엔진, 「후」는 다른 엔진이 되고, 엔진이 바뀐 차이가 「효과 있음」으로 적혀
+     * 케이스 리포트(영업 숫자)로 간다 — 지어낸 숫자와 같다. 양쪽 다 5건 넘는 엔진이 없으면 판정을 미룬다.
+     */
+    const 전전부 = 창(r.target_prompt, 날더하기(r.effective_on, -14), r.effective_on);
+    const 후전부 = 창(r.target_prompt, 날더하기(r.effective_on, 7));
+    const 엔진후보 = [...new Set(전전부.map((x) => x.engine))]
+      .map((e) => ({ e, 전: 전전부.filter((x) => x.engine === e), 후: 후전부.filter((x) => x.engine === e) }))
+      .filter((x) => x.전.length >= 5 && x.후.length >= 5)
+      .sort((a, b) => b.전.length + b.후.length - (a.전.length + a.후.length));
+    const 고른 = 엔진후보[0];
+    const 전 = 고른?.전 ?? [];
+    const 후 = 고른?.후 ?? [];
     const 전율 = 퍼센트(전.filter(적중).length, 전.length);
     const 후율 = 퍼센트(후.filter(적중).length, 후.length);
     let verdict = null;
-    let note = `전 ${전.filter(적중).length}/${전.length}(${전율}%) → 후 ${후.filter(적중).length}/${후.length}(${후율}%)`;
-    if (전.length >= 5 && 후.length >= 5) {
+    let note = 고른
+      ? `${고른.e} 전 ${전.filter(적중).length}/${전.length}(${전율}%) → 후 ${후.filter(적중).length}/${후.length}(${후율}%)`
+      : `같은 엔진으로 전후 5건씩 모인 게 없음 (전 ${전전부.length}건 · 후 ${후전부.length}건, 엔진이 다르면 안 섞음)`;
+    if (고른) {
       verdict = 후율 - 전율 >= 20 && 후.filter(적중).length >= 2 ? "효과 있음" : "효과 없음";
     } else if (r.effective_on <= 날더하기(오늘, -35)) {
       verdict = "표본 부족";
