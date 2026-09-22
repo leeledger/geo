@@ -759,3 +759,35 @@ Known Gaps
 
 Known Gaps
 - KG: data-value 없는 막대 그림 잡기(막대모양)는 rx ≤ 6 이고 굵기 ≤ 40 인 rect 만 본다. path 로 그린 막대나 rx 7 이상 막대는 빠져나간다 — 원장이 발행 전 검토 화면 미리보기에서 그림을 본다
+
+### Step 13 — 현황판 「성장」 섹션 — BRIEFED
+*Date: 2026-09-22 · Arch*
+
+원장: 「실제로 얼마나 성장하고 있는지 가늠이 힘들다」. 브리프 handoff/ARCHITECT-BRIEF.md.
+- 결정: 비교는 최근 7일 vs 그 전 7일(문의·리드 30/30). 달력 주로 비교하지 않는다 — 진행 중인 주가 늘 떨어져 보인다
+- 결정: 증감률(%) 안 쓴다. 절대 차 + 이전 값을 같이 적는다(작은 수의 +300% 방지)
+- 결정: AI 측정은 엔진+방법 쌍 안에서, 두 회차 공통 prompt_id 로만 비교
+- 결정: 경쟁 검색어 추세는 kind=경쟁 만. 엔진 수가 모자란 날(9/21 빙만)은 빈칸
+- 결정: 크롤러 방문 수는 중립 지표. 판단은 ★ 커버리지(google·naver·microsoft). 분모는 지금 site_pages — 「지금 있는 N쪽 기준 누적」이라 적는다
+- 결정: 차트 계열색 google #1F9E90 · naver #7C8AF2 · 빙 #C27A14 고정 순서(검증 통과). 새 패키지 없이 손 SVG
+
+Known Gaps
+- KG: site_pages 가 오늘 것만 있어 과거 날짜의 실제 분모를 모른다 — 날짜별 쪽 목록을 쌓아야 정확한 과거 커버리지가 나온다
+- KG: 플레이스 순위 측정이 9/09 뒤로 멈춰 있다(place_checks 이틀치)
+- KG: Step 13 뒤 기존 「고객사 성과 지표」 칸과 성장 칸이 겹친다 — 다음 단계에서 정리
+
+### Step 13 — 현황판 「성장」 섹션 — BUILT (Richard 검토 대기)
+*Date: 2026-09-22 · Bob*
+
+Files: web/lib/growth.ts(새) · web/app/admin/ops/Growth.tsx(새) · web/app/admin/ops/CoverageChart.tsx(새) · web/lib/ops.ts(pool export 한 줄) · web/app/admin/ops/page.tsx(readGrowth + <Growth> 한 줄)
+- 결정(Bob): Growth 타입에 브리프에 없는 두 칸을 더했다 — `inquiries.ever`(0건과 기록 없음을 가르려고) · `weeks`(표로 보기 주별 요약. 추세선용 daily 는 14일이라 착수 주를 못 덮는다). 주별 경쟁 검색어 = 그 주에서 엔진 수가 그 주 최대인 마지막 날
+- 결정(Bob): AI 칸의 변화 방향(판정 줄)은 가장 최근 쌍 compare 의 **언급** 수로 잡는다. 인용은 같은 줄 글자로만
+- 결정(Bob): 차트는 상자 폭을 ResizeObserver 로 재서 그 픽셀 폭을 viewBox 로 쓴다 — 고정 viewBox 를 390px 에 줄이면 축 글자가 5px 가 된다
+- 결정(Bob): 판정 줄 숫자 뒤에 해당 칸 이름을 흐리게 붙였다(「좋아진 것 2 (커버리지·학원 문의)」). 문장은 아니다
+- 결정(Bob): 섹션 뿌리를 `<section>` 대신 `<div>` — globals.css 의 `section{padding:112px 0}` 이 먹는다. 같은 이유로 `.wrap` 클래스 이름을 피했다. `details` 도 globals 가 흰 배경을 줘서 `.gr details` 로 덮었다
+- 검증: tsc 0 · 로컬 next dev + 운영 DB · Playwright 1280/390 × robotncoding/ilog · 가로 스크롤 없음 · 콘솔 오류 0
+
+Known Gaps
+- KG: 기존 page.tsx 의 「표로 보기 아닌」 `.ops-disclosure`(자동 실행 일정) 도 globals 의 details 흰 배경을 받을 수 있다 — 이번에 안 봤다
+- KG: next dev 가 web/AGENTS.md · web/CLAUDE.md 를 만든다(agentRules). 지웠고 커밋 안 함
+- KG: 기존 ops.ts sales.leads30d 는 `scan_id is not null or source='free_scan'` 필터, 성장 칸은 브리프대로 geo.leads 전체 — 두 칸 숫자가 다를 수 있다(지금은 둘 다 0)

@@ -7,6 +7,8 @@ import AgentBoard from "./AgentBoard";
 import Link from "next/link";
 import { inquirySummary } from "@/lib/inquiries";
 import Brief from "./Brief";
+import Growth from "./Growth";
+import { readGrowth, type Growth as GrowthData } from "@/lib/growth";
 /** 로그인 뒤 돌아올 자리 */
 const HERE = "/admin/ops";
 
@@ -196,7 +198,16 @@ export default async function OpsPage({
   const clients = await listClients();
   const client = clients.find((x) => x.slug === want) ?? clients[0] ?? null;
 
-  const [d, inq] = await Promise.all([readOps(client ?? undefined), inquirySummary(client?.id)]);
+  const [d, inq, gr] = await Promise.all([
+    readOps(client ?? undefined),
+    inquirySummary(client?.id),
+    // 통째로 실패하면 섹션에 이유 한 줄. 조각 실패는 readGrowth 안에서 null 로 잡힌다
+    client
+      ? readGrowth(client).then(
+          (g): { g: GrowthData | null; err?: string } => ({ g }),
+          (e) => ({ g: null, err: e instanceof Error ? e.message : String(e) }))
+      : Promise.resolve({ g: null, err: "고객사가 없습니다" }),
+  ]);
   const im = inq[0];
   // 「최고 커버리지」는 듣기 좋은 숫자였다. 실제로 손봐야 하는 건 제일 낮은 쪽이다 —
   // google 95% 옆에 openai 15% 가 있으면 문제는 openai 다.
@@ -257,6 +268,8 @@ export default async function OpsPage({
         )}
 
         {!d.ok && <div className="err">데이터를 못 읽었습니다 — {d.err}</div>}
+
+        <Growth g={gr.g} err={gr.err} client={client} />
 
         <AgentBoard data={d} clientName={client?.name ?? "고객사 미선택"} />
         <Brief />

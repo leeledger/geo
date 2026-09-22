@@ -10,7 +10,7 @@ import { Pool } from "pg";
 
 const g = globalThis as unknown as { __opsPool?: Pool };
 
-function pool(): Pool {
+export function pool(): Pool {
   if (!g.__opsPool) {
     const dsn = process.env.DATABASE_URL;
     if (!dsn) throw new Error("DATABASE_URL 없음");
