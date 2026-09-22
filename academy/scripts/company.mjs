@@ -203,7 +203,7 @@ const 뒤 = (h) => new Date(Date.now() + h * 3600 * 1000).toISOString();
 const 오늘 = () => new Date().toLocaleString("sv-SE", { timeZone: "Asia/Seoul" }).slice(0, 16);
 
 // ─────────────────────────────────────────── 1. 출근 기록
-const WORKFLOWS = { "watch.yml": "ops", "scout.yml": "ops", "serp.yml": "measure", "snapshot.yml": "deliver", "write.yml": "content", "optimize.yml": "improve", "audit.yml": "ops", "repair.yml": "ops" };
+const WORKFLOWS = { "watch.yml": "ops", "scout.yml": "ops", "serp.yml": "measure", "snapshot.yml": "deliver", "write.yml": "content", "optimize.yml": "improve", "audit.yml": "ops", "repair.yml": "ops", "sales.yml": "sales" };
 const gh = async (path, init = {}) => {
   if (!process.env.GH_TOKEN) return null;
   const r = await fetch(`https://api.github.com/repos/${REPO}${path}`, {
@@ -320,8 +320,8 @@ const EXEC = {
   // ── 운영
   async "workflow-failed"(t) {
     const { run_id, file } = t.payload;
-    // 수리공은 다시 띄우지 않는다 — 회사 루프가 띄우면 사람이 띄운 실행처럼 보이고, rerun 은 실패한 merge 를 승인 없이 되풀이한다(Richard 9/22)
-    if (file === "repair.yml") return { status: "사람 대기", attempt: true, evidence: `${오늘()} 수리공 실패 — 자동으로 다시 띄우지 않음`, error: "repair.yml 실행 로그를 보고 Claude 세션에서 고칩니다" };
+    // 수리공·영업 담당은 다시 띄우지 않는다 — 회사 루프가 띄우면 사람이 띄운 실행처럼 보이고, rerun 은 실패한 merge 를 승인 없이 되풀이한다(Richard 9/22)
+    if (file === "repair.yml" || file === "sales.yml") return { status: "사람 대기", attempt: true, evidence: `${오늘()} ${file} 실패 — 자동으로 다시 띄우지 않음`, error: `${file} 실행 로그를 보고 Claude 세션에서 고칩니다` };
     if (t.attempts === 0) {
       // 재실행(rerun)은 그 실행이 쓰던 옛 커밋의 설정으로 돈다. 고쳐 놓은 코드로 다시 해 보려면 새로 띄워야 한다 —
       // write.yml 이 제미나이 키로 재실행돼 같은 429 로 또 죽었다(2026-09-17)

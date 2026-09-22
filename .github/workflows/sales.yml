@@ -1,0 +1,54 @@
+# 영업 담당 — 매주 월요일 케이스 리포트 갱신 · 영업 후보 통화문 · 리드 답장 초안 (academy/scripts/sales.mjs)
+#
+# 아무것도 보내지 않는다. 초안은 전부 원장의 「사람 대기」 줄로 간다.
+# 공개본(web/public/case/academy.html)은 가림 검사를 통과해야만 커밋한다. web 을 푸시하면 Vercel 이 랜딩을 올린다.
+# claude 는 도구 없이 빈 임시 폴더에서 한 번(주 1회) — 저장소를 읽지 않으니 칸막이가 필요 없다.
+#
+# 필요한 시크릿: DATABASE_URL, CLAUDE_CODE_OAUTH_TOKEN
+name: sales
+
+on:
+  schedule:
+    - cron: "10 23 * * 0"   # 월요일 08:10 KST
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "run: 리포트·초안 · leak-test: 가림 검사 시험(claude·커밋 없음)"
+        type: choice
+        options: [run, leak-test]
+        default: run
+
+concurrency:
+  group: sales
+  cancel-in-progress: false
+
+permissions:
+  contents: write   # 케이스 리포트 공개본 커밋
+
+jobs:
+  sales:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+      - run: npm install pg --no-save --silent
+        working-directory: academy
+      - name: Claude Code 설치
+        run: npm install -g @anthropic-ai/claude-code@2.1.278 --silent  # company.yml 과 같은 판
+      # case-report.mjs 가 .env.local 을 읽는다. claude 는 도구 없이 임시 폴더에서 돌아 이 파일을 못 본다
+      - name: 환경 준비
+        working-directory: academy
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: printf 'DATABASE_URL=%s\n' "$DATABASE_URL" > .env.local
+      - name: 영업 주간
+        working-directory: academy
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          CLAUDE_DAILY_MAX: ${{ vars.CLAUDE_DAILY_MAX }}
+          SALES_MODE: ${{ inputs.mode || 'run' }}
+        run: |
+          if [ "$SALES_MODE" = "leak-test" ]; then node scripts/sales.mjs --leak-test; else node scripts/sales.mjs; fi
