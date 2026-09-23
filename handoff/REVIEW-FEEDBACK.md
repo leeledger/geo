@@ -1,46 +1,31 @@
-# Review Feedback — 랜딩 대체값 494bbc4 · Step 14a 수정 3853b31 · Step 14b fb324d0 · 보안 93fb90f
+# Review Feedback — Step 15 (초안 재료)
 Date: 2026-09-23
 Ready for Builder: NO
-(전부 이미 배포됨)
+Commits reviewed: e0a835d · f5081cf (배포됨)
 
 ## Must Fix
-1. **web/lib/admin-auth.ts `isAdmin` — 비밀이 없으면 관리 화면 전체가 열린다.**
-   `const s = secret(); if (!s) return true;` 는 로컬 개발 편의로 둔 것이다. 그런데 운영에서 ADMIN_PASSWORD·ADMIN_TOKEN 이 둘 다 빠지면(환경변수 이름 실수, 새 Vercel 프로젝트, BOM 이 붙은 값을 지운 뒤 재등록 전 등) 모든 서버 동작·/api/admin/*·7개 화면이 로그인 없이 열린다. 오늘 서버 동작 11개에 guard 를 단 이유가 이 한 줄로 무너진다.
-   고치는 법: `if (!s) return process.env.NODE_ENV !== "production";`. 운영에서 비밀이 없으면 닫힌다. `credentialsOk` 는 이미 닫혀 있다. 이번 커밋이 만든 문제는 아니지만 이번 보안 수정의 전제라 여기서 막는다.
+1. **게이트를 지나치는 길이 있다 — 모드 「사실」(write-news.mjs) 에는 게이트가 없다.**
+   `write-draft.mjs:167-187` 은 모드 사실이면 write-news.mjs 를 자식으로 띄우고 종료 코드만 이어받는다. write-news.mjs 는 이번 단계에서 안 고쳤다 — `slop-rules.검사()` 를 부르지 않고 바로 `academy.posts` 에 넣는다. 그러니 「치명이면 원장 큐에 안 올린다」는 모드 재료에서만 참이다.
+   그리고 이 길이 **지금의 기본 경로**다: 저장소 시크릿에 GEMINI_API_KEY 가 있고(확인함) 재료는 0건이라, 다음 월요일 write.yml 은 `재료 0 → 뉴스가능 true → 모드=사실` 로 간다.
+   고치는 법: write-news.mjs 도 넣기 직전에 `검사(본문, { 재료들: [] })` 를 돌린다. 치명이면 넣지 않고 한 번 다시 쓴 뒤, 두 번째도 치명이면 `material-need` 일감 + 78 로 끝낸다(write-draft 와 같은 모양). 사실 글은 인용·출처가 있어 「지어낸 장면」에 걸릴 일이 적으니, 막히는 건 실제로 일반론일 때뿐이다.
+2. **본문 1,500자 미만을 치명으로 (Arch 결정).** 지금은 `write-draft.mjs:489` 의 자기 점검에서 1,800자 미만을 「흠」으로만 적고 넣는다. `slop-rules.mjs 검사()` 안에 치명 규칙을 넣어 write-draft 게이트와 `slop-check --strict` 가 같이 쓰게 한다(1,800자 흠은 그대로 둔다). 시험에 647자 초안(인수 시험 3번에서 실제로 들어간 글)이 치명으로 막히는지 넣는다 — 그 글은 지금 규칙으로는 통과한다.
 
 ## Should Fix
-- **web/lib/admin-actions.ts `signIn` — `redirect(String(form.get("to")))` 를 검사하지 않는다.** 로그인 화면이 dest 를 걸러서 넘기고, Next 서버 동작은 출처 검사를 하니 지금은 뚫기 어렵다. 그래도 enter/route.ts 와 같은 규칙(`/^\/admin(\/|$|\?)/` + `//` 거부)을 여기에도 건다. 규칙을 한 함수(`safeAdminPath`)로 모아 login·enter·signIn 이 같이 쓴다.
-- **쿠키 값이 영구 고정이다.** `cookieValue() = HMAC(secret, adminId)` 라 늘 같은 값이다. maxAge 12시간은 브라우저 쪽 만료일 뿐이다. 쿠키가 한 번 새면 비밀을 바꿀 때까지 영원히 유효하고, 로그아웃도 서버에서 무효화하지 못한다. 발급 시각을 서명에 넣고(`${id}.${iat}` 를 HMAC) `isAdmin` 에서 12시간이 넘으면 거부한다.
-- **addClientInquiry(공개, pilot-actions.ts:57) — 공개로 둔다는 가정은 맞다.** inquiry_key 는 `gen_random_uuid()`(122비트)이고 status 준비·진행 파일럿만 받는다 — 링크를 받은 고객만 쓰는 능력 주소다. 다만 입력 검사가 모자라다:
-  - (a) `source`·`channel` 을 화면의 선택지(AI·네이버검색…·전화·카카오·방문)로 제한하지 않고 길이도 자르지 않는다. 아무 문자열이나 들어가 성장 칸 「출처별」과 파일럿 보고서에 그대로 뜬다. 허용 목록 밖이면 거부한다.
-  - (b) `day` 가 `current_date` 라 DB(UTC) 날짜로 적힌다. KST 00:00~08:59 에 적은 상담이 전날로 들어간다. `(now() at time zone 'Asia/Seoul')::date` 로 바꾼다.
-  - (c) uuid 가 아닌 key 가 오면 Postgres 형변환 오류로 동작이 예외를 던진다(500). 쿼리 전에 uuid 꼴을 검사하고 조용히 돌아간다(getPilotByInquiryKey 는 try 로 감싸 이미 null).
-  - (d) 요청 수 제한이 없다. 링크가 새면 기록을 부풀릴 수 있다. 우선 같은 key 로 1분에 N건 넘으면 거부하는 간단한 제한을 둔다(DB count).
-- **옛 열쇠(?key=) 노출 — enter 경로는 나아졌지만 없어지지는 않았다.** 열쇠가 여전히 요청 주소에 실린다.
-  - Vercel 요청 로그에 쿼리가 남는다.
-  - 즐겨찾기·주소창 기록에도 남는다(enter 가 쿠키로 바꾼 뒤 열쇠 없는 주소로 보내는 건 맞다).
-  - `secret()` 은 ADMIN_PASSWORD 가 없으면 ADMIN_TOKEN 을 비밀번호와 쿠키 서명 키로 쓴다. 열쇠 = 비밀번호 = 서명 키다.
-  권고:
-  - (1) ADMIN_PASSWORD 를 따로 정해 열쇠와 비밀번호를 가른다.
-  - (2) 즐겨찾기를 로그인으로 옮긴 뒤 옛 열쇠 받기를 끄고 ADMIN_TOKEN 을 교체한다(Step 13 에서 권한 교체와 같이).
-  - (3) /admin 과 /admin/enter 응답에 `Referrer-Policy: no-referrer` 를 준다.
-  (1)(2) 는 원장 결정이라 아래 Escalate 에도 올린다.
-- web/app/admin/pilots — `D(x)`·`day(x)` 가 Date 를 `toISOString().slice(0,10)` 로 자른다. date 칼럼(started_on·ends_on)은 Vercel(UTC)에서 맞다. timestamptz 칼럼에 쓰이면 KST 날짜가 하루 어긋난다. 날짜는 SQL 에서 `::text` 로 받는 저장소 규칙대로 바꾼다.
+- **`--strict` 가 `review_notes.쓴재료` 를 그대로 믿는 문제(Bob Q4) — 기계 검사가 된다.** 지금도 「지어낸 장면」은 본문 문장과 재료 말의 겹침(`겹치나`)으로 보니, 재료를 더 많이 적어 낸다고 통과되지는 않는다(적힌 재료는 원장이 쓴 진짜 말이다). 다만 두 가지를 더 보면 값이 싸고 확실해진다:
+  - (a) 적힌 `쓴재료` 중 본문 어디에도 10자 넘게 겹치지 않는 것이 있으면 「쓴재료로 적었지만 본문에 안 쓰임」 경고. 모델이 라벨만 붙이는 버릇을 잡는다.
+  - (b) 인용 부호(「」 "" '') 안 10자 이상 토막이 재료 `said` 에 없으면 「출처 없는 인용」 치명. 지금 규칙은 장면 표시가 있는 문장만 본다 — 표시 없이 따옴표만 쓴 지어낸 인용이 빠진다.
+- **`가리기()` 빠진 이름(Bob Q1).** 복성(선우·남궁·제갈·사공·황보·독고·서문)이 성씨 사전에 없어 「남궁민 학생」이 안 가려진다. 한 줄로 더한다. 호칭 없이 쓴 이름(「민준이가」)은 사전으로 못 잡는다 — 그건 화면 안내 한 줄(「이름은 안 적어도 됩니다」)로 두고 BUILD-LOG 에 적는다. 전화·메일·7자리 규칙은 맞다(메일 먼저, 한글 옆 `\b` 성립).
+- **모드 B 조건(Bob Q2).** `뉴스가능 = Boolean(GEMINI_API_KEY)` 는 「뉴스거리가 있다」가 아니라 「write-news 를 돌릴 수 있다」는 뜻이다. 이름과 주석을 그렇게 바꾼다(`뉴스도구있음`). 실제로 뉴스거리가 없으면 write-news 가 초안을 못 내고, 그때 빈손·재료 일감으로 가는 경로는 이미 맞다. Must 1 을 고치면 이 길의 품질도 게이트가 지킨다.
+- **write-news 도 `used_in`·`review_notes.모드` 를 남기게.** 지금은 모드 사실로 나간 글에 모드 기록이 없어 나중에 무엇이 어디서 왔는지 못 센다.
 
 ## Escalate to Architect
-- **옛 열쇠 주소를 언제 끊을지, ADMIN_PASSWORD 를 따로 둘지.** 스크립트·즐겨찾기가 ?key= 를 쓰고 있어 끊는 날은 원장이 정한다. 끊는 날에 ADMIN_TOKEN 교체를 같이 한다(Step 13 권고).
+없음. (A1 하루 한 번·A2 가린 뒤 저장·A3 두 주 빈손 사람 대기 — 셋 다 코드에서 확인했다.)
 
 ## Cleared
-- **494bbc4 랜딩**: 대체 숫자(8·460·43·6·2위)를 모두 없앴다. 못 읽으면 null 이고 그 칸·문장을 숨기며 Count 는 「—」다. 플레이스 순위는 KST 오늘 기준 14일 안에 잰 것만, 측정일 「m/dd 측정」을 붙인다. 쿼리는 파라미터를 쓰고 실패하면 null 이다. 지어낸 숫자가 사라졌다.
-- **3853b31 14a 수정**: 지난 Must 3·Should 들이 다 풀렸다.
-  - `dueSlots` 가 8일을 거슬러 보고 요일 제한과 90분 유예를 반영한다. 놓친 어제·월요일 일이 지연으로 뜬다.
-  - todo-text.ts 는 investigate(R5 는 facts 의 쪽수·vendor 로 「빙이 우리 글 47쪽 중 5쪽만 읽었습니다」)·repair-approval·workflow-failed 의 문장을 새로 만든다. 나머지는 어절 경계에서 자르고 외톨이 조사를 지우며, 최근 3일 조치는 「조치 중」으로 흐리게 맨 뒤로 보낸다.
-  - 옮긴 줄은 「실행 완료/실패」다. 수리공은 옮긴 줄을 빼고 판정하고, 7일 합침이 0 이면 「쉬는 중 · 합친 수리 없음」이다. 검토 불합격은 막힘으로 안 친다.
-  - 막힘에 「n일 전」이 붙는다. PC 는 한 번 비면 회색 「PC 꺼짐」, 두 번이면 지연이다(Arch). API 오류 원문은 서버 로그에만 남는다.
-- **fb324d0 14b**: 관리 화면 7개를 새로 그렸다. 화면 글은 React 텍스트다. dangerouslySetInnerHTML 은 CSS 문자열과 초안 render(esc 를 먼저 거친 기존 코드)뿐이다. `kstToday` 는 +9h 로 계산한다. pilots.ts 별칭(`as day`)은 올바르게 고쳤다.
-- **93fb90f 보안**: "use server" 모듈 9개를 모두 봤다.
-  - inquiry·lead·outreach·pilot·draft·task·brief 의 모든 동작이 isAdmin 을 거친다.
-  - admin-actions 의 signIn/signOut 은 로그인 자체라 맞다. inquiries.ts 는 "use server" 가 아니다(주석에만 나옴).
-  - 빠진 곳은 의도한 addClientInquiry 하나뿐이다.
-  - enter/route.ts: 열쇠가 틀리면 로그인 화면으로 보낸다. 맞으면 httpOnly·SameSite=Lax·운영 Secure·path=/·12h 쿠키와 no-store 를 주고 열쇠 없는 /admin 경로로 보낸다. `to` 는 `/admin` 안쪽만 받고 `//` 는 거부하며, 출처는 요청 origin 으로 고정해 바깥으로 튀지 않는다.
-  - 공개 API(crawl·lead·scan)는 설계상 공개이고 이번 범위 밖이다. llm·pilots prompts·admin agents 는 검사가 있다.
+- **모드 A 게이트**: 모델이 돌려준 라벨을 실제 재료 행으로 바꾼 뒤 그 말과 본문의 겹침으로 검사한다. 라벨만 바꿔 다는 것으로는 안 통한다. 치명이면 재료·주제를 바꿔 **한 번만** 다시 쓰고, 두 번째도 치명이면 `academy.posts` 에 넣지 않고 `material-need` + 78 로 끝낸다. 인수 시험 5·6 과 코드가 일치한다.
+- **모드 없음**: 아무것도 안 쓰고 일감 + 78. 운영 DB 확인 — posts 45(시험 전후 동일), 시험 슬러그 0건, materials 0, draft_feedback 0, `material-need` 사람 대기 1건. 시험 찌꺼기가 없다.
+- **개인정보**: 저장 **전에** 가린다(addMaterial·addInquiry 둘 다 같은 `가리기()`). 메일 → 휴대전화 → 지역번호 → 7자리 → 이름 순서가 맞고, 학년은 남긴다. 무엇을 가렸는지는 저장 뒤 한 줄로 알린다(되돌려 보내지 않는다).
+- **권한**: `material-actions.ts` 의 `addMaterial` 이 `guard()` 를 거친다. `/admin/material` 은 `isAdmin` 으로 막고 옛 열쇠는 `/admin/enter` 로 보낸다(운영에서 307 → 로그인 확인). 화면에 나가는 값은 재료 목록뿐이고 다른 고객사 것은 `client_id` 로 걸러진다.
+- **SQL**: `create table if not exists` 두 덩어리가 setup-materials 와 company.ensure 에 같은 모양으로 있고 두 번 돌려도 오류가 없다. 날짜 기본값이 `(now() at time zone 'Asia/Seoul')::date` 라 UTC 러너에서 전날로 안 찍힌다. 읽기·쓰기 모두 `client_id` 로 거른다.
+- **버리기**: 이유를 하나도 안 고르면 `return` — 아무것도 안 지운다. 이유는 화면 목록(`DISCARD_REASONS`)에 있는 것만 받는다. 지우기 **전에** `draft_feedback` 에 제목·이유·메모·본문 앞 600자를 남기고, 그 뒤에 글과 도해·일감을 정리한다. 다음 실행의 프롬프트가 최근 5건을 읽어 「원장이 최근에 버린 이유」로 넣는다 — 되먹임이 실제로 닫힌다.
+- **일감**: `material-need` 는 company.mjs 신호와 같은 키에 cooldown 24시간(A1), `material-stopped` 는 sticky 라 자동으로 안 닫힌다(A3). todo-text 가 「초안 재료 한 줄 — 30초」로 사람 말을 만든다.

@@ -923,11 +923,39 @@ Decisions made:
 - `review_notes.쓴재료` 에는 프롬프트 라벨(m1)이 아니라 materials.id(uuid). slop-check --strict 가 그 id 로 재료를 읽는다
 - 「이름를 가렸습니다」가 나와 받침 판별 `을를()` 을 넣었다. 번역체로 읽히는 조사는 안 내보낸다
 
-Reviewer findings: (대기)
-Deploy: 대기 — `web/` 은 push 로 나간다. `academy/scripts/*` 는 Actions 가 저장소에서 읽으니 push 로 충분하다. 표는 이미 운영 DB 에 만들었다(`setup-materials.mjs` 2회 실행)
+Reviewer findings: 1차 Ready NO — Must 2 · Should 4. 전부 반영하고 2차 제출 (아래)
+Deploy: 1차 배포됨(e0a835d·f5081cf) — `web/` 은 push 로 나간다. `academy/scripts/*` 는 Actions 가 저장소에서 읽으니 push 로 충분하다. 표는 이미 운영 DB 에 만들었다(`setup-materials.mjs` 2회 실행)
 
 Known Gaps (15)
 - KG-15-1 `.inq-pick`(문의 화면 지역 CSS)와 새 `.adm-pick`(admin.css)이 같은 규칙이다. 문의 화면을 다음에 만질 때 `.adm-pick` 으로 합친다 — 이번 단계는 액션 한 곳만 손대기로 돼 있었다
-- KG-15-2 모드 사실(write-news 자식 실행)은 로컬에 GEMINI 키가 없어 실제로 못 돌렸다. Actions 에서 키가 있는 채로 처음 도는 주간 실행이 첫 검증이다
-- KG-15-3 게이트 통과 뒤 「본문 1800자 미만」은 여전히 짜임새 흠일 뿐 막지 않는다. 짧은 글이 원장 큐로 갈 수 있다 — 막을지는 Arch 결정
+- ~~KG-15-2~~ 2차에서 닫힘 — 모드 사실을 가짜 모델로 끝까지 돌렸다. 진짜 제미나이 그라운딩은 Actions 가 첫 검증이다
+- ~~KG-15-3~~ 2차에서 닫힘 — 1,500자 미만이 치명이 됐다(Richard Must 2). 1,800자는 흠 그대로
 - KG-15-4 재료 고치기·지우기 화면이 없다(브리프 Out of Scope). 잘못 적은 재료는 DB 로만 지운다
+- KG-15-5 호칭 없이 쓴 이름(「민준이가」)은 성씨 사전으로 못 잡는다. 화면에 「이름은 안 적으셔도 됩니다」 한 줄로 두었다 — 안 적는 것이 유일한 확실한 길이다
+- KG-15-6 `company.mjs` 의 weekly-draft 가 write-news 를 부르고, 안 되면 write-draft 를 부르는데 그게 또 write-news 를 부른다. 한 주에 같은 검색을 두 번 한다(OpenRouter web 플러그인 요청당 $0.007). 빈손 중복 집계는 막았지만 중복 호출 자체는 단계 밖이라 안 고쳤다
+
+#### 2차 (Richard 피드백 반영, 2026-09-23)
+
+**Must 1 — 모드 사실에 게이트가 없었다.** 맞는 지적이고, 그게 다음 월요일의 기본 경로였다(재료 0 + GEMINI 키 있음 → 모드 사실).
+`write-news.mjs` 가 넣기 직전에 같은 `검사()` 를 돌린다. 치명이면 한 번 다시 쓰고, 두 번째도 치명이면 안 넣고 `material-need` + 78.
+일감·빈손·used_in 은 `academy/scripts/material-task.mjs`(새 파일)로 빼서 두 작성기가 같은 것을 쓴다 — 베껴 두면 또 한쪽만 고치게 된다.
+
+**Must 2 — 1,500자 미만을 치명으로.** `slop-rules.mjs` 안에 넣어 write-draft 게이트와 `--strict` 가 같이 쓴다. 1,800자는 흠 그대로.
+
+**덤으로 잡은 것:** company.mjs 가 write-news 를 직접 부르고, 안 되면 write-draft 를 부르는데 write-draft 가 또 write-news 를 부른다.
+그러면 한 주에 빈손이 2로 세어져 **첫 주에 「2주 연속 발행 멈춤」이 뜬다.** `빈손()` 에 `빈손날` 을 넣어 하루 한 번만 세게 했다.
+
+Files (2차):
+- `academy/scripts/material-task.mjs` (새 83줄) — 재료일감·빈손(하루 한 번)·다시돎·재료썼음
+- `academy/scripts/write-news.mjs` 27-28, 44-45, 72-88(사람에게), 97-108(프롬프트 함수화), 159(한번), 255-278(게이트 루프), 300-320(review_notes·used_in)
+- `academy/scripts/slop-rules.mjs` 60(최소길이), 63-70(인용·말했다), 123-131(길이 치명), 152-176(출처 없는 인용), 178-190(쓴재료 미사용 경고)
+- `academy/scripts/write-draft.mjs` 79(공용 도구), 107-110(뉴스도구있음), 469(재료썼음) — 지역 헬퍼 3개 삭제
+- `web/lib/materials.ts` 34(복성 7), 45-49(정규식) · `web/app/admin/material/page.tsx` 112-113(이름 안내 한 줄)
+
+Decisions made (2차):
+- **Should (b) 「출처 없는 인용」을 좁혔다.** 적힌 대로 「따옴표 10자+가 재료에 없으면 치명」을 넣으니 1차에서 통과한 멀쩡한 초안이 막혔다 —
+  「우리는 왜 그 시점으로 잡았나」(독자에게 주는 되물을 말), 「나는 못한다」(아이 속마음 빗댄 말), 뉴스 글의 「교육부 방안에 따르면」까지 걸린다.
+  그래서 **「누가 말했다」고 적은 문단 안의 인용만** 본다(`말했다` 정규식). `물어보시면` 은 일부러 뺐다. 넓힐지는 Richard 판단 대기
+- write-news 의 `used_in` 은 늘 빈 배열이다. 뉴스 프롬프트에 재료를 안 넣으니 실제로 쓴 재료가 없다 — 없는데 적으면 그게 지어내기라
+  **기계만 붙이고 값은 안 만들었다**. `review_notes.모드="사실"`·`쓴재료: []` 는 남는다
+- 시험 본문을 1,500자 넘게 다시 짰다. 1차 것은 435~724자라 새 길이 치명에 다 걸려 어느 규칙이 잡았는지 안 보였다
