@@ -34,6 +34,7 @@ import { fileURLToPath } from "node:url";
 import { Pool } from "pg";
 import { 공급자만들기, 공급자들, 금지, 지어내기금지, 파싱, 공통짜임새, 재시도 } from "./writer-common.mjs";
 import { 검사 } from "./slop-rules.mjs";
+import { 재료도구 } from "./material-task.mjs";
 
 for (const l of fs.readFileSync(new URL("../.env.local", import.meta.url), "utf8").split(/\r?\n/)) {
   const m = /^([A-Z_]+)=(.*)$/.exec(l);
@@ -54,7 +55,6 @@ const STAGE = 인자("--stage") ?? "problem";
 const SOURCES = (인자("--sources") ?? "").split(",").map((s) => s.trim()).filter(Boolean);
 const CLIENT = 1;
 const ADMIN = process.env.ADMIN_BASE_URL || "https://geo-rose-nine.vercel.app";
-const 오늘 = () => new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" });
 let 공급자 = 공급자만들기();
 
 const u = new URL(process.env.DATABASE_URL);
@@ -76,62 +76,7 @@ const 규칙 = [
     "억지로 끼우면 티가 난다 — 통학 거리나 상담에서 나오는 맥락에 자연스럽게 둔다",
 ];
 
-/**
- * 재료를 달라는 일감. dedupe_key 는 company.mjs 의 신호와 같은 것을 쓴다 —
- * 재료가 3개를 넘으면 회사 루프가 알아서 닫는다. 여기서 따로 닫지 않는다.
- */
-const 재료일감 = async ({ title, detail, payload = {} }) =>
-  q(
-    `insert into geo.agent_tasks (client_id, agent, kind, dedupe_key, title, detail, payload, priority, status, link)
-     values ($1, 'content', 'material', 'material-need', $2, $3, $4::jsonb, 12, '사람 대기', $5)
-     on conflict (client_id, dedupe_key) do update set
-       title = excluded.title, detail = excluded.detail,
-       payload = geo.agent_tasks.payload || excluded.payload,
-       priority = excluded.priority, link = coalesce(excluded.link, geo.agent_tasks.link), updated_at = now(),
-       status = case when geo.agent_tasks.status in ('닫힘', '완료') then '사람 대기' else geo.agent_tasks.status end`,
-    [CLIENT, title, detail, JSON.stringify(payload), `${ADMIN}/admin/material`],
-  ).catch((e) => console.log("  ⚠ 재료 일감을 못 올렸습니다:", e.message.slice(0, 90)));
-
-/**
- * 빈손으로 끝난 횟수를 센다. 한 주 건너뛰는 건 괜찮다 — 두 주 연속이면 발행이 멈춘 것이다.
- * 그때는 우선순위를 맨 위로 올려 따로 알린다(sticky — 신호가 없어도 회사 루프가 안 닫는다).
- */
-const 빈손 = async (왜) => {
-  const [t] = await q(
-    `select coalesce((payload->>'빈손')::int, 0) n from geo.agent_tasks
-      where client_id = $1 and dedupe_key = 'material-need'`, [CLIENT]).catch(() => []);
-  const n = (t?.n ?? 0) + 1;
-  if (n >= 2) {
-    await q(
-      `insert into geo.agent_tasks (client_id, agent, kind, dedupe_key, title, detail, payload, priority, status, link)
-       values ($1, 'content', 'material', 'material-stopped', $2, $3, $4::jsonb, 5, '사람 대기', $5)
-       on conflict (client_id, dedupe_key) do update set
-         title = excluded.title, detail = excluded.detail,
-         payload = geo.agent_tasks.payload || excluded.payload, priority = excluded.priority, updated_at = now(),
-         status = case when geo.agent_tasks.status = '닫힘' then '사람 대기' else geo.agent_tasks.status end`,
-      [
-        CLIENT,
-        `발행이 멈췄습니다 — 자동 초안이 ${n}주 연속 빈손`,
-        `주 1편이 끊기면 크롤러도 뜸해지고 레퍼런스가 늙습니다.\n이유: ${왜}\n재료 한 줄이면 다음 주는 돕니다: ${ADMIN}/admin/material`,
-        JSON.stringify({ sticky: true, 빈손: n, 왜 }),
-        `${ADMIN}/admin/material`,
-      ],
-    ).catch((e) => console.log("  ⚠ 멈춤 일감을 못 올렸습니다:", e.message.slice(0, 90)));
-    console.log(`  ⚠ ${n}주 연속 빈손입니다. 발행 멈춤 일감을 올렸습니다.`);
-  }
-  return n;
-};
-
-/** 초안이 나왔으면 빈손 카운터를 0 으로 돌리고 멈춤 일감을 닫는다 */
-const 다시돎 = async () => {
-  await q(`update geo.agent_tasks set payload = payload || '{"빈손":0}'::jsonb, updated_at = now()
-            where client_id = $1 and dedupe_key = 'material-need'`, [CLIENT]).catch(() => {});
-  await q(
-    `update geo.agent_tasks set status = '닫힘', done_at = now(), updated_at = now(),
-            evidence = left(evidence || chr(10) || $2, 4000)
-      where client_id = $1 and dedupe_key = 'material-stopped' and status <> '닫힘'`,
-    [CLIENT, `${오늘()} 초안이 다시 나와 닫음`]).catch(() => {});
-};
+const { 재료일감, 빈손, 다시돎, 재료썼음 } = 재료도구(q, { client: CLIENT, admin: ADMIN });
 
 const main = async () => {
   // ── 0. 재료가 먼저다
@@ -159,8 +104,10 @@ const main = async () => {
     : [];
 
   // write-news 는 구글 검색 그라운딩이 있어야 돈다(그 파일 머리 주석). 키가 없으면 넘길 곳이 없다
-  const 뉴스가능 = Boolean(process.env.GEMINI_API_KEY);
-  const 모드 = 재료들.length >= 3 ? "재료" : (측정?.answer || 뉴스가능) ? "사실" : "없음";
+  // 「뉴스거리가 있다」가 아니라 「write-news 를 돌릴 수 있다」는 뜻이다. 뉴스거리가 있는지는
+  // 검색을 해 봐야 알고, 그건 write-news 가 한다. 없으면 거기서 빈손으로 끝나고 아래 재료 일감으로 온다
+  const 뉴스도구있음 = Boolean(process.env.GEMINI_API_KEY);
+  const 모드 = 재료들.length >= 3 ? "재료" : (측정?.answer || 뉴스도구있음) ? "사실" : "없음";
   console.log(`모드=${모드}`);
 
   // ── 모드 사실 — 여기서는 글을 안 쓴다. write-news.mjs 에 넘기고 종료 코드를 그대로 이어받는다
@@ -519,10 +466,7 @@ const main = async () => {
   }
 
   // 쓴 재료에 이 글을 적는다. 안 적으면 다음 주에 같은 재료로 또 쓴다
-  if (쓴재료.length) {
-    await q(`update academy.materials set used_in = used_in || $1::text[] where id = any($2::uuid[])`,
-      [[slug], 쓴재료.map((m) => m.id)]).catch((e) => console.log("  ⚠ 재료에 쓴 글을 못 적었습니다:", e.message.slice(0, 90)));
-  }
+  await 재료썼음(쓴재료, slug);
 
   // 검토 화면(/admin/drafts)이 읽는다. 콘솔에만 찍으면 원장은 볼 길이 없다
   await q(

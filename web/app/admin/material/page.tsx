@@ -109,6 +109,8 @@ export default async function MaterialPage({
             maxLength={400}
             placeholder="대회 준비도 해주냐고 물으심 — 초5, 학교에서 정보 수업 듣고 옴"
           />
+          {/* 호칭 없이 쓴 이름(「민준이가」)은 사전으로 못 잡는다. 안 적는 게 제일 확실하다 */}
+          <p className="sub">이름은 안 적으셔도 됩니다. 학년만 있으면 글에 쓰기 충분합니다.</p>
 
           <button className="adm-btn go" type="submit">재료 넣기</button>
 

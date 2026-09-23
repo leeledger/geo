@@ -24,6 +24,8 @@
 import fs from "node:fs";
 import { Pool } from "pg";
 import { 공급자만들기, 금지, 지어내기금지, 파싱, 공통짜임새, 재시도 } from "./writer-common.mjs";
+import { 검사 } from "./slop-rules.mjs";
+import { 재료도구 } from "./material-task.mjs";
 
 for (const l of fs.readFileSync(new URL("../.env.local", import.meta.url), "utf8").split(/\r?\n/)) {
   const m = /^([A-Z_]+)=(.*)$/.exec(l);
@@ -38,6 +40,9 @@ const u = new URL(process.env.DATABASE_URL);
 u.searchParams.delete("sslmode");
 const pool = new Pool({ connectionString: u.toString(), ssl: { rejectUnauthorized: false } });
 const q = (sql, p = []) => pool.query(sql, p).then((r) => r.rows);
+
+// 게이트에 걸려 빈손으로 끝나면 재료를 달라고 한다. write-draft 와 같은 일감·같은 카운터다
+const { 재료일감, 빈손, 다시돎, 재료썼음 } = 재료도구(q, { client: CLIENT });
 
 /** 뉴스 글에만 거는 규칙. 관점 글에 걸면 안 된다 — 거기선 「피해야 할 것」이 필수 항목이다. */
 const 뉴스규칙 = [
@@ -60,6 +65,26 @@ const 홍보금지 = [
   "독자가 이 글을 읽고 학원을 안 알아봐도 된다. 사실을 알고 가면 그걸로 됐다.",
 ];
 
+/**
+ * 빈손으로 끝났다고 사람에게 넘긴다. write-draft 와 같은 일감·같은 카운터를 쓴다 —
+ * 두 곳이 따로 세면 「두 주 연속」이 한 주에 두 번 찍힌다(빈손()이 하루 한 번으로 막는다).
+ */
+const 사람에게 = async (왜, 치명 = []) => {
+  const 재료 = await q(
+    `select count(*)::int n from academy.materials where client_id = $1 and cardinality(used_in) = 0`,
+    [CLIENT]).catch(() => [{ n: 0 }]);
+  const unused = 재료[0]?.n ?? 0;
+  const n = await 빈손(왜);
+  await 재료일감({
+    title: 치명.length
+      ? "재료가 필요합니다 — 사실 글도 두 번 다 게이트에 걸렸습니다"
+      : "초안 재료가 필요합니다 — 이번 주는 글을 안 썼습니다",
+    detail: `${왜}\n안 쓴 재료 ${unused}개. 원장이 실제로 들은 말이 있으면 관점 글로 갑니다.`,
+    payload: { unused, 빈손: n, 모드: "사실", ...(치명.length ? { 치명 } : {}) },
+  });
+  console.log(`재료 적는 곳: ${process.env.ADMIN_BASE_URL || "https://geo-rose-nine.vercel.app"}/admin/material`);
+};
+
 const main = async () => {
   const 기존글 = await q(
     `select title from academy.posts
@@ -69,7 +94,7 @@ const main = async () => {
 
   const 오늘 = new Date().toLocaleDateString("ko-KR", { timeZone: "Asia/Seoul" });
 
-  const prompt = [
+  const 프롬프트 = (고침 = []) => [
     "너는 송파구에서 코딩·로봇 학원을 운영하는 원장이다. 학부모가 읽을 글을 직접 쓴다.",
     "이번에 쓸 것은 학원 소개가 아니라 바깥 소식이다. 광고가 아니라 정보다.",
     "",
@@ -100,9 +125,12 @@ const main = async () => {
     "",
     "근거 에는 본문에 쓴 숫자와 날짜를 하나도 빠짐없이 넣고, 각각 어느 문서에서 본 것인지 적어라.",
     "찾지 못했으면 body 를 빈 문자열로 두고 확인필요 에 이유를 적어라. 지어내는 것보다 낫다.",
+    "",
+    고침.length ? `# 방금 쓴 글이 게이트에 걸렸다. 같은 실수를 하지 마라\n- ${고침.join("\n- ")}` : "",
   ].join("\n");
 
   if (DRY) {
+    const prompt = 프롬프트();
     console.log(`쓸 모델: ${공급자 ? `${공급자.model} (${공급자.이름})` : "없음 — 키가 하나도 없습니다"}`);
     console.log(`검색 근거: ${공급자?.검색가능 ? "쓸 수 있음" : "못 씀 — 제미나이가 있어야 합니다"}`);
     console.log(`\n── 프롬프트 (${prompt.length}자) ──\n`);
@@ -124,10 +152,15 @@ const main = async () => {
   }
   console.log(`쓰는 모델: ${공급자.model} (${공급자.이름}) · 검색 근거 켬`);
 
+  /**
+   * 한 번 쓴다. 오류·한도·사실 없음이면 null 을 주고 종료 코드는 여기서 정한다.
+   * 게이트에 걸려 다시 쓸 때는 고침 목록을 프롬프트에 붙인다.
+   */
+  const 한번 = async (고침 = []) => {
   const res = await 재시도(공급자.url, {
     method: "POST",
     headers: 공급자.headers(공급자.key),
-    body: JSON.stringify(공급자.요청(prompt, 공급자.최대토큰, { 검색: true })),
+    body: JSON.stringify(공급자.요청(프롬프트(고침), 공급자.최대토큰, { 검색: true })),
   });
   if (!res.ok) {
     // 오류를 끊어 찍어 두 번이나 답을 잘라 먹었다 — 404 는 쓸 모델 이름을,
@@ -140,7 +173,7 @@ const main = async () => {
       // 크레딧 없음은 설정 문제다. 78 로 끝내면 write.yml 이 「건너뜀」으로 적고 빨간불을 안 낸다
       console.log("\nOpenRouter 크레딧이 없습니다. https://openrouter.ai/settings/credits 에서 충전하면 다음 주부터 다시 씁니다.");
       process.exitCode = 78;
-      return;
+      return null;
     }
     if (res.status === 429) {
       const 간격 = /"retryDelay"\s*:\s*"([^"]+)"/.exec(본문)?.[1];
@@ -148,7 +181,7 @@ const main = async () => {
       console.log("분당 한도면 잠시 뒤 되고, 일일 한도면 내일 풀립니다. 위 quotaId 를 보세요.");
     }
     process.exitCode = 1;
-    return;
+    return null;
   }
   const data = await res.json();
   const text = 공급자.text(data);
@@ -157,7 +190,7 @@ const main = async () => {
   if (공급자.끊겼나?.(data)) {
     console.log(`\n출력이 상한(${공급자.최대토큰} 토큰)에 걸려 잘렸습니다. WRITER_MAX_TOKENS 를 올리세요.`);
     process.exitCode = 1;
-    return;
+    return null;
   }
 
   const { post, 고쳐읽음, 오류 } = 파싱(text);
@@ -167,15 +200,18 @@ const main = async () => {
     console.log("  앞:", text.slice(0, 110).replace(/\s+/g, " "));
     console.log("  뒤:", text.slice(-110).replace(/\s+/g, " "));
     process.exitCode = 1;
-    return;
+    return null;
   }
   if (고쳐읽음) console.log("  (본문에 진짜 줄바꿈이 들어와 고쳐 읽었습니다)");
 
   let 본문 = post.body ?? "";
   if (!본문.trim()) {
+    // 쓸 사실이 없는 건 고장이 아니다. 78(건너뜀)로 끝내고 재료를 달라고 한다 — 그게 다음 주를 살린다
     console.log("\n쓸 만한 사실을 못 찾았다고 합니다. 초안을 넣지 않습니다.");
     for (const s of post.확인필요 ?? []) console.log("  ·", s);
-    return;
+    process.exitCode = 78;
+    await 사람에게("검색으로 쓸 만한 바깥 사실을 못 찾았습니다");
+    return null;
   }
 
   // 출처를 본문 끝에 남긴다. 원장님이 30초에 검증하실 수 있어야 「객관성」이 말이 된다.
@@ -207,6 +243,40 @@ const main = async () => {
   const 홍보 = 본문.match(/우리 학원|저희 학원|체험 수업|상담 문의|등록하세요|피하세요/g);
   if (홍보) 흠.push(`홍보 틀로 돌아갔습니다: ${[...new Set(홍보)].join(" ")}`);
 
+    return { post, 본문, 출처, 쓴출처, 흠 };
+  };
+
+  /**
+   * 게이트. 사실 글도 예외가 아니다 — 모드 사실에 게이트가 없어서
+   * 「치명이면 원장 큐에 안 올린다」가 모드 재료에서만 참이었다(Richard 2026-09-23).
+   * 뉴스 글은 재료로 여는 글이 아니니 재료들은 빈 배열로 본다.
+   * 그래서 실제로 막히는 건 일반론 문단·짧은 본문·출처 없는 인용일 때뿐이다.
+   */
+  let 결과;
+  let 고침 = [];
+  for (let 회 = 1; 회 <= 2; 회++) {
+    const r = await 한번(고침);
+    if (!r) return; // 오류·한도·사실 없음 — 종료 코드는 한번() 이 정했다
+    const g = 검사(r.본문, { 재료들: [] });
+    if (!g.치명.length) {
+      결과 = r;
+      if (회 === 2) console.log("  두 번째 글은 게이트를 통과했습니다.");
+      break;
+    }
+    고침 = g.치명.map((f) => `${f.why} ${f.n}곳${f.말 ? ` — ${f.말}` : ""}`);
+    console.log(`\n게이트에 걸렸습니다 (${회}회차):`);
+    for (const line of 고침) console.log("  ✗", line);
+    if (회 === 2) {
+      console.log("\n두 번 다 걸렸습니다. 초안을 넣지 않습니다 — 원장 큐에 슬롭을 올리지 않습니다.");
+      await 사람에게(`사실 글이 두 번 다 치명에 걸렸습니다: ${고침.join(" · ")}`, 고침);
+      process.exitCode = 78;
+      return;
+    }
+    console.log("  같은 사실로 한 번 더 씁니다.");
+  }
+
+  const { post, 본문, 출처, 쓴출처, 흠 } = 결과;
+
   const slug = /^[a-z0-9-]{4,60}$/.test(post.slug ?? "")
     ? post.slug
     : `news-${new Date().toISOString().slice(0, 10)}`;
@@ -227,6 +297,27 @@ const main = async () => {
     process.exitCode = 1;
     return;
   }
+  /**
+   * 검토 화면(/admin/drafts)이 읽는다. 모드를 안 적으면 나중에 이 글이 어디서 왔는지 못 센다.
+   * 뉴스 글은 재료로 여는 글이 아니라 쓴재료가 비어 있다 — 비었다고 적는 것도 기록이다.
+   * (재료를 실제로 쓰면 재료썼음() 이 used_in 을 적는다. write-draft 와 같은 함수다)
+   */
+  await 재료썼음(post.쓴재료 ?? [], slug);
+  await q(
+    `update academy.posts set review_notes = $2::jsonb where slug = $1 and not published`,
+    [slug, JSON.stringify({
+      확인필요: post.확인필요 ?? [],
+      짜임새: 흠,
+      모델: 공급자.model,
+      모드: "사실",
+      쓴재료: (post.쓴재료 ?? []).map((m) => m.id),
+      근거: post.근거 ?? [],
+      출처: 쓴출처.map((s) => s.주소),
+      쓴날: new Date().toISOString(),
+    })],
+  ).catch((e) => console.log("  ⚠ 검토 메모를 못 남겼습니다:", e.message.slice(0, 90)));
+  await 다시돎();
+
   // 회사 루프(company.mjs)가 이 줄로 초안이 생겼는지 안다
   console.log(`DRAFT_SLUG=${slug}`);
 
