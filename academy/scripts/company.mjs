@@ -53,11 +53,12 @@ const pool = new Pool({ connectionString: u.toString(), ssl: { rejectUnauthorize
 const q = (s, p = []) => pool.query(s, p).then((r) => r.rows);
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
 
+// code 를 같이 준다 — 78(건너뜀)과 진짜 실패를 가려야 하는 자리가 있다 (weekly-draft)
 const 실행 = (args, timeout = 15 * 60 * 1000) => {
   try {
-    return { ok: true, out: execFileSync(process.execPath, args, { cwd: ROOT, encoding: "utf8", timeout, env: process.env, maxBuffer: 20 * 1024 * 1024 }) };
+    return { ok: true, code: 0, out: execFileSync(process.execPath, args, { cwd: ROOT, encoding: "utf8", timeout, env: process.env, maxBuffer: 20 * 1024 * 1024 }) };
   } catch (e) {
-    return { ok: false, out: `${e.stdout ?? ""}${e.stderr ?? ""}\n${e.message}` };
+    return { ok: false, code: e.status ?? 1, out: `${e.stdout ?? ""}${e.stderr ?? ""}\n${e.message}` };
   }
 };
 const 끝 = (s, n = 400) => String(s ?? "").replace(/\s+/g, " ").trim().slice(-n);
@@ -469,10 +470,33 @@ const EXEC = {
         error: "초안을 사실 확인하고 발행하면 주 1편이 이어집니다", link: `${ADMIN}/admin/drafts` };
     }
     if (!c.conf?.publishes || c.id !== 1) return { status: "사람 대기", error: "이 고객사는 사이트 글을 우리가 올리지 않습니다 (clients.mjs publishes=false)" };
-    let r = 실행(["scripts/write-news.mjs"]);
-    if (!/DRAFT_SLUG=|초안으로 넣었습니다/.test(r.out)) r = 실행(["scripts/write-draft.mjs"]);
+    /**
+     * write-draft 하나만 부른다. 길은 그 안에서 고른다 —
+     * 재료가 3개 넘으면 자기가 쓰고, 모자라면 write-news 로 넘기고, 둘 다 없으면 일감만 올린다.
+     *
+     * 전에는 여기서 write-news 를 먼저 부르고 안 되면 write-draft 를 불렀다. 그런데 write-draft 가
+     * 모드 사실에서 write-news 를 또 부른다 — 한 주에 검색 생성이 두 번 돌았다(KG-15-6).
+     * 검색 한 번에 OpenRouter web 플러그인이 요청당 $0.007 이고, Claude 구독은 하루 한도가 있다.
+     */
+    const r = 실행(["scripts/write-draft.mjs"]);
     const slug = /DRAFT_SLUG=(\S+)/.exec(r.out)?.[1];
-    return slug ? { status: "완료", evidence: `${오늘()} 초안 작성 /blog/${slug}` } : { status: "실패", attempt: true, error: 끝(r.out) };
+    if (slug) {
+      const 모드 = /^모드=(\S+)/m.exec(r.out)?.[1] ?? "?";
+      return { status: "완료", evidence: `${오늘()} 초안 작성 /blog/${slug} (모드=${모드})` };
+    }
+    /**
+     * 78 은 고장이 아니라 건너뜀이다 — 재료도 사실도 없거나 게이트가 두 번 막았다.
+     * write-draft 가 `material-need` 사람 대기 일감을 이미 올렸으니 여기서 또 세지 않는다.
+     * attempt 를 올리면 재료 없는 주가 세 번 이어질 때 「3번 실패」로 없는 고장이 원장 큐에 뜬다(Richard 2026-09-23).
+     * next_try 를 일주일 뒤로 두는 건 매시 루프가 이걸 다시 집어 write-news 를 또 돌리지 않게 하려는 것이다 —
+     * 검색 한 번에 OpenRouter web 플러그인이 요청당 $0.007 이고, 빈손 카운터도 주 단위로 세야 A3 가 맞는다
+     */
+    if (r.code === 78) {
+      const 모드 = /^모드=(\S+)/m.exec(r.out)?.[1] ?? "?";
+      return { status: "대기", nextTry: 뒤(24 * 7), link: `${ADMIN}/admin/material`,
+        evidence: `${오늘()} 모드=${모드} · 재료 없음 — material-need 일감 참고` };
+    }
+    return { status: "실패", attempt: true, error: 끝(r.out) };
   },
 
   async "question-draft"(t, c) {

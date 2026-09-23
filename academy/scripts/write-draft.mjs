@@ -79,16 +79,27 @@ const 규칙 = [
 const { 재료일감, 빈손, 다시돎, 재료썼음 } = 재료도구(q, { client: CLIENT, admin: ADMIN });
 
 const main = async () => {
-  // ── 0. 재료가 먼저다
+  /**
+   * ── 0. 재료가 먼저다
+   *
+   * 못 읽은 것과 0건은 다르다. 삼키고 빈 배열로 넘기면 DB 가 죽은 주에도
+   * 「원장이 재료를 안 적었다」로 보여 78(건너뜀)로 끝난다 — 몇 주가 조용히 지나간다.
+   * 모르면 모른다고 하고 고장으로 끝낸다.
+   */
   const 재료들 = await q(
     `select id, kind, said, context, day::text as day from academy.materials
       where client_id = $1 and cardinality(used_in) = 0
       order by day desc limit 12`,
     [CLIENT],
   ).catch((e) => {
-    console.log("  ⚠ 재료를 못 읽었습니다:", e.message.slice(0, 90));
-    return [];
+    console.log("재료를 못 읽었습니다:", e.message.slice(0, 120));
+    console.log("재료가 0건인 것과 못 읽은 것은 다릅니다. 건너뛰지 않고 고장으로 끝냅니다.");
+    return null;
   });
+  if (재료들 === null) {
+    process.exitCode = 1;
+    return;
+  }
 
   // 같은 이유로 또 버려지지 않게 원장이 버린 이유를 프롬프트에 넣는다
   const 버린이유 = await q(
