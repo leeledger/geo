@@ -14,7 +14,7 @@ import { pool } from "./ops";
  */
 
 /** 화면 글자는 AgentStrip 의 LABEL (클라이언트가 이 파일을 불러오면 pg 까지 딸려 간다 — 타입만 가져간다) */
-export type AgentState = "unknown" | "off" | "stuck" | "late" | "working" | "pcoff" | "idle" | "ok";
+export type AgentState = "unknown" | "off" | "stuck" | "late" | "wait" | "working" | "pcoff" | "idle" | "ok";
 
 /** 활동 한 줄 (geo.agent_activity + 그 일감의 kind) */
 export type Act = { agent: string; action: string; ok: boolean; summary: string; at: string; kind: string | null };
@@ -25,8 +25,10 @@ export type AgentRow = {
   id: string;
   name: string;
   state: AgentState;
-  /** 상태의 이유. 정상이면 null — 화면은 마지막 한 일을 대신 보여 준다 */
+  /** 상태의 이유. 정상이면 null — 화면은 이 직원이 하는 일(does)을 대신 보여 준다 */
   reason: string | null;
+  /** 이 직원이 하는 일 한 줄. 로그를 깎은 글이 아니라 손으로 쓴 문장이다(2026-09-24 원장: 무슨 말인지 모르겠다) */
+  does: string;
   last: { at: string; text: string; ok: boolean } | null;
   next: string | null;
   today: { ok: number; fail: number };
@@ -48,6 +50,7 @@ export type Agents = {
  * times     KST HH:MM. dow 가 있으면 그 요일만(0=일, 1=월)
  * hourly    매시 몇 분 — 시각 대신 「2시간 무소식」 하나로 판정
  * countMirror  옮긴 줄을 오늘 건수에 세는가. 스스로 활동을 적는 일은 안 센다(이중 계산) — 단 옮긴 줄이 실패면 실패로 센다
+ * catchup   GitHub 이 예약을 건너뛰면 회사 루프가 2시간 뒤 대신 띄운다 (company.mjs 예약 표와 같은 목록)
  * pc        원장 PC 의 로컬 에이전트. 한 번 비면 회색 「PC 꺼짐」, 두 번 연속 비면 빨간 「지연」(Arch 결정 9/22 — 퇴근한 저녁마다 빨간 불이면 경보 피로)
  */
 type Job = {
@@ -58,61 +61,62 @@ type Job = {
   dow?: number;
   hourly?: number;
   countMirror: boolean;
+  catchup?: boolean;
   pc?: boolean;
 };
 
-type Role = { id: string; name: string; agents: string[]; jobs: Job[] };
+type Role = { id: string; name: string; does: string; agents: string[]; jobs: Job[] };
 
 /* yml 의 cron 을 바꾸면 여기도 — cron 은 UTC, 여기는 KST(+9) */
 export const ROLES: Role[] = [
   {
-    id: "ops", name: "운영·감사관", agents: ["ops", "audit"],
+    id: "ops", name: "운영", does: "매시 일을 나눠 맡기고, 건너뛴 예약과 실패한 작업을 다시 돌립니다", agents: ["ops", "audit"],
     jobs: [
-      { name: "회사 루프", self: { agent: "ops", action: "회사 루프" }, hourly: 23, countMirror: false },            // company.yml  23 * * * *
+      { name: "매시 점검", self: { agent: "ops", action: "회사 루프" }, hourly: 23, countMirror: false },            // company.yml  23 * * * *
       { name: "사이트 점검", wf: "watch", countMirror: true,                                                        // watch.yml    11 */3 * * *
         times: ["00:11", "03:11", "06:11", "09:11", "12:11", "15:11", "18:11", "21:11"] },
-      { name: "감사", wf: "audit", self: { agent: "audit" }, times: ["06:35"], countMirror: false },                 // audit.yml    35 21 * * *
-      { name: "문제 정찰", wf: "scout", times: ["06:37"], countMirror: true },                                       // scout.yml    37 21 * * *
+      { name: "감사", wf: "audit", self: { agent: "audit" }, times: ["06:35"], countMirror: false, catchup: true },                 // audit.yml    35 21 * * *
+      { name: "문제 정찰", wf: "scout", times: ["06:37"], countMirror: true, catchup: true },                                       // scout.yml    37 21 * * *
     ],
   },
   {
-    id: "repair", name: "수리공", agents: ["repair"],
+    id: "repair", name: "수리공", does: "감사에서 나온 코드 문제를 고쳐 올립니다", agents: ["repair"],
     jobs: [{ name: "수리", wf: "repair", self: { agent: "repair" }, times: ["06:50"], countMirror: false }],        // repair.yml   50 21 * * *
   },
   {
-    id: "measure", name: "측정", agents: ["measure", "improve"],
+    id: "measure", name: "측정", does: "매일 아침 AI 답변과 검색 순위를 잽니다", agents: ["measure", "improve"],
     jobs: [
-      { name: "AI 답변 측정·판정", wf: "optimize", times: ["07:05"], countMirror: true },                            // optimize.yml 5 22 * * *
-      { name: "검색 노출 측정", wf: "serp", times: ["07:41"], countMirror: true },                                   // serp.yml     41 22 * * *
+      { name: "AI 답변 측정", wf: "optimize", times: ["07:05"], countMirror: true, catchup: true },                            // optimize.yml 5 22 * * *
+      { name: "검색 순위 측정", wf: "serp", times: ["07:41"], countMirror: true, catchup: true },                                   // serp.yml     41 22 * * *
     ],
   },
   {
-    id: "content", name: "콘텐츠", agents: ["content"],
+    id: "content", name: "콘텐츠", does: "월요일 아침 글감으로 초안을 씁니다", agents: ["content"],
     // 검토 일감은 회사 루프(매시)가 집어 간다 — 그건 운영 줄의 회사 루프로 본다
-    jobs: [{ name: "주간 초안 작성", wf: "write", times: ["06:07"], dow: 1, countMirror: true }],                   // write.yml    7 21 * * 0 (월 06:07 KST)
+    jobs: [{ name: "주간 초안 작성", wf: "write", times: ["06:07"], dow: 1, countMirror: true, catchup: true }],                   // write.yml    7 21 * * 0 (월 06:07 KST)
   },
   {
     // 콘텐츠 활동 중 일감 kind 가 illustrate 인 것. 회사 루프가 집어 가고 하루 6회 상한 — 정해진 시각이 없다
-    id: "illustrate", name: "삽화", agents: ["content"], jobs: [],
+    id: "illustrate", name: "삽화", does: "초안이 생기면 도해를 그립니다", agents: ["content"], jobs: [],
   },
   {
-    id: "deliver", name: "유통", agents: ["deliver"],
+    id: "deliver", name: "유통", does: "새 글을 검색 엔진에 알리고 네이버 블로그로 옮깁니다", agents: ["deliver"],
     jobs: [
-      { name: "색인 알림", wf: "snapshot", times: ["03:23"], countMirror: true },                                    // snapshot.yml 23 18 * * *
+      { name: "색인 알림", wf: "snapshot", times: ["03:23"], countMirror: true, catchup: true },                                    // snapshot.yml 23 18 * * *
       // 원장 PC 의 로컬 에이전트. PC 가 꺼져 있으면 기록이 없다 — 그것도 알려야 할 일이다
       { name: "원장 PC 작업", self: { agent: "deliver", action: "로컬 에이전트 출근" }, times: ["12:40", "19:10"], countMirror: false, pc: true },
     ],
   },
   {
-    id: "sales", name: "영업", agents: ["sales"],
+    id: "sales", name: "영업", does: "월요일 아침 전화할 곳과 통화문을 준비합니다", agents: ["sales"],
     jobs: [{ name: "영업 주간 정리", wf: "sales", self: { agent: "sales", action: "영업 주간" }, times: ["08:10"], dow: 1, countMirror: false }], // sales.yml 10 23 * * 0
   },
 ];
 
 /** 회사 루프가 옮겨 적은 「자동 작업 X」를 사람 말로 */
 export const WORKFLOW_PLAIN: Record<string, string> = {
-  watch: "사이트 점검", scout: "문제 정찰", serp: "검색 노출 측정", snapshot: "색인 알림", write: "주간 초안 작성",
-  optimize: "AI 답변 측정·판정", audit: "감사", repair: "수리", sales: "영업 주간 정리", company: "회사 루프",
+  watch: "사이트 점검", scout: "문제 정찰", serp: "검색 순위 측정", snapshot: "색인 알림", write: "주간 초안 작성",
+  optimize: "AI 답변 측정", audit: "감사", repair: "수리", sales: "영업 주간 정리", company: "매시 점검",
 };
 
 /** 옮겨 적기가 최대 1시간 늦다(회사 루프 매시 :23) + GitHub 예약 실행 자체가 늦게 뜨는 몫. 그래서 90분 */
@@ -177,12 +181,18 @@ const MIRROR = /^자동 작업 ([a-z]+)$/;
  */
 export function said(a: Act): string {
   const m = MIRROR.exec(a.action);
-  if (m) return `${WORKFLOW_PLAIN[m[1]] ?? "자동 작업"} 실행 ${a.ok ? "완료" : "실패"}`;
-  const head = plain(a.action);
-  if (!a.ok) return `${head} 실패 — 로그 확인`;
+  if (m) return `${WORKFLOW_PLAIN[m[1]] ?? "자동 작업"} ${a.ok ? "끝남" : "실패"}`;
+  const head = plain(a.action.replace(/^회사 루프$/, "매시 점검").replace(/^시험:\s*/, ""));
+  if (!a.ok) return `${head} 실패`;
   const tail = plain(a.summary);
   return tail ? `${head} · ${tail}` : head;
 }
+
+/** 「감사가」「정찰이」 — 받침에 따라 */
+const 이가 = (w: string) => {
+  const c = w.charCodeAt(w.length - 1) - 0xac00;
+  return c >= 0 && c < 11172 && c % 28 === 0 ? `${w}가` : `${w}이`;
+};
 
 const isMirror = (a: Act) => MIRROR.test(a.action);
 
@@ -271,6 +281,8 @@ export type JudgeInput = {
   paused?: boolean;
   /** 최근 7일 geo.repairs 에서 합친 수 (수리공만). null = 못 읽음 */
   merged7?: number | null;
+  /** 다시 돌려도 실패해 사람 대기로 넘어간 GitHub 작업(company.mjs workflow-failed 일감 wf-<file>). 이것들엔 재시도를 약속하지 않는다 */
+  gaveUp?: Set<string>;
 };
 
 const daysAgo = (iso: string, now: number) => Math.floor((now - Date.parse(iso)) / 86400000);
@@ -282,7 +294,7 @@ export function judge(role: Role, input: JudgeInput, now: number): AgentRow {
   const own = isRepair ? acts.filter((a) => !isMirror(a)) : acts;
   const shown = own[0] ?? null;
   const base = {
-    id: role.id, name: role.name,
+    id: role.id, name: role.name, does: role.does,
     last: shown ? { at: shown.at, text: said(shown), ok: shown.ok } : null,
     next: fmtNext(nextSlot(role.jobs, now), now),
     today: countToday(role, acts, now),
@@ -294,9 +306,9 @@ export function judge(role: Role, input: JudgeInput, now: number): AgentRow {
     if (input.paused) {
       const why = own.find((a) => a.summary.startsWith("수리공 멈춤 — "));
       const text = why ? plain(why.summary.replace(/^수리공 멈춤 — /, "").replace(/\s*\(.*$/, "")) : "";
-      return row("off", `멈춤 — ${text || "사람이 풀 때까지"}`);
+      return row("off", `멈춰 있습니다 — ${text || "사람이 풀 때까지"}`);
     }
-    if (shown && shown.summary.startsWith("스위치 꺼짐")) return row("off", "스위치 꺼짐 — 켜는 건 원장님");
+    if (shown && shown.summary.startsWith("스위치 꺼짐")) return row("off", "꺼 두었습니다. 켜면 코드 문제를 스스로 고칩니다 — 켜는 건 원장님");
   }
 
   // 막힘 — 가장 최근 활동이 실패. 수리공의 「검토 불합격」은 검토 관문이 제 일을 한 것이라 막힘으로 안 친다
@@ -304,7 +316,13 @@ export function judge(role: Role, input: JudgeInput, now: number): AgentRow {
   const latest = failing[0] ?? null;
   if (latest && !latest.ok) {
     const d = daysAgo(latest.at, now);
-    return row("stuck", `${said(latest)}${d >= 1 ? ` · ${d}일 전` : ""}`);
+    // 매시 점검이 새로 띄우는 것은 GitHub 작업 실패뿐이다(수리·영업 제외 — company.mjs workflow-failed). 나머지는 약속하지 않는다
+    const wf = MIRROR.exec(latest.action)?.[1];
+    const then = (wf === "repair" || wf === "sales") && input.gaveUp?.has(wf) ? "오늘 하실 일에 올렸습니다"
+      : wf && input.gaveUp?.has(wf) ? "다시 돌려도 실패해 오늘 하실 일에 올렸습니다"
+      : wf && wf !== "repair" && wf !== "sales" ? "매시 점검이 한 번 다시 돌립니다"
+      : "로그는 맨 아래 「자세히」";
+    return row("stuck", `${said(latest)}${d >= 1 ? ` (${d}일 전)` : ""} — ${then}`);
   }
 
   // 지연 — 유예가 지난 정해진 시각 뒤에 기록이 없다. 원장 PC 는 한 번은 회색, 두 번 연속이면 지연
@@ -313,7 +331,7 @@ export function judge(role: Role, input: JudgeInput, now: number): AgentRow {
     if (j.hourly !== undefined) {
       const last = acts.find((a) => matches(j, a));
       if (!last || now - Date.parse(last.at) > HOURLY_SILENT_MIN * 60000) {
-        return row("late", `${j.name} 기록이 ${HOURLY_SILENT_MIN / 60}시간 넘게 없습니다`);
+        return row("late", `${이가(j.name)} ${HOURLY_SILENT_MIN / 60}시간 넘게 안 돌았습니다`);
       }
       continue;
     }
@@ -322,27 +340,33 @@ export function judge(role: Role, input: JudgeInput, now: number): AgentRow {
     const doneSince = (t: number) => acts.some((a) => matches(j, a) && Date.parse(a.at) >= t);
     if (doneSince(due[0].t)) continue;
     if (j.pc) {
-      if (due[1] && !doneSince(due[1].t)) return row("late", `${j.name} ${due[1].label}·${due[0].label} 두 번 기록이 없습니다`);
-      pcMiss = `${j.name} ${due[0].label} 기록 없음 — PC 가 꺼져 있었을 수 있습니다`;
+      if (due[1] && !doneSince(due[1].t)) return row("late", `원장 PC 가 ${due[1].label}·${due[0].label} 두 번 안 켜져 있었습니다 — 네이버 이관·구글 색인 요청이 밀립니다`);
+      pcMiss = `원장 PC 가 ${due[0].label} 에 꺼져 있었습니다 — 다음 시각에 합니다`;
       continue;
     }
-    return row("late", `${j.name} ${due[0].label} 예정이었는데 기록이 없습니다`);
+    return row("late", j.catchup
+      ? `${due[0].label} ${이가(j.name)} 안 돌았습니다 — 2시간이 지나도 안 뜨면 매시 점검이 대신 돌립니다`
+      : `${due[0].label} ${이가(j.name)} 안 돌았습니다`);
   }
 
   // 일하는 중
   const run = tasks.find((t) => t.status === "실행 중" && now - Date.parse(t.updatedAt) <= WORKING_FRESH_MIN * 60000);
   if (run) return row("working", plain(run.title));
 
+  // 원장님 차례 — 이 직원 일감 중 사람이 해야 넘어가는 것
+  const human = tasks.filter((t) => t.status === "사람 대기").length;
+  if (human) return row("wait", `원장님 확인 ${human}건을 기다립니다`);
+
   if (pcMiss) return row("pcoff", pcMiss);
 
   // 수리공 — 최근 7일 합친 수리가 없으면 「정상」이 아니다
-  if (isRepair && input.merged7 === 0) return row("idle", "합친 수리 없음 (최근 7일)");
+  if (isRepair && input.merged7 === 0) return row("idle", "최근 7일 고친 것이 없습니다");
 
   // 쉬는 중 — 정해진 시각이 없는 역할만
   if (!role.jobs.length) {
     const recent = shown && now - Date.parse(shown.at) <= 24 * 3600000;
     const open = tasks.some((t) => t.status !== "완료" && t.status !== "닫힘");
-    if (!recent && !open) return row("idle", "할 일 없음");
+    if (!recent && !open) return row("idle", "지금은 할 일이 없습니다");
   }
 
   return row("ok", null);
@@ -378,7 +402,7 @@ export async function readAgents(now = Date.now()): Promise<Agents> {
   // 오류 원문은 서버 로그에만 — 응답·화면에는 「상태를 못 읽었습니다」만 (내부 이름이 샌다)
   const unknown = (): Agents => ({
     ok: false, at: stamp, claude: null,
-    rows: ROLES.map((r) => ({ id: r.id, name: r.name, state: "unknown", reason: "상태를 못 읽었습니다", last: null, next: null, today: { ok: 0, fail: 0 } })),
+    rows: ROLES.map((r) => ({ id: r.id, name: r.name, does: r.does, state: "unknown", reason: "상태를 못 읽었습니다", last: null, next: null, today: { ok: 0, fail: 0 } })),
   });
   try {
     const p = pool();
@@ -402,6 +426,12 @@ export async function readAgents(now = Date.now()): Promise<Agents> {
     const acts: Act[] = ar.map((r) => ({ agent: r.agent, action: r.action, ok: !!r.ok, summary: r.summary, at: iso(r.at), kind: r.kind ?? null }));
     const tasks: OpenTask[] = tr.map((r) => ({ agent: r.agent, kind: r.kind, status: r.status, title: r.title, updatedAt: iso(r.updated_at) }));
     const paused = sr[0]?.value === "true";
+    const gaveUp = new Set<string>();
+    try {
+      const { rows: gr } = await p.query(
+        `select payload->>'file' as file from geo.agent_tasks where kind = 'workflow-failed' and status = '사람 대기'`);
+      for (const g of gr) if (g.file) gaveUp.add(String(g.file).replace(/[.]yml$/, ""));
+    } catch (e) { console.error("workflow-failed 읽기 실패", e); }
     let merged7: number | null = null;
     try {
       const { rows: [m] } = await p.query(
@@ -417,6 +447,7 @@ export async function readAgents(now = Date.now()): Promise<Agents> {
         tasks: tasks.filter((t) => roleOfAgent(t.agent, t.kind) === r.id),
         paused: r.id === "repair" ? paused : false,
         merged7: r.id === "repair" ? merged7 : null,
+        gaveUp,
       }, now)),
     };
   } catch (e) {

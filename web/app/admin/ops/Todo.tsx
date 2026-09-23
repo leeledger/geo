@@ -67,8 +67,8 @@ export default function Todo({ company, unresolved }: { company: Ops["company"];
   if (unresolved && unresolved > 0 && !human.some((t) => t.link?.includes("/admin/inquiry"))) {
     items.push({
       key: "inq", doing: null,
-      title: `상담 결과 ${unresolved}건 입력`,
-      why: "문의가 등록으로 이어졌는지 이것으로만 잰다",
+      title: `상담 ${unresolved}건 — 등록했는지 적기`,
+      why: "문의가 등록으로 이어졌는지는 이것으로만 압니다. 건마다 버튼 하나입니다",
       act: <a className="td-btn" href="/admin/inquiry">입력하기 →</a>,
     });
   }
@@ -83,7 +83,7 @@ export default function Todo({ company, unresolved }: { company: Ops["company"];
     <section className="td" aria-labelledby="td-h">
       <h2 id="td-h">오늘 원장님이 하실 일{open > 0 && <span className="td-n"> {open}건</span>}</h2>
       {items.length === 0 ? (
-        <p className="td-none">없음 — 직원들이 알아서 돌고 있습니다</p>
+        <p className="td-none">없습니다. 나머지는 자동으로 돕니다</p>
       ) : (
         <ol className="td-list">
           {shown.map((x) => (
@@ -97,7 +97,7 @@ export default function Todo({ company, unresolved }: { company: Ops["company"];
           ))}
         </ol>
       )}
-      {rest > 0 && <p className="td-more">외 {rest}건 — 아래 자세히의 직원별 현황</p>}
+      {rest > 0 && <p className="td-more">나머지 {rest}건은 맨 아래 「자세히」에 있습니다</p>}
     </section>
   );
 }

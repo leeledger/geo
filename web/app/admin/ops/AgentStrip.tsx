@@ -13,7 +13,7 @@ import type { Agents, AgentState } from "@/lib/agents";
  */
 
 const LABEL: Record<AgentState, string> = {
-  unknown: "확인 못함", off: "꺼짐", stuck: "막힘", late: "지연", working: "일하는 중", pcoff: "PC 꺼짐", idle: "쉬는 중", ok: "정상",
+  unknown: "확인 못함", off: "꺼짐", stuck: "실패", late: "늦음", wait: "원장님 차례", working: "일하는 중", pcoff: "PC 꺼짐", idle: "쉬는 중", ok: "정상",
 };
 const POLL_MS = 45_000;
 const FLASH_MS = 1_800;
@@ -62,6 +62,8 @@ const CSS = `
 .lt.working .ring{animation:lt-ring 1.6s ease-out infinite}
 .lt.ok{background:var(--ok);animation:lt-breathe 3s ease-in-out infinite}
 .lt.stuck,.lt.late{background:var(--crit);animation:lt-blink 1.2s ease-in-out infinite}
+.lt.wait{background:var(--acc)}
+.ag-row.wait .ag-st{color:#F0CE87;font-weight:700}
 @keyframes lt-ring{0%{transform:scale(1);opacity:.6}100%{transform:scale(2.2);opacity:0}}
 @keyframes lt-breathe{0%,100%{box-shadow:0 0 0 0 rgba(61,214,160,0)}50%{box-shadow:0 0 6px 2px rgba(61,214,160,.35)}}
 @keyframes lt-blink{0%,100%{opacity:1}50%{opacity:.35}}
@@ -137,14 +139,14 @@ export default function AgentStrip({ initial }: { initial: Agents }) {
     <section className="ag" aria-labelledby="ag-h">
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
       <div className="ag-hd">
-        <h2 id="ag-h">에이전트 직원 — 지금</h2>
+        <h2 id="ag-h">자동으로 도는 일</h2>
         {lost
           ? <span className="ag-sub lost" role="status">연결 끊김 · {ago(data.at, now)} 값</span>
-          : <span className="ag-sub">45초마다 새로 봅니다 · 마지막 {hhmm(data.at)}</span>}
+          : <span className="ag-sub">{hhmm(data.at)} 기준 · 저절로 새로 고침</span>}
       </div>
       {c && (
         <p className="ag-claude">
-          오늘 Claude 사용 {c.n.toLocaleString("ko-KR")}회{c.cap !== null && ` / 하루 상한 ${c.cap.toLocaleString("ko-KR")}`}
+          오늘 Claude 를 {c.n.toLocaleString("ko-KR")}번 불렀습니다{c.cap !== null && ` · 하루 ${c.cap.toLocaleString("ko-KR")}번까지`}
         </p>
       )}
       <ol className="ag-list">
@@ -155,13 +157,11 @@ export default function AgentStrip({ initial }: { initial: Agents }) {
               {LABEL[r.state]}
             </span>
             <b className="ag-nm">{r.name}</b>
-            <span className="ag-main" title={r.reason ?? r.last?.text ?? undefined}>
-              {r.reason ?? r.last?.text ?? "최근 10일 기록 없음"}
-            </span>
-            <span className="ag-ago">{r.last ? ago(r.last.at, now) : "—"}</span>
-            <span className="ag-nx">{r.next ? `다음 ${r.next}` : "정해진 시각 없음"}</span>
+            <span className="ag-main" title={r.reason ?? r.does}>{r.reason ?? r.does}</span>
+            <span className="ag-ago">{r.last ? `마지막 ${ago(r.last.at, now)}` : "최근 10일 기록 없음"}</span>
+            <span className="ag-nx">{r.next ? `다음 ${r.next}` : "필요할 때"}</span>
             <span className="ag-cnt">
-              오늘 {r.today.ok + r.today.fail}건 · {r.today.fail > 0 ? <b>실패 {r.today.fail}</b> : "실패 0"}
+              오늘 {r.today.ok + r.today.fail}건{r.today.fail > 0 && <> · <b>실패 {r.today.fail}</b></>}
             </span>
           </li>
         ))}

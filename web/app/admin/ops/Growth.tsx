@@ -136,7 +136,7 @@ export default function Growth({ g, err }: { g: G | null; err?: string }) {
     return (
       <section className="gr">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <h2>크고 있나</h2>
+        <h2>성과</h2>
         <div className="err">성장 숫자를 못 읽었습니다 — {err ?? "이유 모름"}</div>
       </section>
     );
@@ -162,7 +162,7 @@ export default function Growth({ g, err }: { g: G | null; err?: string }) {
     <>
       <section className="gr" aria-labelledby="gr-h">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <h2 id="gr-h">크고 있나</h2>
+        <h2 id="gr-h">성과</h2>
         <p className="sub">어제까지 7일을 그 전 7일과 비교합니다. 문의는 30일.</p>
         <div className="gr-grid">
           {/* 1 AI 답변 */}
@@ -179,7 +179,7 @@ export default function Growth({ g, err }: { g: G | null; err?: string }) {
                   <Word d={delta(aiTop.compare.mentioned[1], aiTop.compare.mentioned[0], "up")} />
                   <span className="gc-d"> · {md(aiLast.day)} 측정</span>
                 </> : <>
-                  <span className="gw mut">아직 비교 전</span> — 한 번 더 재야 합니다
+                  <span className="gw mut">아직 비교 전</span> — 같은 방법으로 한 번 더 재면 비교됩니다
                   <span className="gc-d"> · {md(aiLast.day)} 측정</span>
                 </>}
                 extra={aiTop.rounds.length >= 3
@@ -230,9 +230,9 @@ export default function Growth({ g, err }: { g: G | null; err?: string }) {
 
       {/* ④ 차트 하나 */}
       <section className="gr gr-card" aria-labelledby="cov-h">
-        <h2 id="cov-h">AI 가 답할 때 찾는 검색 색인 — 우리 쪽이 몇 쪽 들어갔나</h2>
+        <h2 id="cov-h">검색 엔진이 읽어 간 우리 글</h2>
         {cov === null ? <p className="gr-empty">확인 못함</p> : <>
-          <p className="d">구글·네이버·빙이 지금 있는 {cov.total}쪽 중 한 번이라도 읽어 간 쪽 수. 착수부터 누적.</p>
+          <p className="d">지금 있는 {cov.total}쪽 중 한 번이라도 읽어 간 쪽 수입니다. 시작한 날부터 셉니다. ChatGPT 검색은 빙을, 구글 AI 답변은 구글을 봅니다.</p>
           <CoverageChart total={cov.total} series={chartSeries} />
         </>}
       </section>

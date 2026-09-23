@@ -52,9 +52,13 @@ for (const c of clients) {
 
   // ── 1. 엔진별 커버리지가 크게 갈리는가
   const cov = await q(`
-    select vendor, coverage_pct::float pct, pages_crawled::int p, pages_total::int t
+    select vendor, coverage_pct::float pct, pages_crawled::int p, pages_total::int t,
+           extract(epoch from now() - first_seen)::float / 86400 age
       from academy.coverage_by_vendor where client_id = $1`, P).catch(() => []);
-  const major = cov.filter((r) => ["openai", "anthropic", "google", "naver"].includes(r.vendor));
+  // 빙(microsoft)은 ChatGPT 검색·Copilot 이 쓰는 색인이다. 감시 밖이라 5/47 로 보름을 놀았다(감사 319, 2026-09-24 손으로 넣음).
+  // 감사 R5 와 같은 보호: 페이지 10개 미만·처음 온 지 14일 이내는 비율이 안 서니 뺀다
+  const major = cov.filter((r) => ["openai", "anthropic", "google", "naver"].includes(r.vendor)
+    || (r.vendor === "microsoft" && r.t >= 10 && r.age > 14));
   if (major.length >= 2) {
     const hi = Math.max(...major.map((r) => r.pct));
     for (const r of major) {
@@ -64,7 +68,9 @@ for (const c of clients) {
           `${r.p}/${r.t}쪽만 읽었습니다. 다른 엔진은 ${hi}%인데 이 엔진만 뒤처집니다.`,
           r.vendor === "openai"
             ? "빙 색인을 확인하세요. OpenAI 는 빙 인덱스에 크게 기댑니다 — node scripts/bing-check.mjs"
-            : "robots.txt 에 이 크롤러가 이름으로 허용돼 있는지 보세요.");
+            : r.vendor === "microsoft"
+              ? "안 읽은 쪽을 IndexNow 로 빙에 다시 알립니다. ChatGPT 검색·Copilot 이 빙 색인을 씁니다."
+              : "robots.txt 에 이 크롤러가 이름으로 허용돼 있는지 보세요.");
       }
     }
   }

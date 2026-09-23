@@ -221,6 +221,8 @@ const R5 = async () => {
     from academy.coverage_by_vendor order by client_id, coverage_pct`);
   for (const r of rows) {
     if (r.pct >= 20) { 풀림("R5", r.client_id, r.vendor, `커버리지 ${r.pct}% (${r.pages_crawled}/${r.pages_total})`); continue; }
+    // 덕덕고 검색 결과는 자체 수집이 아니라 빙 색인이다. DuckDuckBot 이 적게 오는 건 고칠 결함이 아니다 — 빙(microsoft)으로 본다(조사 439, 2026-09-24)
+    if (r.vendor === "duckduckgo") { 풀림("R5", r.client_id, r.vendor, "덕덕고 결과는 빙 색인 기반 — 빙 커버리지로 대신 봄"); continue; }
     const 이름 = `client ${r.client_id} ${r.vendor} ${r.pct}% (${r.pages_crawled}/${r.pages_total})`;
     if (r.pages_total < 10) { 참고("R5", `제외 — ${이름}: 페이지 ${r.pages_total}개라 비율이 안 선다`); continue; }
     if (r.age <= 14) { 참고("R5", `제외 — ${이름}: 처음 온 지 ${r.age}일 (${r.first}), 14일 전엔 판단 안 함`); continue; }

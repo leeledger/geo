@@ -93,7 +93,8 @@ function linkAction(link: string | null): TodoAction {
   const label = href.startsWith("/admin/drafts") ? "읽고 발행하기"
     : href.startsWith("/admin/inquiry") ? "입력하기"
     : href.startsWith("/admin/outreach") ? "영업판 열기"
-    : href.startsWith("/admin") ? "열기"
+    : href.startsWith("/admin/material") ? "적기"
+    : href.includes("smartplace.naver.com") ? "플레이스 열기"
     : "열기";
   return { type: "link", label, href };
 }
@@ -129,7 +130,8 @@ export function todoText(t: TodoTask, now = Date.now()): TodoText {
         : `${v ? v[1] : "검색 로봇이"} 우리 글을 덜 읽습니다`;
     }
     const src = `${t.error} ${t.detail}`;
-    const why = REPAIR_WHY.find(([re]) => re.test(src))?.[1] ?? "자동 조사 결과를 원장님이 봐야 합니다";
+    // 수리공이 꺼져 있으면 조사 끝난 코드 문제가 여기로 온다. 원장이 읽고 판단할 일이 아니라 Claude 세션이 고칠 일이다
+    const why = REPAIR_WHY.find(([re]) => re.test(src))?.[1] ?? "코드를 고쳐야 합니다 — Claude 세션을 열면 처리합니다";
     const 결론 = String(obj(p.diagnosis)["결론"] ?? "");
     const action: TodoAction = 결론 ? { type: "details", label: "조사 내용 보기", body: cut(plain(결론), 320) } : linkAction(t.link);
     return { title, why, action, doing };
@@ -162,10 +164,10 @@ export function todoText(t: TodoTask, now = Date.now()): TodoText {
     const unused = num(p.unused);
     const 멈춤 = num(p.빈손);
     return {
-      title: 멈춤 !== null && 멈춤 >= 2 ? `발행이 ${멈춤}주 멈췄습니다 — 재료 한 줄이 필요합니다` : "초안 재료 한 줄 — 30초",
-      why: unused !== null
-        ? `안 쓴 재료 ${unused}개. 3개 밑이면 자동 초안이 일반론이 됩니다`
-        : "안 쓴 재료가 모자랍니다. 3개 밑이면 자동 초안이 일반론이 됩니다",
+      title: 멈춤 !== null && 멈춤 >= 2 ? `글이 ${멈춤}주째 안 나갔습니다 — 글감 한 줄` : "이번 주 글감 한 줄 적기",
+      why: unused === 0
+        ? "상담·수업에서 들은 말 한 줄이면 됩니다. 남은 글감이 없어 이번 주 초안이 멈춰 있습니다"
+        : `상담·수업에서 들은 말 한 줄이면 됩니다. 남은 글감 ${unused ?? "?"}개 — 3개 밑이면 초안이 뻔해집니다`,
       action: { type: "link", label: "적기", href: "/admin/material" },
       doing,
     };
@@ -175,7 +177,33 @@ export function todoText(t: TodoTask, now = Date.now()): TodoText {
     return { title: cut(plain(t.title), 60), why: cut(plain(first(t.error || t.detail)), 90), action: { type: "naver" }, doing };
   }
 
-  // human 과 그 밖 — 원문을 쉬운 말로 깎고 어절 경계에서 자른다
+  // 자주 오는 사람 일 — 로그 제목 대신 할 일을 문장으로
+  if (t.link?.includes("/admin/inquiry")) {
+    const n = /(\d+)건/.exec(t.title)?.[1];
+    return {
+      title: n ? `상담 ${n}건 — 등록했는지 적기` : "상담 결과 적기",
+      why: "문의가 등록으로 이어졌는지는 이것으로만 압니다. 건마다 버튼 하나입니다",
+      action: linkAction(t.link), doing,
+    };
+  }
+  if (t.link?.includes("/admin/outreach")) {
+    const m = /후보 (\d+)곳.*통화문 (\d+)곳/.exec(t.title);
+    return {
+      title: m ? `영업 전화 ${m[1]}곳 · 통화문 ${m[2]}곳 준비됨` : cut(plain(t.title), 60),
+      why: "통화 뒤 영업판에 결과와 다음 연락일을 적으면 다음 주 목록에서 빠집니다",
+      action: linkAction(t.link), doing,
+    };
+  }
+  if (t.kind === "listing") {
+    const query = typeof p.query === "string" ? p.query : "";
+    return {
+      title: query ? `「${query}」 검색에 올라가기` : cut(plain(t.title), 60),
+      why: cut(plain(first(t.detail)), 90),
+      action: linkAction(t.link), doing,
+    };
+  }
+
+  // 그 밖 — 원문을 쉬운 말로 깎고 어절 경계에서 자른다
   return {
     title: cut(plain(t.title), 60),
     why: cut(plain(first(t.error || t.detail)), 90),

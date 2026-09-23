@@ -238,6 +238,7 @@ const 출근기록 = async () => {
   for (const [file, agent] of Object.entries(WORKFLOWS)) {
     const d = await gh(`/actions/workflows/${file}/runs?per_page=5`);
     if (!d || d.__error) { ok = false; console.log(`  ⚠ ${file} 실행 기록을 못 읽음 ${d?.__error ?? "(GH_TOKEN 없음)"}`); continue; }
+    밀림후보[file] = (d.workflow_runs ?? []).map((r) => Date.parse(r.created_at)).filter(Number.isFinite);
     const runs = (d.workflow_runs ?? []).filter((r) => r.status === "completed");
     latest[file] = runs[0] ?? null;
     for (const r of runs.reverse()) {
@@ -249,6 +250,57 @@ const 출근기록 = async () => {
     }
   }
   return { latest, ok };
+};
+
+/**
+ * 밀린 예약 — GitHub 가 건너뛴 아침 일을 대신 띄운다.
+ *
+ * 2026-09-24 아침: 감사 06:35·정찰 06:37·측정 07:05 가 08:45 까지 한 건도 안 떴다. 현황판은 「지연」만 빨갛게 칠했고 아무도 다시 돌리지 않았다.
+ * 정해진 시각에서 2시간이 지났는데 그 뒤로 시작된 실행이 없으면 workflow_dispatch 한다.
+ * 수리공(repair)·영업(sales)은 빼둔다 — 봇이 띄우면 사람이 띄운 실행처럼 읽힌다(Richard 9/22, heartbeat.mjs 주석).
+ * ★ 시각은 각 yml 의 cron 을 KST 로 옮긴 것. yml 을 바꾸면 여기도 (web/lib/agents.ts ROLES 와 같은 값)
+ */
+const 밀림후보 = {};
+const 예약 = {
+  "snapshot.yml": { at: ["03:23"] },
+  "audit.yml": { at: ["06:35"] },
+  "scout.yml": { at: ["06:37"] },
+  "optimize.yml": { at: ["07:05"] },
+  "serp.yml": { at: ["07:41"] },
+  "write.yml": { at: ["06:07"], dow: 1 },
+};
+const 밀린예약 = async () => {
+  const now = Date.now();
+  const KST = 9 * 3600 * 1000;
+  const 띄움 = [];
+  for (const [file, s] of Object.entries(예약)) {
+    const runs = 밀림후보[file];
+    if (!runs) continue;   // 기록을 못 읽었으면 짐작으로 띄우지 않는다
+    // 가장 최근에 지난 정해진 시각 (오늘 또는 그 전날들)
+    let slot = null;
+    for (let k = 0; k <= 7 && slot === null; k++) {
+      const day = new Date(now + KST - k * 86400000).toISOString().slice(0, 10);
+      if (s.dow !== undefined && new Date(`${day}T00:00:00Z`).getUTCDay() !== s.dow) continue;
+      for (const hm of [...s.at].reverse()) {
+        const t = Date.parse(`${day}T${hm}:00+09:00`);
+        if (t <= now) { slot = t; break; }
+      }
+    }
+    if (slot === null || now - slot < 2 * 3600 * 1000) continue;   // 아직 GitHub 이 늦게라도 띄울 수 있는 때
+    if (runs.some((t) => t >= slot)) continue;   // 그 뒤로 시작된 실행이 있다(대기·진행 포함). 예약은 일찍 뜨지 않으니 시각 앞의 실행은 안 친다
+    const r = await gh(`/actions/workflows/${file}/dispatches`, { method: "POST", body: JSON.stringify({ ref: "main" }) });
+    const 이름 = file.replace(".yml", "");
+    if (r && !r.__error) {
+      띄움.push(이름);
+      await 활동(HOUSE, "ops", "밀린 예약 실행", true, `${이름} — 예약 시각이 2시간 지나도 안 떠서 대신 띄움`);
+    } else {
+      // 꺼진 작업(422)처럼 매시 되풀이될 실패는 하루 한 줄만 — 매시 적으면 운영 줄이 매시 「실패」로 칠해진다(Richard 16)
+      const [적음] = await q(`select 1 from geo.agent_activity where action = '밀린 예약 실행' and not ok and summary like $1 and at > now() - interval '24 hours' limit 1`, [`${이름} —%`]);
+      console.log(`  ⚠ ${이름} 대신 띄우기 실패 ${r?.__error ?? "GH_TOKEN 없음"}`);
+      if (!적음) await 활동(HOUSE, "ops", "밀린 예약 실행", false, `${이름} — 띄우기 실패 ${끝(r?.__error ?? "GH_TOKEN 없음", 120)}`);
+    }
+  }
+  if (띄움.length) console.log(`  밀린 예약 대신 띄움: ${띄움.join(", ")}`);
 };
 
 // ─────────────────────────────────────────── 2. 계획
@@ -501,9 +553,10 @@ const EXEC = {
 
   async "question-draft"(t, c) {
     // write-draft 는 로봇&코딩학원(1번) 글만 쓴다. 다른 고객사 주제로 돌리면 학원 블로그에 남의 글이 들어간다(2026-09-17 아이로그 일감 5건)
+    // 원장이 현황판에서 할 수 있는 게 없다 — 사람 대기로 올리면 「오늘 하실 일」만 채운다(2026-09-24 원장: 알아서 처리하라).
+    // 관찰로 두고 한 달 뒤 다시 본다. 아직 이 주제를 집어 가는 자동 경로는 없다 — Claude 세션에서 고객사 저장소로 옮긴다(Known Gap KG-S16-1)
     if (!c.conf?.publishes || c.id !== 1) {
-      return { status: "사람 대기", evidence: `${오늘()} 이 고객사 사이트 글은 우리가 올리지 않음 — 주제만 넘김`,
-        error: `${c.name} 전달 파일로 쓸 주제입니다: 「${t.payload.question}」 (고객사 저장소에서 작업)` };
+      return { status: "관찰", nextTry: 뒤(24 * 30), evidence: `${오늘()} ${c.name} 저장소에서 쓸 주제 — 원장 할 일에서 뺌` };
     }
     const [d] = await q(`select count(*)::int n from academy.posts where client_id=$1 and not published`, [c.id]);
     if (d.n >= 3) return { status: "대기", nextTry: 뒤(12), evidence: `${오늘()} 검토 대기 초안 ${d.n}편 — 발행이 밀려 미룸` };
@@ -677,6 +730,7 @@ const main = async () => {
 
   console.log(`에이전트 회사 · ${오늘()} KST`);
   const latest = await 출근기록();
+  if (!PLAN_ONLY) await 밀린예약();
   await 계획(clients, latest);
   const [s] = await q(`select count(*) filter (where status='대기')::int wait, count(*) filter (where status='사람 대기')::int human,
       count(*) filter (where status='로컬 대기')::int local, count(*) filter (where status='관찰')::int watch from geo.agent_tasks`);

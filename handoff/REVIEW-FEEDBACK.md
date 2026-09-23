@@ -1,24 +1,25 @@
-# Review Feedback — Step 15 (초안 재료) 3차
-Date: 2026-09-23
+# Review Feedback — Step 16 (현황판 문구 · 밀린 예약) 2차
+Date: 2026-09-24
 Ready for Builder: YES
-Commits reviewed: 57c4ec4 · 4551e83
+Reviewed: working tree (uncommitted) — agents.ts · company.mjs, plus the BUILD-LOG KG-16-1 entry
 
 ## Must Fix
-없음.
+(none)
 
 ## Should Fix
-없음.
+- web/lib/agents.ts:321 — The `gaveUp` check runs before the repair/sales exclusion. company.mjs:428 sends repair.yml and sales.yml straight to 사람 대기 without re-running them. A repair or sales failure would therefore read 「다시 돌려도 실패해 오늘 하실 일에 올렸습니다」, but it was never re-run. — Fix in one line: for repair/sales say 「오늘 하실 일에 올렸습니다」. Keep 「다시 돌려도 실패해」 for the retried workflows only. Fix inline.
+- handoff/BUILD-LOG.md:1013 — `KG-16-1` sits next to an older, unrelated `KG-16` (line 355, 아이로그 기출 분석, Step 7). Someone searching "KG-16" will find both. Not a code issue; rename it if convenient.
 
 ## Escalate to Architect
-없음. (78 → 일주일 뒤 다시, DB 오류와 0건 가르기 — 둘 다 Arch 승인대로 들어갔다.)
+(none — the scope and DB edits are now logged in BUILD-LOG. 439 and 319 close after the push, which Arch should confirm on the next audit run.)
+
+## Round-1 items — verified
+- Must 1 (agents.ts:319-324, 428-433): readAgents collects `payload->>'file'` from workflow-failed tasks in 사람 대기, strips `.yml`, and matches that against the mirror's captured workflow name (same form). The query sits in its own try/catch, so a failure only loses the "gave up" wording, not the whole strip. Stale state cannot show: when the workflow later succeeds, company.mjs:404-412 closes the non-sticky `wf-%` task (the 'gh' bucket).
+- agents.ts:329 — the claimed cause is removed. It now reads 「매시 점검이 2시간 넘게 안 돌았습니다」.
+- agents.ts:343 — now 「2시간이 지나도 안 뜨면 매시 점검이 대신 돌립니다」. This is conditional, and true whichever way it goes.
+- company.mjs:297-300 — the failed-dispatch activity is written at most once per 24h per workflow. The `summary like '<이름> —%'` dedupe matches the summary format written on line 300, and `at` is a real column (company.mjs:248). The console line still prints every hour, which is fine.
+- company.mjs:290 — `t >= slot`, so a run started before the slot no longer counts.
+- company.mjs:556-559 — the evidence now says what actually happens. The comment points to KG-16-1, and the gap is logged.
 
 ## Cleared
-- **한 주에 생성 한 번**: 저장소 전체에서 write-news.mjs 를 부르는 곳은 두 군데뿐이다 — `write-draft.mjs:127`(모드 사실에서 자식으로) 과 `.github/workflows/write.yml:78`(사람이 `mode=news` 를 고를 때만). company.mjs weekly-draft 는 `실행(["scripts/write-draft.mjs"])` 하나다. 예약 실행 기본값은 `auto` 이고, 갈래는 write-draft 가 고른다. 한 번 실행에 생성 호출 하나·「모드=」 한 줄이 맞다.
-- **78 은 고장이 아니다**: `실행()` 이 `code` 를 돌려주고, weekly-draft 는 78 이면 `status:"대기"` · `nextTry` 일주일 · 근거 「모드=… · 재료 없음 — material-need 일감 참고」로 끝낸다. `attempt` 를 안 올리니 없는 「3번 실패」가 원장 큐에 안 뜬다. 그 밖의 0 아닌 코드만 실패다. write.yml 은 78 을 0 으로 끝내고 다른 코드는 그대로 실패로 넘긴다.
-- **DB 오류와 0건 가르기**: 재료 쿼리가 실패하면 빈 배열 대신 null 을 돌려주고 종료 1 로 끝낸다. DB 가 죽은 주에 「원장이 재료를 안 적었다」로 조용히 넘어가던 길이 막혔다. 이건 Bob 이 스스로 찾아 고친 것이다.
-- **전언 표시**: `라며|고 전했|하시더|그러셨|의 말입니다|라고 적` 여섯이 들어갔다. 되묻기·아이 속마음·문서 인용 세 오탐은 표시가 없어 여전히 안 걸린다(REVIEW-REQUEST 의 재확인 출력과 정규식이 일치한다).
-- **시험 출력**: 647자·지어낸 인용·라벨만 단 재료 세 경우의 `--strict` 실제 출력이 REVIEW-REQUEST 에 붙었다. 넓은 인용 규칙을 버린 이유도 BUILD-LOG 에 남았다.
-- **운영 DB 깨끗함**: posts 45 · 검토 대기 초안 0 · materials 0 · draft_feedback 0 · 시험 슬러그 0 · 일감은 `material-need` 사람 대기 하나뿐이다(next_try 09-23 06:54).
-
-## 남은 것 (원장 몫, 코드 아님)
-- 재료가 0건이라 다음 월요일 실행은 모드 사실(뉴스)로 간다. 재료를 세 줄 적어 두면 그 주부터 관점 글이 나온다 — /admin/material.
+Step 16 round 2: the stuck-row retry promise now matches company.mjs behaviour, and all round-1 Should items are resolved. One small wording fix for repair/sales remains as a Should. Step 16 is clear.
