@@ -1,225 +1,244 @@
-# Architect Brief — Step 14 · 관리 화면 단순화 (14a 현황판 → 14b 나머지)
-*Arch 작성 2026-09-22. Step 13 통과(e146cf1). 이 파일은 Step 14 만.*
+# Architect Brief — Step 15 · 초안 재료
 
-원장 말: 「검색에 처음 나온 날 같은 의미 없는 건 빼」「너무 알아보기 힘들어」「전반적으로 알아보기 쉽게」
-「실시간으로 에이전트 직원들이 일을 잘 처리하고 있는지 보여야 해」「상태등도 액티비티하게」.
-원장이 관리 화면을 여는 이유: **(1) 내가 뭘 해야 하나 (2) 직원들이 잘 돌고 있나 (3) 크고 있나.** 나머지는 소음.
+## Goal
 
-**짓는 순서: 14a-1 → 14a-2 → Richard → 푸시·운영 확인 → 14b.** 14b 가 밀리면 14a 만 배포한다.
+자동 초안이 **원장만 쓸 수 있는 말**에서 시작한다. 재료가 없으면 일반론을 쓰는 대신 아무것도 안 쓰고 재료를 달라고 한다.
 
----
+## 왜 (근거)
 
-## 공통 원칙 (14a·14b 모두)
+2026-09-23 원장이 밤사이 초안을 버리며: 「내용이 너무 AI slop 강했어. 학원 블로그라고 보기에는 너무 일반론적인 내용, 억지스러운 상황 설정 등」. 이틀에 3편을 버렸다. 같은 기간 **사실·출처로 쓴 뉴스 글(`ai-textbook-16-subjects-2028`)은 그대로 발행했다.**
 
-1. **맨 위는 「지금 할 일」.** 없으면 「없음」 한 줄. 결정에 안 쓰이는 것은 맨 아래 접힌 `<details>` 「자세히 (운영자용)」 하나로.
-2. **쉬운 말.** 화면에 내부 이름 금지 — `claude-code-web`·`api-openrouter-*`·`geo.*`·워크플로/스크립트/테이블 이름·vendor 키(`microsoft`·`anthropic`)·커밋 해시·URL.
-   엔진 표기: 문자열에 `claude`→「Claude」, `gpt|openai|chatgpt`→「ChatGPT」, `perplexity`→「퍼플렉시티」, `gemini`→「Gemini」, 그 외→「AI」. 방법(method) 이름은 화면 어디에도(자세히 포함) 안 쓴다.
-3. **카드·줄 하나 = 3줄 이내.** 「뜻」「좋아지려면」 블록은 카드에서 빼서 자세히 「숫자 읽는 법」 한 곳에.
-4. **글자.** 본문 ≥16px · 보조 ≥14px · 카드 머리문장 ≥21px 굵게 · 보조 글자색 `--ink2`(#A7B2C0) 이상(`--mut`/`--faint` 는 날짜·각주만) · 줄간격 1.55 · `word-break:keep-all`.
-5. **모바일 먼저(390px).** 가로 스크롤 0(자세히 안의 표 래퍼만 예외). 본문 폭 최대 920px.
-6. **정직 규칙 그대로.** 지어내지 않는다 · %·증감률 금지(절대 수와 이전 값만) · 같은 엔진·방법끼리만 비교 · 비교 창은 어제로 끝나는 완전한 날 · 비교 못 하면 「아직 비교 전」 · 못 읽으면 「확인 못함」(정상으로 칠하지 않는다). growth.ts 의 Delta·compare 그대로 — 비교 로직 새로 짜지 않는다.
-7. **변화 단어.** 기호+단어+색 같이: `▲ 늘었음`(--ok) · `▼ 줄었음`(--crit) · `그대로` · `아직 비교 전`(둘 다 --ink2).
-8. **dataviz 스킬 먼저**(Skill `dataviz`) — stat tile·hero number·sparkline·anti-pattern·motion 부분만 읽고 따른다. 계열색은 Step 13 검증 셋(구글 #1F9E90 · 네이버 #7C8AF2 · 빙 #C27A14) 그대로.
-9. **CSS `transform` 은 속성 하나.** 애니메이션은 opacity·box-shadow 로, scale 이 필요하면 **전용 요소**(점 안의 ring span)에만. 이미 transform 을 쓰는 요소(`.gr-dot` 의 translate 등)에 애니메이션 걸지 않는다.
+DB 를 봤다. `academy.inquiries` 는 고객사 1번에 **2행**, 둘 다 `said` 가 **빈 문자열**이다. `write-draft.mjs:167` 은 재료가 있으면 넣게 돼 있지만 넣을 게 없어서 「기록이 없다」 가지가 늘 탄다. 프롬프트에 금지 목록을 아무리 쌓아도 모델은 빈자리를 일반론과 지어낸 장면으로 채운다. **모델 문제가 아니라 재료 문제다.**
 
 ---
 
-# Step 14a — /admin/ops 현황판
+## 결정 (Bob 은 여기서 고르지 않는다)
 
-## 결정표 (지금 있는 것 전부)
+### D1. 새 표 `academy.materials` — `inquiries.said` 재사용 안 함
 
-| 지금 있는 것 | 결정 | 이유 |
-|---|---|---|
-| 머리 「AI 직원이 하고 있는 일」 + `Live` 시계·다음 칸·5분 새로고침 | **제거** (Live.tsx 삭제) | SLOTS 가 실제 일정과 다르다. 새로고침은 ② 직원 줄이 대신 |
-| SLOTS 하루 시간표 · 자동/세션 칸 수 | **제거** | 틀린 표는 접어도 틀렸다. 실제 일정은 ② 의 「다음」 칸 |
-| HUMAN 「사람만 할 수 있는 일」 고정 목록 + 그 안 경고 3개 | **제거** | 고정 문구. ①·카드가 대신 |
-| 영업판·파일럿·상담 기록 링크 3개 | **KEEP** (작은 링크 줄) | 14b 에서 AdminNav 로 |
-| 고객사 칩 줄 | **축소** | 1곳이면 제목 옆 이름만, 2곳 이상일 때만 칩. meta(도메인·착수·진단점수)·「직접 운영하는 곳으로…」 제거 |
-| AgentBoard 「원장님이 하실 일」 | **KEEP → ①** (AgentBoard 에선 지움) | 질문 (1) |
-| AgentBoard 요약 카운트 | **제거** | ①·② 가 대신 |
-| AgentBoard 직원 카드 격자·caveat | **MOVE → 자세히** | ② 가 한 줄 요약. 상세는 운영자용 |
-| Brief 「오늘의 운영 기록」 | **MOVE → 자세히** | 운영자용 |
-| 옛 「고객사 성과 지표」 KPI 7칸 | **제거** | Growth 와 중복. 「제일 낮은 커버리지 %」는 학습 로봇까지 섞인 다른 숫자 |
-| ↳ 플레이스 순위 | **MOVE → 자세히 「그 밖의 숫자」** | |
-| Growth 판정 줄(좋아진 것 n…) | **제거** | 카드 단어가 대신 |
-| Growth AI 답변 / ★답변 색인 / 발행 / 학원 문의 | **KEEP → ③ 카드 4장** | 질문 (3) |
-| Growth 경쟁 검색어 · 크롤러 방문(중립) · 사이티드 리드·진단 | **MOVE → 자세히 「그 밖의 숫자」** | 4장 제한. 리드는 사이티드 전체 숫자라 학원 카드와 섞으면 헷갈린다 |
-| Growth 막힌 곳(사람 대기·실패) | **MERGE** → 사람 대기는 ①, 실패는 ② | |
-| Growth 커버리지 누적 차트 | **KEEP → ④** | 차트는 이것 하나 |
-| Growth 「표로 보기」 | **MOVE → 자세히** | 주별 요약 「AI 측정 회차」는 엔진 이름만 |
-| 크롤러 커버리지 표 | **MOVE → 자세히** | vendor 키 대신 사람 이름(구글·네이버·빙·ChatGPT·Claude…). brave 줄 `claude-code-web` → 「Claude 답변 측정의 인용으로 본다」 |
-| 검색에 처음 나온 날 | **제거** (ops.ts `firstSeen` 까지) | 원장 지시 |
-| 최근 발행 표 | **MOVE → 자세히, 5편만** | 카드가 「마지막 글 N일 전」을 말한다 |
-| Flow.tsx | **삭제** | import 하는 곳 없음(죽은 코드) |
+`inquiries` 는 **유입 경로에서 등록 전환을 재는 표**다(`inquiry_summary` 뷰, `source`·`enrolled`). 재료를 여기에 넣으면 ①수업 장면·아이 말은 문의가 아닌데 가짜 `source` 행을 만들어야 하고 ②상담 하나에서 재료 셋이 나올 때 문의 수가 부풀어 **전환율 지표가 망가진다**. 사이티드 영업 숫자가 여기서 나온다 — 오염시키지 않는다.
 
-## 새 화면 순서
+대신 **`inquiries.said` 는 재료의 입력구 중 하나로 잇는다**: `addInquiry` 가 `said` 를 쓰면 `materials` 에 한 행(kind `상담`, origin `inquiry`, inquiry_id)을 같이 넣는다. 원장은 한 곳에만 친다.
+
+### D2. 화면은 새 `/admin/material`
+
+문의 화면은 「상담 결과 입력」 흐름이라 수업·아이 말이 들어갈 자리가 없다. 재료는 문의가 없는 날에도 매일 생긴다. AdminNav 에 「재료」를 넣는다.
+
+### D3. 모드 C 는 **글을 안 쓴다**
+
+재료도 없고 사실 출처도 없으면 초안을 만들지 않는다. 대신 사람 대기 일감을 올린다. **빈손으로 오는 게 슬롭을 내놓는 것보다 낫다** — 원장이 읽고 버리는 시간이 더 비싸다.
+
+### D4. 사실 글은 `write-news.mjs` 를 부른다 (새로 안 짠다)
+
+원장이 유일하게 발행한 자동 글이 그 경로에서 나왔다. 모드 B 는 write-draft 안에서 뉴스 글을 다시 구현하지 말고 `write-news.mjs` 를 자식 프로세스로 실행하고 그 종료 코드를 그대로 넘긴다.
+
+---
+
+## 짓는 순서
+
+### 1. 표 — `academy/scripts/setup-materials.mjs` (새 파일, `setup-inquiries.mjs` 를 본 뜬다)
+
+```sql
+create table if not exists academy.materials (
+  id         uuid primary key default gen_random_uuid(),
+  client_id  int  not null default 1,
+  -- 기본값을 current_date 로 두면 UTC 러너에서 전날로 찍힌다 (CLAUDE.md 함정)
+  day        date not null default ((now() at time zone 'Asia/Seoul')::date),
+  kind       text not null check (kind in ('상담','수업','질문','사례','숫자')),
+  said       text not null,                -- 들은 말·있었던 일 그대로. 요약 금지
+  context    text not null default '',     -- 학년·상황 (예: 초5 · 대회반 상담)
+  used_in    text[] not null default '{}', -- 이 재료로 쓴 글 slug
+  origin     text not null default 'owner',-- owner | inquiry
+  inquiry_id uuid,
+  created_at timestamptz not null default now()
+);
+create index if not exists materials_unused_idx
+  on academy.materials (client_id, day desc) where cardinality(used_in) = 0;
+
+create table if not exists academy.draft_feedback (
+  id         bigserial primary key,
+  client_id  int  not null default 1,
+  slug       text not null,
+  title      text not null default '',
+  reasons    text[] not null default '{}',
+  note       text not null default '',
+  excerpt    text not null default '',     -- 버린 본문 앞 600자. 다음 프롬프트가 본다
+  created_at timestamptz not null default now()
+);
+```
+
+- 같은 두 `create table if not exists` 를 **`academy/scripts/company.mjs` 의 준비() (149~158행 옆)** 에도 넣는다. 그래야 Actions 가 사람 손 없이 굴러간다. 기존 `alter table academy.posts add column if not exists review_notes` 와 같은 자리다.
+- 뒤채움 1회: `academy.inquiries` 에서 `said` 가 빈 문자열이 아닌 행을 kind `상담` · origin `inquiry` · inquiry_id 로 옮긴다. 지금은 0건이지만 스크립트는 넣어 둔다(이미 옮긴 inquiry_id 는 건너뛴다).
+
+### 2. 입력 화면 — `web/app/admin/material/page.tsx` + `web/lib/material-actions.ts` (둘 다 새 파일)
+
+- **모바일 먼저.** 390px 에서 가로 스크롤 0, 저장 버튼이 첫 화면 안. `admin.css` 의 `.adm`·`.adm-card`·`.adm-btn` 과 `AdminNav here="/admin/material"` 을 쓴다. 새 CSS 파일 만들지 말 것 — 필요한 것만 `admin.css` 에 붙인다. `AdminNav` 의 PAGES 에 「재료」를 「문의」 앞에 넣는다
+- 폼은 **한 줄이면 끝난다**: 종류 칩(상담·수업·질문·사례·숫자, 기본 `상담`) + `said` textarea(자동 포커스, required) + 저장. `context`·`day` 는 접힌 자리에
+  - 칩은 `/admin/inquiry` 의 `.inq-pick` 라디오 패턴을 그대로 옮긴다(숨긴 radio + label)
+- placeholder 는 지어낸 말 말고 이런 것: 「대회 준비도 해주냐고 물으심 — 초5, 학교에서 정보 수업 듣고 옴」
+- 아래에 최근 10건. 쓴 글이 있으면 slug 배지, 없으면 「안 씀」
+- 맨 위 한 줄: 「안 쓴 재료 N개」. N 이 3 미만이면 눈에 띄게
+- **서버 액션 `addMaterial` 은 반드시 `await guard()` 로 연다.** 14b 에서 문의·리드 액션 11개가 인증 없이 열려 있었다 — 되풀이 금지
+
+**개인정보 막기** — `web/lib/material-actions.ts` 안에 순수 함수 `가리기(s)` 로 분리해 시험 가능하게 한다.
+
+- 전화번호 → `010-****-****`
+- 숫자 7자리 이상 연속 → 별표로
+- 메일 주소 → `***@***`
+- 한글 이름 2~4자 + (어머님|어머니|아버님|아버지|학생|군|양) → `○○ 어머니` 꼴로
+- 저장을 막지 않고 **가린 뒤 저장**한다. 화면에 「전화번호를 가렸습니다」처럼 무엇을 가렸는지 한 줄. 30초 안에 끝나야 하니 되돌려 보내지 않는다
+- `said` 400자, `context` 120자로 자른다. 학년(초5)은 개인정보가 아니다 — 남긴다
+- 정규식이 든 파일이다. **Write 로 쓴다** — Bash 히어독이 백슬래시를 먹는다
+
+**`/admin/inquiry` 한 군데 손댄다:** `addInquiry` 가 `said` 가 비어 있지 않으면 `materials` 에 같은 행을 같이 넣는다(kind `상담`, origin `inquiry`, inquiry_id, context 는 `grade`). 같은 `가리기()` 를 거친다. 폼·필드 이름은 그대로 둔다.
+
+### 3. 재료 독촉 — 「오늘 원장님이 하실 일」
+
+- **`academy/scripts/company.mjs`** 에 신호 하나. 고객사 1번에서 안 쓴 재료 수가 **3 미만**이거나 `max(day)` 가 **14일보다 오래됨** → 일감
+  `{ agent: "content", kind: "material", key: "material-need", priority: 12, status: "사람 대기", link: ADMIN + "/admin/material" }`
+  detail 은 「안 쓴 재료 N개 · 마지막 기록 YYYY-MM-DD」. payload 에 `unused`(수)·`last`(날짜). 조건이 풀리면 기존 일감 갱신 규칙대로 닫힌다
+- **`web/lib/todo-text.ts`** 에 `t.kind === "material"` 가지 (naver-attempt 가지 옆)
+  - title `초안 재료 한 줄 — 30초`
+  - why `안 쓴 재료 N개. 3개 밑이면 자동 초안이 일반론이 됩니다`
+  - action `{ type: "link", label: "적기", href: "/admin/material" }`
+
+### 4. 쓰는 쪽 — `academy/scripts/write-draft.mjs`
+
+**주제 고르기를 뒤집는다. 주제 은행이 아니라 재료가 먼저다.**
 
 ```
-[제목] 운영 현황 · 로봇&코딩학원        (작은 링크 줄: 영업판 · 파일럿 · 상담 기록)
-① 오늘 원장님이 하실 일            ← 14a-1
-② 에이전트 직원 — 지금 (실시간)    ← 14a-2
-③ 크고 있나 — 카드 4장 (1280: 2×2 / 390: 1열)   ← 14a-1
-④ 답변 색인 수집 — 차트 1개 + 한 줄              ← 14a-1
-⑤ <details> 자세히 (운영자용)                   ← 14a-1
+select id, kind, said, context, day
+  from academy.materials
+ where client_id = 1 and cardinality(used_in) = 0
+ order by day desc limit 12
 ```
 
-## 14a-1 · ① 오늘 원장님이 하실 일 — 새 `web/app/admin/ops/Todo.tsx`
+재료와 주제를 맞추는 것은 기존 `점수()`·`STOP` 을 그대로 쓴다 — 핵심어 자리에 재료 낱말을 넣는다.
 
-- 원천: `d.company.tasks` 중 `status === "사람 대기"` (AgentBoard 의 필터 그대로). 새 쿼리 없음.
-- 파생 1개: `g.inquiries.unresolved > 0` 이고 큐에 `/admin/inquiry` 링크 일감이 없을 때 「상담 결과 N건 입력」 · 「문의가 등록으로 이어졌는지 이것으로만 잰다」 · /admin/inquiry.
-- 한 줄 = **무엇**(t.title 굵게) · **왜**(t.error || t.detail, 1줄 말줄임 `-webkit-line-clamp:1`) · **행동** 하나. 행동은 AgentBoard 것을 그대로 옮긴다(naver-attempt 폼 `resolveNaverAttempt` · `t.link` 도메인 떼고 drafts 면 「읽고 발행하기」 · 없으면 「했어요」 `finishTask`). 서버 액션 새로 만들지 않는다.
-- 최대 5개, 넘치면 「외 N건 — 자세히의 직원별 현황」. 0건 「없음 — 직원들이 알아서 돌고 있습니다」. `d.company.ok` false 면 「할 일 목록을 못 읽었습니다」.
-- Flag: 일감 문구에 내부 이름이 섞여 있으면 데이터는 고치지 않는다 — 예시와 함께 BUILD-LOG Known Gaps.
+| 모드 | 조건 | 하는 일 |
+|---|---|---|
+| **A 재료** | 안 쓴 재료 3개 이상, 그중 **주제와 맞물리는 것 1개 이상** | 그 주제로 쓴다. 맞물리는 주제가 없으면 **재료 자체에서 제목을 뽑는다** — 학부모 질문을 검색어 꼴로 |
+| **B 사실** | 재료가 모자라는데 `--question` 의 `측정.answer` 가 있거나 뉴스거리가 있음 | `write-news.mjs` 를 자식 프로세스로 실행하고 종료 코드를 그대로 넘긴다. write-draft 는 글을 안 쓴다 |
+| **C 없음** | 둘 다 아님 | **아무것도 안 쓴다.** `geo.agent_tasks` 에 `kind='material'` 사람 대기 일감(3번과 같은 dedupe_key)을 올리고 `process.exitCode = 78` |
 
-## 14a-1 · ③ 크고 있나 — Growth.tsx 다시 쓰기 (카드 4장)
+첫 줄에 `모드=재료|사실|없음` 을 찍는다. `--dry` 에서도 찍는다.
 
-카드 = 머리문장(≥21px, 숫자 굵게) / 비교 줄(변화 단어 + 이전 값) / 선택 1개(스파크라인 또는 링크). 3줄 이내.
+**모드 A 프롬프트** — 지금 167~169행의 `상담말` 자리를 이것으로 갈아 끼운다.
 
-| 카드 | 머리문장 | 비교 줄 (원천) | 선택 |
-|---|---|---|---|
-| 1 AI 답변 | 「{엔진}에게 물은 {prompts}개 중 **{mentioned}번** 학원 이름이 나왔습니다」 + 인용 0 「· 사이트 인용은 아직 0」 / 아니면 「· 사이트 인용 {cited}번」 | `aiTop.compare` 있으면 「{md(prevDay)} 같은 질문 {common}개: {m0}번 → {m1}번」+단어. 없으면 「아직 비교 전 — 같은 방법으로 한 번 더 재야 합니다」. 측정일은 줄 끝 회색 | 같은 쌍 회차 ≥3 일 때만 스파크라인(언급 수) |
-| 2 답변 색인 | 「{라벨+조사} 우리 {total}쪽 중 **{now}쪽**을 읽었습니다」 (셋 중 제일 낮은 곳. 구글이·네이버가·빙이) | covDelta 「7일 전 {prev}쪽」+단어 (지금 코드 그대로: 어제 대 7일 전) | 없음(④ 차트) |
-| 3 글 | 「최근 7일 글 **{n}편** · 목표 주 1편」 | posts.last7 「그 전 7일 {p}편 · 마지막 글 {k}일 전」+단어 | 0편이면 「초안 보러 가기 →」 /admin/drafts |
-| 4 문의 | 「최근 30일 학원 문의 **{n}건**」 / `ever === 0` 「상담 기록이 아직 없습니다」 | inquiries.last30 「그 전 30일 {p}건」+단어 | unresolved>0 「결과 미입력 {u}건 →」 /admin/inquiry |
+```
+# 이 글에 쓸 재료 (원장이 실제로 듣고 겪은 것. 여기 없는 장면은 하나도 만들지 마라)
+- [m1] 상담 · 2026-09-23 · 초5 대회반: 「대회 준비도 해주냐고 물으심」
+- [m2] 수업 · 2026-09-21 · 초3: 「블록을 지웠다가 되돌리는 걸 혼자 찾아냄」
 
-- 부제 한 줄만: 「어제까지 7일을 그 전 7일과 비교합니다. 문의는 30일.」
-- `g === null` → 「성장 숫자를 못 읽었습니다 — {err}」. 조각 null → 그 카드만 「확인 못함」.
-- `Spark` 재사용(높이 40). 카드당 최대 1개.
-- 지운다: Tile·Mean·Do·NoVal·판정 줄·gr-pairs·gr-foot·gr-bars·`pairName` 과 안 쓰는 CSS.
-- 「그 밖의 숫자」·표는 별도 export `GrowthMore` 로 나눠 page 가 ⑤ 안에 놓는다.
+첫 문단은 위 재료 중 하나를 그대로 인용해서 연다. 고쳐 쓰지 말고 들은 말 그대로 따옴표 안에 넣는다.
+재료에 없는 상담·수업 장면은 한 줄도 쓰지 마라. 「한 학부모가」 「어떤 아이가」로 시작하는 문장은
+위 재료에 그 말이 있을 때만 쓴다. 없으면 그 문단을 통째로 지운다.
+```
 
-## 14a-1 · ④ 차트
-- CoverageChart 그대로. 제목 「AI 가 답할 때 찾는 검색 색인 — 우리 쪽이 몇 쪽 들어갔나」, 한 줄 「구글·네이버·빙이 지금 있는 {total}쪽 중 한 번이라도 읽어 간 쪽 수. 착수부터 누적.」
-- Brave(→Claude) 각주는 ⑤ 「숫자 읽는 법」으로.
+- 출력 JSON 에 `"쓴재료": ["m1","m2"]` 를 받는다. 실제로 안 쓴 id 는 넣지 말라고 못박는다
+- 넣은 뒤 `update academy.materials set used_in = used_in || $2 where id = any($3)`. `review_notes` 에 `쓴재료`·`모드` 를 같이 남긴다(`/admin/drafts` 가 읽는다)
+- 「쓸 수 있는 숫자: 없다」 규칙은 **그대로 둔다.** 단 `kind='숫자'` 재료는 예외 — 재료에 적힌 그대로만 쓸 수 있다고 한 줄 붙인다
+- **버린 이유를 프롬프트에 넣는다** (모드 A·B 공통). `academy.draft_feedback` 에서 최근 5건:
 
-## 14a-1 · ⑤ 자세히 (운영자용) — `<details>` 하나, 기본 닫힘
-1. 숫자 읽는 법 — 카드별 2줄(뜻 · 좋아지려면). 엔진·방법 이름 없이
-2. 그 밖의 숫자 — 한 줄씩: 지역·업종 검색 · 로봇 방문 7일(검색 색인/AI 학습, 중립이라 단어 없이 이전 값만) · 플레이스 최고 순위 · 사이티드 리드·무료 진단 30일 · 에이전트 실패 7일
-3. 날짜별 커버리지 표 · 주별 요약 표
-4. 크롤러 표 (사람 이름)
-5. 최근 글 5편
-6. 직원별 현황 (AgentBoard, 할 일·요약 뺀 것)
-7. 오늘의 운영 기록 (Brief)
+```
+# 원장이 최근에 버린 이유 (되풀이하면 또 버린다)
+- 일반론 — 「학원 블로그라고 보기엔 너무 일반론적」
+- 지어낸 장면 — 「억지스러운 상황 설정」
+```
+
+### 5. 슬롭 게이트 — `academy/scripts/slop-rules.mjs` (새) + `slop-check.mjs` 개조
+
+검사 로직을 `slop-rules.mjs` 로 빼고 `검사(본문, { 재료들 })` → `{ 치명: [], 경고: [] }` 를 내보낸다. CLI 와 write-draft 둘 다 이걸 부른다.
+
+**치명 — 하나라도 걸리면 초안이 원장 큐에 못 간다**
+
+1. **지어낸 장면** — 「한 학부모가/어머님이/아버님이」 · 「어떤 아이가/학생이/친구가」 · 「최근 상담에서 / 얼마 전 상담 / 지난주 상담 / 한 번은 이런」 · 「수업 중에 한~ / 수업 시간에 어떤~」
+   - 쓴 재료가 하나도 없으면(`쓴재료` 빈 배열) **무조건 치명**
+   - 재료가 쓰였으면, 그 표시가 든 **문장**이 쓰인 재료 `said` 의 **8자 이상 연속 부분**을 담고 있어야 통과. 아니면 치명
+2. **일반론 문단** — 120자 이상 문단 중 **구체 명사가 하나도 없는 것**이 전체 문단의 40% 를 넘으면 치명
+   - 구체 = 숫자·날짜 · 지역(송파·잠실·석촌·가락·헬리오) · 출처 도메인 · 교구·과목 사전(스크래치, 엔트리, 아두이노, 파이썬, 마이크로비트, 라즈베리파이, 레고, EV3, 정보올림피아드, 정보 교과, 알고리즘, 디버깅, 블록코딩, 피지컬컴퓨팅) · 따옴표 인용
+   - 사전은 `slop-rules.mjs` 맨 위 상수로. 늘리기 쉽게 둔다
+3. **2인칭 훈계 덩어리** — 한 문단에 「하세요 / 해 보세요 / 권합니다 / 추천합니다 / 확인해 보시길」이 3회 이상
+4. 기존 MARKS 중 **「서론으로 여는 말」 1회 이상**, **「훈계조로 닫기」 3회 이상**
+
+**경고 — 지금처럼 세기만** 한다. 나머지 기존 MARKS 전부.
+
+**CLI**: `node scripts/slop-check.mjs --strict <슬러그>` 를 더한다. 치명이 있으면 **종료 코드 1**, 치명 목록을 먼저 찍는다. 인자 없는 기존 동작(발행 글 훑기)은 그대로 — 이미 Actions 가 쓴다.
+
+**write-draft 안에서**: 초안을 **넣기 전에** 게이트를 돌린다.
+
+- 치명 있음 → 재료·주제를 바꿔 **한 번만** 다시 쓴다
+- 두 번째도 치명 → **넣지 않는다.** `kind='material'` 사람 대기 일감을 올리되 title 은 「재료가 필요합니다 — 자동 초안이 두 번 다 일반론이었습니다」, detail 에 치명 목록. `exitCode = 78`
+- `academy.posts` 에 행이 안 생기니 company.mjs 의 `review` 일감도 안 생긴다 → **원장 큐에 안 간다.** 큐 쪽에 새 로직은 필요 없다
+
+### 6. 버린 이유 받기 — `web/app/admin/drafts/page.tsx` + `web/lib/draft-actions.ts`
+
+- 버리기 폼을 `<details>` 안에 넣는다: 이유 칩(복수 선택 체크박스) + 자유 입력 한 줄 + 「버립니다」
+  - 칩: 일반론 · 지어낸 장면 · 사실이 틀림 · 우리 얘기가 아님 · 문체(AI 티) · 주제가 안 맞음 · 이미 쓴 내용
+- `discardDraft` — **이유를 하나도 안 고르면 아무것도 안 지운다.** 지금의 `confirm !== "yes"` 자리를 이유 검사로 바꾼다
+- 지우기 **전에** `academy.draft_feedback` 에 넣는다 — slug · title · reasons · note · 본문 앞 600자
+- 기존 동작(일감 닫기, `post_images` 지우기, 활동 기록)은 그대로. 활동 기록 summary 에 이유를 붙인다
 
 ---
 
-## 14a-2 · ② 에이전트 직원 — 지금 (실시간 줄)
+## 손대지 않는 것 (Out of Scope)
 
-### 행 7개 (역할 → 원천). 설정은 `web/lib/agents.ts` 의 ROLES 배열 하나에
+- 재료 고치기·지우기 화면 — 넣기와 보기만
+- 고객사 여럿의 재료 화면 — `client_id` 칸은 두되 화면은 1번 고정
+- 사진·음성 입력, 네이버 톡에서 재료 자동 뽑기
+- `write-news.mjs` 내부 — 부르기만 한다
+- 기존 MARKS 어휘 목록 손보기
+- `--all` 등 slop-check 의 기존 CLI 동작
+- 14b 의 KG(ops 를 admin.css 로 옮기기) — 따로 간다
 
-| 행 | activity.agent / 구분 | 정해진 시각 (KST, `.github/workflows/*.yml` cron 에서 옮김) |
-|---|---|---|
-| 운영·감사관 | `ops`(회사 루프·점검·정찰) + `audit` | 회사 루프 매시 :23 · 점검 00·03·06·09·12·15·18·21시 :11 · 감사 06:35 · 정찰 06:37 |
-| 수리공 | `repair` | 06:50 |
-| 측정 | `measure` + `improve` | AI 답변 측정·판정 07:05 · 검색 노출 07:41 |
-| 콘텐츠(글쓰기) | `content` 중 삽화 아닌 것 | 주간 초안 월 06:07 · 검토 일감은 회사 루프(매시) |
-| 삽화 | `content` 중 일감 kind `illustrate` | 회사 루프(매시), 하루 6회 상한 |
-| 유통(색인·네이버) | `deliver` | 색인 알림 03:23 · 원장 PC 12:40·19:10 (PC 가 켜져 있어야) |
-| 영업 | `sales` | 월 08:10 |
-
-- 삽화 구분: activity 에 task_id 가 있다. 새 쿼리에서 `left join geo.agent_tasks t on t.id = a.task_id` 로 kind 를 같이 읽는다.
-- 회사 루프가 GitHub 실행 기록을 activity 로 옮겨 적는다(`company.mjs` 출근기록, action 「자동 작업 {이름}」, 최대 1시간 늦게). **페이지에서 GitHub API 를 부르지 않는다.** 옮긴 줄은 audit·repair 도 agent 가 `ops` 로 적혀 있으니 **action 이름으로 행을 가른다**(자동 작업 audit → 운영·감사관, 자동 작업 repair → 수리공, 자동 작업 optimize → 측정 …).
-- 시각표는 상수. 파일 맨 위 주석 「yml 의 cron 을 바꾸면 여기도」. Richard 가 yml 과 대조한다. (어긋날 위험은 Known Gaps)
-
-### 상태 (서버에서 판정, 위에서부터 먼저 맞는 것)
-
-| 상태 | 조건 | 표시 |
-|---|---|---|
-| 확인 못함 (회색) | 쿼리 실패 | 「확인 못함」 — 정상으로 칠하지 않는다 |
-| 꺼짐 (회색 고정) | 수리공: 가장 최근 repair 활동이 「스위치 꺼짐」 또는 geo.settings repair_paused=true | 「스위치 꺼짐 — 켜는 건 원장님」 / 「멈춤 — {이유}」 |
-| 막힘·지연 (빨강 깜빡) | (a) 그 행의 가장 최근 활동이 실패이고 그 뒤 성공 없음 → 「막힘 — {요약 한 줄}」 (b) 정해진 시각 + 90분이 지났는데 그 시각 이후 활동 없음 → 「지연 — 06:35 예정이었는데 기록이 없습니다」 (c) 운영: 회사 루프 활동이 2시간 넘게 없음 | 빨강 + 이유 |
-| 일하는 중 (맥동) | 그 행 일감 중 status 「실행 중」 이고 updated 30분 이내 | 「일하는 중 — {일감 제목}」 |
-| 쉬는 중 (회색) | 정해진 시각이 없고(삽화) 24시간 활동·열린 일감 없음 | 「쉬는 중 — 할 일 없음」 |
-| 정상 (숨쉬기) | 나머지 | 「정상」 |
-
-- 지연 판정의 「정해진 시각」 = 오늘 KST 로 이미 지난 가장 최근 시각(요일 제한 반영). 매시 작업은 「2시간 무소식」 하나로.
-- 옮겨 적기가 최대 1시간 늦으므로 grace 90분. 상수로 두고 주석.
-
-### 한 행에 보이는 것 (390 에선 2줄, 1280 에선 1줄)
-`[● 정상] 측정   14분 전 · 검색 노출 측정 성공   다음 07:41   오늘 3건 · 실패 0`
-
-- 마지막 한 일 = 가장 최근 활동을 **쉬운 말로**. 「자동 작업 X」 → WORKFLOW_PLAIN {watch 사이트 점검 · scout 문제 정찰 · serp 검색 노출 측정 · snapshot 색인 알림 · write 주간 초안 작성 · optimize AI 답변 측정·판정 · audit 감사 · repair 수리 · sales 영업 주간 정리} + 「성공/실패」 (summary 의 「schedule · success」 류는 버린다). 그 밖 summary 는 `plain()` 로 URL·`geo.*`·7자 이상 16진 해시·`--옵션` 을 지우고 1줄 말줄임. `plain()` 전후 예시 5개를 REVIEW-REQUEST 에.
-- 「n분 전」은 **클라이언트가 1분마다 다시 센다**(서버는 ISO 시각만 준다, 표시는 `timeZone: "Asia/Seoul"`).
-- 오늘 건수 = 오늘(KST) 그 행 활동 성공/실패. **이중 계산 금지** — 스스로 활동을 적는 역할(audit·repair·sales·content·deliver·회사 루프 일감)은 옮긴 줄(자동 작업 *)을 세지 않되, 옮긴 줄이 실패면 실패로 센다. 스스로 안 적는 것(serp·optimize·watch·scout)은 옮긴 줄을 센다. ROLES 에 `countMirror` 로 명시.
-- 섹션 머리에 한 번: 「오늘 Claude 사용 {n}회 / 하루 상한 {cap}」 — `geo.claude_calls` 오늘 KST 건수. cap 은 web env `CLAUDE_DAILY_MAX`; **없으면 상한을 쓰지 않고** 「오늘 Claude 사용 {n}회」만. (Vercel env 에 40 을 넣을 땐 CLAUDE.md 함정대로 파일로 넘기고 env pull 로 길이 확인)
-
-### 실시간
-- 새 `web/app/api/admin/agents/route.ts` (GET) — `isAdmin()` 쿠키 검사(api/pilots 선례), 실패 401. `readAgents(client)` JSON, no-store.
-- 새 client 컴포넌트 `web/app/admin/ops/AgentStrip.tsx` — 서버가 준 첫 값으로 그리고 **45초마다** fetch. `document.hidden` 이면 쉬고, 다시 보이면 즉시 한 번. 실패하면 마지막 값 유지 + 머리에 「연결 끊김 · {n}분 전 값」.
-- 마지막 활동 시각이 바뀐 행은 **잠깐 번쩍**(배경 --acc 12% → 1.8초에 사라짐).
-- 섹션 머리: 「에이전트 직원 — 지금」 + 「45초마다 새로 봅니다 · 마지막 {HH:MM}」.
-
-### 상태등 움직임 (원장 지시 「액티비티하게」)
-- 점 = `<span class="lt">` 안에 전용 `<i class="ring">`. 애니메이션은 이 둘과 행 배경에만.
-- 일하는 중: ring 이 퍼지며 사라지는 맥동(scale 1→2.2 + opacity .6→0, 1.6s 무한 — ring 전용 요소라 transform 충돌 없음) + 행 배경 옅은 흐르는 줄(`background-position` shimmer, 2.4s).
-- 정상: 점 box-shadow 천천히 숨쉬기(3s, 0→6px --ok 35%).
-- 막힘·지연: 빨강 점 opacity 깜빡(1.2s, 1→.35) + 이유 글자 빨강.
-- 꺼짐·쉬는 중·확인 못함: 회색 고정.
-- 점 옆에 **글자 라벨 항상**(일하는 중/정상/막힘/지연/꺼짐/쉬는 중/확인 못함). 색만으로 뜻 싣지 않는다.
-- `@media (prefers-reduced-motion: reduce)` 에서 모든 animation·번쩍 끔 — 색과 글자만.
-
-### 수리공 스위치를 화면이 알 수 있게 — `academy/scripts/repair.mjs` 한 줄
-- REPAIR_ENABLED 는 GitHub 변수라 페이지가 못 읽는다. 628행 부근 「꺼짐 — 지난 수리 확인만」 분기의 return 전에 `활동(true, "스위치 꺼짐 — 지난 수리 확인만 했습니다")`. 685행 merge 거부 분기도 같은 문구. 다른 동작은 안 바꾼다.
-- 첫 기록은 다음 06:50 실행. 그 전엔 수리공 행이 「정상」/「지연」으로 보일 수 있다 — REVIEW-REQUEST 에 적는다.
-
-## 파일 (14a 전체)
-- `web/app/admin/ops/page.tsx` — 순서 재배치. SLOTS·HUMAN·옛 KPI·covLow·안 쓰는 CSS 삭제. VENDOR_USE 는 자세히 표로(사람 이름 추가). 기본 16px, `.w` 920px.
-- `web/app/admin/ops/Growth.tsx` — 카드 4장 + 차트 + `GrowthMore`.
-- `web/app/admin/ops/Todo.tsx` · `AgentStrip.tsx` — 새 파일.
-- `web/app/admin/ops/AgentBoard.tsx` — 할 일 목록·요약 카운트 제거.
-- `web/lib/agents.ts` — 새 파일: ROLES · `readAgents(client)`(새 쿼리: 오늘 활동 집계 · 역할별 마지막 활동(task kind join) · 실행 중 일감 · repair_paused · claude_calls 오늘 수) · `plain()` · 판정 순수 함수 `judge(role, rows, now)`.
-- `web/app/api/admin/agents/route.ts` — 새 파일.
-- `academy/scripts/repair.mjs` — 활동 한 줄.
-- 삭제: `Live.tsx`, `Flow.tsx`.
-- `web/lib/ops.ts` — `firstSeen` 제거. 다른 필드는 grep 해서 소비처 0 인 것만. 모르면 남긴다.
-- `web/lib/growth.ts` — 손대지 않는다.
-
-## Out of Scope (14a)
-- growth.ts 비교 로직, 일감 데이터 문구 수정, 웹소켓/SSE, 페이지의 GitHub API 호출, 라이트 테마, 다른 관리 화면(→14b)
-- 수리공 스위치 켜기 (원장 몫 — 에이전트가 켜지 않는다)
-
-## Acceptance (14a)
-- 1280 첫 화면에 ①과 ② 전체. 390 첫 화면에 ①.
-- 자세히 닫힌 상태 innerText 에 claude-code · openrouter · api- · geo. · vendor · microsoft · anthropic · % · .yml 0건 — Playwright 검사 결과를 REVIEW-REQUEST 에.
-- 「검색에 처음 나온 날」 이 코드·화면 어디에도 없다.
-- 카드·행 각각 3줄 이내(390). 가로 스크롤 0. 콘솔 오류 0.
-- ②: 45초 폴링이 도는지 네트워크 로그(요청 2회 이상). 활동 시각이 바뀐 행에 flash 클래스가 붙는지 — 응답을 Playwright route 로 바꿔 끼워 흉내(**운영 DB 에 가짜 활동 넣지 않는다**). reduced-motion 에뮬레이션 스크린샷 1장. 로그아웃 상태 `/api/admin/agents` 401.
-- 지연 판정: `judge()` 에 가짜 시각 3개(정시 전 · 정시+60분 · 정시+100분) → 정상/정상/지연 을 node 로 확인해 적는다.
-- tsc: web/ 에서 `node ./node_modules/typescript/bin/tsc --noEmit` 0 (npx 금지 — `&` 경로 함정).
-- 스크린샷: 로컬 next dev + 운영 DB, Playwright 1280·390 × robotncoding·ilog(`?c=`), 자세히 닫힘/열림. 관리자 키는 env 에서 읽어 쿠키로 넣고 **출력·로그·파일명에 절대 찍지 않는다.** 스크린샷은 scratchpad.
-- Richard 통과 → `gh auth switch --user leeledger` → push → Vercel 배포 뒤 운영 `/admin/ops` 확인. repair.mjs 는 Actions 가 저장소에서 읽으니 push 로 끝.
+발견한 다른 문제는 고치지 말고 **BUILD-LOG 의 Known Gaps 에 적는다.**
 
 ---
 
-# Step 14b — 나머지 관리 화면 (14a 배포 뒤)
+## Flag — 짐작하지 말 것
 
-## 먼저: 공통 한 벌
-- `web/app/admin/admin.css` — 토큰(ops 어두운 판, 보조 글자 --ink2 이상) + 공통 클래스만: `.adm`(바탕·16px·폭 920) · `.adm-todo` · `.adm-card`(3줄) · `.adm-btn` · `.adm-more`(자세히 details) · `.adm-tw`(표 래퍼) · `.lt`(상태등, 14a 에서 옮김). 디자인 시스템 만들지 않는다.
-- `web/app/admin/layout.tsx` — `import "./admin.css"` 만 (agent-board.css 선례).
-- `web/app/admin/AdminNav.tsx` — 현황 · 초안 · 문의 · 리드 · 영업판 · 파일럿, 지금 페이지 표시. 로그인 화면엔 안 넣는다. ops 의 링크 줄을 이걸로 바꾼다.
-- 각 페이지 `const CSS` 에서 공통으로 옮긴 건 **지운다**(복사본 금지). ops 토큰도 admin.css 로.
-- 테마는 하나 — 어두운 판(결정됨). 밝은 페이지가 있으면 맞춘다.
+- **DB 시각은 UTC.** 날짜 기본값은 `(now() at time zone 'Asia/Seoul')::date`. 화면 표시는 `timeZone: "Asia/Seoul"`
+- **서버 액션은 공개 POST 끝점이다.** 새 액션은 전부 `await guard()` 로 연다
+- **`npx tsc` 는 저장소 경로의 `&` 때문에 깨진다.** `node ./node_modules/typescript/bin/tsc --noEmit` 로 부른다
+- **배포**: `web/`(관리 화면)는 git push 로 나간다. `academy/scripts/*` 는 Actions 가 저장소에서 읽으니 push 로 충분하다. **이 단계에 `npx vercel` 은 필요 없다** (`academy/` 앱 자체를 건드렸다면 `npx vercel --prod --yes` — 지금 범위엔 없다)
+- **정규식이 든 파일은 Write 로 쓴다.** Bash 히어독이 백슬래시를 먹는다
+- **`grep -c` 는 0건에 종료코드 1.** `&&` 로 잇지 말 것
+- 프롬프트·화면 문구는 전부 한국어, CLAUDE.md 말투. 번역체·빈 강조 금지
+- 운영 DB 에 시험 행을 남기지 않는다. 남겼으면 지우고 무엇을 지웠는지 REVIEW-REQUEST 에 적는다
 
-## 페이지별 결정표 (이 순서로)
+---
 
-| 순서 | 페이지 | 맨 위 「지금 할 일」 | KEEP | 자세히로 접기 | 제거 |
-|---|---|---|---|---|---|
-| 1 | `/admin/inquiry` 문의 기록 | 「결과 미입력 N건」 줄마다 등록/안 함 (있는 액션) | 새 문의 입력 폼 | 「지금까지」 표 → 최근 10건 카드, 나머지 자세히. 요약 통계 → 한 줄 | 결정에 안 쓰이는 설명 문단 |
-| 2 | `/admin/drafts` 초안 검토 | 「검토할 초안 N편」 — 제목 + 「사실 확인할 문장」 + 발행/버리기 | 사실 확인 문장, 도해 썸네일(작게) | AI 티 검사·짜임새: 통과면 자세히, 걸리면 한 줄 「AI 티 2곳 — 보기」. 되돌리기·도해 다시 요청 | — |
-| 3 | `/admin` 리드 큐 | 「새로 연락할 사람 N명」 카드: 회사 · 연락처 · 관심/고민 한 줄 · 상태 버튼 | 상태 변경 액션 | 9칸 표 → 카드. 등급·진단 도메인·경로는 카드 안 details. 연락함 이후·종료는 「지난 연락」 자세히 | 모바일에서 깨지는 넓은 표 |
-| 4 | `/admin/outreach` 영업판 | 「오늘 할 일 — 위에서 3곳」 그대로 맨 위 | 3곳 카드 | 나머지 7곳 | — |
-| 5 | `/admin/pilots`, `/admin/pilots/[id]` | 목록: 진행 고객 먼저, 등록 폼은 자세히 / 상세: 「오늘 해야 할 일」 맨 위 | 오늘 할 일 | 목표 질문 20개·측정 원장·로컬 정합성·콘텐츠 승인 → 각각 details | — |
-| 6 | `/admin/login` | — | 폼 | — | 공통 CSS 만 |
+## Acceptance — 이게 다 되면 끝
 
-- pilots 두 파일은 한 줄로 압축돼 있다. 동작 변경 없이 풀어 쓰는 건 허용. 빈 상태 문구만 쉬운 말로.
-- 서버 액션·폼 이름·필드는 안 바꾼다. 배치와 글자만.
+1. `node scripts/setup-materials.mjs` 를 **두 번** 돌려도 오류 없음. company.mjs 준비()도 마찬가지
+2. 재료 3건을 넣고 `node scripts/write-draft.mjs --dry` → 첫 줄 `모드=재료`, 프롬프트에 세 건이 **따옴표 그대로** 있고 「첫 문단은 위 재료 중 하나를 그대로 인용해서 연다」가 있다
+3. 실제 1회 실행 → 본문 **첫 문단에 재료 `said` 의 10자 이상 연속 부분**이 그대로 있다. `review_notes.쓴재료` 에 그 id, `materials.used_in` 에 그 slug
+4. 재료를 다 지우고(또는 전부 used) `--dry` → `모드=사실` 로 write-news 에 넘기거나, 넘길 것도 없으면 `모드=없음` + `geo.agent_tasks` 에 `kind='material'` 사람 대기 1행 + 종료 78. **`academy.posts` 행 수는 그대로**
+5. 「한 학부모가 지난주 상담에서 이렇게 말했습니다」가 든 본문을 재료 없이 넣고 `node scripts/slop-check.mjs --strict <슬러그>` → **종료 코드 1**, 치명에 「지어낸 장면」
+6. 같은 본문에 그 말이 든 재료 행을 넣고 `쓴재료` 를 채우면 → 종료 코드 0
+7. 문단 5개 중 3개에 숫자·지역·교구·인용이 하나도 없는 본문 → 치명 「일반론 문단 3/5」
+8. `/admin/material` 을 390px 로 → 가로 스크롤 0, 저장 버튼이 첫 화면 안, 칩이 줄바꿈됨. 전화번호와 실명이 든 문장을 저장하면 DB 값이 가려져 있고 화면에 무엇을 가렸는지 한 줄이 뜬다
+9. 안 쓴 재료 0개로 company.mjs 를 돌리면 `/admin/ops` 맨 위에 「초안 재료 한 줄 — 30초」가 뜬다. 3개 이상이면 안 뜬다
+10. 이유를 안 고르고 버리기 → **아무것도 안 지워진다.** 이유를 고르고 버리기 → `academy.draft_feedback` 1행, 글 삭제, 다음 `--dry` 프롬프트의 「원장이 최근에 버린 이유」에 그 이유가 보인다
+11. `node ./node_modules/typescript/bin/tsc --noEmit` 오류 0 (web)
 
-## Out of Scope (14b)
-- 액션·DB·인증 변경, 새 페이지, 공개 랜딩, 초안 편집기 기능
+## 다 되면
 
-## Acceptance (14b)
-- 각 페이지 390 첫 화면에 「지금 할 일」 또는 「없음」.
-- `--bg:` 정의가 admin.css 한 곳(grep).
-- 내부 이름 검사(14a 목록) 모든 관리 화면 0건.
-- 폼: 버튼이 올바른 액션에 물려 있는지 코드로 확인하고 렌더만 본다. **운영 DB 에 가짜 데이터 넣지 않는다.**
-- tsc 0 · Playwright 1280/390 페이지별 · 가로 스크롤 0 · 콘솔 오류 0 · Richard 통과 → push → 운영 확인.
+`handoff/REVIEW-REQUEST.md` 에 바꾼 파일과 줄 범위, 위 11개 시험의 실제 출력, 운영 DB 에 남긴 것을 적는다. Richard 는 그것만 읽는다.
+
+---
+
+## Builder Plan (Bob · 2026-09-23 · Arch 확인 완료)
+
+Arch 가 위 결정 전부를 확인하고 세 가지를 더했다. 아래대로 짓는다.
+
+**Arch 추가 3가지**
+- A1. 재료 독촉은 **하루 한 번까지**. `일감()` 의 `cooldownH: 24` 로 다시 열리는 주기를 하루로 묶는다. 사람 대기로 떠 있는 동안은 상태를 안 건드리니 매시 루프가 다시 알리지 않는다
+- A2. 개인정보는 **가리고 저장**한다(원장 입력을 절대 되돌려 보내지 않는다). 무엇을 가렸는지 한 줄을 화면에 띄운다 — 서버 액션이 `redirect("/admin/material?m=...")` 로 넘긴다(폼을 클라이언트 컴포넌트로 바꾸지 않으려고)
+- A3. 모드 C 는 한 주 건너뛰어도 된다. 단 **연속 두 번 빈손**이면 별도 일감 `material-stopped`(priority 5 · 사람 대기 · sticky)로 「발행이 멈췄습니다」를 올린다. 초안이 나오면 write-draft 가 닫고 카운터를 0 으로
+
+**Bob 이 고른 것 (브리프가 안 정한 자리)**
+- `가리기()` 는 `web/lib/materials.ts` 에 둔다. `"use server"` 모듈은 내보내는 게 전부 async 여야 해서(`inquiries.ts` 머리 주석) `material-actions.ts` 에서 내보내면 빌드가 죽는다. 읽기·상수와 같은 자리에 두고 액션이 가져다 쓴다 — 시험은 그대로 가능하다
+- 한글 이름 정규식은 **성씨 사전 + 제외 낱말**로 좁힌다. 「한글 2~4자 + 학생」만 보면 「우리 학생」 「여자 학생」이 `○○ 학생` 으로 망가진다
+- 모드 B 조건: `측정.answer` 가 있거나 `GEMINI_API_KEY` 가 있다(write-news 는 제미나이 그라운딩이 있어야 돈다 — 그 파일 머리 주석). write-news 를 돌리고 종료 코드를 그대로 넘기되, **초안이 안 나왔으면** 재료 일감도 같이 올리고 빈손을 센다(A3)
+- `review_notes.쓴재료` 에는 프롬프트 표시(m1)가 아니라 **materials.id(uuid)** 를 넣는다. slop-check 가 그 id 로 재료를 읽어야 한다

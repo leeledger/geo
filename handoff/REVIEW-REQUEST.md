@@ -1,134 +1,249 @@
-# Review Request — Step 14a
-Date: 2026-09-22
-Ready for Review: YES
-커밋 b4b397f · 이미 push·배포됨(호출자 지시 「통과하면 push」 — 로컬 검사 통과 후 올림). 운영 /admin/ops 확인 완료(아래).
-
-## Files Changed
-- web/lib/agents.ts (새) — ROLES(역할 7·일별 시각표·countMirror) · plain() · engineName() · judge(role, input, now) 순수 판정 · readAgents() 쿼리 4개(활동 10일+일감 kind join · 안 끝난 일감 · repair_paused · claude_calls 오늘)
-- web/app/api/admin/agents/route.ts (새) — isAdmin() 쿠키 검사, 401 / JSON no-store
-- web/app/admin/ops/AgentStrip.tsx (새, client) — 45초 폴링 · document.hidden 이면 쉬고 보이면 즉시 · 실패 시 마지막 값 유지 + 「연결 끊김 · n분 전 값」 · 바뀐 줄 flash 1.8초 · 「n분 전」 1분마다 · 상태등 CSS · reduced-motion
-- web/app/admin/ops/Todo.tsx (새) — 사람 대기 일감 + 상담 결과 미입력 파생 · 행동은 기존 finishTask/resolveNaverAttempt/링크 · 최대 5 · 0건 「없음」 · 못 읽으면 「못 읽었습니다」
-- web/app/admin/ops/Growth.tsx — 카드 4장(AI 답변·답변 색인·글·문의) + 차트 하나 + GrowthMore(숫자 읽는 법·그 밖의 숫자·표 2개). 비교는 growth.ts Delta 그대로
-- web/app/admin/ops/page.tsx — ①→⑤ 순서, SLOTS·HUMAN·옛 KPI·covLow·firstSeen 표 삭제, 크롤러 표 사람 이름, globals.css 누수 끊기
-- web/app/admin/ops/AgentBoard.tsx — 할 일 목록·요약 카운트 제거, caveat·활동 문구 plain
-- web/app/admin/ops/agent-board.css — 안 쓰는 staff-summary/todo/count/refresh/naver/done·ops-disclosure 규칙 삭제
-- web/app/admin/ops/CoverageChart.tsx — aria-label 문구만
-- web/lib/ops.ts — firstSeen · daysMeasured · withImages 제거(grep 소비처 0)
-- academy/scripts/repair.mjs:628-633, 685-689 — 스위치 꺼짐 분기에 활동 한 줄
-- 삭제: Live.tsx · Flow.tsx
-
-## 검사 결과 (로컬 next dev + 운영 DB, 그리고 운영 주소에서 같은 스크립트 재실행 — 결과 동일)
-| | robotncoding 1280 | robotncoding 390 | ilog 1280 | ilog 390 |
-|---|---|---|---|---|
-| 내부 이름(자세히 닫힘) claude-code·openrouter·api-·geo.·vendor·microsoft·anthropic·%·.yml | 0건 | 0건 | 0건 | 0건 |
-| 「검색에 처음 나온 날」(자세히 열림 포함) | 없음 | 없음 | 없음 | 없음 |
-| 가로 스크롤 닫힘/열림 | 0/0 | 0/0 | 0/0 | 0/0 |
-| 콘솔 오류 | 0 | 0 | 0 | 0 |
-| 첫 화면 (화면 높이 800/844) | ① 끝 388 · ② 끝 767 | ① 끝 655 | ① 221 · ② 600 | ① 300 |
-| 직원 줄 보이는 줄 수 | 1 | 3 | 1 | 3 |
-| 카드 보이는 줄 수 | 3,2,2,3 | 3,2,2,3 | 1,2,3,2 | 1,3,3,2 |
-| 가장 작은 글자(①②③) | 14px | 14px | 14px | 14px |
-- 코드에 「검색에 처음 나온 날」·firstSeen grep 0
-- tsc: `node ./node_modules/typescript/bin/tsc --noEmit` 0
-- 로그아웃 /api/admin/agents: 로컬 401 · 운영 401
-- 45초 폴링(page.route 로 응답만 바꿔 끼움, DB 안 건드림): 요청 14:27:39Z · 14:28:24Z (45초 간격) → 측정 줄 46초·91초에 flash, 1.8초 뒤 빠짐. 500 을 끼우면 「연결 끊김 · 방금 값」, 7줄 유지. 이때 콘솔 오류는 그 500 한 건뿐
-- reduced-motion 에뮬레이션: .lt · .ring · .ag-row 의 animation-name 전부 none
-- 지연 판정 judge()(운영·감사관, 감사 06:35): 06:30 → 정상 · 07:35(+60) → 정상 · 08:15(+100) → 지연 「감사 06:35 예정이었는데 기록이 없습니다」. 수리공 「스위치 꺼짐」 활동 → 꺼짐 「스위치 꺼짐 — 켜는 건 원장님」. 삽화 활동·일감 없음 → 쉬는 중
-
-## plain() 전후 (실제 DB 문구)
-1. 「조사 · 영점 — 크롤러: microsoft 크롤러 커버리지 10.6% (5/47) · 처음 온 지 14.6일」 → 「조사 · 영점 — 크롤러: 빙 크롤러 커버리지 (5/47) · 처음 온 지 14.6일」
-2. 「자동 수리안(가지 auto/fix-319)이 검토에서 떨어졌습니다: scout.mjs의 major 비교군에 microsoft를 넣을 때 R5(audit.mjs)와 동등」 → 「자동 수리안(가지)이 검토에서 떨어졌습니다: 의 major 비교군에 빙을 넣을 때 R5와 동등」
-3. 「case-report 실패 /home/runner/work/geo/geo/academy/node_modules/pg-pool/index.js:45 Error.captureStackTrace(err)」 → 「case-report 실패 Error.captureStackTrace(err)」
-4. 「자동 작업 실패: optimize.yml」 → 「자동 작업 실패: AI 답변 측정·판정」
-5. 「로봇&코딩학원 — openai 커버리지 32.6% (최고 100%)」 → 「로봇&코딩학원 — ChatGPT 커버리지」
-(합성 예: 「…커밋 f5b40e8 · claude-code-web 인용 0 · api-openrouter-gemini 측정 https://… --dry-run geo.agent_tasks」 → 「…커밋 · Claude 인용 0 · AI 측정」)
-
-## 산출물 (scratchpad = C:\Users\force\AppData\Local\Temp\claude\C--dev-AGO-GEO\b2c2577b-fff2-4142-b28e-645690daf80e\scratchpad)
-- shots/{robotncoding,ilog}-{1280,390}-{first,closed,open}.png (로컬) · prod/ 같은 이름(운영)
-- shots/flash-1280.png · lost-1280.png · reduced-motion-1280.png · anim-frame-0..5.png
-- video/page@ea4545feda3b4338eeb1d307ad012fa9.webm (상태를 골고루 바꿔 끼운 응답: 일하는 중·꺼짐·막힘·정상·쉬는 중·지연 + flash)
-
-## Open Questions
-- 「카드·행 3줄 이내(390)」: 블록(머리문장/비교/선택)은 늘 3개 이하. 보이는 줄로 세면 직원 줄은 390 에서 3줄(브리프 본문은 2줄이라 했음 — 상태·이름·시각 / 한 일 / 다음·오늘 건수가 358px 에 한 줄로 안 들어감). 카드 머리문장이 21px 라 2줄로 접히는 카드는 보이는 줄 3
-- 직원 줄을 고객사로 거르지 않는 결정(BUILD-LOG) — 맞는지
-- countMirror 를 일 단위로 둔 것 — write·snapshot 은 옮긴 줄을 센다
-- 원장 PC 12:40·19:10 을 지연 판정에 넣음 — PC 꺼짐이 빨간 「지연」으로 뜬다. 원하면 빼기 쉽다
-- 수리공 「꺼짐」은 다음 06:50 실행 전엔 안 보인다
-- 운영·감사관 줄이 지금 실제로 「지연」: 회사 루프 활동이 19:36 뒤로 없다(BUILD-LOG KG)
-- Vercel CLAUDE_DAILY_MAX 는 안 넣음 → 상한 표시 안 됨
-
-## Out of Scope (logged in BUILD-LOG)
-- 일감 문구 원천의 내부 이름 · 회사 루프 무소식 · 랜딩 page.tsx 의 8·460 대체값 · 14b 전부
-
----
-# Review Request — Step 14a 2차 (Richard 1차 반영) + 랜딩 정정
-Date: 2026-09-22
-Ready for Review: YES
-커밋 3853b31(14a 반영) · 494bbc4(랜딩 바닥값 정정, 호출자 지시) — 둘 다 push·배포·운영 확인
-
-## Files Changed
-- web/lib/agents.ts — dueSlots(8일·요일·유예) · judge 재작성(수리공 자기 활동·merged7·pcoff·막힘 n일 전) · said(실행 완료/실패, 실패 「로그 확인」) · plain 보강 · readAgents 에 geo.repairs 7일 합침 수, 응답 err 제거
-- web/lib/todo-text.ts (새) — todoText(task): kind·payload 대응표, cut() 어절 경계, doingOf() 조치 중
-- web/lib/ops.ts:79,335,345 — tasks 에 payload
-- web/app/admin/ops/Todo.tsx — todoText 사용, details 행동, 조치 중 흐리게 맨 뒤, 머리 건수는 조치 중 뺀 수
-- web/app/admin/ops/AgentStrip.tsx:16 — 「PC 꺼짐」 라벨(회색 고정, .lt 기본색)
-- web/app/admin/ops/page.tsx — td-more-d·doing CSS
-- web/app/page.tsx:167-182, 206-226, 345, 516-575 · web/app/Count.tsx · web/lib/place.ts (새) — 랜딩 바닥값 제거(BUILD-LOG 정정 항목에 전후 인용)
-
-## 시험 (judge-test2.cjs, 가짜 시각·가짜 활동 — DB 안 씀)
-- 감사 06:30 정상 · 07:35 정상 · 08:15 지연 「감사 06:35 예정이었는데 기록이 없습니다」
-- 어제 감사 없음 → 오늘 05:00 지연 「감사 9/22 06:35 …」 · 월요일 초안 없음 → 화요일 지연 「주간 초안 작성 9/21 06:07 …」 · 월요일 했으면 목요일 정상
-- 활동 0 → ops·measure·content·deliver·sales 모두 정상 아님
-- 옮긴 줄 「검색 노출 측정 실행 완료」 · 수리공 합침 0 → 「쉬는 중 · 합친 수리 없음 (최근 7일)」, 마지막 한 일 「수리 실패 — 로그 확인」(옮긴 줄 건너뜀) · 스위치 꺼짐 → 꺼짐
-- 막힘 「영업 주간 실패 — 로그 확인 · 3일 전」
-- PC 19:10 한 번 빔 → pcoff 「원장 PC 작업 19:10 기록 없음 — PC 가 꺼져 있었을 수 있습니다」 · 두 번 → 지연
-- 할 일 실제 DB 5건 (내부 이름·R번호·영점·외톨이 조사·빈 괄호·주소 검사 통과):
-  - [human] 상담 결과 미입력 2건 | 등록했는지 안 했는지를 적어야 노출이 매출로 이어지는지 압니다. | 입력하기
-  - [human] 이번 주 영업 전화 — 연락일 지난 후보 10곳 (통화문 3곳) | 통화문 초안입니다. | 영업판 열기
-  - [listing] 등재 필요: 「잠실 초등 코딩학원」 | 순위닷의 우리 학원 태그: …(2026-09-22 확인). | 열기
-  - [investigate] 빙이 우리 글 47쪽 중 5쪽만 읽었습니다 | 자동 수리안이 검토에서 떨어졌습니다 — Claude 세션에서 고칩니다 | 조사 내용 보기
-  - [brand-defense] 아이로그 — 우리 이름으로 검색해도 안 나옵니다 | 구글 서치콘솔 색인 요청과 … 확인해야 합니다 | 했어요
-- 운영(배포 뒤): 4조합 내부 이름 0 · 가로 스크롤 0 · 콘솔 오류 0 · 로그아웃 401. 직원 줄: 운영·감사관 지연 · 수리공 쉬는 중 · 측정 정상 · 콘텐츠 정상 · 삽화 쉬는 중 · 유통 정상 · 영업 정상
-- 스크린샷: shots/robotncoding-1280-first.png 외 · shots/todo-open-{1280,390}.png
-
-## Open Questions
-- 「조치 중」은 근거 마지막 줄 단어(제출·등록·고침·합침…)로 판단한다. 319 는 조치가 어디에도 기록되지 않아 안 보인다(KG)
-- 수리공 「검토 불합격」을 막힘에서 뺐다 — 검토 관문이 제 일을 한 것으로 봄
-- repair.mjs 스위치 꺼짐 줄이 생기면 합침 0 보다 꺼짐이 먼저다
-
----
-# Review Request — Step 14b
+# Review Request — Step 15 · 초안 재료
 Date: 2026-09-23
 Ready for Review: YES
-커밋 fb324d0 · push·배포·운영 확인 완료
+
+자동 초안이 **원장만 쓸 수 있는 말**에서 시작하게 만든다. 재료가 없으면 일반론을 쓰는 대신
+아무것도 안 쓰고 재료를 달라고 한다. 게이트가 치명을 잡으면 원장 큐에 안 올린다.
+
+Arch 가 브리프 결정 전부를 확인하고 셋을 더했다:
+- **A1** 재료 독촉은 하루 한 번까지 (`일감()` 의 `cooldownH: 24`)
+- **A2** 개인정보는 가리고 저장 (되돌려 보내지 않는다) + 무엇을 가렸는지 한 줄
+- **A3** 두 주 연속 빈손이면 `material-stopped` 사람 대기(priority 5 · sticky)
+
+---
 
 ## Files Changed
-- web/app/admin/admin.css (새) — 관리 화면 토큰·공통 클래스 한 벌, globals 누수 끊기(:where, 특이도 0)
-- web/app/admin/layout.tsx (새) — admin.css import 만
-- web/app/admin/AdminNav.tsx (새) — 현황·초안·문의·리드·영업판·파일럿, aria-current
-- web/app/admin/inquiry/page.tsx — 결과 미입력(등록/안 함 = resolveInquiry) 맨 위 · 새 문의 폼(addInquiry, 필드 그대로) · 지난 기록 최근 10 카드 + 자세히 · 요약 한 줄(실제 달 이름) · 설명 문단 제거 · 날짜 기본값 KST
-- web/app/admin/drafts/page.tsx — 검토할 초안 N편 맨 위 · 카드: 제목·사실 확인 문장·도해 썸네일·발행(publishDraft, 도해 없으면 막힘)/버리기(discardDraft+confirm) · AI 티·짜임새는 걸릴 때 「N곳 — 보기」 · 자세히: 본문·검사 통과 문구·도해 다시 그리기(requeueIllustrate)·원문 되돌리기(revertDraft)·직접 고치기(saveDraft)
-- web/app/admin/page.tsx — 리드 카드(changeLeadStatus select), 새로 연락할 사람 맨 위, 지난 연락 자세히, 카드 안 자세히에 점수·등급·도메인·경로, 시각 KST
-- web/app/admin/outreach/page.tsx — 오늘 할 일(위 3곳 카드 + 통화문 펼침) · 나머지 7곳 자세히 · updateOutreach 필드 그대로
-- web/app/admin/pilots/page.tsx — 한 줄 압축 풀어 씀 · 진행 고객 맨 위 · 등록 폼(createPilot, 13필드 그대로) 자세히
-- web/app/admin/pilots/[id]/page.tsx — 풀어 씀 · 오늘 해야 할 일(기한 오늘·지남, 안 끝난 것) 맨 위 · 전체 업무·질문 20·측정 원장(엔진 이름만, 방법 이름 뺌)·정합성·콘텐츠 각각 details
-- web/app/admin/login/* — .adm 토큰으로, 버튼 adm-btn
-- web/lib/pilots.ts:19 — `measured_on::text as day` (파일럿 상세 404 원인)
 
-## 확인 (로컬 + 운영 같은 스크립트 shoot-b.cjs)
-| 화면 | 맨 위 | 390 첫 화면 위치 | 내부 이름 | 가로 | 콘솔 |
-|---|---|---|---|---|---|
-| 문의 | 결과 미입력 2건 | 111px | 0 | 0 | 0 |
-| 초안 | 검토할 초안 (없음) | 64px | 0 | 0 | 0 |
-| 리드 | 새로 연락할 사람 (없음) | 64px | 0 | 0 | 0 |
-| 영업판 | 오늘 할 일 — 위에서 3곳 | 134px | 0 | 0 | 0 |
-| 파일럿 | 진행 고객 1곳 | 100px | 0 | 0 | 0 |
-| 파일럿 상세 | 오늘 해야 할 일 7건 | 243px | 0 | 0 | 0 |
-| 로그인 | (폼만, 이동 줄 없음) | — | 0 | 0 | 0 |
-- 스크린샷: scratchpad b14/ (로컬) · b14-prod/ (운영) — {inquiry,drafts,leads,outreach,pilots,pilot,login}-{1280,390}-{first,full}.png
-- `--bg:` grep: admin.css · ops/page.tsx 두 곳 — ops 는 14a 검토 중이라 안 옮김(BUILD-LOG)
+### 새 파일
+- `academy/scripts/setup-materials.mjs:1-78` — `academy.materials`·`academy.draft_feedback` 생성, `inquiries.said` 뒤채움(이미 옮긴 inquiry_id 는 건너뜀). 날짜 기본값 `(now() at time zone 'Asia/Seoul')::date`
+- `academy/scripts/slop-rules.mjs:1-168` — `검사(본문, { 재료들 })` → `{ 치명, 경고 }`. 구체 사전(지역·교구)은 19-27, 장면 표시 정규식 45-52, 겹치나/구체있나 88-110, 본문 검사 118-167. CLI 와 write-draft 가 같은 것을 부른다
+- `web/lib/materials.ts:1-105` — `가리기()` 순수 함수(51-74) · 성씨 사전과 제외 낱말(32-46) · `materialCounts`·`listMaterials`
+- `web/lib/material-actions.ts:1-46` — `addMaterial`, **`await guard()` 로 연다(25행)**. 가린 뒤 저장하고 `redirect("/admin/material?m=...")`
+- `web/app/admin/material/page.tsx:1-156` — 모바일 먼저. 종류 칩 + said + 저장이 첫 화면, 상황·날짜는 `<details>` 안. 받침 판별 `을를()` 44-48
+- `academy/scripts/slop-check.mjs:1-123` (전면 교체) — `--strict <슬러그>` 46-88. 인자 없는 기존 동작(89-122)은 어휘 표시만 보도록 그대로 뒀다 — Actions 의 `review` 가 이 출력 형식을 정규식으로 읽는다
+
+### 고친 파일
+- `academy/scripts/write-draft.mjs:1-571` (전면 교체)
+  - `83-97` 재료일감() — dedupe_key `material-need`, company.mjs 신호와 같은 키
+  - `99-135` 빈손()·다시돎() — A3. 두 주 연속이면 `material-stopped`(sticky) 올리고, 초안이 나오면 닫고 카운터 0
+  - `137-164` 재료·버린이유·측정 읽기 → `모드=` 를 **첫 줄에** 찍는다
+  - `167-187` 모드 사실 — write-news.mjs 를 자식으로 실행하고 종료 코드를 그대로 넘긴다
+  - `189-200` 모드 없음 — 아무것도 안 쓰고 일감 + `exitCode 78`
+  - `202-271` 주제 고르기 뒤집기. 핵심어 자리에 재료 낱말(`재료점수`), 맞물리는 주제가 없으면 재료에서 제목을 뽑는다
+  - `273-391` 프롬프트 — 재료 블록·「첫 문단은 그대로 인용」·kind='숫자' 예외·「원장이 최근에 버린 이유」
+  - `440-478` 게이트. 치명이면 재료·주제를 바꿔 한 번만 재시도, 두 번째도 치명이면 **넣지 않는다** + 일감 + 78
+  - `521-546` used_in 갱신 · review_notes 에 `모드`·`쓴재료`(uuid)·`재료말`
+- `academy/scripts/company.mjs:159-173` — ensure() 에 표 둘 (setup-materials.mjs 와 같은 덩어리)
+- `academy/scripts/company.mjs:331-346` — 재료 신호. 안 쓴 재료 3 미만 또는 max(day) 14일 초과 → priority 12 · 사람 대기 · **cooldownH 24 (A1)**
+- `academy/scripts/company.mjs:360` — 닫기 규칙에 `material-need` → 신호원 `material`. `material-stopped` 는 sticky 라 자동으로 안 닫힌다
+- `web/lib/inquiry-actions.ts:7, 27-64` — `addInquiry` 가 `said` 가 있으면 `materials` 에 한 행(kind 상담 · origin inquiry · inquiry_id · context=grade). 같은 `가리기()` 를 거친다. 폼·필드 이름은 안 건드렸다
+- `web/lib/todo-text.ts:160-173` — `kind === "material"` 가지. 「초안 재료 한 줄 — 30초」 / 빈손 2 이상이면 「발행이 N주 멈췄습니다」
+- `web/lib/drafts.ts:7-15` — `DISCARD_REASONS` 7개
+- `web/lib/draft-actions.ts:111-142` — `discardDraft`. **이유를 하나도 안 고르면 아무것도 안 지운다**(`confirm !== "yes"` 자리를 이유 검사로). 지우기 **전에** `draft_feedback` 에 slug·title·reasons·note·앞 600자
+- `web/app/admin/drafts/page.tsx:37-40, 183-199` — 버리기를 `<details>` 안으로. 이유 칩(체크박스) + 한 줄 + 「이 이유로 버립니다」
+- `web/app/admin/AdminNav.tsx:7` — 「재료」를 「문의」 앞에
+- `web/app/admin/admin.css:76-88` — `.adm-pick`(칩) · `.adm-said`(한 줄 답). 새 CSS 파일은 안 만들었다
+
+---
+
+## 인수 시험 — 실제 출력
+
+**1. setup-materials.mjs 두 번 · company.mjs 준비() 두 번 — 통과**
+```
+academy.materials 준비됨 · 0건 (안 쓴 것 0개) · 문의에서 옮긴 것 0건
+academy.draft_feedback 준비됨 · 0건
+--- 두 번째 ---
+academy.materials 준비됨 · 0건 (안 쓴 것 0개) · 문의에서 옮긴 것 0건
+academy.draft_feedback 준비됨 · 0건
+```
+`node scripts/company.mjs --plan` 도 두 번 오류 없음.
+
+**2. 재료 3건 + --dry → 모드=재료 · 따옴표 그대로 — 통과**
+```
+모드=재료
+주제: 잠실에서 초등 코딩학원, 거리가 얼마나 돼야 다닐 만한가요?
+  안 쓴 재료 3개 중 3개를 넘깁니다 · 재료 맞물림 2개 · 지는 검색어 맞물림 2개
+...
+# 이 글에 쓸 재료 (원장이 실제로 듣고 겪은 것. 여기 없는 장면은 하나도 만들지 마라)
+- [m1] 질문 · 2026-09-23 · 초6 · 전화 상담: 「파이썬을 초등학교 때 시작해도 되냐고 물으심」
+- [m2] 상담 · 2026-09-23 · 초5 · 대회반 상담: 「대회 준비도 해주냐고 물으심」
+- [m3] 수업 · 2026-09-23 · 초3 · 스크래치 수업: 「블록을 지웠다가 되돌리는 걸 혼자 찾아냄」
+
+첫 문단은 위 재료 중 하나를 그대로 인용해서 연다. 고쳐 쓰지 말고 들은 말 그대로 따옴표 안에 넣는다.
+```
+
+**3. 실제 1회 실행 → 첫 문단에 재료 그대로 · used_in · review_notes — 통과**
+로컬에 모델 키가 하나도 없어(ANTHROPIC/GEMINI/GROQ/OPENROUTER 전부 0자) `LLM_PROXY_URL` 로
+**127.0.0.1 의 가짜 모델**을 세워 실제 경로를 돌렸다. 프롬프트에서 `[m1]` 의 말을 뽑아 첫 문단에 넣는 응답을 준다.
+```
+모드=재료
+  쓰는 모델: anthropic/claude-opus-5 (openrouter)
+DRAFT_SLUG=jamsil-tonghak
+초안으로 넣었습니다: 스크래치에서 파이썬으로 언제 넘어가야 하나요? (647자)
+쓴 재료 1개: 「파이썬을 초등학교 때 시작해도 되냐고 물으심…」
+```
+DB 확인:
+```
+첫 문단: 상담에서 이런 말을 들었습니다. 「파이썬을 초등학교 때 시작해도 되냐고 물으심」
+review_notes.모드: 재료 · 쓴재료: [ '4208a2d3-…-cfd346c0d348' ]
+materials: { said: '파이썬을 초등학교 때 시작해도 되냐고 물으심', used_in: [ 'jamsil-tonghak' ] }
+```
+
+**4. 재료 0 → 모드=없음 + 일감 + 78 · posts 그대로 — 통과**
+```
+모드=없음
+  안 쓴 재료 0개 · 쓸 사실도 없습니다. 초안을 만들지 않습니다.
+재료 적는 곳: https://geo-rose-nine.vercel.app/admin/material
+EXIT=78
+```
+일감:
+```
+dedupe_key: 'material-need', kind: 'material', status: '사람 대기', priority: 12,
+detail: '안 쓴 재료 0개 · 마지막 기록 없음', payload: { last: null, unused: 0 }
+```
+`academy.posts` 45행 → 45행 (시험 전후 동일).
+**모드 사실은 못 돌렸다** — 로컬에 GEMINI 키가 없어 조건이 `모드=없음` 으로 떨어진다 (KG-15-2).
+
+**5. 재료 없이 지어낸 장면 → 종료 1 · 치명 「지어낸 장면」 — 통과**
+```
+시험: 지어낸 장면
+  zz-test-scene · 쓴 재료 0개
+
+치명 — 이대로는 원장 큐에 못 올립니다
+  ✗ 지어낸 장면 1곳 — 한 학부모가 지난주 상담에서 이렇게 말했습니다.
+      재료 없이 상담·수업 장면을 썼습니다. 원장이 실제로 들은 말만 씁니다
+EXIT=1
+```
+
+**6. 그 말이 든 재료 + 쓴재료 → 종료 0 — 통과**
+```
+시험: 지어낸 장면
+  zz-test-scene · 쓴 재료 1개
+
+치명: 없음
+EXIT=0
+```
+
+**7. 문단 5개 중 3개 무구체 → 치명 「일반론 문단 3/5」 — 통과**
+```
+치명 — 이대로는 원장 큐에 못 올립니다
+  ✗ 일반론 문단 3/5 3곳 — 코딩 교육은 아이의 생각하는 힘을 기르는 데 도움을 주는 분야로… / 학습의 과정에서…
+      숫자·지역·교구·인용이 하나도 없는 문단이 절반 가까이입니다. 검색하면 아무나 쓸 수 있는 글입니다
+EXIT=1
+```
+
+**8. /admin/material 390px · 가림 — 통과** (playwright, 390×844)
+```
+material · scrollWidth 390 · innerWidth 390 · 가로 넘침 없음
+저장 버튼 y: 416.28 · 첫 화면(844) 안: true
+```
+입력 「김민준 어머님이 010-1234-5678 로 전화하셔서 … 메일은 minjun@example.com」 →
+- 화면: `메일 주소 · 전화번호 · 이름을 가리고 저장했습니다.`
+- DB: `○○ 어머님이 010-****-**** 로 전화하셔서 대회 준비도 해주냐고 물으심. 메일은 ***@***`
+
+입력 「이서연 학생이 02-1234-5678 로 물어봄 — 대회반 언제 여냐고」 →
+- 화면: `전화번호 · 이름을 가리고 저장했습니다.` · DB: `○○ 학생이 0**-***-**** 로 물어봄 — 대회반 언제 여냐고`
+
+칩은 5개가 한 줄에 들어가고 줄바꿈된다. 스크린샷 `material-390.png`.
+
+**9. 재료 0 → /admin/ops 맨 위 · 3개 이상이면 안 뜸 — 통과**
+ops 맨 위(스크린샷 `ops-390.png`):
+```
+오늘 원장님이 하실 일 6건
+  초안 재료 한 줄 — 30초
+  안 쓴 재료 0개. 3개 밑이면 자동 초안이 일반론이…
+  [적기 →]
+```
+안 쓴 재료 5개로 `company.mjs --plan` → `material-need` 가 `닫힘` 으로 바뀌었다(신호 사라짐).
+
+**10. 이유 없이 버리기 → 안 지워짐 · 이유 고르면 기록 — 통과**
+```
+카드 있음: 1
+이유 없이 버린 뒤 글이 아직 있나: true
+이유를 고르고 버린 뒤 글이 아직 있나: false
+draft_feedback: { slug: 'zz-test-general', reasons: ['일반론','지어낸 장면'],
+                  note: '학원 블로그라고 보기엔 너무 일반론적', excerpt: '코딩 교육은 아이의 생각하는 힘을 기르는 데 도움을 주' }
+```
+다음 `--dry` 프롬프트:
+```
+# 원장이 최근에 버린 이유 (되풀이하면 또 버린다)
+- 일반론 · 지어낸 장면 — 「학원 블로그라고 보기엔 너무 일반론적」
+```
+스크린샷 `drafts-discard-390.png`.
+
+**11. tsc --noEmit — 통과** (`node ./node_modules/typescript/bin/tsc --noEmit` → `TSC_EXIT=0`)
+덤으로 `npm run build` 도 통과 (`BUILD_EXIT=0`) — `"use server"` 모듈 내보내기 규칙까지 확인했다.
+
+### 브리프에 없는데 돌린 것
+- **게이트 재시도·차단** (5번 항목) — 슬롭 본문을 주는 가짜 모델로 확인
+```
+게이트에 걸렸습니다 (1회차): ✗ 지어낸 장면 1곳 / ✗ 일반론 문단 3/4 3곳
+  재료와 주제를 바꿔 한 번 더 씁니다 — 주제: 코딩 대회, 초등학생도 나갈 수 있나요?
+게이트에 걸렸습니다 (2회차): ✗ 지어낸 장면 1곳 / ✗ 일반론 문단 3/4 3곳
+두 번 다 걸렸습니다. 초안을 넣지 않습니다 — 원장 큐에 슬롭을 올리지 않습니다.
+EXIT=78
+```
+`academy.posts` 47행 → 47행(안 늘었다). 일감 title 「재료가 필요합니다 — 자동 초안이 두 번 다 일반론이었습니다」, payload 에 치명 목록.
+- **A3 두 주 연속** — 같은 실행을 한 번 더 → `⚠ 2주 연속 빈손입니다. 발행 멈춤 일감을 올렸습니다.`
+  `material-stopped` priority 5 · 사람 대기 · sticky. 그 뒤 정상 초안 1회 → `material-stopped` 닫힘, `빈손` 0 으로 복구.
+- **기존 slop-check 동작** — `node scripts/slop-check.mjs` → 「새로 쓴 글 14편을 봅니다 … 글 14편 중 0편에서 걸림」, 종료 0. 출력 형식 그대로라 company.mjs 의 `review` 정규식이 계속 먹는다.
+
+---
+
+## 운영 DB 에 남긴 것 / 지운 것
+
+**남긴 것 (이 단계의 산출물이라 남아야 한다)**
+- `academy.materials` 표 + `materials_unused_idx` (0행)
+- `academy.draft_feedback` 표 (0행)
+- `geo.agent_tasks` 의 `material-need` 1행 — 재료가 실제로 0개라서 뜬 **진짜 신호**다. 원장이 재료를 3개 적으면 다음 회사 루프가 닫는다
+
+**지운 것 (전부 시험용)**
+```
+posts:     zz-test-scene, zz-test-general, jamsil-tonghak   (3편)
+materials: 6행   draft_feedback: 1행
+tasks:     material-stopped, material-need(시험 흔적이 붙은 것), review-zz-test-scene,
+           review-jamsil-tonghak, illustrate-jamsil-tonghak
+```
+지운 뒤 확인: `posts 45 · materials 0 · draft_feedback 0` — 시험 시작 전 `posts 45` 와 같다.
+그 뒤 `company.mjs --plan` 을 한 번 돌려 `material-need` 를 깨끗한 값으로 다시 만들었다
+(`detail: 안 쓴 재료 0개 · 마지막 기록 없음`, `payload: { last: null, unused: 0 }` — 빈손·치명 키 없음).
+
+`geo.agent_activity` 에는 시험 중 돌린 `company.mjs --plan` 의 일감 열기·닫기 기록이 남는다.
+정상 운영 기록과 같은 모양이라 지우지 않았다.
+
+---
+
+## 스크린샷
+
+`C:\Users\force\AppData\Local\Temp\claude\C--dev-AGO-GEO\b2c2577b-fff2-4142-b28e-645690daf80e\scratchpad\`
+- `material-390.png` — /admin/material 390px (칩 줄바꿈 · 저장 버튼이 첫 화면 안)
+- `material-390-masked.png` — 가린 뒤 한 줄이 뜬 화면
+- `drafts-discard-390.png` — 버리기 이유 칩 + 한 줄 + 「이 이유로 버립니다」
+- `ops-390.png` — /admin/ops 맨 위의 「초안 재료 한 줄 — 30초」
+
+---
 
 ## Open Questions
-- 서버 액션 4파일 인증 누락(BUILD-LOG KG, Arch 에스컬레이트) — 14b 범위 밖이라 안 고침
-- 초안 본문을 자세히로 접은 것 — 원장이 발행 전 읽으려면 한 번 누른다. 펼쳐 둘지
-- ops 옮기기는 14a 통과 뒤 작은 단계로
+
+1. **`가리기()` 의 이름 정규식 범위.** 성씨 사전 45자 + 제외 낱말 30개로 좁혔다(`materials.ts:32-46`).
+   「우리 학생」 「여자 학생」은 안 걸리는 걸 확인했지만, 사전에 없는 성(예: 선우·남궁 같은 복성)은 안 가려진다.
+   전화번호·메일은 확실히 잡히니 남는 위험은 이름뿐인데, 이대로 두고 빠지는 게 보이면 한 줄씩 더할지 봐 주세요.
+2. **모드 B 조건에 `GEMINI_API_KEY` 존재를 넣은 것.** 브리프는 「뉴스거리가 있음」인데 write-draft 는
+   그걸 미리 알 수 없어서 「write-news 를 돌릴 수 있는가」로 바꿔 읽었다(`write-draft.mjs:162-163`).
+   키가 있으면 재료가 모자랄 때마다 write-news 를 부르게 된다 — 뉴스거리가 없으면 write-news 가 78 로 끝내고
+   그때 재료 일감이 올라간다. 이 흐름이 맞는지 봐 주세요.
+3. **재시도 때 주제를 `후보[1]` 로 바꾼다** (`write-draft.mjs:468`). `--question`·`--topic` 으로 주제가 고정된
+   경우에는 후보가 하나뿐이라 주제가 안 바뀌고 재료 순서만 돈다. 그래도 되는지.
+4. **`--strict` 는 `review_notes.쓴재료` 를 믿는다.** 모델이 안 쓴 라벨을 넣으면 게이트가 헐거워진다.
+   프롬프트로 못박아 뒀지만(`"안 쓴 라벨을 넣으면 검사에서 걸려 글이 통째로 버려진다"`) 기계 검사는 아니다.
+   재료 `said` 의 8자가 본문 어딘가에 있는지까지 보게 할지는 Arch 결정이 필요해 보인다.
+
+---
+
+## Out of Scope (BUILD-LOG Known Gaps 에 적음)
+
+- **KG-15-1** `.inq-pick`(문의 화면 지역 CSS) 과 새 `.adm-pick`(admin.css) 이 같은 규칙이다. 브리프가 문의 화면은
+  `addInquiry` 한 곳만 손대라고 해서 합치지 않았다
+- **KG-15-2** 모드 사실(write-news 자식 실행)은 로컬에 GEMINI 키가 없어 실제로 못 돌렸다
+- **KG-15-3** 「본문 1800자 미만」은 여전히 짜임새 흠일 뿐 게이트가 막지 않는다. 짧은 글이 원장 큐로 갈 수 있다
+- **KG-15-4** 재료 고치기·지우기 화면이 없다(브리프 Out of Scope). 잘못 적은 재료는 DB 로만 지운다

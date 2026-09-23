@@ -5,7 +5,7 @@
 
 ## Current Status
 
-**Active step:** 없음 — Step 1~8 배포 완료. 남은 것: 네이버 소유확인 캡차와 이관 35편(사람 일), Known Gaps 잔여분(KG-2·13·17·19). 주간 글쓰기는 `gemini-3.6-flash` 로 월 0원에 돈다(월 06:07 KST, 초안까지만 · 발행은 사람)
+**Active step:** Step 15 초안 재료 — IN REVIEW (Richard 대기). 이전: Step 1~8 배포 완료. 남은 것: 네이버 소유확인 캡차와 이관 35편(사람 일), Known Gaps 잔여분(KG-2·13·17·19). 주간 글쓰기는 `gemini-3.6-flash` 로 월 0원에 돈다(월 06:07 KST, 초안까지만 · 발행은 사람)
 **Last cleared:** Step 0 — 2026-09-11 (설치 이전 작업 기록)
 **Pending deploy:** NO
 
@@ -884,3 +884,50 @@ Known Gaps (14b)
 - 쿠키에 발급 시각 서명, 서버가 12시간 넘은 쿠키 거절(전에는 값이 영원히 같았다). 이 배포로 기존 로그인은 한 번 풀린다
 - safeAdminPath 한 곳 · 고객 기록표 선택지·uuid·KST 날짜 검사 · /admin Referrer-Policy no-referrer. 운영에서 확인: 새 쿠키 형식 200, 옛 쿠키 → 로그인, 헤더 있음
 - 원장 결정 대기: `?key=` 폐지 시점 · ADMIN_PASSWORD 따로 두기 · ADMIN_TOKEN 교체(앞 6글자가 세션 기록에 찍힘, Step 13)
+
+### Step 15 — 초안 재료 — IN REVIEW (2026-09-23) · Richard 대기
+
+원인: 원장이 이틀에 초안 3편을 버렸다(9/23 「너무 AI slop · 일반론 · 억지스러운 상황 설정」). 같은 기간 출처를 단 뉴스 글 ai-textbook-16-subjects-2028 은 발행했다. DB 확인 — `academy.inquiries` 고객사 1번 2행, 둘 다 `said` 가 빈 문자열. write-draft.mjs:167 의 재료 가지가 늘 「기록이 없다」로 떨어진다. **모델이 아니라 재료 문제다.**
+
+결정(Arch):
+- **D1 새 표 `academy.materials`.** `inquiries.said` 재사용 안 함 — inquiries 는 유입경로→등록 전환을 재는 표라 수업·아이 말을 넣으려면 가짜 source 행이 생기고 전환율이 부풀어 영업 숫자가 오염된다. 대신 addInquiry 가 said 를 쓰면 materials 에 한 행을 같이 넣는다(origin=inquiry)
+- **D2 새 화면 `/admin/material`.** 문의 화면은 상담 결과 흐름이라 수업·아이 말 자리가 없다. 모바일 먼저, 종류 칩 + 한 줄. 개인정보는 막지 말고 가린 뒤 저장하고 무엇을 가렸는지 알린다(30초를 지킨다)
+- **D3 재료도 사실 출처도 없으면 글을 안 쓴다.** 사람 대기 「재료가 필요합니다」 일감을 올리고 exit 78. 빈손이 슬롭보다 낫다 — 원장이 읽고 버리는 시간이 더 비싸다
+- **D4 사실 글은 write-news.mjs 를 자식 프로세스로 부른다.** 원장이 유일하게 발행한 자동 글이 그 경로다. write-draft 안에 다시 구현하지 않는다
+- **D5 게이트는 원장 큐 앞.** slop-rules.mjs 의 치명 항목(지어낸 장면·일반론 문단 40%·2인칭 훈계·서론)에 걸리면 한 번만 다시 쓰고, 두 번째도 걸리면 academy.posts 에 안 넣는다. 행이 없으면 company.mjs 의 review 일감도 안 생기니 큐 로직은 안 건드린다
+- **D6 버린 이유를 받는다.** 이유 없이는 안 지워진다. `academy.draft_feedback` 에 남기고 최근 5건을 다음 프롬프트에 넣는다
+
+브리프: handoff/ARCHITECT-BRIEF.md (Step 15) — 인수 조건 11개
+
+#### 지음 (Bob, 2026-09-23)
+
+Arch 가 결정 전부를 확인하고 셋을 더했다 — A1 재료 독촉은 하루 한 번까지(`cooldownH: 24`), A2 개인정보는 가리고 저장하고 무엇을 가렸는지 한 줄, A3 두 주 연속 빈손이면 `material-stopped` 사람 대기(priority 5 · sticky).
+
+새 파일 6개 · 고친 파일 8개. `tsc --noEmit` 0, `npm run build` 통과. 인수 11개 중 10개 통과, 1개(모드 사실)는 로컬에 GEMINI 키가 없어 못 돌렸다.
+
+Files:
+- `academy/scripts/setup-materials.mjs` (새 78줄) — materials·draft_feedback 표 + inquiries.said 뒤채움
+- `academy/scripts/slop-rules.mjs` (새 168줄) — 검사(본문, {재료들}) → {치명, 경고}. CLI 와 write-draft 가 같은 것을 부른다
+- `academy/scripts/slop-check.mjs` (123줄, 전면) — `--strict <슬러그>` 치명 시 종료 1. 인자 없는 기존 동작은 어휘만 보도록 그대로
+- `academy/scripts/write-draft.mjs` (571줄, 전면) — 모드 재료/사실/없음, 게이트 1회 재시도, used_in·review_notes
+- `academy/scripts/company.mjs` — 159-173(ensure 에 표 둘), 331-346(재료 신호), 360(닫기 규칙에 material)
+- `web/lib/materials.ts` (새 105줄) · `web/lib/material-actions.ts` (새 46줄) · `web/app/admin/material/page.tsx` (새 156줄)
+- `web/lib/inquiry-actions.ts` 7, 27-64 · `web/lib/todo-text.ts` 160-173 · `web/lib/drafts.ts` 7-15 · `web/lib/draft-actions.ts` 6, 111-142
+- `web/app/admin/drafts/page.tsx` 4, 37-40, 183-199 · `web/app/admin/AdminNav.tsx` 7 · `web/app/admin/admin.css` 76-88
+
+Decisions made:
+- `가리기()` 는 `materials.ts` 에 뒀다. `"use server"` 모듈은 내보내는 게 전부 async 여야 해서 `material-actions.ts` 에서 내보내면 빌드가 죽는다. 같은 이유로 `DISCARD_REASONS` 는 `drafts.ts` 로
+- 한글 이름 정규식은 성씨 사전 + 제외 낱말 30개로 좁혔다. 「한글 2~4자 + 학생」만 보면 「우리 학생」 「여자 학생」이 `○○ 학생` 으로 망가진다
+- 가린 것을 알리는 길은 `redirect("/admin/material?m=...")`. 서버 액션 반환값을 받으려면 폼을 클라이언트 컴포넌트로 바꿔야 하는데 그럴 값이 아니다
+- 모드 B 조건은 `측정.answer` 또는 `GEMINI_API_KEY`. write-news 는 구글 검색 그라운딩이 있어야 돈다(그 파일 머리 주석). 종료 코드는 그대로 넘기되, 초안이 안 나왔으면 재료 일감도 올리고 빈손을 센다(A3)
+- `review_notes.쓴재료` 에는 프롬프트 라벨(m1)이 아니라 materials.id(uuid). slop-check --strict 가 그 id 로 재료를 읽는다
+- 「이름를 가렸습니다」가 나와 받침 판별 `을를()` 을 넣었다. 번역체로 읽히는 조사는 안 내보낸다
+
+Reviewer findings: (대기)
+Deploy: 대기 — `web/` 은 push 로 나간다. `academy/scripts/*` 는 Actions 가 저장소에서 읽으니 push 로 충분하다. 표는 이미 운영 DB 에 만들었다(`setup-materials.mjs` 2회 실행)
+
+Known Gaps (15)
+- KG-15-1 `.inq-pick`(문의 화면 지역 CSS)와 새 `.adm-pick`(admin.css)이 같은 규칙이다. 문의 화면을 다음에 만질 때 `.adm-pick` 으로 합친다 — 이번 단계는 액션 한 곳만 손대기로 돼 있었다
+- KG-15-2 모드 사실(write-news 자식 실행)은 로컬에 GEMINI 키가 없어 실제로 못 돌렸다. Actions 에서 키가 있는 채로 처음 도는 주간 실행이 첫 검증이다
+- KG-15-3 게이트 통과 뒤 「본문 1800자 미만」은 여전히 짜임새 흠일 뿐 막지 않는다. 짧은 글이 원장 큐로 갈 수 있다 — 막을지는 Arch 결정
+- KG-15-4 재료 고치기·지우기 화면이 없다(브리프 Out of Scope). 잘못 적은 재료는 DB 로만 지운다
