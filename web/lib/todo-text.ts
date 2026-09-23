@@ -157,6 +157,20 @@ export function todoText(t: TodoTask, now = Date.now()): TodoText {
     };
   }
 
+  if (t.kind === "material") {
+    // 재료가 마르면 자동 초안이 일반론이 된다. 원장이 버린 초안 3편이 전부 그랬다(2026-09-23)
+    const unused = num(p.unused);
+    const 멈춤 = num(p.빈손);
+    return {
+      title: 멈춤 !== null && 멈춤 >= 2 ? `발행이 ${멈춤}주 멈췄습니다 — 재료 한 줄이 필요합니다` : "초안 재료 한 줄 — 30초",
+      why: unused !== null
+        ? `안 쓴 재료 ${unused}개. 3개 밑이면 자동 초안이 일반론이 됩니다`
+        : "안 쓴 재료가 모자랍니다. 3개 밑이면 자동 초안이 일반론이 됩니다",
+      action: { type: "link", label: "적기", href: "/admin/material" },
+      doing,
+    };
+  }
+
   if (t.kind === "naver-attempt") {
     return { title: cut(plain(t.title), 60), why: cut(plain(first(t.error || t.detail)), 90), action: { type: "naver" }, doing };
   }

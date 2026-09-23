@@ -73,3 +73,16 @@
 .adm-tw tbody tr:last-child td{border-bottom:0}
 
 .adm-empty{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px;color:var(--ink2)}
+
+/* 칩 고르기 — 숨긴 radio + label. 좁은 화면에서 줄바꿈된다 (문의 화면의 .inq-pick 과 같은 꼴) */
+.adm-pick{display:flex;flex-wrap:wrap;gap:7px}
+.adm-pick input{position:absolute;opacity:0;width:0;height:0}
+.adm-pick label{display:inline-block;margin:0;padding:8px 13px;border-radius:9px;background:var(--sunk);
+  border:1px solid var(--line);color:var(--ink2);font-size:14px;cursor:pointer}
+.adm-pick input:checked + label{background:#2A2010;border-color:var(--acc);color:var(--acc);font-weight:700}
+.adm-pick input:focus-visible + label{outline:2px solid var(--acc);outline-offset:2px}
+
+/* 방금 한 일에 대한 한 줄 답 */
+.adm-said{margin:10px 0 0;padding:10px 13px;border-radius:10px;font-size:14px;
+  background:#14201a;border:1px solid #2c5344;color:#9FD9BE}
+.adm-said.warn{background:#1d1a14;border-color:#5c4a2a;color:#F0CE87}

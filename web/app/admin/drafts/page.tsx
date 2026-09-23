@@ -1,7 +1,7 @@
 import { isAdmin } from "@/lib/admin-auth";
 import { redirect } from "next/navigation";
 
-import { listDrafts } from "@/lib/drafts";
+import { listDrafts, DISCARD_REASONS } from "@/lib/drafts";
 import { saveDraft, publishDraft, discardDraft, revertDraft, requeueIllustrate } from "@/lib/draft-actions";
 import AdminNav from "../AdminNav";
 
@@ -34,7 +34,10 @@ const CSS = `
 .dr-act{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:14px}
 .dr-act form{margin:0;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .dr-act small{font-size:14px;color:var(--ink2)}
-.dr-conf{display:flex;align-items:center;gap:6px;font-size:14px;color:var(--ink2)}
+.dr-kill>summary{color:var(--crit)}
+.dr-kill form{margin:10px 0 0;display:grid;gap:10px;justify-items:start}
+.dr-kill .why{margin:0;font-size:14px;color:var(--ink2)}
+.dr-kill input[type=text]{width:100%;max-width:420px}
 .dr-more{margin-top:12px;border-top:1px solid var(--line);padding-top:8px}
 .dr-more>summary{cursor:pointer;font-size:14px;color:var(--ink2);font-weight:700}
 .dr-body{font-size:16px;line-height:1.8;color:var(--ink)}
@@ -177,12 +180,25 @@ export default async function DraftsPage({ searchParams }: { searchParams: Promi
                     <input type="hidden" name="slug" value={d.slug} />
                     <button type="submit" className="adm-btn" disabled={도해수 === 0}>사실 확인했음 · 발행</button>
                   </form>
+                </div>
+
+                <details className="dr-flag dr-kill">
+                  <summary>초안 버리기</summary>
                   <form action={discardDraft}>
                     <input type="hidden" name="slug" value={d.slug} />
-                    <label className="dr-conf"><input type="checkbox" name="confirm" value="yes" required /> 버리기 확인</label>
-                    <button type="submit" className="adm-btn bad">초안 버리기</button>
+                    <p className="why">왜 버리는지 고르면 다음 초안 프롬프트가 그걸 읽습니다. 안 고르면 안 지웁니다.</p>
+                    <div className="adm-pick">
+                      {DISCARD_REASONS.map((r) => (
+                        <span key={r}>
+                          <input type="checkbox" id={`r-${d.slug}-${r}`} name="reason" value={r} />
+                          <label htmlFor={`r-${d.slug}-${r}`}>{r}</label>
+                        </span>
+                      ))}
+                    </div>
+                    <input type="text" name="note" maxLength={300} placeholder="한 줄 더 (없어도 됩니다)" />
+                    <button type="submit" className="adm-btn bad">이 이유로 버립니다</button>
                   </form>
-                </div>
+                </details>
 
                 <details className="dr-more">
                   <summary>자세히 — 본문 · 고치기 · 검사 결과</summary>

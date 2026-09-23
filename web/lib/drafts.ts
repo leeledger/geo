@@ -4,6 +4,15 @@ import { inqPool } from "./inquiries";
  * 검토할 초안 읽기. 카드에 「검토할 초안 3편」만 뜨고 열어 볼 곳이 없었다(2026-09-17 원장 지적).
  * 고객사 학원 글은 같은 DB 의 academy.posts 에 있다.
  */
+/**
+ * 버린 이유 — 다음 프롬프트가 이걸 읽는다(academy.draft_feedback → write-draft.mjs).
+ * 자유 입력만 두면 셀 수가 없어 칩으로 고정한다. 쓰기는 draft-actions.ts 에 있다
+ * ("use server" 모듈은 내보내는 것이 전부 async 함수여야 한다).
+ */
+export const DISCARD_REASONS = [
+  "일반론", "지어낸 장면", "사실이 틀림", "우리 얘기가 아님", "문체(AI 티)", "주제가 안 맞음", "이미 쓴 내용",
+] as const;
+
 export type Draft = {
   id: number; slug: string; title: string; summary: string; body: string; category: string;
   tags: string[]; clientId: number; clientName: string; domain: string;

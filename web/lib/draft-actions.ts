@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { isAdmin } from "./admin-auth";
 import { inqPool } from "./inquiries";
+import { DISCARD_REASONS } from "./drafts";
 
 /**
  * 초안 검토 화면의 동작. 발행은 원장이 사실 확인을 끝냈다는 뜻이다 (CLAUDE.md 「발행 전 사실 확인」).
@@ -107,10 +108,28 @@ export async function requeueIllustrate(form: FormData) {
   revalidatePath("/admin/drafts");
 }
 
+/**
+ * 초안 버리기. 이유를 하나도 안 고르면 아무것도 안 지운다 —
+ * 왜 버렸는지를 안 남기면 다음 주에 똑같은 글이 또 온다. 이틀에 3편을 그렇게 버렸다(2026-09-23).
+ */
 export async function discardDraft(form: FormData) {
   await guard();
   const slug = slugOf(form);
-  if (!slug || form.get("confirm") !== "yes") return;
+  const reasons = form.getAll("reason").map((r) => String(r))
+    .filter((r) => (DISCARD_REASONS as readonly string[]).includes(r));
+  if (!slug || reasons.length === 0) return;
+  const note = String(form.get("note") ?? "").trim().slice(0, 300);
+
+  // 지우기 전에 이유를 남긴다. 지운 뒤에는 본문을 못 읽는다
+  const { rows: before } = await inqPool().query(
+    `select client_id, title, body from academy.posts where slug=$1 and not published`, [slug]);
+  if (!before[0]) return;
+  await inqPool().query(
+    `insert into academy.draft_feedback (client_id, slug, title, reasons, note, excerpt)
+     values ($1, $2, $3, $4::text[], $5, $6)`,
+    [before[0].client_id, slug, before[0].title, reasons, note, String(before[0].body ?? "").slice(0, 600)],
+  ).catch((e) => console.error("버린 이유 기록 실패", e));
+
   const { rows } = await inqPool().query(
     `delete from academy.posts where slug=$1 and not published returning client_id, title`, [slug]);
   if (rows[0]) {
@@ -120,7 +139,7 @@ export async function discardDraft(form: FormData) {
       [rows[0].client_id, [`review-${slug}`, `illustrate-${slug}`, `illustrate-human-${slug}`]]).catch(() => {});
     // 버린 초안의 도해(Step 12)는 어디서도 안 쓴다. 남겨 두면 /blog/img 주소로 계속 열린다
     await inqPool().query(`delete from academy.post_images where slug=$1`, [slug]).catch(() => {});
-    await log(rows[0].client_id, "초안 버림", rows[0].title);
+    await log(rows[0].client_id, "초안 버림", `${rows[0].title} — ${reasons.join(" · ")}${note ? ` · 「${note}」` : ""}`);
   }
   revalidatePath("/admin/drafts");
 }

@@ -156,6 +156,21 @@ const ensure = async () => {
     agent text not null, action text not null, ok boolean not null, summary text not null default '', task_id bigint,
     run_url text, at timestamptz not null default now())`);
   await q(`alter table academy.posts add column if not exists review_notes jsonb not null default '{}'::jsonb`);
+  // 초안 재료 (Step 15). setup-materials.mjs 와 같은 덩어리다 — 한쪽만 고치면 Actions 가 사람 손을 기다린다.
+  // 날짜 기본값을 current_date 로 두면 UTC 러너에서 전날로 찍힌다
+  await q(`create table if not exists academy.materials (
+    id uuid primary key default gen_random_uuid(), client_id int not null default 1,
+    day date not null default ((now() at time zone 'Asia/Seoul')::date),
+    kind text not null check (kind in ('상담','수업','질문','사례','숫자')),
+    said text not null, context text not null default '', used_in text[] not null default '{}',
+    origin text not null default 'owner', inquiry_id uuid,
+    created_at timestamptz not null default now())`);
+  await q(`create index if not exists materials_unused_idx
+    on academy.materials (client_id, day desc) where cardinality(used_in) = 0`);
+  await q(`create table if not exists academy.draft_feedback (
+    id bigserial primary key, client_id int not null default 1, slug text not null,
+    title text not null default '', reasons text[] not null default '{}', note text not null default '',
+    excerpt text not null default '', created_at timestamptz not null default now())`);
 };
 
 const 본키 = new Set(); // 이번 계획에서 신호가 살아 있는 일감
@@ -313,6 +328,22 @@ const 계획 = async (clients, { latest: latestRuns, ok: ghOk }) => {
       title: `연락 안 한 리드 ${lead.n}건`, detail: "진단을 받고 연락처를 남긴 사람입니다. 하루 안에 연락해야 식지 않습니다.", link: `${ADMIN}/admin` });
   }
 
+  // 초안 재료 — 재료가 마르면 자동 초안이 일반론이 된다(Step 15). 학원(1번)만 사이트 글을 우리가 쓴다.
+  // cooldownH 24 — 하루에 한 번까지만 다시 열린다. 사람 대기로 떠 있는 동안은 매시 루프가 상태를 안 건드린다
+  const [mat] = await q(`select count(*) filter (where cardinality(used_in) = 0)::int unused,
+                                max(day)::text last from academy.materials where client_id = 1`).catch(() => [null]);
+  if (mat) {
+    읽음.add("material");
+    const 오래됨 = !mat.last || Date.now() - Date.parse(`${mat.last}T00:00:00+09:00`) > 14 * 86400000;
+    if (mat.unused < 3 || 오래됨) {
+      await 일감({ client_id: 1, agent: "content", kind: "material", key: "material-need", priority: 12, status: "사람 대기",
+        cooldownH: 24, link: `${ADMIN}/admin/material`,
+        title: "초안 재료가 모자랍니다",
+        detail: `안 쓴 재료 ${mat.unused}개 · 마지막 기록 ${mat.last ?? "없음"}`,
+        payload: { unused: mat.unused, last: mat.last } });
+    }
+  }
+
   // 자동 작업 실패
   for (const [file, run] of Object.entries(latestRuns)) {
     if (!run || run.conclusion === "success" || run.conclusion === "skipped" || run.conclusion === "cancelled") continue;
@@ -326,6 +357,7 @@ const 계획 = async (clients, { latest: latestRuns, ok: ghOk }) => {
       and (case when dedupe_key like 'wf-%' then 'gh'
                 when dedupe_key like 'review-%' or dedupe_key like 'illustrate-%' or dedupe_key like 'noimg-%' then 'drafts'
                 when dedupe_key in ('inquiry-result', 'lead-new') then 'db'
+                when dedupe_key = 'material-need' then 'material'
                 when dedupe_key like 'login-%' then 'local'
                 else 'scout' end) = any($1)`, [[...읽음]]);
   for (const t of open) {

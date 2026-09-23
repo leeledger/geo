@@ -4,6 +4,7 @@ import Link from "next/link";
 const PAGES = [
   { href: "/admin/ops", name: "현황" },
   { href: "/admin/drafts", name: "초안" },
+  { href: "/admin/material", name: "재료" },
   { href: "/admin/inquiry", name: "문의" },
   { href: "/admin", name: "리드" },
   { href: "/admin/outreach", name: "영업판" },
