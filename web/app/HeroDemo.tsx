@@ -79,7 +79,7 @@ export default function HeroDemo({ children }: { children: React.ReactNode }) {
     <div className="lp-hero-grid">
       <div className="lp-hero-top lp-rise">
         <span className="lp-badge"><i className="lp-live" aria-hidden="true" />AI 답변 노출 · GEO</span>
-        <h1 className="lp-h1">손님이 AI에게 물었을 때<br /><span>우리 이름이 나옵니까?</span></h1>
+        <h1 className="lp-h1">손님이 AI에게 물었을 때<br /><span>우리 이름이 나오나요?</span></h1>
         <p className="lp-lede">
           「{s.q}」. 이렇게 물으면 AI 는 링크 대신 <b>이름 세 개쯤</b>으로 답합니다.
           거기 우리가 있는지 여러 번 물어 세고, 없으면 들어가게 만듭니다.

@@ -40,7 +40,7 @@ export default function ScanForm({ id, placeholder }: { id: string; placeholder?
       if (!res.ok || data?.error) { setError(data?.error ?? "진단에 실패했습니다."); return; }
       setResult(data as Result);
     } catch {
-      setError("네트워크 오류로 진단하지 못했습니다. 잠시 후 다시 시도해 주세요.");
+      setError("네트워크 오류로 진단하지 못했습니다. 잠시 뒤 다시 눌러 주세요.");
     } finally {
       setBusy(false);
     }
@@ -63,7 +63,7 @@ export default function ScanForm({ id, placeholder }: { id: string; placeholder?
       if (!res.ok || data?.error) { setLeadError(data?.error ?? "저장에 실패했습니다."); return; }
       setLeadDone(true);
     } catch {
-      setLeadError("네트워크 오류가 발생했습니다.");
+      setLeadError("네트워크 오류가 났습니다. 다시 눌러 주세요.");
     } finally {
       setLeadBusy(false);
     }
@@ -150,8 +150,8 @@ export default function ScanForm({ id, placeholder }: { id: string; placeholder?
             전부 코드로 확인되는 것만 셉니다. 브랜드 인지도 같은 눈으로 판단하는 항목은 점수에 넣지 않았습니다.
             <br />
             <b style={{ color: "var(--ink)" }}>다만 이건 사이트 상태 점수일 뿐, 실제로 AI가 불러주는지와는 다릅니다.</b>{" "}
-            저희가 재본 바로는 사이트 점수가 차지하는 몫이 20% 정도였습니다.
-            정말 불리는지는 AI에 직접 물어봐야 압니다.
+            저희가 잰 한 업계에서는 홈페이지 19점 회사가 80점 회사보다 AI 답에 더 자주 나왔습니다.
+            불리는지는 AI 에 직접 물어봐야 압니다.
           </div>
 
           {/* 결과를 본 직후 = 관심이 가장 높은 지점 */}

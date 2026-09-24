@@ -50,7 +50,7 @@ const 실행 = (args) => {
   try {
     return { ok: true, out: execFileSync(process.execPath, args, { cwd: fileURLToPath(new URL("..", import.meta.url)), encoding: "utf8", timeout: 600000, env: process.env }) };
   } catch (e) {
-    return { ok: false, out: `${e.stdout ?? ""}${e.stderr ?? ""}${e.message}` };
+    return { ok: false, code: e.status ?? 1, out: `${e.stdout ?? ""}${e.stderr ?? ""}${e.message}` };
   }
 };
 
@@ -346,6 +346,15 @@ const main = async () => {
         }
         const res = 실행(["scripts/write-draft.mjs", "--question", x.text, "--stage", x.stage, "--sources", 경쟁.join(",")]);
         const slug = /DRAFT_SLUG=(\S+)/.exec(res.out)?.[1];
+        // 78 = 건너뜀. 이번 주 글이 이미 있거나(주 1편) 글감이 없다 — 고장이 아니다(2026-09-24 원장: 없으면 패스)
+        if (!slug && res.code === 78) {
+          await 저장({
+            status: "완료", diagnosis: 진단, target_prompt: x.prompt_id, action_kind: "content", target_slug: null,
+            action: /이번주있음/.test(res.out) ? "이번 주 글이 이미 있어 초안은 쓰지 않았습니다(주 1편)." : "글감이 없어 이번에는 초안을 건너뛰었습니다.",
+            evidence: res.out.replace(/\s+/g, " ").slice(-200),
+          });
+          return;
+        }
         const 슬롭 = slug ? 실행(["scripts/slop-check.mjs", slug]) : null;
         const 걸림 = 슬롭 ? (/0편에서 걸림/.test(슬롭.out) ? "AI 티 검사 통과" : "AI 티 검사 걸림 있음") : "";
         await 저장({

@@ -219,6 +219,16 @@ const 뒤 = (h) => new Date(Date.now() + h * 3600 * 1000).toISOString();
 /** 다음 KST 자정 (하루 몫이 다시 차는 때) */
 const 내일 = () => { const d = new Date(Date.now() + 9 * 3600 * 1000); d.setUTCHours(24, 1, 0, 0); return new Date(d.getTime() - 9 * 3600 * 1000).toISOString(); };
 const 오늘 = () => new Date().toLocaleString("sv-SE", { timeZone: "Asia/Seoul" }).slice(0, 16);
+/** 다음에 오는 월요일 hm(KST). 월요일 그 시각 전이면 오늘 — 월요일 새벽의 건너뜀이 한 주를 통째로 넘기지 않게(Richard 17) */
+const 다음월요일 = (hm = "07:00") => {
+  const [h, m] = hm.split(":").map(Number);
+  const k = new Date(Date.now() + 9 * 3600 * 1000);
+  const 오늘시각 = Date.UTC(k.getUTCFullYear(), k.getUTCMonth(), k.getUTCDate(), h, m);
+  const 남은날 = k.getUTCDay() === 1 && k.getTime() < 오늘시각 ? 0 : ((8 - k.getUTCDay()) % 7) || 7;
+  return new Date(오늘시각 + 남은날 * 86400000 - 9 * 3600 * 1000).toISOString();
+};
+/** 실패하면 1·3·6·12시간 뒤, 그 뒤로는 하루에 한 번. 사람에게 넘기지 않고 계속 다시 해 본다(2026-09-24 원장) */
+const 다시해봄 = (n) => 뒤([1, 3, 6, 12][n - 1] ?? 24);
 
 // ─────────────────────────────────────────── 1. 출근 기록
 const WORKFLOWS = { "watch.yml": "ops", "scout.yml": "ops", "serp.yml": "measure", "snapshot.yml": "deliver", "write.yml": "content", "optimize.yml": "improve", "audit.yml": "ops", "repair.yml": "ops", "sales.yml": "sales" };
@@ -381,21 +391,12 @@ const 계획 = async (clients, { latest: latestRuns, ok: ghOk }) => {
       title: `연락 안 한 리드 ${lead.n}건`, detail: "진단을 받고 연락처를 남긴 사람입니다. 하루 안에 연락해야 식지 않습니다.", link: `${ADMIN}/admin` });
   }
 
-  // 초안 재료 — 재료가 마르면 자동 초안이 일반론이 된다(Step 15). 학원(1번)만 사이트 글을 우리가 쓴다.
-  // cooldownH 24 — 하루에 한 번까지만 다시 열린다. 사람 대기로 떠 있는 동안은 매시 루프가 상태를 안 건드린다
+  // 초안 재료 — 읽기만 한다. 모자라도 일감을 만들지 않는다(아래)
   const [mat] = await q(`select count(*) filter (where cardinality(used_in) = 0)::int unused,
                                 max(day)::text last from academy.materials where client_id = 1`).catch(() => [null]);
-  if (mat) {
-    읽음.add("material");
-    const 오래됨 = !mat.last || Date.now() - Date.parse(`${mat.last}T00:00:00+09:00`) > 14 * 86400000;
-    if (mat.unused < 3 || 오래됨) {
-      await 일감({ client_id: 1, agent: "content", kind: "material", key: "material-need", priority: 12, status: "사람 대기",
-        cooldownH: 24, link: `${ADMIN}/admin/material`,
-        title: "초안 재료가 모자랍니다",
-        detail: `안 쓴 재료 ${mat.unused}개 · 마지막 기록 ${mat.last ?? "없음"}`,
-        payload: { unused: mat.unused, last: mat.last } });
-    }
-  }
+  // 2026-09-24 원장: 「초안 작성이 필수는 아니고 없으면 패스」 — 글감이 모자라도 원장 할 일로 올리지 않는다.
+  // 신호를 안 만들고 「읽음」만 표시해 두면 옛 material-need 일감은 아래에서 「신호 사라짐」으로 닫힌다
+  if (mat) 읽음.add("material");
 
   // 자동 작업 실패
   for (const [file, run] of Object.entries(latestRuns)) {
@@ -427,24 +428,38 @@ const EXEC = {
   // ── 운영
   async "workflow-failed"(t) {
     const { run_id, file } = t.payload;
-    // 수리공·영업 담당은 다시 띄우지 않는다 — 회사 루프가 띄우면 사람이 띄운 실행처럼 보이고, rerun 은 실패한 merge 를 승인 없이 되풀이한다(Richard 9/22)
-    if (file === "repair.yml" || file === "sales.yml") return { status: "사람 대기", attempt: true, evidence: `${오늘()} ${file} 실패 — 자동으로 다시 띄우지 않음`, error: `${file} 실행 로그를 보고 Claude 세션에서 고칩니다` };
-    if (t.attempts === 0) {
-      // 재실행(rerun)은 그 실행이 쓰던 옛 커밋의 설정으로 돈다. 고쳐 놓은 코드로 다시 해 보려면 새로 띄워야 한다 —
+    // 수리공은 다시 띄우지 않는다 — 회사 루프가 띄우면 사람이 띄운 실행처럼 보이고, rerun 은 실패한 merge 를 승인 없이 되풀이한다(Richard 9/22).
+    // 대신 매일 06:50 예약이 다시 돈다. 사람에게도 넘기지 않는다
+    if (file === "repair.yml") return { status: "관찰", nextTry: 뒤(24), attempt: true, evidence: `${오늘()} 수리 실패 — 다음 06:50 예약이 다시 돈다` };
+    // 영업도 다시 띄우지 않는다. 같은 주에 두 번 돌면 Claude 호출이 6일 제한에 걸려 숫자 없는 틀로 통화문·답장 초안을 덮어쓴다(Richard 17).
+    // 다음 월요일 08:10 예약이 다시 돈다
+    if (file === "sales.yml") return { status: "관찰", nextTry: 다음월요일("08:40"), attempt: true, evidence: `${오늘()} 영업 정리 실패 — 다음 월요일 08:10 예약이 다시 돈다` };
+    // 이미 새로 띄운 실행이 돌고 있으면 또 띄우지 않는다
+    const 최근 = await gh(`/actions/workflows/${file}/runs?per_page=1`);
+    if (최근?.workflow_runs?.[0] && 최근.workflow_runs[0].status !== "completed") {
+      return { status: "관찰", nextTry: 뒤(1), evidence: `${오늘()} 다시 띄운 실행이 도는 중` };
+    }
+    const 입력 = { ref: "main" };
+    if (t.attempts >= 1) {
+      // 원장(2026-09-24): 「실패해도 스스로 다시 시작」. 두 번째부터는 간격을 늘려 계속 새로 띄운다 — 사람 대기로 넘기지 않는다
+      const jobs = await gh(`/actions/runs/${run_id}/jobs`);
+      const steps = (jobs?.jobs ?? []).flatMap((j) => (j.steps ?? []).filter((s) => s.conclusion === "failure").map((s) => `${j.name} › ${s.name}`));
+      const 새로 = await gh(`/actions/workflows/${file}/dispatches`, { method: "POST", body: JSON.stringify(입력) });
+      const 간격 = 다시해봄(t.attempts);
+      return {
+        status: "관찰", nextTry: 간격, attempt: true,
+        evidence: `${오늘()} ${t.attempts + 1}번째 다시 띄움${새로 && !새로.__error ? "" : ` 실패(${끝(새로?.__error ?? "GH_TOKEN 없음", 80)})`} · 실패한 단계: ${steps.join(", ") || "확인 못함"}`,
+      };
+    }
+    {
+      // 첫 실패 — 재실행(rerun)은 그 실행이 쓰던 옛 커밋의 설정으로 돈다. 고쳐 놓은 코드로 다시 해 보려면 새로 띄워야 한다 —
       // write.yml 이 제미나이 키로 재실행돼 같은 429 로 또 죽었다(2026-09-17)
-      const 새로 = await gh(`/actions/workflows/${file}/dispatches`, { method: "POST", body: JSON.stringify({ ref: "main" }) });
+      const 새로 = await gh(`/actions/workflows/${file}/dispatches`, { method: "POST", body: JSON.stringify(입력) });
       if (새로 && !새로.__error) return { status: "관찰", nextTry: 뒤(1), evidence: `${오늘()} 최신 코드로 새로 실행함`, attempt: true };
       const r = await gh(`/actions/runs/${run_id}/rerun-failed-jobs`, { method: "POST" });
       if (r && !r.__error) return { status: "관찰", nextTry: 뒤(2), evidence: `${오늘()} 새로 띄우지 못해(${끝(새로?.__error, 80)}) 실패한 잡만 다시 돌림`, attempt: true };
       return { status: "관찰", nextTry: 뒤(2), evidence: `${오늘()} 재실행 요청 실패 ${r?.__error ?? "GH_TOKEN 없음"}`, attempt: true };
     }
-    const jobs = await gh(`/actions/runs/${run_id}/jobs`);
-    const steps = (jobs?.jobs ?? []).flatMap((j) => (j.steps ?? []).filter((s) => s.conclusion === "failure").map((s) => `${j.name} › ${s.name}`));
-    return {
-      status: "사람 대기", attempt: true,
-      evidence: `${오늘()} 다시 돌려도 실패. 실패한 단계: ${steps.join(", ") || "확인 못함"}`,
-      error: `Claude 세션에서 코드를 고쳐야 합니다 — ${file}`,
-    };
   },
 
   async "site-check"(t, c) {
@@ -524,7 +539,7 @@ const EXEC = {
     if (!c.conf?.publishes || c.id !== 1) return { status: "사람 대기", error: "이 고객사는 사이트 글을 우리가 올리지 않습니다 (clients.mjs publishes=false)" };
     /**
      * write-draft 하나만 부른다. 길은 그 안에서 고른다 —
-     * 재료가 3개 넘으면 자기가 쓰고, 모자라면 write-news 로 넘기고, 둘 다 없으면 일감만 올린다.
+     * 재료가 3개 넘으면 자기가 쓰고, 모자라면 write-news 로 넘기고, 둘 다 없으면 건너뛴다(78). 이번 주 글이 이미 있어도 78.
      *
      * 전에는 여기서 write-news 를 먼저 부르고 안 되면 write-draft 를 불렀다. 그런데 write-draft 가
      * 모드 사실에서 write-news 를 또 부른다 — 한 주에 검색 생성이 두 번 돌았다(KG-15-6).
@@ -537,16 +552,14 @@ const EXEC = {
       return { status: "완료", evidence: `${오늘()} 초안 작성 /blog/${slug} (모드=${모드})` };
     }
     /**
-     * 78 은 고장이 아니라 건너뜀이다 — 재료도 사실도 없거나 게이트가 두 번 막았다.
-     * write-draft 가 `material-need` 사람 대기 일감을 이미 올렸으니 여기서 또 세지 않는다.
-     * attempt 를 올리면 재료 없는 주가 세 번 이어질 때 「3번 실패」로 없는 고장이 원장 큐에 뜬다(Richard 2026-09-23).
-     * next_try 를 일주일 뒤로 두는 건 매시 루프가 이걸 다시 집어 write-news 를 또 돌리지 않게 하려는 것이다 —
-     * 검색 한 번에 OpenRouter web 플러그인이 요청당 $0.007 이고, 빈손 카운터도 주 단위로 세야 A3 가 맞는다
+     * 78 은 고장이 아니라 건너뜀이다 — 이번 주 글이 이미 있거나, 재료도 사실도 없거나, 게이트가 두 번 막았다.
+     * 원장에게 올리지 않는다(2026-09-24 「없으면 패스」). attempt 도 안 올린다 — 실패로 세면 계속 다시 돈다.
+     * 다음 월요일까지 미루는 건 매시 루프가 이걸 다시 집어 write-news(검색 한 번 $0.007)를 또 돌리지 않게 하려는 것이다
      */
     if (r.code === 78) {
       const 모드 = /^모드=(\S+)/m.exec(r.out)?.[1] ?? "?";
-      return { status: "대기", nextTry: 뒤(24 * 7), link: `${ADMIN}/admin/material`,
-        evidence: `${오늘()} 모드=${모드} · 재료 없음 — material-need 일감 참고` };
+      return { status: "대기", nextTry: 다음월요일(),
+        evidence: `${오늘()} ${모드 === "이번주있음" ? "이번 주 글이 이미 있어 건너뜀(주 1편)" : "글감이 없어 이번 주는 건너뜀"}` };
     }
     return { status: "실패", attempt: true, error: 끝(r.out) };
   },
@@ -563,6 +576,8 @@ const EXEC = {
     const p = t.payload;
     const r = 실행(["scripts/write-draft.mjs", "--question", p.question, "--stage", p.stage ?? "local", "--sources", (p.sources ?? []).join(",")]);
     const slug = /DRAFT_SLUG=(\S+)/.exec(r.out)?.[1];
+    // 78 = 건너뜀(이번 주 글이 이미 있거나 글감 없음). 실패로 세지 않고 다음 주에 다시 본다
+    if (!slug && r.code === 78) return { status: "대기", nextTry: 다음월요일(), evidence: `${오늘()} 주 1편 · 이번 주는 건너뜀` };
     return slug ? { status: "완료", evidence: `${오늘()} 초안 /blog/${slug}`, link: `${ADMIN}/admin/drafts#${slug}` } : { status: "실패", attempt: true, error: 끝(r.out) };
   },
 
@@ -709,11 +724,11 @@ const 근무 = async (clients) => {
     let res;
     try { res = await EXEC[t.kind](t, c, clients); }
     catch (e) { res = { status: "실패", error: e.message, attempt: true }; }
-    // 실패는 간격을 늘려 다시. 세 번 넘으면 사람에게 (코드 고칠 일일 가능성이 크다)
+    // 실패는 간격을 늘려 계속 다시 한다. 사람에게 넘기지 않는다 — 원장(2026-09-24): 「실패해도 스스로 다시 시작」.
+    // 코드가 틀려 계속 실패하는 건 감사관 R1(되풀이 실패)이 잡아 조사로 올린다
     if (res.status === "실패") {
       const n = t.attempts + 1;
-      if (n >= 3) res = { ...res, status: "사람 대기", error: `3번 실패 — ${res.error ?? ""}` };
-      else res = { ...res, status: "대기", nextTry: res.nextTry ?? 뒤(n === 1 ? 1 : 6) };
+      res = { ...res, status: "대기", nextTry: res.nextTry ?? 다시해봄(n), error: `${n}번째 실패 — 다시 해 봄 · ${res.error ?? ""}` };
     }
     await 상태(t.id, res.status, res);
     const ok = !/실패/.test(`${res.error ?? ""} ${res.status} ${res.evidence ?? ""}`);

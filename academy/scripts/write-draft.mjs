@@ -7,7 +7,8 @@
  *
  *   모드 재료  안 쓴 재료 3개 이상 → 그 재료로 쓴다
  *   모드 사실  재료가 모자라고 쓸 사실이 있음 → write-news.mjs 에 넘긴다. 여기서는 안 쓴다
- *   모드 없음  둘 다 아님 → 아무것도 안 쓴다. 재료를 달라는 일감만 올리고 78 로 끝낸다
+ *   모드 없음  둘 다 아님 → 아무것도 안 쓴다. 건너뛴 기록만 남기고 78 로 끝낸다(원장 할 일로 안 올림)
+ *   이번주있음 이번 주(월~일 KST)에 초안이 이미 있음 → 78. 주 1편
  *
  * 빈손으로 오는 게 슬롭을 내놓는 것보다 낫다. 원장이 읽고 버리는 시간이 더 비싸다.
  *
@@ -80,6 +81,28 @@ const { 재료일감, 빈손, 다시돎, 재료썼음 } = 재료도구(q, { clie
 
 const main = async () => {
   /**
+   * ── 주 1편. 이번 주(월요일 0시 KST 부터)에 이미 초안이 생겼으면 안 쓴다.
+   * 초안이 들어오는 길이 셋이다 — 월요일 write.yml, 회사 루프의 주간 초안, 질문 겨냥 초안. 길마다 막지 않고 여기 한 곳에서 막는다.
+   * 원장(2026-09-24): 「포스팅 글 작성은 주당 1회」. 못 읽으면 쓰지 않는다 — 두 편이 나가는 것보다 한 주 건너뛰는 게 낫다
+   */
+  if (!DRY) {
+    const 이번주 = await q(
+      `select slug from academy.posts
+        where client_id = $1
+          and created_at >= date_trunc('week', now() at time zone 'Asia/Seoul') at time zone 'Asia/Seoul'
+        limit 1`, [CLIENT]).catch((e) => {
+      console.log("이번 주 초안을 확인하지 못했습니다:", e.message.slice(0, 120));
+      return null;
+    });
+    if (이번주 === null) { process.exitCode = 1; return; }
+    if (이번주.length) {
+      console.log(`모드=이번주있음\n  이번 주 초안이 이미 있습니다(/blog/${이번주[0].slug}). 주 1편이라 더 쓰지 않습니다.`);
+      process.exitCode = 78;
+      return;
+    }
+  }
+
+  /**
    * ── 0. 재료가 먼저다
    *
    * 못 읽은 것과 0건은 다르다. 삼키고 빈 배열로 넘기면 DB 가 죽은 주에도
@@ -116,7 +139,7 @@ const main = async () => {
 
   // write-news 는 구글 검색 그라운딩이 있어야 돈다(그 파일 머리 주석). 키가 없으면 넘길 곳이 없다
   // 「뉴스거리가 있다」가 아니라 「write-news 를 돌릴 수 있다」는 뜻이다. 뉴스거리가 있는지는
-  // 검색을 해 봐야 알고, 그건 write-news 가 한다. 없으면 거기서 빈손으로 끝나고 아래 재료 일감으로 온다
+  // 검색을 해 봐야 알고, 그건 write-news 가 한다. 없으면 거기서 빈손으로 끝나고 그 주는 건너뛴다
   const 뉴스도구있음 = Boolean(process.env.GEMINI_API_KEY);
   const 모드 = 재료들.length >= 3 ? "재료" : (측정?.answer || 뉴스도구있음) ? "사실" : "없음";
   console.log(`모드=${모드}`);
@@ -130,29 +153,19 @@ const main = async () => {
     if (r.stderr) process.stderr.write(r.stderr);
     process.exitCode = r.status ?? 1;
     if (DRY) return;
-    if (!/DRAFT_SLUG=/.test(r.stdout ?? "")) {
-      const n = await 빈손("재료가 모자라 사실 글로 넘겼는데 거기서도 초안이 안 나왔습니다");
-      await 재료일감({
-        title: "초안 재료가 필요합니다",
-        detail: `안 쓴 재료 ${재료들.length}개 · 사실 글로 넘겼지만 초안이 안 나왔습니다. 상담·수업에서 들은 말 한 줄이면 다음 실행에서 관점 글이 나갑니다.`,
-        payload: { unused: 재료들.length, 빈손: n, 모드: "사실" },
-      });
-    } else {
-      await 다시돎();
-    }
+    // 건너뜀 기록은 write-news 가 남긴다. 여기서 또 적으면 한 주에 두 줄이 된다
+    await 다시돎();
     return;
   }
 
   // ── 모드 없음 — 아무것도 안 쓴다. 빈손이 슬롭보다 낫다
   if (모드 === "없음") {
     console.log(`  안 쓴 재료 ${재료들.length}개 · 쓸 사실도 없습니다. 초안을 만들지 않습니다.`);
-    const n = DRY ? null : await 빈손("재료도 없고 쓸 사실도 없었습니다");
-    await 재료일감({
-      title: "초안 재료가 필요합니다 — 이번 주는 글을 안 썼습니다",
-      detail: `안 쓴 재료 ${재료들.length}개. 재료가 없으면 자동 초안은 일반론이 됩니다. 상담에서 들은 말·수업에서 있었던 일 한 줄이면 30초입니다.`,
-      payload: { unused: 재료들.length, ...(n === null ? {} : { 빈손: n }), 모드: "없음" },
-    });
-    console.log(`재료 적는 곳: ${ADMIN}/admin/material`);
+    if (!DRY) {
+      await 빈손("글감도 없고 쓸 사실도 없었습니다");
+      await 재료일감({ detail: `글감 ${재료들.length}개 · 쓸 사실도 없어 이번 주는 건너뜀` });
+      await 다시돎();
+    }
     process.exitCode = 78; // 재료 없음 — 실패와 구분한다
     return;
   }
@@ -412,12 +425,8 @@ const main = async () => {
     if (회 === 2) {
       // 두 번 다 일반론이면 모델을 더 돌려도 같은 것이 나온다. 재료가 모자란 것이다
       console.log("\n두 번 다 걸렸습니다. 초안을 넣지 않습니다 — 원장 큐에 슬롭을 올리지 않습니다.");
-      const n = await 빈손(`자동 초안이 두 번 다 치명에 걸렸습니다: ${목록.join(" · ")}`);
-      await 재료일감({
-        title: "재료가 필요합니다 — 자동 초안이 두 번 다 일반론이었습니다",
-        detail: `치명: ${목록.join(" · ")}\n안 쓴 재료 ${재료들.length}개. 원장이 실제로 들은 말이 있어야 지어낸 장면이 안 나옵니다.`,
-        payload: { unused: 재료들.length, 빈손: n, 모드: "재료", 치명: 목록 },
-      });
+      await 빈손(`자동 초안이 두 번 다 치명에 걸렸습니다: ${목록.join(" · ")}`);
+      await 재료일감({ detail: `두 번 다 게이트에 걸려 이번 주는 건너뜀 · 글감 ${재료들.length}개 · 걸린 것: ${목록.join(" · ")}` });
       process.exitCode = 78;
       return;
     }

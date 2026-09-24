@@ -41,7 +41,7 @@ u.searchParams.delete("sslmode");
 const pool = new Pool({ connectionString: u.toString(), ssl: { rejectUnauthorized: false } });
 const q = (sql, p = []) => pool.query(sql, p).then((r) => r.rows);
 
-// 게이트에 걸려 빈손으로 끝나면 재료를 달라고 한다. write-draft 와 같은 일감·같은 카운터다
+// 게이트에 걸려 빈손으로 끝나면 그 주는 건너뛰고 활동 기록만 남긴다. write-draft 와 같은 도구다
 const { 재료일감, 빈손, 다시돎, 재료썼음 } = 재료도구(q, { client: CLIENT });
 
 /** 뉴스 글에만 거는 규칙. 관점 글에 걸면 안 된다 — 거기선 「피해야 할 것」이 필수 항목이다. */
@@ -66,23 +66,16 @@ const 홍보금지 = [
 ];
 
 /**
- * 빈손으로 끝났다고 사람에게 넘긴다. write-draft 와 같은 일감·같은 카운터를 쓴다 —
- * 두 곳이 따로 세면 「두 주 연속」이 한 주에 두 번 찍힌다(빈손()이 하루 한 번으로 막는다).
+ * 빈손으로 끝났다고 기록만 남긴다. 이름은 옛것 그대로 — 2026-09-24 부터 사람에게 넘기지 않는다(원장: 없으면 패스).
  */
 const 사람에게 = async (왜, 치명 = []) => {
   const 재료 = await q(
     `select count(*)::int n from academy.materials where client_id = $1 and cardinality(used_in) = 0`,
     [CLIENT]).catch(() => [{ n: 0 }]);
   const unused = 재료[0]?.n ?? 0;
-  const n = await 빈손(왜);
-  await 재료일감({
-    title: 치명.length
-      ? "재료가 필요합니다 — 사실 글도 두 번 다 게이트에 걸렸습니다"
-      : "초안 재료가 필요합니다 — 이번 주는 글을 안 썼습니다",
-    detail: `${왜}\n안 쓴 재료 ${unused}개. 원장이 실제로 들은 말이 있으면 관점 글로 갑니다.`,
-    payload: { unused, 빈손: n, 모드: "사실", ...(치명.length ? { 치명 } : {}) },
-  });
-  console.log(`재료 적는 곳: ${process.env.ADMIN_BASE_URL || "https://geo-rose-nine.vercel.app"}/admin/material`);
+  await 빈손(왜);
+  // 원장에게 올리지 않는다 — 글감이 없으면 그 주는 건너뛴다(2026-09-24 원장). 활동 기록에만 남긴다
+  await 재료일감({ detail: `${왜} · 글감 ${unused}개 · 이번 주는 건너뜀${치명.length ? ` · 걸린 것: ${치명.join(" · ")}` : ""}` });
 };
 
 const main = async () => {
@@ -206,7 +199,7 @@ const main = async () => {
 
   let 본문 = post.body ?? "";
   if (!본문.trim()) {
-    // 쓸 사실이 없는 건 고장이 아니다. 78(건너뜀)로 끝내고 재료를 달라고 한다 — 그게 다음 주를 살린다
+    // 쓸 사실이 없는 건 고장이 아니다. 78(건너뜀)로 끝내고 그 주는 넘긴다 — 억지로 쓴 글보다 한 주 쉬는 게 낫다
     console.log("\n쓸 만한 사실을 못 찾았다고 합니다. 초안을 넣지 않습니다.");
     for (const s of post.확인필요 ?? []) console.log("  ·", s);
     process.exitCode = 78;

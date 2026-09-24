@@ -1,50 +1,38 @@
-# Review Request — Step 16 · 현황판 문구와 무인 운영 틈
+# Review Request — Step 17 · 랜딩 문구 · 실패 자동 재시작 · 초안은 주 1편·없으면 건너뜀
 Date: 2026-09-24
 Ready for Review: YES
 
-원장(9/24): 「대시보드 문구가 AI 슬롭이 강해 무슨 말인지 모르겠고, 업무를 알아서 처리해야 하는데 그렇지 못해」.
-Arch 브리프 없이 세션이 바로 짓고 Richard 검토 → 배포(상시 승인 게이트).
+원장(9/24): 「랜딩페이지 ai슬롭도 해결하고 에이전트가 일을 실패해도 스스로 다시 시작하게 하고 초안 작성이 필수는 아니고 없으면 패스하고 포스팅 글 작성은 주당 1회」.
 
-## 원인
-1. **문구** — 직원 줄·할 일이 기계 로그(`시험: 주간 초안 · 대기 · 모드=없음 · material-need 일감 참고`, `대기 0 · 관찰 3 · 사람 대기 11 · 로컬 대기 1`)를
-   `plain()` 정규식으로 깎아 그대로 보여 줬다. 깎아도 로그다.
-2. **무인 운영** — 9/24 아침 감사 06:35·정찰 06:37·측정 07:05 가 08:45 까지 한 건도 안 떴다(GitHub 예약 건너뜀).
-   현황판은 「지연」만 칠하고 아무도 다시 안 돌렸다. heartbeat.mjs 는 company.yml 만 깨운다.
-3. 원장 몫이 아닌 일감이 「오늘 하실 일」을 채웠다 — 아이로그 주제 4건(원장이 완료 표시한 뒤에도 다시 열림),
-   조사 끝난 코드 문제 2건(439 덕덕고·319 빙, 수리공 꺼짐이라 사람에게 옴).
+## 1. 실패해도 스스로 다시 (academy/scripts/company.mjs)
+- `근무()` — 실패 3번이면 「사람 대기」로 넘기던 것을 없앴다. 간격 `다시해봄(n)`: 1·3·6·12시간, 그 뒤 하루 한 번. 계속 대기로 돈다. 되풀이 실패는 감사 R1 이 조사로 올린다(그 경로는 안 건드림)
+- `workflow-failed` — 두 번째부터도 사람 대기 대신 간격을 늘려 새로 띄운다(실패 단계는 근거에 남김). 이미 돌고 있는 실행이 있으면 안 띄움.
+  수리(repair.yml)는 여전히 안 띄운다(Richard 9/22 — 봇 실행이 사람 실행으로 읽힘) — 대신 사람 대기가 아니라 관찰 24h(다음 날 예약이 다시 돈다).
+  영업(sales.yml)은 이제 띄운다 — `inputs.mode=run` 을 준다. sales.mjs 는 actor 를 안 본다(grep 확인). 봐 주세요: 영업이 두 번 돌면 해가 있나(통화문 묶음 중복?)
+- `web/lib/agents.ts` 실패 문장: 수리 「내일 06:50 에 다시 돕니다」, GitHub 작업 「매시 점검이 간격을 늘려 다시 돌립니다」, 그 밖 「다음 차례에 다시 해 봅니다」. Step 16 의 gaveUp 은 이제 쓸 데가 없어 뺐다
 
-## 바꾼 것
-- `academy/scripts/company.mjs` `밀린예약()` — 정해진 시각에서 2시간 지났는데 그 뒤 시작된 실행이 없으면 workflow_dispatch.
-  대상: snapshot·audit·scout·optimize·serp·write(월). **repair·sales 는 뺐다**(봇이 띄우면 사람 실행으로 읽힘 — heartbeat 주석).
-  실행 기록을 못 읽은 작업은 짐작으로 안 띄운다. 대기·진행 중 실행도 「시작됨」으로 친다(created_at). `main()` 에서 `--plan` 이면 안 돈다.
-- `company.mjs` question-draft — 1번 아닌 고객사 주제는 「사람 대기」 대신 「관찰」 30일 + 근거 한 줄.
-- `academy/scripts/scout.mjs` — 커버리지 비교군에 microsoft 추가. 감사 R5 와 같은 보호(10쪽 미만·14일 이내 제외). 할 일 문구 빙용.
-- `academy/scripts/audit.mjs` R5 — duckduckgo 는 신호 대신 `풀림`(덕덕고 결과는 빙 색인). 열린 439 는 다음 감사에서 닫힌다.
-- `web/lib/agents.ts` — 역할마다 손으로 쓴 `does` 한 줄. 정상이면 로그 대신 그걸 보인다.
-  새 상태 `wait`(원장님 차례): 역할의 열린 일감 중 「사람 대기」가 있으면. 늦음·실패 문장을 다시 씀.
-  실패 문장의 「매시 점검이 한 번 다시 돌립니다」는 GitHub 작업 실패(수리·영업 제외)일 때만 — company.mjs workflow-failed 와 같은 조건.
-  「늦음」의 「대신 돌립니다」는 `catchup: true` 작업만(company.mjs 예약 표와 같은 목록).
-- `web/app/admin/ops/AgentStrip.tsx` — 제목 「자동으로 도는 일」, 라벨(실패·늦음·원장님 차례), 「마지막 n시간 전」, 실패 0 은 안 씀.
-- `web/lib/todo-text.ts` · `Todo.tsx` — 상담·영업 전화·등재·글감·조사 문장을 할 일로 다시 씀.
-- `web/app/admin/ops/Growth.tsx` — 「크고 있나」→「성과」, 차트 제목·설명.
+## 2. 초안은 필수 아님 — 없으면 건너뜀
+- `material-task.mjs` — 「초안 재료가 필요합니다」「발행이 멈췄습니다」 사람 대기 일감을 더 안 만든다. 대신 `geo.agent_activity` 에 「주간 초안 건너뜀」 한 줄. 빈손 카운터 없앰. `다시돎()` 은 옛 material-need·material-stopped 를 닫는다
+- `company.mjs` 계획 — material-need 신호 생성 삭제(읽음 표시만 남겨 옛 일감이 「신호 사라짐」으로 닫힘)
+- `write-draft.mjs`·`write-news.mjs` — 건너뛸 때 활동 한 줄만. 사실 모드에서 두 줄 적히지 않게 write-draft 쪽 기록 삭제
+- DB: 530(material-need) 닫음
 
-## 확인한 것
-- `tsc --noEmit` 통과. `node --check` audit·scout·company 통과.
-- 운영 DB 로 `readAgents()`·`todoText()` 를 돌려 실제 문장을 찍었다(아래). 백슬래시가 heredoc 에서 먹혀 정규식 3곳이 깨졌던 것을 이 출력으로 잡고 고쳤다.
-  ```
-  late 운영   | 06:35 감사가 안 돌았습니다 — GitHub 이 예약을 건너뛰어 매시 점검이 대신 돌립니다
-  off  수리공 | 꺼 두었습니다. 켜면 코드 문제를 스스로 고칩니다 — 켜는 건 원장님
-  late 측정   | 07:05 AI 답변 측정이 안 돌았습니다 — GitHub 이 예약을 건너뛰어 매시 점검이 대신 돌립니다
-  ok   삽화   | 초안이 생기면 도해를 그립니다
-  wait 영업   | 원장님 확인 2건을 기다립니다
-  TODO 이번 주 글감 한 줄 적기 // 상담·수업에서 들은 말 한 줄이면 됩니다. 남은 글감이 없어 이번 주 초안이 멈춰 있습니다
-  ```
+## 3. 주 1편
+- `write-draft.mjs` 맨 앞 — 이번 주(월 0시 KST~)에 client 1 초안(academy.posts.created_at)이 있으면 `모드=이번주있음` 찍고 78. 못 읽으면 1(고장). 세 길(write.yml·weekly-draft·question-draft·daily-agent)이 다 write-draft 를 거친다
+  - 운영 DB 로 실행해 봄: `모드=이번주있음 … (/blog/ai-textbook-16-subjects-2028)` 종료 78. 이번 주 월요일 경계 `2026-09-20T15:00Z` 확인
+  - 버린 초안(삭제됨)은 안 센다 — 버리면 그 주에 다시 쓸 수 있다. 의도
+- `company.mjs` weekly-draft·question-draft 는 78 을 실패로 안 치고 `다음월요일()` 07:00 KST 까지 대기
+- `daily-agent.mjs` — 78 이면 agent_runs 에 「완료 · 이번 주 글이 이미 있어…」. 전에는 실패 + exitCode 1 로 optimize 가 빨갛게 됐다
+- `write.yml` 78 안내 문구
 
-## 봐 주셨으면 하는 것
-1. `밀린예약()` 이 GitHub 예약과 겹쳐 두 번 도는 경우 — 예약이 2시간 넘게 늦게 뜨면 둘 다 돈다. optimize(측정)는 MEASURE_EVERY_DAYS·하루 상한이 있어 괜찮다고 봤다. audit·scout 이중 실행이 해로운가?
-2. company.yml 의 GITHUB_TOKEN(actions: write)으로 띄운 workflow_dispatch 는 GitHub 이 허용한다(재귀 금지의 예외). 맞는지.
-3. 데이터: 417·28·32·33(아이로그 주제) → 관찰, 31(앱 등록, 원장이 완료 표시했던 것) → 닫힘, 439·319 → 닫힘(코드로 고침), 258 detail 을 한 문장으로.
+## 4. 랜딩 문구 (fork 에이전트가 고침, 글자만)
+web/app/page.tsx · HeroDemo.tsx · ScanForm.tsx · services/page.tsx · web/lib/services.ts · web/lib/guides.ts.
+근거 못 찾은 숫자 삭제: 「사이트 점수 몫 20%」「홈페이지 효과 전체의 20%」「월 4만원짜리 측정 도구」. 「대부분은 측정부터」(고객이 없는데 「대부분」) 등.
+남긴 의심 숫자(출처 미확인): 28%·「약 4분의 1」, 「출처 중 회사 홈페이지는 다섯에 하나가 안 됐다」, Interval.tsx P_HAT=0.62 — Known Gap 으로 적을 것.
+
+## 확인
+`node --check` 7개 파일 통과 · web `tsc --noEmit` 통과.
 
 ## Files
-academy/scripts/company.mjs · academy/scripts/scout.mjs · academy/scripts/audit.mjs ·
-web/lib/agents.ts · web/lib/todo-text.ts · web/app/admin/ops/AgentStrip.tsx · web/app/admin/ops/Todo.tsx · web/app/admin/ops/Growth.tsx
+.github/workflows/write.yml · academy/scripts/{company,daily-agent,material-task,write-draft,write-news}.mjs · web/lib/agents.ts ·
+web/app/{page,HeroDemo,ScanForm}.tsx · web/app/services/page.tsx · web/lib/{services,guides}.ts

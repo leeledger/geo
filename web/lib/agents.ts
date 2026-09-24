@@ -91,7 +91,7 @@ export const ROLES: Role[] = [
     ],
   },
   {
-    id: "content", name: "콘텐츠", does: "월요일 아침 글감으로 초안을 씁니다", agents: ["content"],
+    id: "content", name: "콘텐츠", does: "월요일 아침 초안을 주 1편 씁니다. 쓸 거리가 없으면 그 주는 건너뜁니다", agents: ["content"],
     // 검토 일감은 회사 루프(매시)가 집어 간다 — 그건 운영 줄의 회사 루프로 본다
     jobs: [{ name: "주간 초안 작성", wf: "write", times: ["06:07"], dow: 1, countMirror: true, catchup: true }],                   // write.yml    7 21 * * 0 (월 06:07 KST)
   },
@@ -281,8 +281,6 @@ export type JudgeInput = {
   paused?: boolean;
   /** 최근 7일 geo.repairs 에서 합친 수 (수리공만). null = 못 읽음 */
   merged7?: number | null;
-  /** 다시 돌려도 실패해 사람 대기로 넘어간 GitHub 작업(company.mjs workflow-failed 일감 wf-<file>). 이것들엔 재시도를 약속하지 않는다 */
-  gaveUp?: Set<string>;
 };
 
 const daysAgo = (iso: string, now: number) => Math.floor((now - Date.parse(iso)) / 86400000);
@@ -316,12 +314,13 @@ export function judge(role: Role, input: JudgeInput, now: number): AgentRow {
   const latest = failing[0] ?? null;
   if (latest && !latest.ok) {
     const d = daysAgo(latest.at, now);
-    // 매시 점검이 새로 띄우는 것은 GitHub 작업 실패뿐이다(수리·영업 제외 — company.mjs workflow-failed). 나머지는 약속하지 않는다
+    // 실패는 사람에게 안 넘기고 계속 다시 한다(2026-09-24). company.mjs: GitHub 작업은 workflow-failed 가 간격을 늘려 새로 띄우고
+    // (수리·영업은 빼고 — 다음 예약이 다시 돈다), 일감은 근무()가 1·3·6·12시간·하루 간격으로 다시 집는다
     const wf = MIRROR.exec(latest.action)?.[1];
-    const then = (wf === "repair" || wf === "sales") && input.gaveUp?.has(wf) ? "오늘 하실 일에 올렸습니다"
-      : wf && input.gaveUp?.has(wf) ? "다시 돌려도 실패해 오늘 하실 일에 올렸습니다"
-      : wf && wf !== "repair" && wf !== "sales" ? "매시 점검이 한 번 다시 돌립니다"
-      : "로그는 맨 아래 「자세히」";
+    const then = wf === "repair" ? "다음 06:50 예약에 다시 돕니다"
+      : wf === "sales" ? "다음 월요일 08:10 예약에 다시 돕니다"
+      : wf ? "매시 점검이 간격을 늘려 다시 돌립니다"
+      : "다음 차례에 다시 해 봅니다";
     return row("stuck", `${said(latest)}${d >= 1 ? ` (${d}일 전)` : ""} — ${then}`);
   }
 
@@ -426,12 +425,6 @@ export async function readAgents(now = Date.now()): Promise<Agents> {
     const acts: Act[] = ar.map((r) => ({ agent: r.agent, action: r.action, ok: !!r.ok, summary: r.summary, at: iso(r.at), kind: r.kind ?? null }));
     const tasks: OpenTask[] = tr.map((r) => ({ agent: r.agent, kind: r.kind, status: r.status, title: r.title, updatedAt: iso(r.updated_at) }));
     const paused = sr[0]?.value === "true";
-    const gaveUp = new Set<string>();
-    try {
-      const { rows: gr } = await p.query(
-        `select payload->>'file' as file from geo.agent_tasks where kind = 'workflow-failed' and status = '사람 대기'`);
-      for (const g of gr) if (g.file) gaveUp.add(String(g.file).replace(/[.]yml$/, ""));
-    } catch (e) { console.error("workflow-failed 읽기 실패", e); }
     let merged7: number | null = null;
     try {
       const { rows: [m] } = await p.query(
@@ -447,7 +440,6 @@ export async function readAgents(now = Date.now()): Promise<Agents> {
         tasks: tasks.filter((t) => roleOfAgent(t.agent, t.kind) === r.id),
         paused: r.id === "repair" ? paused : false,
         merged7: r.id === "repair" ? merged7 : null,
-        gaveUp,
       }, now)),
     };
   } catch (e) {

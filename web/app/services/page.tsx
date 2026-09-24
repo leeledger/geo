@@ -17,7 +17,7 @@ export default function Services() {
           <div className="lab">서비스</div>
           <h1>넷 중 필요한 것만</h1>
           <p className="lede">
-            대부분은 <b>측정</b>부터 시작합니다. 나머지는 재본 뒤에 정해도 늦지 않습니다.
+            <b>측정</b>부터 해 보시길 권합니다. 나머지는 재 본 뒤에 정하셔도 됩니다.
           </p>
         </div>
       </header>
