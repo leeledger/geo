@@ -30,7 +30,8 @@ export type PmReport =
 export async function readPmReport(): Promise<PmReport> {
   try {
     const { rows } = await pool().query<{ day: string; at: string; body: PmBody; today: boolean }>(
-      `select day::text day, at::text at, body, day = (now() at time zone 'Asia/Seoul')::date today
+      // day·at 은 SQL 키워드라 별칭에 as 를 꼭 쓴다 — 없으면 구문 오류로 카드가 「못 읽었습니다」가 된다(9/24 첫 배포)
+      `select day::text as day, at::text as at, body, day = (now() at time zone 'Asia/Seoul')::date as today
          from geo.pm_reports order by day desc limit 1`,
     );
     const r = rows[0];
