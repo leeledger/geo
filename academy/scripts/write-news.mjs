@@ -24,8 +24,9 @@
 import fs from "node:fs";
 import { Pool } from "pg";
 import { 공급자만들기, 금지, 지어내기금지, 파싱, 공통짜임새, 재시도 } from "./writer-common.mjs";
-import { 검사 } from "./slop-rules.mjs";
+import { 검사, 검색근거글 } from "./slop-rules.mjs";
 import { 재료도구 } from "./material-task.mjs";
+import { 프로필 } from "./profile.mjs";
 
 for (const l of fs.readFileSync(new URL("../.env.local", import.meta.url), "utf8").split(/\r?\n/)) {
   const m = /^([A-Z_]+)=(.*)$/.exec(l);
@@ -88,6 +89,11 @@ const main = async () => {
   const 오늘 = new Date().toLocaleDateString("ko-KR", { timeZone: "Asia/Seoul" });
 
   const 프롬프트 = (고침 = []) => [
+    // 집필 담당의 정체성·일하는 법·기억 (agents/content)
+    프로필("content"),
+    "",
+    "---",
+    "",
     "너는 송파구에서 코딩·로봇 학원을 운영하는 원장이다. 학부모가 읽을 글을 직접 쓴다.",
     "이번에 쓸 것은 학원 소개가 아니라 바깥 소식이다. 광고가 아니라 정보다.",
     "",
@@ -250,9 +256,16 @@ const main = async () => {
   for (let 회 = 1; 회 <= 2; 회++) {
     const r = await 한번(고침);
     if (!r) return; // 오류·한도·사실 없음 — 종료 코드는 한번() 이 정했다
-    const g = 검사(r.본문, { 재료들: [] });
+    /**
+     * 근거 없는 숫자 (Step 19). 근거는 모델이 적은 근거 목록과 검색이 돌려준 출처의 제목이다.
+     * 주소는 넣지 않는다 — 리다이렉트 주소의 무작위 토큰 속 숫자가 근거로 잡혔다(Richard 19).
+     * 머리줄을 늘 붙여 게이트가 늘 돈다. 근거를 하나도 안 적었으면 본문 숫자가 전부 걸린다.
+     * 게이트가 본 글은 review_notes.게이트근거 에 그대로 남긴다 — slop-check --strict 가 같은 근거로 다시 본다
+     */
+    const 근거 = 검색근거글(r.post.근거, r.출처.map((s) => s.제목 ?? ""));
+    const g = 검사(r.본문, { 재료들: [], 근거 });
     if (!g.치명.length) {
-      결과 = r;
+      결과 = { ...r, 게이트근거: 근거 };
       if (회 === 2) console.log("  두 번째 글은 게이트를 통과했습니다.");
       break;
     }
@@ -268,7 +281,7 @@ const main = async () => {
     console.log("  같은 사실로 한 번 더 씁니다.");
   }
 
-  const { post, 본문, 출처, 쓴출처, 흠 } = 결과;
+  const { post, 본문, 출처, 쓴출처, 흠, 게이트근거 } = 결과;
 
   const slug = /^[a-z0-9-]{4,60}$/.test(post.slug ?? "")
     ? post.slug
@@ -306,6 +319,7 @@ const main = async () => {
       쓴재료: (post.쓴재료 ?? []).map((m) => m.id),
       근거: post.근거 ?? [],
       출처: 쓴출처.map((s) => s.주소),
+      게이트근거,
       쓴날: new Date().toISOString(),
     })],
   ).catch((e) => console.log("  ⚠ 검토 메모를 못 남겼습니다:", e.message.slice(0, 90)));

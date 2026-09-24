@@ -21,6 +21,7 @@ import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { Pool } from "pg";
 import { 클로드코드, 클로드코드있음, 클로드기록연결 } from "./claude-code.mjs";
+import { 프로필 } from "./profile.mjs";
 
 // Actions 에서는 .env.local 을 만들지 않는다 — 조사관이 볼 수 있는 곳에 비밀 파일을 두지 않으려고
 const envFile = new URL("../.env.local", import.meta.url);
@@ -453,7 +454,12 @@ const 진단 = async () => {
   for (const t of todo) {
     const p = t.payload ?? {};
     console.log(`  ▶ 진단 ${t.id} [${p.rule}] ${t.title}`);
+    // 감사 담당 프로필은 표준입력 프롬프트 맨 앞에. 조사관(system)은 한 줄 그대로 — 위 주석의 사고
     const r = await 클로드코드([
+      프로필("audit"),
+      "",
+      "---",
+      "",
       지침,
       "",
       `조사할 신호: ${p.rule} ${RULES[p.rule]?.name ?? ""}`,

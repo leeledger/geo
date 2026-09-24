@@ -17,7 +17,10 @@ export type Draft = {
   id: number; slug: string; title: string; summary: string; body: string; category: string;
   tags: string[]; clientId: number; clientName: string; domain: string;
   createdAt: string; updatedAt: string;
-  notes: { 확인필요?: string[]; 짜임새?: string[]; AI티?: { why: string; sample: string[] }[]; 모델?: string; 질문?: string | null; 경쟁출처?: string[]; 다듬음?: string; 원문?: string; 삽화?: { 장수?: number; 버린것?: string[]; 쓴날?: string; 시도?: number } };
+  notes: { 확인필요?: string[]; 짜임새?: string[]; AI티?: { why: string; sample: string[] }[]; 모델?: string; 질문?: string | null; 경쟁출처?: string[]; 다듬음?: string; 원문?: string;
+    /** 쓰기 전에 모은 근거 (Step 19, write-draft). 글은 이 표에 있는 숫자·날짜만 쓸 수 있다 */
+    근거표?: { 사실?: string[]; 추정?: string[]; 확인필요?: string[] };
+    삽화?: { 장수?: number; 버린것?: string[]; 쓴날?: string; 시도?: number } };
   task: { status: string; evidence: string } | null;
   /** 삽화 담당이 그린 도해(academy.post_images) 이름 → SVG. 초안 그림은 공개 경로가 안 내보내서 여기서 읽는다 */
   images: Record<string, string>;

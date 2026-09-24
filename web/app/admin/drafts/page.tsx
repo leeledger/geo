@@ -144,6 +144,20 @@ export default async function DraftsPage({ searchParams }: { searchParams: Promi
                     : <p>{Object.keys(n).length ? "모델이 적은 문장은 없습니다. 그래도 숫자·경험담은 읽어 보세요." : "메모 없이 저장된 초안입니다. 본문 전체를 읽어 확인하세요."}</p>}
                 </div>
 
+                {n.근거표 && (
+                  // 글쓴이는 이 표에 있는 숫자·날짜만 쓸 수 있다(게이트가 막는다). 사실 확인은 이 표와 본문을 맞춰 보면 된다
+                  <details className="dr-flag">
+                    <summary>근거표 — 사실 {n.근거표.사실?.length ?? 0}줄{n.근거표.추정?.length ? ` · 추정 ${n.근거표.추정.length}줄` : ""}</summary>
+                    {([["사실", n.근거표.사실], ["추정", n.근거표.추정], ["확인 필요", n.근거표.확인필요]] as const).map(([칸, 줄]) =>
+                      줄?.length ? (
+                        <div key={칸}>
+                          <b>{칸}</b>
+                          <ul>{줄.map((s, i) => <li key={i}>{s}</li>)}</ul>
+                        </div>
+                      ) : null)}
+                  </details>
+                )}
+
                 <div className="dr-sec">
                   <b className="t">도해{도해수 ? ` ${도해수}장 — 그림 속 글자·숫자도 확인` : ""}</b>
                   {도해수 > 0 ? (

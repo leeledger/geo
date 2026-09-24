@@ -34,8 +34,9 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { Pool } from "pg";
 import { 공급자만들기, 공급자들, 금지, 지어내기금지, 파싱, 공통짜임새, 재시도 } from "./writer-common.mjs";
-import { 검사 } from "./slop-rules.mjs";
+import { 검사, 근거표글 } from "./slop-rules.mjs";
 import { 재료도구 } from "./material-task.mjs";
+import { 프로필 } from "./profile.mjs";
 
 for (const l of fs.readFileSync(new URL("../.env.local", import.meta.url), "utf8").split(/\r?\n/)) {
   const m = /^([A-Z_]+)=(.*)$/.exec(l);
@@ -131,7 +132,7 @@ const main = async () => {
 
   const [측정] = QUESTION
     ? await q(
-        `select coalesce(raw->>'answer','') answer,
+        `select coalesce(raw->>'answer','') answer, measured_on::text as day,
                 (select string_agg(distinct c->>'domain', ', ') from jsonb_array_elements(citations) c) doms
            from academy.ai_measurements
           where client_id = $1 and prompt_text = $2 order by measured_on desc limit 1`, [CLIENT, QUESTION]).catch(() => [])
@@ -238,6 +239,25 @@ const main = async () => {
     .filter(Boolean);
 
   /**
+   * 근거표 (Step 19 — 근거 담당이 모으고 집필 담당은 이것으로만 쓴다). 모델을 부르지 않는다(Arch D3).
+   * 사실 칸은 출처가 달린 줄만: 넘긴 재료 원문 · 측정(AI 답변·지는 검색어) · 기존 글.
+   * 추정은 아직 만드는 곳이 없어 비어 있다. 확인필요는 글을 쓴 뒤 모델이 적은 것을 채운다.
+   * 게이트가 이 표 전체를 근거로 받아 「근거 없는 숫자」를 가른다
+   */
+  const 근거표만들기 = (쓸재료) => ({
+    사실: [
+      ...쓸재료.map((m, i) => `[재료 m${i + 1} · ${m.kind} · ${m.day}] 「${m.said}」${m.context ? ` (${m.context})` : ""}`),
+      ...(측정?.answer ? [`[측정 · AI 답변 · ${측정.day ?? "날짜 모름"}] ${측정.answer.slice(0, 1800).replace(/\s+/g, " ")}`] : []),
+      ...(측정?.doms ? [`[측정 · AI 가 대신 인용한 곳] ${측정.doms}`] : []),
+      ...(SOURCES.length ? [`[측정 · 이 질문에서 이기는 곳] ${SOURCES.join(", ")}`] : []),
+      ...지는검색어.map((r) => `[측정 · 최근 7일 검색 순위] 지는 검색어: ${r.query}`),
+      ...기존글.map((p) => `[기존 글] ${p.title}${p.summary ? ` — ${p.summary}` : ""}`),
+    ],
+    추정: [],
+    확인필요: [],
+  });
+
+  /**
    * 프롬프트를 만든다. 재료는 라벨(m1..)을 붙여 준다 — 모델이 실제로 쓴 재료를 그 라벨로 돌려준다.
    * 라벨이 없으면 어느 재료를 썼는지 못 알아내고, 그러면 게이트가 지어낸 장면을 못 가른다.
    */
@@ -247,6 +267,11 @@ const main = async () => {
       .join("\n");
     const 숫자재료 = 쓸재료.some((m) => m.kind === "숫자");
     return [
+      // 집필 담당의 정체성·일하는 법·기억 (agents/content). 공급자가 여럿이라 시스템 칸 대신 본문 앞에 둔다
+      프로필("content"),
+      "",
+      "---",
+      "",
       "너는 송파구에서 코딩·로봇 학원을 운영하는 원장이다. 학부모가 읽을 글을 직접 쓴다.",
       "광고가 아니라 판단 기준을 주는 글이다. 읽고 나서 우리 학원에 안 와도 도움이 됐으면 그걸로 됐다.",
       "",
@@ -295,6 +320,10 @@ const main = async () => {
       "",
       `# 지금 지고 있는 검색어\n${지는검색어.map((r) => `- ${r.query}`).join("\n") || "- (측정 없음)"}`,
       "",
+      "# 근거표\n위 재료·AI 답변·이미 쓴 글·지고 있는 검색어가 이 글의 근거표다. " +
+        "이 근거표에 없는 숫자·날짜·고유명사는 쓰지 않는다. 필요하면 확인필요 로 남긴다. " +
+        "근거표에 없는 숫자가 하나라도 있으면 검사에서 걸려 글이 통째로 버려진다.",
+      "",
       고침.length ? `# 방금 쓴 글이 게이트에 걸렸다. 같은 실수를 하지 마라\n- ${고침.join("\n- ")}` : "",
       "",
       "# 내놓을 형식 (JSON 하나만, 다른 말 없이)",
@@ -334,6 +363,7 @@ const main = async () => {
     console.log(`  쓸 모델: ${공급자 ? `${공급자.model} (${공급자.이름})` : "없음 — 키가 하나도 없습니다"}`);
     console.log(`\n── 프롬프트 (${prompt.length}자) ──\n`);
     console.log(prompt);
+    console.log(`\n── 근거표 (게이트가 받는 근거) ──\n${근거표글(근거표만들기(쓸재료))}`);
     console.log("\n--dry 라 여기서 멈춥니다. 실제 생성은 키가 있어야 합니다.");
     return;
   }
@@ -407,15 +437,20 @@ const main = async () => {
       })
       .filter(Boolean);
 
-  let post, 고쳐읽음, 쓴재료, 막힘;
+  let post, 고쳐읽음, 쓴재료, 막힘, 근거표, 게이트근거;
   for (let 회 = 1; 회 <= 2; 회++) {
     const r = await 쓰기(prompt);
     막힘 = r.막힘;
     if (!r.post) break;
     쓴재료 = 라벨풀기(r.post.쓴재료, 쓸재료);
-    const g = 검사(r.post.body ?? "", { 재료들: 쓴재료 });
+    const 표 = 근거표만들기(쓸재료);
+    const 근거 = 근거표글(표);
+    const g = 검사(r.post.body ?? "", { 재료들: 쓴재료, 근거 });
     if (!g.치명.length) {
       ({ post, 고쳐읽음 } = r);
+      // 게이트가 본 글 그대로 — slop-check --strict 가 같은 근거로 다시 본다
+      게이트근거 = 근거;
+      근거표 = { ...표, 확인필요: (r.post.확인필요 ?? []).map(String) };
       if (회 === 2) console.log("  두 번째 글은 게이트를 통과했습니다.");
       break;
     }
@@ -493,6 +528,9 @@ const main = async () => {
     `update academy.posts set review_notes = $2::jsonb where slug = $1 and not published`,
     [slug, JSON.stringify({
       확인필요: post.확인필요 ?? [],
+      // 발행 화면(/admin/drafts)의 「근거표」 칸이 읽는다. 사실 확인이 원장 몫이라 거기서 쓰인다
+      근거표,
+      게이트근거,
       짜임새: 흠,
       모델: 공급자.model,
       모드: "재료",

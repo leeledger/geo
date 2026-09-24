@@ -25,6 +25,7 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { Pool } from "pg";
 import { 클로드코드, 클로드코드있음, 클로드기록연결 } from "./claude-code.mjs";
+import { 프로필 } from "./profile.mjs";
 
 const envFile = new URL("../.env.local", import.meta.url);
 if (fs.existsSync(envFile)) {
@@ -312,7 +313,7 @@ const 검토지침 = (t, diff, 요약) => [
 ].join("\n");
 
 const 검토받기 = async (t, diff, 요약) => {
-  const rv = await 클로드코드(검토지침(t, diff, 요약), { ...검토칸, taskId: t.id });
+  const rv = await 클로드코드(`${프로필("repair")}\n\n---\n\n${검토지침(t, diff, 요약)}`, { ...검토칸, taskId: t.id });
   if (rv.한도) return { 한도: true, error: rv.error };
   let 검토 = (rv.ok ? JSON읽기(rv.text) : null) ?? { verdict: "fail", must: [`검토 실패: ${한줄(rv.error ?? rv.text, 200)}`] };
   if (!["pass", "fail"].includes(검토.verdict)) 검토 = { ...검토, verdict: "fail", must: [...(검토.must ?? []), "verdict 가 pass|fail 이 아님"] };
@@ -488,7 +489,8 @@ const 오늘수리수 = async () => (await q(`select count(*)::int n from geo.re
 const 만들기 = async (t, base) => {
   const 가지 = `auto/fix-${t.id}`;
   git("checkout", "-q", "-f", "-B", 가지, base);
-  const r = await 클로드코드(수리지침(t), { ...수리칸, taskId: t.id });
+  // 수리공 프로필은 표준입력 프롬프트 앞에. system 은 한 줄 그대로 — 여러 줄 인자는 윈도 cmd 에서 잘리고 뒤 플래그(거절·금지편집)가 떨어진다
+  const r = await 클로드코드(`${프로필("repair")}\n\n---\n\n${수리지침(t)}`, { ...수리칸, taskId: t.id });
   if (r.한도) { console.log(`  한도 — 오늘은 건너뜀 (실패로 세지 않음): ${끝(r.error, 160)}`); return null; }
   if (r.거절.length) console.log(`  (수리공 권한 거절 ${r.거절.length}건: ${r.거절.map((d) => `${d.tool_name} ${d.tool_input?.file_path ?? d.tool_input?.path ?? ""}`).join(" · ")})`);
   if (!r.ok) {

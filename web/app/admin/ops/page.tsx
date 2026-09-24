@@ -5,11 +5,13 @@ import { isAdmin } from "@/lib/admin-auth";
 import { readOps, listClients } from "@/lib/ops";
 import { readGrowth, type Growth as GrowthData } from "@/lib/growth";
 import { readAgents } from "@/lib/agents";
+import { readPmReport } from "@/lib/pm-report";
 import Todo from "./Todo";
 import AgentStrip from "./AgentStrip";
 import Growth, { GrowthMore } from "./Growth";
 import AgentBoard from "./AgentBoard";
 import Brief from "./Brief";
+import PmReport, { PM_CSS } from "./PmReport";
 
 /** 로그인 뒤 돌아올 자리 */
 const HERE = "/admin/ops";
@@ -132,7 +134,7 @@ export default async function OpsPage({
   const clients = await listClients();
   const client = clients.find((x) => x.slug === want) ?? clients[0] ?? null;
 
-  const [d, gr, agents] = await Promise.all([
+  const [d, gr, agents, pm] = await Promise.all([
     readOps(client ?? undefined),
     // 통째로 실패하면 섹션에 이유 한 줄. 조각 실패는 readGrowth 안에서 null 로 잡힌다
     client
@@ -141,11 +143,12 @@ export default async function OpsPage({
           (e) => ({ g: null, err: e instanceof Error ? e.message : String(e) }))
       : Promise.resolve({ g: null, err: "고객사가 없습니다" }),
     readAgents(),
+    readPmReport(),
   ]);
 
   return (
     <div className="ops">
-      <style dangerouslySetInnerHTML={{ __html: CSS }} />
+      <style dangerouslySetInnerHTML={{ __html: CSS + PM_CSS }} />
       <div className="w">
         <div className="ops-top">
           <h1>운영 현황{client && clients.length < 2 ? ` · ${client.name}` : ""}</h1>
@@ -168,6 +171,7 @@ export default async function OpsPage({
 
         {!d.ok && <div className="err">데이터를 못 읽었습니다 — {d.err}</div>}
 
+        <PmReport data={pm} />
         <Todo company={d.company} unresolved={gr.g?.inquiries ? gr.g.inquiries.unresolved : null} />
         <AgentStrip initial={agents} />
         <Growth g={gr.g} err={gr.err} />

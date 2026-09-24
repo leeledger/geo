@@ -18,7 +18,7 @@
  */
 import fs from "node:fs";
 import { Pool } from "pg";
-import { MARKS, 검사 } from "./slop-rules.mjs";
+import { MARKS, 검사, 근거표글, 검색근거글 } from "./slop-rules.mjs";
 
 for (const l of fs.readFileSync(new URL("../.env.local", import.meta.url), "utf8").split(/\r?\n/)) {
   const m = /^([A-Z_]+)=(.*)$/.exec(l);
@@ -47,7 +47,10 @@ if (STRICT) {
     process.exitCode = 2;
   } else {
     const { rows } = await pool.query(
-      `select slug, title, body, coalesce(review_notes->'쓴재료', '[]'::jsonb) 쓴재료 from academy.posts where slug = $1`,
+      `select slug, title, body, coalesce(review_notes->'쓴재료', '[]'::jsonb) 쓴재료,
+              review_notes->>'게이트근거' 게이트근거, review_notes->'근거표' 근거표, review_notes->'근거' 근거,
+              review_notes->'출처' 출처, review_notes->>'모드' 모드
+         from academy.posts where slug = $1`,
       [only],
     );
     const p = rows[0];
@@ -58,11 +61,14 @@ if (STRICT) {
     } else {
       const ids = (p.쓴재료 ?? []).filter((x) => typeof x === "string");
       const { rows: 재료들 } = ids.length
-        ? await pool.query(`select id, kind, said from academy.materials where id = any($1::uuid[])`, [ids])
+        ? await pool.query(`select id, kind, said, context from academy.materials where id = any($1::uuid[])`, [ids])
         : { rows: [] };
       await pool.end();
 
-      const r = 검사(p.body ?? "", { 재료들 });
+      // 쓸 때 게이트가 본 근거 글(게이트근거)로 다시 본다. 그게 없는 초안은 남은 조각으로 다시 만든다 —
+      // 사실 글은 쓸 때 본 출처 제목 전부가 안 남아 있어 더 엄하게 걸릴 수 있다. 근거가 하나도 없는 옛 글은 숫자 검사를 건너뛴다
+      const 근거 = p.게이트근거 ?? (p.근거표 ? 근거표글(p.근거표) : p.모드 === "사실" ? 검색근거글(p.근거) : "");
+      const r = 검사(p.body ?? "", { 재료들, 근거 });
       console.log(`${p.title}\n  ${p.slug} · 쓴 재료 ${재료들.length}개`);
       if (r.치명.length) {
         console.log("\n치명 — 이대로는 원장 큐에 못 올립니다");

@@ -1029,3 +1029,33 @@ Decisions made (3차):
 - **결정:** web/vercel.json regions sin1. 배포 뒤 X-Vercel-Id icn1::sin1 확인, /admin/ops 6.4초 → 0.25초
 - SubmitButton(useFormStatus): 누르면 바로 스피너와 「처리 중…」, 같은 폼 버튼 잠금. 관리 화면 버튼 21개. Richard 통과
 - 학원 사이트는 미리 만든 페이지(PRERENDER)로 나가 0.2~0.4초 — 손대지 않음
+
+### Step 19 — AI 직원 팀 (직원 파일 · 근거표 · 숫자 게이트 · 아침 보고 · 5회 실패 확인 필요) — BUILT · Richard 1차 반영 (재검토 대기, 커밋·배포 안 함)
+원장(9/24): 「youtu.be/CmHhhT_Xt8M 참고해서 적용 끝날 때까지 묻지 말고 알아서 해」. Arch 브리프 D1~D5 대로. 원장 지시로 Builder Plan 단계 없이 바로 지음
+- 직원 파일 `academy/agents/` — USER.md + 8명(pm·research·content·illustrate·deliver·sales·audit·repair) × SOUL·AGENTS·MEMORY. 프로필 길이 1,714~2,155자(상한 6,000)
+  - MEMORY 씨앗: 메모리 폴더의 draft-needs-real-material → content, openai-crawl-needs-bing·claude-search-needs-brave → research·deliver, dashboard-plain-words → pm. 나머지는 CLAUDE.md 함정·코드 주석에서 옮김(새 사실 없음)
+- `scripts/profile.mjs` `프로필(id)` — USER+SOUL+AGENTS+MEMORY. 넘치면 MEMORY 를 줄 단위로 뒤에서 덜어냄
+- 프로필을 붙인 곳(파일마다 한 곳): write-draft·write-news(프롬프트 앞, content) · illustrate·sales·repair(수리칸 system) · audit(조사관 system) · company 물어보기(프롬프트 앞, pm)
+  - **결정(Bob):** Claude Code 를 부르는 곳은 system 칸 앞에, HTTP 공급자를 여럿 도는 곳은 본문 앞에. repair 는 수리칸만(검토칸은 다른 역할이라 안 붙임)
+  - daily-agent.mjs 는 LLM 을 안 부른다(grep) → 붙일 곳 없음
+- 숫자 게이트 `slop-rules.mjs` — 치명 「근거 없는 숫자」. `근거` 가 비면 안 본다(발행본 어휘 검사에서 모든 숫자가 걸리지 않게)
+  - **결정(Bob):** 한 자리 숫자는 단위까지 근거에 있어야 통과, 두 자리 이상은 숫자만 맞으면 통과(「68시간」/「68 시간」). 운영 숫자 제외는 「주·하루·매주 1」만 — 「주 2회 수업」은 학원 사실이라 근거가 있어야 한다
+  - 근거 글 모양은 `근거표글`·`검색근거글` 로 slop-rules 에 한 벌. slop-check --strict 도 review_notes 의 근거표·근거로 다시 본다
+- write-draft 근거표 `{사실, 추정: [], 확인필요}` — 재료 원문·측정(AI 답변·인용된 곳·지는 검색어)·기존 글. 확인필요는 모델이 적은 것을 쓴 뒤 채움. `review_notes.근거표`. `--dry` 가 근거표도 찍음
+- write-news — 모델의 근거 목록 + 검색 출처(제목·주소)를 근거로. 머리줄을 늘 붙여 근거가 비어도 게이트가 돈다
+- /admin/drafts — 근거표 접힘 칸(있을 때만)
+- 아침 보고 `scripts/pm-report.mjs` + `geo.pm_reports`(표는 스크립트가 만듦) — LLM 없음. company main 끝에서 부름(--plan 이면 안 부름). 08시 전·오늘 것 있음이면 안 만듦, `--force` 로만 덮어씀
+  - **결정(Bob):** 확인필요 (a) 에서 이미 「사람 대기」인 일감은 뺀다 — 할 일 목록과 두 번 뜨지 않게. (c) 늦음 = 마지막 기록이 주기+24시간+90분을 넘김(옮긴 줄과 스스로 적는 활동 중 늦은 쪽)
+  - **결정(Bob):** 상태 — 막힘: 5회 실패 일감이나 24시간 넘게 늦은 작업이 있음 / 주의: 그 밖의 확인 필요나 실패가 있음 / 정상: 둘 다 없음. 「회사 루프」 매시 기록은 일 수에서 빼고 「매시 점검 n번」으로 따로
+  - 현황판 `web/lib/pm-report.ts` + `ops/PmReport.tsx` — 맨 위, 할 일 위. 표가 아직 없으면 「아직 보고가 없습니다」, 그 밖 오류면 「보고를 못 읽었습니다」
+- 5회 실패 — company 근무(): 실패(실패 반환, 또는 시도를 올리고도 완료·닫힘·사람 대기가 아님) 5번째에 `payload.escalated=true` + 활동 「원장 확인 필요로 올림」 한 번. 일감이 닫혔다 다시 열리면 일감() upsert 가 escalated 를 지운다
+- KG-S19-1 슬랙·텔레그램 보고 창구 없음(D1). 봇 토큰은 원장이 만들어야 한다
+- KG-S19-3 수리공이 `scripts/profile.mjs` 를 고칠 수 있다(repair 금지 목록 밖). agents/*.md 는 Edit 허용 범위(academy/scripts/*.mjs) 밖이라 못 고친다
+- KG-S19-4 정해진 작업 표가 세 벌이 됐다 — company.mjs 예약 · web/lib/agents.ts ROLES · pm-report.mjs 정해진작업. yml cron 을 바꾸면 셋 다
+- KG-S19-5 재료 모드 근거표 경로는 운영 DB 에 안 쓴 재료가 0건이라 끝까지 못 돌려 봄(write-draft --dry → 모드=없음). 게이트는 시험 문장으로만 확인
+- Richard 1차(Ready NO · Must 2 · Should 5) 반영:
+  - Must 1: 프로필을 Claude Code `system` 칸에서 뺐다(여러 줄 인자는 윈도 cmd 에서 잘리고 --tools·권한 플래그가 떨어진다 — audit.mjs 조사관 주석의 9/22 사고). 네 곳 system 은 HEAD 와 같은 한 줄. 프로필은 표준입력 프롬프트 앞에: illustrate `프롬프트(post)` · sales `prompt` · audit 진단 `지침` 앞(권한 점검 모드는 안 붙임) · repair 수리·검토 두 프롬프트
+  - Must 2: `검사()` 가 근거 글에서 `https?://\S+` 를 지운다. write-news 는 출처 제목만 넘긴다. 리다이렉트 주소 속 「…Q34xk90Q」 로 「34명·90분」이 통과하던 구멍
+  - Should: 게이트가 본 근거 글을 `review_notes.게이트근거` 에 저장(write-draft·write-news), slop-check --strict 는 그걸 먼저 읽음 · pm-report 「N번 시도했고 아직 안 끝났습니다」「5번 이상」 · 「원장 확인 필요로 올림」 활동은 보고의 일 수에서 뺌(성공도 실패도 아님) · research·deliver MEMORY 에서 그날의 수치 삭제 · content AGENTS 「근거표를 받는다」→ write-draft 가 직접 만든다, 게이트 탈락은 78 이라 확인 필요로 안 올라간다고 바로잡음. 다른 직원 AGENTS 의 「5번 넘게 실패」도 「5번 이상 시도하고도 안 끝나면」으로(수리는 다시 안 띄움을 적음)
+- KG-S19-2(고침) write-news 근거는 모델이 스스로 적은 목록 + 검색 출처 제목뿐이다. 모델이 근거 목록에도 같은 숫자를 지어 적으면 게이트를 지난다
+- KG-S19-6 숫자 게이트의 느슨함(알고 받아들임): 두 자리 이상은 근거 어디에든 같은 수가 있으면 통과 — 「34명」이 「34시간」으로 통과한다. AI 답변 1,800자가 근거에 들어가면(질문 겨냥 초안) 사실상 많이 풀린다. 반대로 「90분 수업」「10월」「12살」「오후 10시」는 근거에 없으면 걸린다. 재료 모드 초안이 두 번 다 걸려 주가 비면 여기부터 본다

@@ -32,6 +32,8 @@ import { fileURLToPath } from "node:url";
 import { Pool } from "pg";
 import { CLIENTS as CLIENT_CONF } from "../clients.mjs";
 import { 오픈라우터, 재시도, 모델들, 공급자들 } from "./writer-common.mjs";
+import { 프로필 } from "./profile.mjs";
+import { PM보고 } from "./pm-report.mjs";
 
 for (const l of fs.readFileSync(new URL("../.env.local", import.meta.url), "utf8").split(/\r?\n/)) {
   const m = /^([A-Z_]+)=(.*)$/.exec(l);
@@ -79,7 +81,9 @@ const 분석모델 = { anthropic: process.env.COMPANY_ANTHROPIC_MODEL || "claude
  * 그것도 실패로 치고 다음 공급자로 넘어간다. 안 그러면 「만든 일감 없음」으로 일주일 미뤄진다.
  * 돌려주는 돈없음 은 모든 실패가 크레딧(402)일 때만 참이다 — 오류 글자에 402 가 섞였다고 참이 되면 안 된다.
  */
-const 물어보기 = async (prompt, maxTokens = 6000, 모양 = () => true) => {
+const 물어보기 = async (질문, maxTokens = 6000, 모양 = () => true) => {
+  // 총괄의 정체성·일하는 법·기억을 앞에 붙인다(agents/pm, Step 19). 공급자가 여럿이라 시스템 칸 대신 본문 앞에 둔다
+  const prompt = `${프로필("pm")}\n\n---\n\n${질문}`;
   const 막힘 = [];
   const 코드들 = [];
   const 읽기 = (text) => {
@@ -189,7 +193,12 @@ const 일감 = async (t) => {
     `insert into geo.agent_tasks (client_id, agent, kind, dedupe_key, title, detail, payload, priority, status, link)
      values ($1,$2,$3,$4,$5,$6,$7::jsonb,$8,$9,$10)
      on conflict (client_id, dedupe_key) do update set
-       title = excluded.title, detail = excluded.detail, payload = geo.agent_tasks.payload || excluded.payload,
+       title = excluded.title, detail = excluded.detail,
+       -- 새로 열린 일은 「확인 필요로 올림」 표시도 지운다. 시도 횟수와 같이 0 부터 센다
+       payload = case when geo.agent_tasks.status = '닫힘'
+                        or (geo.agent_tasks.status = '완료' and geo.agent_tasks.done_at < now() - make_interval(hours => $11))
+                      then (geo.agent_tasks.payload - 'escalated') || excluded.payload
+                      else geo.agent_tasks.payload || excluded.payload end,
        priority = excluded.priority, link = coalesce(excluded.link, geo.agent_tasks.link), updated_at = now(),
        status = case
          when geo.agent_tasks.status = '닫힘' then $9
@@ -724,6 +733,9 @@ const 근무 = async (clients) => {
     let res;
     try { res = await EXEC[t.kind](t, c, clients); }
     catch (e) { res = { status: "실패", error: e.message, attempt: true }; }
+    // 실패로 센다 — 실행기가 실패라고 했거나, 시도를 하나 올리고도 안 끝났거나(다시 띄운 작업·다 버린 도해).
+    // 사람 대기로 넘긴 건 이미 원장 앞에 있으니 뺀다
+    const 실패함 = res.status === "실패" || (res.attempt && !["완료", "닫힘", "사람 대기"].includes(res.status));
     // 실패는 간격을 늘려 계속 다시 한다. 사람에게 넘기지 않는다 — 원장(2026-09-24): 「실패해도 스스로 다시 시작」.
     // 코드가 틀려 계속 실패하는 건 감사관 R1(되풀이 실패)이 잡아 조사로 올린다
     if (res.status === "실패") {
@@ -733,6 +745,15 @@ const 근무 = async (clients) => {
     await 상태(t.id, res.status, res);
     const ok = !/실패/.test(`${res.error ?? ""} ${res.status} ${res.evidence ?? ""}`);
     await 활동(t.client_id, t.agent, t.title, ok, `${res.status} · ${(res.evidence ?? res.error ?? "").trim().slice(0, 300)}`, t.id);
+    /**
+     * 5번째 실패부터 총괄 보고의 「확인 필요」에 올린다(Step 19 D4). 다시 하기는 그대로 계속한다.
+     * 할 일 목록(사람 대기)에는 안 올린다. 표시는 한 번만 — 일감이 닫혔다 다시 열리면 일감() 이 지운다
+     */
+    const 횟수 = t.attempts + (res.attempt ? 1 : 0);
+    if (실패함 && 횟수 >= 5 && !t.payload?.escalated) {
+      await q(`update geo.agent_tasks set payload = payload || '{"escalated": true}'::jsonb where id = $1`, [t.id]);
+      await 활동(t.client_id, t.agent, "원장 확인 필요로 올림", true, `${횟수}번째 실패: ${t.title}`, t.id);
+    }
     console.log(`    → ${res.status} ${(res.evidence ?? "").trim()} ${res.error ? `| ${res.error}` : ""}`);
   }
 };
@@ -752,6 +773,11 @@ const main = async () => {
   console.log(`  일감: 대기 ${s.wait} · 관찰 ${s.watch} · 사람 대기 ${s.human} · 로컬 대기 ${s.local}`);
   if (!PLAN_ONLY) await 근무(clients);
   await 활동(HOUSE, "ops", "회사 루프", true, `대기 ${s.wait} · 관찰 ${s.watch} · 사람 대기 ${s.human} · 로컬 대기 ${s.local}`);
+  // 아침 보고 — KST 08시 이후 첫 루프가 하루 한 장. 이미 있으면 덮어쓰지 않는다. 보고가 실패해도 루프는 실패로 치지 않는다
+  if (!PLAN_ONLY) {
+    await PM보고(q).then((r) => console.log(`  아침 보고: ${r.말}`))
+      .catch((e) => console.log("  ⚠ 아침 보고를 못 만듦", 끝(e.message, 200)));
+  }
   if (process.env.GITHUB_STEP_SUMMARY) {
     const rows = await q(`select agent, status, title from geo.agent_tasks where status not in ('완료','닫힘') order by priority`);
     fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `### 에이전트 회사 ${오늘()}\n` + rows.map((r) => `- [${r.agent}] ${r.status} · ${r.title}`).join("\n") + "\n");

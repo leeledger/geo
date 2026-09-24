@@ -24,6 +24,7 @@ import { Pool } from "pg";
 import { CLIENTS } from "../clients.mjs";
 import { 가림검사, 고객사말, 수검사, 풀기 } from "../masks.mjs";
 import { 클로드코드, 클로드코드있음, 클로드기록연결 } from "./claude-code.mjs";
+import { 프로필 } from "./profile.mjs";
 
 const envFile = new URL("../.env.local", import.meta.url);
 if (fs.existsSync(envFile)) {
@@ -443,7 +444,8 @@ const 그리기 = async () => {
   if (오늘.n >= 몫) return 끝냄({ 상태: "하루몫", slug: post.slug, 오류: `오늘 삽화 ${오늘.n}회 — 하루 ${몫}회` });
 
   const 말들 = await 남의말(post.client_id);
-  const r = await 클로드코드(프롬프트(post), {
+  // 삽화 담당 프로필은 표준입력 프롬프트 앞에 붙인다. system 은 명령줄 인자라 여러 줄이면 윈도 cmd 에서 잘리고 뒤 플래그가 떨어진다(audit.mjs 조사관 주석)
+  const r = await 클로드코드(`${프로필("illustrate")}\n\n---\n\n${프롬프트(post)}`, {
     purpose: "illustrate", capRequired: true, taskId: TASK, model: "sonnet", maxTurns: 2, timeoutMs: 8 * 60 * 1000,
     system: "너는 한국어 교육 블로그의 도해(SVG)를 그리는 디자이너다. 요청한 JSON 객체 하나만 답한다.",
   });

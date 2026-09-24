@@ -30,6 +30,7 @@ import { Pool } from "pg";
 import { CLIENTS } from "../clients.mjs";
 import { 가릴원문, 같은지역구, 가림검사, 고객사말, 수검사, 풀기 } from "../masks.mjs";
 import { 클로드코드, 클로드코드있음, 클로드기록연결 } from "./claude-code.mjs";
+import { 프로필 } from "./profile.mjs";
 
 const envFile = new URL("../.env.local", import.meta.url);
 if (fs.existsSync(envFile)) {
@@ -219,7 +220,8 @@ const 초안받기 = async (targets, leads, 리포트글) => {
       알게된곳: l.referral, 진단점수: l.total ?? null, 진단등급: l.grade ?? null })), null, 1),
   ].join("\n");
   // 도구 없이 빈 임시 폴더에서 부른다 — 저장소도 웹도 안 본다. 비밀도 자식 환경에서 뺀다
-  const r = await 클로드코드(prompt, { purpose: "sales", capRequired: true, maxTurns: 3, timeoutMs: 8 * 60 * 1000,
+  // 영업 담당 프로필은 표준입력 프롬프트 앞에. system 은 한 줄로 둔다(여러 줄 인자는 윈도 cmd 에서 잘린다)
+  const r = await 클로드코드(`${프로필("sales")}\n\n---\n\n${prompt}`, { purpose: "sales", capRequired: true, maxTurns: 3, timeoutMs: 8 * 60 * 1000,
     envDrop: ["DATABASE_URL", "GH_TOKEN", "GITHUB_TOKEN"],
     system: "너는 한국어로 짧고 정직한 영업 초안을 쓰는 도우미다. 규칙과 출력 형식은 사용자 메시지에 있다." });
   if (!r.ok) return { 초안: {}, 이유: `claude ${r.한도 ? "한도" : "실패"} — ${한줄(r.error, 120)} · 숫자 없는 틀을 쓴다` };
