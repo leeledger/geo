@@ -29,7 +29,8 @@ const 시 = 3600 * 1000;
 /** 직원 — agents/<id> 와 같은 이름 */
 const 직원들 = [
   ["pm", "총괄"], ["research", "근거"], ["content", "집필"], ["illustrate", "삽화"],
-  ["deliver", "유통"], ["sales", "영업"], ["audit", "감사"], ["repair", "수리공"],
+  ["deliver", "유통"], ["audit", "감사"], ["repair", "수리공"],
+  // 영업은 멈춤(2026-09-24 원장: 학원 레퍼런스가 서기 전까지 영업 카테고리 불필요). 다시 켜면 여기와 정해진작업에 되돌린다
 ];
 
 /**
@@ -46,10 +47,9 @@ const 정해진작업 = {
   snapshot: { 이름: "색인 알림", 주기: 24 },
   repair: { 이름: "수리", 주기: 24, self: "a.agent = 'repair'" },
   write: { 이름: "주간 초안 작성", 주기: 24 * 7 },
-  sales: { 이름: "영업 주간 정리", 주기: 24 * 7, self: "a.action = '영업 주간'" },
 };
 /** 옮긴 줄의 작업 → 직원. 스스로 활동을 적는 작업(audit·repair·sales)은 옮긴 줄을 실패일 때만 센다(이중 계산) */
-const 작업직원 = { watch: "pm", scout: "research", serp: "research", optimize: "research", snapshot: "deliver", write: "content", audit: "audit", repair: "repair", sales: "sales" };
+const 작업직원 = { watch: "pm", scout: "research", serp: "research", optimize: "research", snapshot: "deliver", write: "content", audit: "audit", repair: "repair" };   // sales 는 멈춤 — 직원들에 없는 id 를 주면 셈[id] 가 비어 보고가 죽는다
 const 스스로적음 = new Set(["audit", "repair", "sales"]);
 
 const 직원of = (agent, kind) => {

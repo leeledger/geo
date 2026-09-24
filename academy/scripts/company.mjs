@@ -264,7 +264,9 @@ const 출근기록 = async () => {
       const [seen] = await q(`select 1 from geo.agent_activity where run_url=$1 limit 1`, [r.html_url]);
       if (seen) continue;
       const ok = r.conclusion === "success";
-      await q(`insert into geo.agent_activity (client_id, agent, action, ok, summary, run_url, at) values ($1,$2,$3,$4,$5,$6,$7)`,
+      // 깨우기(wake.mjs)도 같은 줄을 적는다. 몇 초 차로 겹치면 한 줄만 — 부분 고유 색인 agent_activity_mirror_run_url(2026-09-24)
+      await q(`insert into geo.agent_activity (client_id, agent, action, ok, summary, run_url, at) values ($1,$2,$3,$4,$5,$6,$7)
+               on conflict (run_url) where run_url is not null and action ~ '^자동 작업 [a-z]+$' do nothing`,
         [HOUSE, agent, `자동 작업 ${file.replace(".yml", "")}`, ok, `${r.event} · ${r.conclusion}`, r.html_url, r.updated_at]);
     }
   }
@@ -275,7 +277,7 @@ const 출근기록 = async () => {
  * 밀린 예약 — GitHub 가 건너뛴 아침 일을 대신 띄운다.
  *
  * 2026-09-24 아침: 감사 06:35·정찰 06:37·측정 07:05 가 08:45 까지 한 건도 안 떴다. 현황판은 「지연」만 빨갛게 칠했고 아무도 다시 돌리지 않았다.
- * 정해진 시각에서 2시간이 지났는데 그 뒤로 시작된 실행이 없으면 workflow_dispatch 한다.
+ * 정해진 시각에서 90분이 지났는데(현황판 「늦음」과 같은 선) 그 뒤로 시작된 실행이 없으면 workflow_dispatch 한다.
  * 수리공(repair)·영업(sales)은 빼둔다 — 봇이 띄우면 사람이 띄운 실행처럼 읽힌다(Richard 9/22, heartbeat.mjs 주석).
  * ★ 시각은 각 yml 의 cron 을 KST 로 옮긴 것. yml 을 바꾸면 여기도 (web/lib/agents.ts ROLES 와 같은 값)
  */
@@ -305,13 +307,13 @@ const 밀린예약 = async () => {
         if (t <= now) { slot = t; break; }
       }
     }
-    if (slot === null || now - slot < 2 * 3600 * 1000) continue;   // 아직 GitHub 이 늦게라도 띄울 수 있는 때
+    if (slot === null || now - slot < 90 * 60 * 1000) continue;   // 아직 GitHub 이 늦게라도 띄울 수 있는 때
     if (runs.some((t) => t >= slot)) continue;   // 그 뒤로 시작된 실행이 있다(대기·진행 포함). 예약은 일찍 뜨지 않으니 시각 앞의 실행은 안 친다
     const r = await gh(`/actions/workflows/${file}/dispatches`, { method: "POST", body: JSON.stringify({ ref: "main" }) });
     const 이름 = file.replace(".yml", "");
     if (r && !r.__error) {
       띄움.push(이름);
-      await 활동(HOUSE, "ops", "밀린 예약 실행", true, `${이름} — 예약 시각이 2시간 지나도 안 떠서 대신 띄움`);
+      await 활동(HOUSE, "ops", "밀린 예약 실행", true, `${이름} — 예약 시각이 90분 지나도 안 떠서 대신 띄움`);
     } else {
       // 꺼진 작업(422)처럼 매시 되풀이될 실패는 하루 한 줄만 — 매시 적으면 운영 줄이 매시 「실패」로 칠해진다(Richard 16)
       const [적음] = await q(`select 1 from geo.agent_activity where action = '밀린 예약 실행' and not ok and summary like $1 and at > now() - interval '24 hours' limit 1`, [`${이름} —%`]);

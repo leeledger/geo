@@ -9,6 +9,7 @@ name: company
 on:
   schedule:
     - cron: "23 * * * *"
+    - cron: "53 * * * *"   # 예약이 자주 건너뛰어진다 — 30분 뒤 한 번 더 기회. 겹치면 concurrency 가 줄 세운다
   workflow_dispatch: {}
 
 # 한 시간 안에 안 끝나면 다음 실행은 기다린다. 같은 일감을 둘이 집지 않게

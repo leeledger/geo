@@ -1,0 +1,48 @@
+# 깨우기 — 자동 작업 하나가 끝날 때마다 돈다 (academy/scripts/wake.mjs)
+#
+# 매시 점검(company.yml)의 예약을 GitHub 이 자주 건너뛴다(2026-09-24 아침 1시간 47분 공백).
+# 예약 대신 「앞 작업이 끝나면」으로 뜨는 workflow_run 을 쓴다.
+#   1. 끝난 실행을 현황판 활동 기록에 바로 적는다
+#   2. 매시 점검이 55분 넘게 안 떴으면 깨운다 → 매시 점검이 밀린 예약을 대신 띄운다
+#
+# company 는 목록에 넣지 않는다 — 깨우기 → 매시 점검 → 깨우기 고리를 만들지 않으려고.
+name: wake
+
+on:
+  workflow_run:
+    workflows: [audit, scout, optimize, serp, snapshot, watch, write, sales, repair]
+    types: [completed]
+
+concurrency:
+  group: wake
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  actions: write   # 매시 점검 깨우기(workflow_dispatch)
+
+jobs:
+  wake:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          sparse-checkout: academy/scripts
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+      - run: npm install pg --no-save --silent
+        working-directory: academy
+      - name: 기록 · 깨우기
+        working-directory: academy
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          GH_TOKEN: ${{ github.token }}
+          WF_NAME: ${{ github.event.workflow_run.name }}
+          WF_URL: ${{ github.event.workflow_run.html_url }}
+          WF_EVENT: ${{ github.event.workflow_run.event }}
+          WF_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+          WF_UPDATED: ${{ github.event.workflow_run.updated_at }}
+        run: node scripts/wake.mjs

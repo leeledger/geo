@@ -107,10 +107,7 @@ export const ROLES: Role[] = [
       { name: "원장 PC 작업", self: { agent: "deliver", action: "로컬 에이전트 출근" }, times: ["12:40", "19:10"], countMirror: false, pc: true },
     ],
   },
-  {
-    id: "sales", name: "영업", does: "월요일 아침 전화할 곳과 통화문을 준비합니다", agents: ["sales"],
-    jobs: [{ name: "영업 주간 정리", wf: "sales", self: { agent: "sales", action: "영업 주간" }, times: ["08:10"], dow: 1, countMirror: false }], // sales.yml 10 23 * * 0
-  },
+  // 영업은 멈춤 — 2026-09-24 원장: 「학원 레퍼런스가 불분명하니 그때까지 학원 성과가 우선」. sales.yml 도 꺼 두었다
 ];
 
 /** 회사 루프가 옮겨 적은 「자동 작업 X」를 사람 말로 */
@@ -281,6 +278,8 @@ export type JudgeInput = {
   paused?: boolean;
   /** 최근 7일 geo.repairs 에서 합친 수 (수리공만). null = 못 읽음 */
   merged7?: number | null;
+  /** 매시 점검이 남긴 「밀린 예약 실행」 활동 전부 (운영 줄 것이지만 각 작업의 늦음 판정에 쓴다) */
+  catchups?: Act[];
 };
 
 const daysAgo = (iso: string, now: number) => Math.floor((now - Date.parse(iso)) / 86400000);
@@ -330,7 +329,7 @@ export function judge(role: Role, input: JudgeInput, now: number): AgentRow {
     if (j.hourly !== undefined) {
       const last = acts.find((a) => matches(j, a));
       if (!last || now - Date.parse(last.at) > HOURLY_SILENT_MIN * 60000) {
-        return row("late", `${이가(j.name)} ${HOURLY_SILENT_MIN / 60}시간 넘게 안 돌았습니다`);
+        return row("late", `${이가(j.name)} ${HOURLY_SILENT_MIN / 60}시간 넘게 안 돌았습니다 — 다음 예약(:23·:53)이나 다른 작업이 끝날 때 다시 뜹니다`);
       }
       continue;
     }
@@ -343,8 +342,11 @@ export function judge(role: Role, input: JudgeInput, now: number): AgentRow {
       pcMiss = `원장 PC 가 ${due[0].label} 에 꺼져 있었습니다 — 다음 시각에 합니다`;
       continue;
     }
+    // 매시 점검이 이미 대신 띄웠으면 늦음이 아니라 일하는 중이다 (company.mjs 밀린예약이 「<wf> — …」로 적는다)
+    const 대신 = j.wf && (input.catchups ?? []).find((a) => a.ok && a.summary.startsWith(`${j.wf} —`) && Date.parse(a.at) >= due[0].t);
+    if (대신) return row("working", `${due[0].label} ${이가(j.name)} 안 떠서 대신 돌리는 중`);
     return row("late", j.catchup
-      ? `${due[0].label} ${이가(j.name)} 안 돌았습니다 — 2시간이 지나도 안 뜨면 매시 점검이 대신 돌립니다`
+      ? `${due[0].label} ${이가(j.name)} 안 돌았습니다 — 매시 점검이 대신 돌립니다`
       : `${due[0].label} ${이가(j.name)} 안 돌았습니다`);
   }
 
@@ -440,6 +442,7 @@ export async function readAgents(now = Date.now()): Promise<Agents> {
         tasks: tasks.filter((t) => roleOfAgent(t.agent, t.kind) === r.id),
         paused: r.id === "repair" ? paused : false,
         merged7: r.id === "repair" ? merged7 : null,
+        catchups: acts.filter((a) => a.action === "밀린 예약 실행"),
       }, now)),
     };
   } catch (e) {

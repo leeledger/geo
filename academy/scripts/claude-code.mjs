@@ -66,11 +66,16 @@ export async function 클로드코드(prompt, opts = {}) {
   const 못셈 = { ok: false, 한도: true, 상한: true, error: "호출 수를 못 셈 — 상한을 지킬 수 없어 부르지 않음", text: "", urls: [], 거절: [] };
   if (!q && opts.capRequired) return 못셈;
   if (q) {
-    const [row] = await q(`select count(*)::int n from geo.claude_calls
+    /**
+     * 측정은 오늘 전체 호출로 세어 상한까지 쓴다. 나머지(초안·도해·감사·수리)는 자기들 호출만 세어 상한 − 측정 몫까지.
+     * 전에는 나머지도 전체로 셌다 — 측정이 매일 20번 돌자(2026-09-24 MEASURE_EVERY_DAYS=1) 07:05 뒤로는 하루 종일 다른 일이 막혔다(Richard 20).
+     * 합은 여전히 상한을 못 넘는다: 측정이 전체를 세니까.
+     */
+    const [row] = await q(`select count(*)::int n, count(*) filter (where purpose is distinct from 'measure')::int other from geo.claude_calls
       where (at at time zone 'Asia/Seoul')::date = (now() at time zone 'Asia/Seoul')::date`).catch(() => [null]);
     if (!row && opts.capRequired) return 못셈;
-    const n = row?.n ?? 0;
     const 상한 = 정수(process.env.CLAUDE_DAILY_MAX, 40);
+    const n = purpose === "measure" ? (row?.n ?? 0) : (row?.other ?? 0);
     const 몫 = purpose === "measure" ? 상한 : 상한 - 정수(process.env.CLAUDE_MEASURE_RESERVE, 20);
     if (n >= 몫) return { ok: false, 한도: true, 상한: true, error: `하루 상한 — 오늘 ${n}회 (${purpose} 몫 ${몫})`, text: "", urls: [], 거절: [] };
   }
