@@ -14,7 +14,7 @@ const [p] = await q(`select p.*,c.name,c.domain,c.id client_id from geo.pilots p
 if (!p) throw new Error(`파일럿 없음: ${slug}`);
 const [tasks,ai,audits,content,inq] = await Promise.all([
   q(`select * from geo.pilot_tasks where pilot_id=$1 order by due_on,id`,[p.id]),
-  q(`select measured_on::text day,engine,collection_method,count(*)::int n,count(*) filter(where mentioned)::int mentioned,count(*) filter(where cited)::int cited from academy.ai_measurements where client_id=$1 group by 1,2,3 order by 1`,[p.client_id]),
+  q(`select measured_on::text as day,engine,collection_method,count(*)::int n,count(*) filter(where mentioned)::int mentioned,count(*) filter(where cited)::int cited from academy.ai_measurements where client_id=$1 group by 1,2,3 order by 1`,[p.client_id]),
   q(`select * from geo.local_audits where pilot_id=$1`,[p.id]), q(`select * from geo.content_approvals where pilot_id=$1`,[p.id]),
   q(`select count(*)::int total,count(*) filter(where source='AI')::int ai,count(*) filter(where source in('AI','네이버검색','구글검색'))::int search,count(*) filter(where enrolled)::int enrolled,count(*) filter(where enrolled is null)::int unknown from academy.inquiries where client_id=$1 and day between $2 and $3`,[p.client_id,p.started_on,p.ends_on])
 ]);
