@@ -1022,3 +1022,10 @@ Decisions made (3차):
 - Richard 1차(Ready NO · Must 1): 영업 재실행이 같은 주 통화문·답장 초안을 숫자 없는 틀로 덮어씀 → **Arch 결정: 영업은 자동으로 다시 띄우지 않는다.** 수리처럼 관찰로 두고 다음 월요일 08:10 예약을 기다린다
 - **Arch 결정:** 나머지 작업의 무한 재시도 비용은 원장 지시대로 받아들인다. 간격은 하루 1회까지, Claude 호출은 CLAUDE_DAILY_MAX 가 막는다. 되풀이 실패는 감사 R1 이 조사로 올린다
 - Richard 2차 Ready YES. 남은 Should 2건(FAQ 문장 순서, write-news 낡은 주석)도 반영
+
+### Step 18 — 관리 화면 속도 · 버튼 누름 표시 — COMPLETE (2026-09-24, aa1748b)
+원장: 「대시보드 모든 버튼이 너무 느려 눌렸는지 확인도 안 된다」
+- 원인: 함수가 iad1(미국 동부), Neon DB 는 ap-southeast-1(싱가포르). /admin/ops 는 쿼리 ~30번을 차례로 불러 6.4초
+- **결정:** web/vercel.json regions sin1. 배포 뒤 X-Vercel-Id icn1::sin1 확인, /admin/ops 6.4초 → 0.25초
+- SubmitButton(useFormStatus): 누르면 바로 스피너와 「처리 중…」, 같은 폼 버튼 잠금. 관리 화면 버튼 21개. Richard 통과
+- 학원 사이트는 미리 만든 페이지(PRERENDER)로 나가 0.2~0.4초 — 손대지 않음
