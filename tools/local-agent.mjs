@@ -139,6 +139,21 @@ try {
   }
   if (!posts.length) 기록("네이버로 옮길 글 없음");
 
+  // ── 플레이스 대표키워드: 원장(2026-09-24) 「플레이스에 올리는 것도 에이전트가」. 일감 payload {add, remove}
+  for (const t of await q(`select id, title, payload from geo.agent_tasks where kind='place-keyword' and status='로컬 대기' order by priority, id`)) {
+    const p = t.payload ?? {};
+    const args = [...(p.add ? ["--add", p.add] : []), ...(p.remove ? ["--remove", p.remove] : [])];
+    if (!args.length) continue;
+    const r = 돌리기("smartplace-keyword.mjs", args, 5);
+    if (/로그인이 안 돼 있습니다/.test(r.out)) { await 사람로그인("naver", "네이버"); await 활동("deliver", "플레이스 키워드 멈춤", false, "로그인 필요", t.id); break; }
+    const 결과 = /KEYWORDS=(.*)/.exec(r.out)?.[1] ?? "";
+    await q(`update geo.agent_tasks set status=$2, done_at=case when $2='완료' then now() else done_at end, updated_at=now(),
+              attempts = attempts + case when $2='완료' then 0 else 1 end,
+              evidence = left(evidence || E'\n' || $3, 4000) where id=$1`,
+      [t.id, r.ok ? "완료" : "로컬 대기", r.ok ? `로컬 에이전트 저장 확인 · 지금 키워드 ${결과}` : `실패 ${끝(r.out, 160)}`]);
+    await 활동("deliver", "플레이스 키워드", r.ok, r.ok ? `${p.add ?? ""}${p.remove ? ` (뺌 ${p.remove})` : ""} · ${결과}` : 끝(r.out, 200), t.id);
+  }
+
   // ── 구글 색인 요청: 하루 한도가 있어 --all 이 남은 주소만 조금씩 넣는다
   const gscTasks = await q(`select id from geo.agent_tasks where kind='gsc-submit' and status='로컬 대기'`);
   const r = 돌리기("submit-gsc.mjs", ["--all"], 30);
