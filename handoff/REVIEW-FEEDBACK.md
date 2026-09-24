@@ -1,21 +1,29 @@
-# Review Feedback — Step 20
+# Review Feedback — Step 21 (2차)
 Date: 2026-09-24
 Ready for Builder: YES
 
 ## Must Fix
-없음.
+없음. 1차 Must(질문이 답에 섞여 브랜드 문항이 저절로 「언급」) 해결 확인.
+- tools/ai-web-measure.mjs:80-88 `답만` — 질문 마지막 위치 뒤만 남기고 남은 질문 문자열도 지운다. 이름 판정(206-208)과 막힘 판정이 모두 이 글로 본다.
+- DB 확인(2026-09-24 `*-web-logged-out` 17줄): raw.answer 에 prompt_text 가 들어 있는 줄 0. Perplexity 는 「조사 완료…」 부터, ChatGPT 는 「ChatGPT의 말:」 부터 시작한다.
+- 언급 true 인 줄(ChatGPT q2·q6·q7, Gemini q2, Perplexity q2)의 질문에는 학원 이름이 없다. 답 속 문맥도 봤다 — 진짜 언급이다.
+- q18~20 은 아직 안 쟀다. 그래서 브랜드 문항 결과는 아직 눈으로 못 봤다. 아래 Should 첫 줄로 확인한다.
 
 ## Should Fix
-- academy/scripts/pm-report.mjs:52 — `작업직원` 에 `sales: "sales"` 가 남았다. `직원들` 에서 sales 를 뺐으니 `셈.sales` 는 undefined. 「자동 작업 sales」 줄이 창(어제 09시~) 안에 하나라도 들어오면 line 111 `s.성공++` 에서 TypeError 로 아침 보고 전체가 죽는다. 지금은 sales.yml 이 꺼져 있어 잠복 상태. — `sales` 키를 빼거나 `셈[id] ?? 셈.pm` 로 받는다. 1분짜리.
-- academy/scripts/wake.mjs 삽입 summary — `workflow_run · ${conclusion}`. company 출근기록은 `${r.event} · ${r.conclusion}` (예: `schedule · success`). 「같은 모양」이라 했으나 아니다. 지금 이 문자열을 파싱하는 곳은 없어(확인함) 기능 문제는 아니고, 사람이 읽을 때 원 트리거가 사라진다. — yml 에 `WF_EVENT: ${{ github.event.workflow_run.event }}` 를 넘겨 같은 형식으로 적는다.
-- wake.mjs / company.mjs 중복 적기 — 둘 다 select 후 insert, `run_url` 에 unique 없음. company 가 완료된 실행을 옮기는 순간과 wake 가 뜨는 순간이 겹치면 한 실행이 두 줄 된다 → pm-report 성공/실패 이중 계산. 창은 몇 초라 드물다. — 부분 unique 인덱스 `create unique index if not exists agent_activity_run_url_uq on geo.agent_activity(run_url) where run_url is not null` + 양쪽 `on conflict do nothing`. 기존 중복 행이 있으면 인덱스 생성이 실패하니 먼저 확인. 5분 넘으면 BUILD-LOG Known Gaps.
-- web/lib/agents.ts:332 — 매시 점검 늦음 문구 「다른 작업이 끝나면 깨웁니다」. 깨우기는 목록의 작업이 끝날 때만 돈다. 밤(자동 작업이 거의 없는 시간)에는 깨울 사람이 없으니 약속이 과하다. — 「다른 자동 작업이 끝날 때 깨웁니다」 정도로 조건을 드러내거나, BUILD-LOG 에 한계로 적는다.
-- wake.yml concurrency — `cancel-in-progress: false` 여도 GitHub 은 대기 실행을 하나만 남기고 이전 대기분을 취소한다. 여러 작업이 몰려 끝나면 일부 기록이 wake 에서 빠진다. company 가 다음 차례에 옮기므로 손실은 없고 지연만 생긴다. 고칠 것 없음, 알고만 둔다.
-- wake.yml 트리거 목록의 `sales`, wake.mjs `담당.sales`, agents.ts:116·320 의 sales 문구 — 꺼진 작업이라 무해. 다시 켤 때 되돌릴 자리 목록에 넣어 두면 된다.
+- 실행이 끝나면 한 번 확인 — `select prompt_id, mentioned, position(prompt_text in raw->>'answer')>0 from academy.ai_measurements where measured_on='2026-09-24' and collection_method like '%-web-logged-out' and prompt_id in ('q18','q19','q20')`. 셋째 칸이 전부 false 여야 한다. 화면이 질문을 다르게 그려(공백·기호) 정확히 맞추기가 실패하면 여기서 드러난다. 결과는 BUILD-LOG 에 한 줄.
+- academy/scripts/pm-report.mjs (비교 하위 쿼리, `prompt_id = any($3)`) — 바깥 쿼리에는 `engine`·`attempt = 1` 을 붙였는데 비교 쿼리에는 없다. 지금 DB 에서는 숫자가 같다. 그래도 두 쿼리를 같은 조건으로 맞춘다.
+- pm-report.mjs `전체: 지금.n >= 18` — 문항 수가 20이라고 가정한 상수다. 승인 문항 수와 비교하거나 전 측정의 n 과 비교하는 게 낫다. 문항이 바뀌기 전까지는 맞다.
+- `academy/scripts/_q.tmp.mjs` 가 아직 있다(untracked). 커밋 전에 지운다.
+- KG-S21-1(스케줄러 콘솔 창)은 Known Gap 으로 적힌 것 확인. 괜찮다.
 
 ## Escalate to Architect
-- Claude 하루 몫 — MEASURE_EVERY_DAYS=1 이면 optimize(07:05)가 매일 claude-code-web 20문항을 부른다. claude-code.mjs:73-75 의 비측정 몫은 「오늘 전체 호출 수 < 40-20」 이라 측정이 20회를 쓰면 그날 남은 시간 writer·illustrate·audit·repair 는 전부 상한에 막힌다. 3일 주기 때는 이틀은 비었는데 이제 매일이다. 특히 이번 단계가 겨냥한 경우 — 06:35 감사가 건너뛰어져 90분 뒤 대신 띄워지면 07:05 측정 뒤라 감사의 Claude 호출이 막힌다. 또 CLAUDE_DAILY_MAX 는 repair.yml·sales.yml 만 넘긴다(optimize·company·audit 는 기본 40) — 레포 변수만 올려서는 측정·집필 쪽에 안 먹는다. 상한을 올릴지, 예약분 계산을 「측정 외 호출 수」로 바꿀지, 매일 측정의 문항 수를 줄일지는 구독 비용·우선순위 결정이라 코드에서 정하지 않는다.
-- 깨우기의 한계 — wake 는 목록 작업이 「끝날 때」만 돈다. 9/24 아침처럼 예약 자체가 한꺼번에 건너뛰어지면 끝나는 작업이 없어 깨울 계기도 없다. 53분 두 번째 cron 이 이 경우의 유일한 보험이다. 외부 cron(Vercel cron 등)으로 dispatch 를 한 겹 더 둘지 판단 필요.
+없음. ToS 는 Arch 가 (b) 로 정했고 BUILD-LOG:1083 에 적혀 있다. ai-web-measure.mjs:186-188 에서 깃발이 빠진 것도 확인했다.
 
 ## Cleared
-확인한 것: workflow_run 이름 10개가 각 yml `name:` 과 일치. 루프 — company 가 트리거 목록에 없고 wake 는 매시 점검이 완료 상태이면서 55분 이상 지났을 때만 dispatch 하므로 폭주 없음(최대 55분에 1회). company 의 대신 띄움은 슬롯당 1회. GITHUB_TOKEN 으로 띄운 실행에 workflow_run 이 안 걸리거나 깊이 제한에 걸려도 결과는 「wake 가 안 뜬다」뿐이고 company 가 옮겨 적으니 안전한 쪽으로 실패. 권한은 contents:read·actions:write 뿐, 비밀은 DATABASE_URL 하나, 이벤트 값은 env 로 넘겨 스크립트에 끼워 넣지 않고 SQL 은 매개변수화. sparse checkout(cone)은 academy/package.json 을 포함하고 wake.mjs 는 pg 만 불러 충분(company.yml 과 같은 설치 방식). 90분 문턱·「대신 돌리는 중」 판정(ok 인 밀린 예약 실행, `${wf} —` 접두, 슬롯 이후)이 company.mjs 적는 모양과 맞다. 대시보드에 sales 역할을 참조해 깨지는 곳 없음(AgentBoard·ops.ts 의 sales 는 리드 지표로 별개). node --check 3파일 통과, web tsc 통과.
+2차에서 다시 본 것(모두 통과):
+- `답만` 이 질문과 Perplexity 후속 질문 영역을 잘라 낸다. 오늘 17줄이 다시 계산됐다.
+- 링크는 URL 객체로 다룬다. utm_source 를 지우고 google.com/url?q= 는 풀어서 본다.
+- 엔진이 멈춘 날은 활동이 ok=false 로 남는다. 자정을 넘기는 실행은 주석으로 적었다.
+- pm-report 바깥 join 이 engine·attempt=1 까지 맞춘다. 신선도는 now 인자로 본다. 2문항 이상이면 보이고 모자라면 「일부」로 표시된다.
+- 카드 주석은 20을 박아 두지 않았고, 엔진끼리 인용을 비교하지 않는 이유를 적었다. Gemini 인용 칸은 「—」 다.
+- lock 파일이 gitignore 에 들어갔다. web tsc 와 node --check 통과. dangerouslySetInnerHTML 없음.

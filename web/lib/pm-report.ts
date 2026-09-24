@@ -20,6 +20,11 @@ export type PmBody = {
   원장할일: number;
   산출물: string[];
   다음: string[];
+  /** 엔진별 AI 답변 — 2026-09-24 부터. 옛 보고에는 없다 */
+  AI답변?: {
+    엔진: string; day: string; n: number; 이름: number; 인용: number; 전체?: boolean; 링크없음?: boolean;
+    비교: { day: string; 공통: number; 전이름: number; 지금이름: number; 전인용: number; 지금인용: number; 말: string } | null;
+  }[];
 };
 
 export type PmReport =

@@ -199,7 +199,50 @@ export async function 보고짓기(q, now = new Date()) {
          확인필요.length ? `원장님이 보실 것은 ${확인필요.length}건입니다.` : ""].filter(Boolean).join(" ")
       : `어제 9시부터 일 ${총}건을 했고 실패는 없습니다.`;
 
-  return { day: 오늘, status, body: { status, conclusion, 직원, 확인필요, 원장할일, 산출물, 다음, 기간: { 시작: 시작.toISOString(), 끝: now.toISOString() } } };
+  const AI답변 = await AI답변읽기(q, now).catch((e) => { console.log(`  ⚠ AI 답변 측정을 못 읽음 ${e.message}`); return []; });
+
+  return { day: 오늘, status, body: { status, conclusion, 직원, 확인필요, 원장할일, 산출물, 다음, AI답변, 기간: { 시작: 시작.toISOString(), 끝: now.toISOString() } } };
+}
+
+/**
+ * 엔진별 AI 답변 — 원장(2026-09-24) 「AI 질문도 여러 곳에 지속적으로 하고 리포팅」.
+ * 방법(collection_method)마다 가장 최근 측정일과 그 전 측정일을 같은 문항끼리만 비교한다.
+ * 방법이 다른 숫자는 합치지 않는다(ai-measure.mjs 규칙). 20문항 1회는 흔들림이 크다 — 이름 수 차이가 3 이하면 「비슷」으로 쓴다
+ */
+const 엔진이름 = { "claude-code-web": "Claude", "chatgpt-web": "ChatGPT", "perplexity-web": "Perplexity", "gemini-web": "Gemini" };
+async function AI답변읽기(q, now = new Date()) {
+  const rows = await q(
+    `with d as (
+       select collection_method m, engine, measured_on,
+              dense_rank() over (partition by collection_method order by measured_on desc) r
+         from academy.ai_measurements where client_id = 1 and measured_on > now() - interval '30 days'
+        group by 1, 2, 3)
+     select d.m, d.engine, d.r, d.measured_on::text as day,
+            count(*)::int n, count(*) filter (where a.mentioned)::int 이름, count(*) filter (where a.cited)::int 인용,
+            array_agg(a.prompt_id) ids
+       from d join academy.ai_measurements a on a.collection_method = d.m and a.engine = d.engine and a.measured_on = d.measured_on and a.client_id = 1 and a.attempt = 1
+      where d.r <= 2 group by 1, 2, 3, 4 order by 1, 3`);
+  const out = [];
+  for (const m of [...new Set(rows.map((r) => r.m))]) {
+    // dense_rank 는 bigint 라 문자열로 온다
+    const [지금, 전] = [rows.find((r) => r.m === m && Number(r.r) === 1), rows.find((r) => r.m === m && Number(r.r) === 2)];
+    if (!지금 || 지금.n < 2) continue;   // 시험으로 한두 문항만 잰 날은 뺀다. 도중에 멈춘 날은 「일부」로 남긴다(Richard 21)
+    if (now.getTime() - Date.parse(`${지금.day}T00:00:00+09:00`) > 3 * 86400000) continue;   // 매일 재니 3일 넘게 없으면 그만 쓴 방법(옛 API 측정)은 뺀다
+    let 비교 = null;
+    if (전) {
+      const 공통 = 지금.ids.filter((x) => 전.ids.includes(x));
+      if (공통.length >= 5) {
+        const [a, b] = await Promise.all([지금, 전].map((x) => q(
+          `select count(*) filter (where mentioned)::int 이름, count(*) filter (where cited)::int 인용 from academy.ai_measurements
+            where client_id = 1 and collection_method = $1 and measured_on = $2 and prompt_id = any($3) and engine = $4 and attempt = 1`, [m, x.day, 공통, x.engine]).then((r) => r[0])));
+        const d = a.이름 - b.이름;
+        비교 = { day: 전.day, 공통: 공통.length, 전이름: b.이름, 지금이름: a.이름, 전인용: b.인용, 지금인용: a.인용,
+          말: Math.abs(d) <= 3 ? "비슷" : d > 0 ? "늘었음" : "줄었음" };
+      }
+    }
+    out.push({ 엔진: 엔진이름[지금.engine] ?? 지금.engine, day: 지금.day, n: 지금.n, 전체: 지금.n >= 18, 링크없음: 지금.engine === "gemini-web", 이름: 지금.이름, 인용: 지금.인용, 비교 });
+  }
+  return out;
 }
 
 /**
@@ -245,6 +288,7 @@ if (직접) {
       if (b.확인필요.length) console.log(`확인 필요\n${b.확인필요.map((s) => `  · ${s}`).join("\n")}\n`);
       console.log(`직원\n${b.직원.map((s) => `  ${s.이름.padEnd(4, "　")} ${s.한일} | ${s.지금}`).join("\n")}\n`);
       console.log(`원장 할 일 ${b.원장할일}건 · 산출물 ${b.산출물.join(" · ")}`);
+      for (const a of b.AI답변 ?? []) console.log(`  AI ${a.엔진} ${a.day} 이름 ${a.이름}/${a.n} · 인용 ${a.인용}/${a.n}${a.비교 ? ` (${a.비교.day} 같은 ${a.비교.공통}문항 ${a.비교.전이름}→${a.비교.지금이름}, ${a.비교.말})` : ""}`);
       console.log(`다음\n${b.다음.map((s) => `  · ${s}`).join("\n")}`);
       console.log(`\nbody = ${JSON.stringify(b)}`);
     }

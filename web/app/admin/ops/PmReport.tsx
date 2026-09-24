@@ -31,6 +31,11 @@ export const PM_CSS = `
 .pm-staff li span{color:var(--ink2)}
 .pm-none{margin:8px 0 0;font-size:15px;color:var(--ink2)}
 .pm-none.bad{color:var(--crit)}
+.pm-ai{margin:10px 0 0;border-collapse:collapse;font-size:14px;min-width:0;width:auto}
+.ops .pm-ai th,.ops .pm-ai td{padding:4px 12px 4px 0;border:0;text-align:left;background:none}
+.pm-ai th{color:var(--ink2);font-weight:600}
+.pm-ai td.n{font-variant-numeric:tabular-nums}
+.pm-ai-note{margin:4px 0 0;font-size:13px;color:var(--ink2)}
 `;
 
 export default function PmReport({ data }: { data: Data }) {
@@ -63,6 +68,24 @@ export default function PmReport({ data }: { data: Data }) {
           <b>확인 필요 {b.확인필요.length}건</b>
           <ul>{b.확인필요.map((s, i) => <li key={i}>{s}</li>)}</ul>
         </div>
+      )}
+      {(b.AI답변 ?? []).length > 0 && (
+        <>
+          <table className="pm-ai" aria-label="엔진별 AI 답변">
+            <thead><tr><th>AI</th><th>학원 이름</th><th>사이트 인용</th><th>지난번과</th></tr></thead>
+            <tbody>
+              {b.AI답변!.map((a) => (
+                <tr key={a.엔진}>
+                  <td><b>{a.엔진}</b> <span className="pm-ai-note">{월일(a.day)}</span></td>
+                  <td className="n">{a.이름}/{a.n}{a.전체 === false && <span className="pm-ai-note"> 일부</span>}</td>
+                  <td className="n">{a.링크없음 ? "—" : `${a.인용}/${a.n}`}</td>
+                  <td>{a.비교 ? `${월일(a.비교.day)} ${a.비교.전이름}→${a.비교.지금이름} · ${a.비교.말}` : "첫 측정"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p className="pm-ai-note">엔진마다 같은 질문을 하루 한 번 묻습니다. 한 번 잰 값은 흔들려서 3개 이하 차이는 「비슷」으로 봅니다. 인용은 답에 우리 사이트 링크가 붙었는지라 엔진마다 링크를 보여 주는 방식이 달라 엔진끼리 비교하지 않습니다. Gemini 는 링크를 거의 안 보여 「—」. Claude 는 로봇이 묻고, 나머지는 로그아웃 화면입니다.</p>
+        </>
       )}
       <p className="pm-meta">원장님 할 일 {b.원장할일}건 · {b.산출물.join(" · ")}</p>
       <details className="pm-staff">

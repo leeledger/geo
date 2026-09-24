@@ -14,8 +14,15 @@
 import { chromium } from "playwright";
 
 const 기본 = ["https://robotncoding.com/", "https://robotncoding.com/blog", "https://robotncoding.com/llms.txt"];
+/**
+ * --faq : 학부모 일반 질문에 답하는 글. 2026-09-24 Brave 에 site:robotncoding.com 이 홈 1쪽뿐이었다.
+ * 같은 날 Claude 측정에서 동네 질문은 11/11 인용, 일반 질문은 맞는 글이 있어도 0/9 — 글이 색인에 없어서다
+ */
+const FAQ = ["koding-myeot-hangnyeonbuteo", "hagweoneseo-mueoseul-baewossna", "beullogeseo-paisseoneuro", "ai-sidae-koding-baeul-piryo",
+  "aiga-sukjereul-haetdamyeon", "ai-sidae-uri-aiui-miraereul-junbihaneun-bangbeop", "hagweon-vs-online-gangui", "entry-scratch-eoneu-geot",
+  "koding-kurikyulleom-sunseo", "chodeung-1haknyeondo-geimeul-mandeul-su-itdagoyo"].map((s) => `https://robotncoding.com/blog/${s}`);
 const 주소들 = process.argv.slice(2).filter((a) => /^https?:\/\//.test(a));
-const 목록 = 주소들.length ? 주소들 : 기본;
+const 목록 = process.argv.includes("--faq") ? FAQ : 주소들.length ? 주소들 : 기본;
 
 const b = await chromium.launch({ headless: false });
 const p = await b.newPage({ locale: "ko-KR", viewport: { width: 1100, height: 800 } });
