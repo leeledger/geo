@@ -4,6 +4,7 @@ import { isAdmin } from "@/lib/admin-auth";
 import { listOutreach, OUTREACH_STATUSES, type OutreachTarget } from "@/lib/outreach";
 import { updateOutreach } from "@/lib/outreach-actions";
 import AdminNav from "../AdminNav";
+import SubmitButton from "../SubmitButton";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -63,7 +64,7 @@ function Card({ t, i }: { t: OutreachTarget; i: number }) {
         <label className="wide">다음 행동<input name="next" defaultValue={t.nextAction} /></label>
         <label>기한<input type="date" name="due" defaultValue={t.nextDue ?? ""} /></label>
         <label className="wide">메모<input name="note" defaultValue={t.note} /></label>
-        <button className="adm-btn">저장</button>
+        <SubmitButton className="adm-btn">저장</SubmitButton>
       </form>
     </article>
   );

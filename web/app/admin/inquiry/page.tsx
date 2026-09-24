@@ -6,6 +6,7 @@ import { listInquiries, inquirySummary, SOURCES, type Inquiry } from "@/lib/inqu
 import { addInquiry, resolveInquiry } from "@/lib/inquiry-actions";
 import { listClients } from "@/lib/ops";
 import AdminNav from "../AdminNav";
+import SubmitButton from "../SubmitButton";
 
 /** 로그인 뒤 돌아올 자리 */
 const HERE = "/admin/inquiry";
@@ -56,12 +57,12 @@ function Row({ r, resolve }: { r: Inquiry; resolve?: boolean }) {
           <form action={resolveInquiry}>
             <input type="hidden" name="id" value={r.id} />
             <input type="hidden" name="result" value="yes" />
-            <button className="adm-btn ok" type="submit">등록</button>
+            <SubmitButton className="adm-btn ok">등록</SubmitButton>
           </form>
           <form action={resolveInquiry}>
             <input type="hidden" name="id" value={r.id} />
             <input type="hidden" name="result" value="no" />
-            <button className="adm-btn alt" type="submit">안 함</button>
+            <SubmitButton className="adm-btn alt">안 함</SubmitButton>
           </form>
         </div>
       )}
@@ -164,7 +165,7 @@ export default async function InquiryPage({
             </div>
           </div>
 
-          <button className="adm-btn go" type="submit">기록하기</button>
+          <SubmitButton className="adm-btn go">기록하기</SubmitButton>
         </form>
 
         <h2>지난 기록</h2>

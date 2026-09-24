@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { listLeads, dbEnabled } from "@/lib/leads";
 import { changeLeadStatus } from "@/lib/lead-actions";
 import AdminNav from "./AdminNav";
+import SubmitButton from "./SubmitButton";
 
 /** 로그인 뒤 돌아올 자리 */
 const HERE = "/admin";
@@ -58,7 +59,7 @@ function Card({ l }: { l: Lead }) {
           <select name="status" defaultValue={l.status ?? "new"} aria-label="리드 상태">
             {STATUS.map(([v, t]) => <option key={v} value={v}>{t}</option>)}
           </select>
-          <button type="submit" className="adm-btn">저장</button>
+          <SubmitButton className="adm-btn">저장</SubmitButton>
         </form>
       </div>
       <details>

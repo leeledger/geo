@@ -5,6 +5,7 @@ import { isAdmin } from "@/lib/admin-auth";
 import { listPilots } from "@/lib/pilots";
 import { createPilot } from "@/lib/pilot-actions";
 import AdminNav from "../AdminNav";
+import SubmitButton from "../SubmitButton";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -71,7 +72,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ k
             <p className="sub">입금 확인 후 등록합니다. 등록하면 질문 20개와 Day 0~30 업무 19개가 생깁니다.</p>
             <form className="pl-form" action={createPilot}>
               {FIELDS.map(([n, l]) => <label key={n}>{l}<input name={n} required /></label>)}
-              <button className="adm-btn">30일 업무 생성</button>
+              <SubmitButton className="adm-btn">30일 업무 생성</SubmitButton>
             </form>
           </div>
         </details>

@@ -1,6 +1,7 @@
 import { readBrief, type BriefExtras } from "@/lib/brief";
 import { clientLine, kstDay, kstTime, type BriefFacts } from "@/lib/brief-core.mjs";
 import { setCutoff } from "@/lib/brief-actions";
+import SubmitButton from "../SubmitButton";
 
 /**
  * 오늘 한 일 — 마감 시각으로 자른 하루의 브리핑.
@@ -130,7 +131,7 @@ export default async function Brief() {
         <form action={setCutoff} className="brf-cut">
           <label htmlFor="brf-cutoff">하루 기록 저장 시각</label>
           <input id="brf-cutoff" type="time" name="cutoff" defaultValue={b.cutoff} step={60} required />
-          <button type="submit">저장</button>
+          <SubmitButton>저장</SubmitButton>
         </form>
       </div>
 

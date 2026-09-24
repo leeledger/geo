@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { listDrafts, DISCARD_REASONS } from "@/lib/drafts";
 import { saveDraft, publishDraft, discardDraft, revertDraft, requeueIllustrate } from "@/lib/draft-actions";
 import AdminNav from "../AdminNav";
+import SubmitButton from "../SubmitButton";
 
 const HERE = "/admin/drafts";
 export const dynamic = "force-dynamic";
@@ -178,7 +179,7 @@ export default async function DraftsPage({ searchParams }: { searchParams: Promi
                 <div className="dr-act">
                   <form action={publishDraft}>
                     <input type="hidden" name="slug" value={d.slug} />
-                    <button type="submit" className="adm-btn" disabled={도해수 === 0}>사실 확인했음 · 발행</button>
+                    <SubmitButton className="adm-btn" disabled={도해수 === 0}>사실 확인했음 · 발행</SubmitButton>
                   </form>
                 </div>
 
@@ -196,7 +197,7 @@ export default async function DraftsPage({ searchParams }: { searchParams: Promi
                       ))}
                     </div>
                     <input type="text" name="note" maxLength={300} placeholder="한 줄 더 (없어도 됩니다)" />
-                    <button type="submit" className="adm-btn bad">이 이유로 버립니다</button>
+                    <SubmitButton className="adm-btn bad">이 이유로 버립니다</SubmitButton>
                   </form>
                 </details>
 
@@ -214,7 +215,7 @@ export default async function DraftsPage({ searchParams }: { searchParams: Promi
                     <div className="dr-sec">
                       {(삽화?.버린것?.length ?? 0) > 0 && <ul>{삽화!.버린것!.slice(0, 4).map((s, i) => <li key={i}>{s}</li>)}</ul>}
                       <form action={requeueIllustrate} style={{ marginTop: 8 }}>
-                        <input type="hidden" name="slug" value={d.slug} /><button type="submit" className="adm-btn alt">도해 다시 그리기</button>
+                        <input type="hidden" name="slug" value={d.slug} /><SubmitButton className="adm-btn alt">도해 다시 그리기</SubmitButton>
                       </form>
                     </div>
                   )}
@@ -223,7 +224,7 @@ export default async function DraftsPage({ searchParams }: { searchParams: Promi
                     <details className="dr-more">
                       <summary>다듬기 전 원문 보기</summary>
                       <div className="dr-body" dangerouslySetInnerHTML={{ __html: render(n.원문) }} />
-                      <form action={revertDraft}><input type="hidden" name="slug" value={d.slug} /><button type="submit" className="adm-btn alt">원문으로 되돌리기</button></form>
+                      <form action={revertDraft}><input type="hidden" name="slug" value={d.slug} /><SubmitButton className="adm-btn alt">원문으로 되돌리기</SubmitButton></form>
                     </details>
                   )}
                   <details className="dr-more dr-edit">
@@ -233,7 +234,7 @@ export default async function DraftsPage({ searchParams }: { searchParams: Promi
                       <label>제목</label><input name="title" defaultValue={d.title} />
                       <label>요약</label><input name="summary" defaultValue={d.summary} />
                       <label>본문 (마크다운)</label><textarea name="body" defaultValue={d.body} />
-                      <div className="dr-act"><button type="submit" className="adm-btn alt">고친 내용 저장</button></div>
+                      <div className="dr-act"><SubmitButton className="adm-btn alt">고친 내용 저장</SubmitButton></div>
                     </form>
                   </details>
                 </details>

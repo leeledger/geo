@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import type { Ops } from "@/lib/ops";
 import { todoText, type TodoAction } from "@/lib/todo-text";
 import { finishTask, resolveNaverAttempt } from "@/lib/task-actions";
+import SubmitButton from "../SubmitButton";
 
 /**
  * ① 오늘 원장님이 하실 일 — 현황판 맨 위.
@@ -22,8 +23,8 @@ function Act({ id, a }: { id: number; a: TodoAction }) {
       <form action={resolveNaverAttempt} className="td-naver">
         <input type="hidden" name="id" value={id} />
         <input name="logNo" placeholder="네이버 글 번호" aria-label="네이버 글 번호 또는 주소" />
-        <button type="submit" name="outcome" value="posted" className="td-btn">올라가 있음</button>
-        <button type="submit" name="outcome" value="retry" className="td-btn alt">안 올라감 · 다시</button>
+        <SubmitButton name="outcome" value="posted" className="td-btn">올라가 있음</SubmitButton>
+        <SubmitButton name="outcome" value="retry" className="td-btn alt">안 올라감 · 다시</SubmitButton>
       </form>
     );
   }
@@ -42,7 +43,7 @@ function Act({ id, a }: { id: number; a: TodoAction }) {
   return (
     <form action={finishTask}>
       <input type="hidden" name="id" value={id} />
-      <button type="submit" className="td-btn">했어요</button>
+      <SubmitButton className="td-btn">했어요</SubmitButton>
     </form>
   );
 }

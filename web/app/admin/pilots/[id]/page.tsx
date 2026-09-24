@@ -6,6 +6,7 @@ import { getPilot } from "@/lib/pilots";
 import { engineName } from "@/lib/agents";
 import { updatePilotTask, updateAudit, approveQuestions, updateQuestion, updateContent } from "@/lib/pilot-actions";
 import AdminNav from "../../AdminNav";
+import SubmitButton from "../../SubmitButton";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -54,7 +55,7 @@ function TaskForm({ t, path, today }: { t: any; path: string; today: string }) {
         <option>대기</option><option>진행</option><option>완료</option><option>막힘</option>
       </select>
       <input name="evidence" defaultValue={t.evidence} placeholder="완료 근거 URL·파일·메모" aria-label="완료 근거" />
-      <button className="adm-btn">저장</button>
+      <SubmitButton className="adm-btn">저장</SubmitButton>
     </form>
   );
 }
@@ -113,7 +114,7 @@ export default async function Page({ params, searchParams }: { params: Promise<{
                   <input type="hidden" name="path" value={path} />
                   <i>{q.position}. {q.stage}{q.approved ? " · 승인" : ""}</i>
                   <input name="text" defaultValue={q.text} aria-label={`질문 ${q.position}`} style={{ width: "100%" }} />
-                  <button className="adm-btn alt">수정</button>
+                  <SubmitButton className="adm-btn alt">수정</SubmitButton>
                 </form>
               ))}
             </div>
@@ -121,7 +122,7 @@ export default async function Page({ params, searchParams }: { params: Promise<{
               <form action={approveQuestions} style={{ marginTop: 14 }}>
                 <input type="hidden" name="pilot_id" value={id} />
                 <input type="hidden" name="path" value={path} />
-                <button className="adm-btn">고객 승인 완료로 표시</button>
+                <SubmitButton className="adm-btn">고객 승인 완료로 표시</SubmitButton>
               </form>
             )}
           </div>
@@ -147,7 +148,7 @@ export default async function Page({ params, searchParams }: { params: Promise<{
                 <input name="observed" defaultValue={a.observed} placeholder="현재 표시" />
                 <select name="verdict" defaultValue={a.verdict}><option>미확인</option><option>일치</option><option>불일치</option><option>없음</option></select>
                 <input name="recommendation" defaultValue={a.recommendation} placeholder="수정안 또는 확인 근거" />
-                <button className="adm-btn">저장</button>
+                <SubmitButton className="adm-btn">저장</SubmitButton>
               </form>
             ))}
           </div>
@@ -165,7 +166,7 @@ export default async function Page({ params, searchParams }: { params: Promise<{
                 <select name="status" defaultValue={c.status}><option>주제 선정</option><option>초안</option><option>수정 요청</option><option>승인</option><option>게시</option></select>
                 <input name="published_url" defaultValue={c.published_url ?? ""} placeholder="게시 URL" />
                 <input name="customer_note" defaultValue={c.customer_note} placeholder="고객 사실 확인 메모" />
-                <button className="adm-btn">저장</button>
+                <SubmitButton className="adm-btn">저장</SubmitButton>
               </form>
             ))}
           </div>

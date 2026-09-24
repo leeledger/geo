@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { KINDS, listMaterials, materialCounts } from "@/lib/materials";
 import { addMaterial } from "@/lib/material-actions";
 import AdminNav from "../AdminNav";
+import SubmitButton from "../SubmitButton";
 
 /** 로그인 뒤 돌아올 자리 */
 const HERE = "/admin/material";
@@ -112,7 +113,7 @@ export default async function MaterialPage({
           {/* 호칭 없이 쓴 이름(「민준이가」)은 사전으로 못 잡는다. 안 적는 게 제일 확실하다 */}
           <p className="sub">이름은 안 적으셔도 됩니다. 학년만 있으면 글에 쓰기 충분합니다.</p>
 
-          <button className="adm-btn go" type="submit">재료 넣기</button>
+          <SubmitButton className="adm-btn go">재료 넣기</SubmitButton>
 
           <details className="fold">
             <summary>상황·날짜 적기 (안 적어도 됩니다)</summary>
