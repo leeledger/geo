@@ -56,7 +56,7 @@ export type Agents = {
 type Job = {
   name: string;
   wf?: string;
-  self?: { agent: string; action?: string };
+  self?: { agent: string; action?: string; also?: string[] };
   times?: string[];
   dow?: number;
   hourly?: number;
@@ -72,7 +72,7 @@ export const ROLES: Role[] = [
   {
     id: "ops", name: "운영", does: "매시 일을 나눠 맡기고, 건너뛴 예약과 실패한 작업을 다시 돌립니다", agents: ["ops", "audit"],
     jobs: [
-      { name: "매시 점검", self: { agent: "ops", action: "회사 루프" }, hourly: 23, countMirror: false },            // company.yml  23 * * * *
+      { name: "매시 점검", self: { agent: "ops", action: "회사 루프", also: ["매시 점검 시작"] }, hourly: 23, countMirror: false },            // company.yml  23 * * * *
       { name: "사이트 점검", wf: "watch", countMirror: true,                                                        // watch.yml    11 */3 * * *
         times: ["00:11", "03:11", "06:11", "09:11", "12:11", "15:11", "18:11", "21:11"] },
       { name: "감사", wf: "audit", self: { agent: "audit" }, times: ["06:35"], countMirror: false, catchup: true },                 // audit.yml    35 21 * * *
@@ -265,7 +265,7 @@ function fmtNext(t: number | null, now: number): string | null {
 
 const matches = (j: Job, a: Act) =>
   (j.wf !== undefined && a.action === `자동 작업 ${j.wf}`) ||
-  (j.self !== undefined && a.agent === j.self.agent && (j.self.action === undefined || a.action === j.self.action));
+  (j.self !== undefined && a.agent === j.self.agent && (j.self.action === undefined || a.action === j.self.action || (j.self.also ?? []).includes(a.action)));
 
 /* ─────────────────────────────── 판정 (순수 함수 — 시각을 받아서 node 로 시험한다) */
 

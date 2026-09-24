@@ -767,6 +767,8 @@ const main = async () => {
     .map((c) => ({ ...c, conf: CLIENT_CONF.find((x) => x.id === c.id) }));
 
   console.log(`에이전트 회사 · ${오늘()} KST`);
+  // 한 번 도는 데 수십 분 걸린다. 끝에만 적으면 도는 동안 현황판이 「2시간 넘게 안 돌았다」로 뜬다(2026-09-24) — 시작도 적는다
+  if (!PLAN_ONLY) await 활동(HOUSE, "ops", "매시 점검 시작", true, "");
   const latest = await 출근기록();
   if (!PLAN_ONLY) await 밀린예약();
   await 계획(clients, latest);

@@ -1071,3 +1071,4 @@ Decisions made (3차):
 - 같은 실행 줄 중복 방지: 부분 고유 색인 agent_activity_mirror_run_url + on conflict (wake·company)
 - Arch 결정: 바깥 트리거(Vercel cron)는 안 둔다 — Hobby 는 하루 1회뿐이고 GitHub 토큰을 웹에 둬야 한다. 예약 둘 + watch 3시간 + 깨우기 + 원장 PC 심장박동으로 메운다
 - KG-S20-1 GitHub 이 모든 예약을 한꺼번에 건너뛰는 밤에는 깨울 작업이 없다
+- 뒤이어: 매시 점검이 시작할 때도 「매시 점검 시작」을 적는다 — 한 번 도는 데 수십 분이라 끝에만 적으면 도는 동안 현황판이 늦음. 아침 보고는 이것·「매시 점검 깨움」을 일로 세지 않는다

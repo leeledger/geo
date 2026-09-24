@@ -102,6 +102,7 @@ export async function 보고짓기(q, now = new Date()) {
     if (a.action === "회사 루프") { 셈.pm.점검++; continue; }
     // 확인 필요로 올린 표시는 한 일이 아니다. 성공으로도 실패로도 세지 않는다 — 그 일은 확인 필요 목록에 따로 뜬다
     if (a.action === "원장 확인 필요로 올림") continue;
+    if (a.action === "매시 점검 시작" || a.action === "매시 점검 깨움") continue;   // 출근 표시일 뿐 일이 아니다
     const m = /^자동 작업 ([a-z]+)$/.exec(a.action);
     let id;
     if (m) {
