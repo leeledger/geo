@@ -341,3 +341,6 @@ SW사고력올림피아드, USACO Bronze 문제를 훈련하며, 5단계에서 �
 - 수업 기록(블로그): https://robotncoding.com/blog
 - 상담·카카오톡: https://robotncoding.com/#contact
 - 오시는 길: https://robotncoding.com/#location
+
+## 성인 AI 업무자동화반
+- https://robotncoding.com/ai-work : 직장인·1인 사업자가 자기 반복 업무 한 건을 가져와 돌아가는 AI 자동화로 만드는 오프라인 수업(서울 송파구 석촌동). 성인 수강료 월 4회·회당 120분 200,000원. 개인정보·결제 확정·항의 응대의 최종 답은 자동화하지 않는다.
