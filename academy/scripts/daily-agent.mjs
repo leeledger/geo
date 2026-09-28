@@ -120,7 +120,9 @@ const main = async () => {
   const runs = await q(
     `select id, run_day::text as run_day, status, action_kind, target_prompt, target_slug, verdict, effective_on::text as effective_on
        from geo.agent_runs where client_id=$1 and target_prompt is not null order by run_day`, [c.id]);
-  const posts = await q(`select slug, title, published, published_at from academy.posts where client_id=$1`, [c.id]);
+  const posts = await q(`select slug, title, published, published_at,
+                                coalesce(review_notes,'{}'::jsonb) ? '비공개이유' as archived
+                           from academy.posts where client_id=$1`, [c.id]);
   const [todayRun] = await q(`select status, action_kind from geo.agent_runs where client_id=$1 and run_day=$2::date and trigger='daily'`, [c.id, 오늘]);
 
   const stageOf = Object.fromEntries(questions.map((x) => [x.prompt_id, x.stage]));
@@ -250,8 +252,8 @@ const main = async () => {
   for (const s of 기록) console.log(`  판정·후속: ${s}`);
 
   // 같은 날 두 번 돌면 초안을 두 번 쓴다. 이미 행동한 날은 판정만 하고 끝낸다
-  if (todayRun?.action_kind && todayRun.status !== "실패") {
-    console.log(`\n오늘(${오늘}) 행동은 이미 기록돼 있습니다 — ${todayRun.action_kind} · ${todayRun.status}`);
+  if (todayRun?.status === "완료" || (todayRun?.action_kind && todayRun.status !== "실패")) {
+    console.log(`\n오늘(${오늘}) 행동은 이미 기록돼 있습니다 — ${todayRun.action_kind ?? "수동 개선"} · ${todayRun.status}`);
     return;
   }
 
@@ -267,7 +269,7 @@ const main = async () => {
   // 원장이 초안을 버린 질문은 같은 초안을 다시 만들지 않는다. 삭제는 편집 판단이다.
   const 버린질문 = new Set(runs.filter((r) => r.action_kind === "content" && r.verdict === "취소").map((r) => r.target_prompt));
   // 회사 루프가 쓴 초안도 같은 검토 대기열이다. 열린 초안이 있으면 새 글을 쌓지 않는다.
-  const 다른초안 = posts.find((p) => !p.published && p.slug);
+  const 다른초안 = posts.find((p) => !p.published && !p.archived && p.slug);
   const 대기초안 = runs.find((r) => r.verdict === "판정 전" && r.action_kind === "content" && r.status === "사람 대기" && r.target_slug)
     ?? (다른초안 ? { target_slug: 다른초안.slug } : null);
   const 후보 = 표
