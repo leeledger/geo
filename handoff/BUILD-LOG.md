@@ -1096,3 +1096,7 @@ Decisions made (3차):
 - 배포: /ai-work 랜딩(Course·FAQPage), 홈 띠·FAQ 답, sitemap, llms.txt. 글 2편 사이트·네이버(224424683583, 224424686158). IndexNow Bing·Naver 200. Richard 2차 통과
 - 수강료는 홈 표 성인 기준(월 4회·120분 200,000원). 정원·요일·개강일은 안 적음 — 원장 몫
 - Known Gaps: KG-AW-1 「한 주 30분」 기준 원장 확인 · KG-AW-2 여덟 단계 커리큘럼 원장 확인 · KG-AW-3 구글 색인 요청은 local-agent 몫 · KG-AW-4 상담에서 성인 발화가 생기면 /admin/inquiry 에 그대로 적기(다음 글 재료)
+
+- 2026-09-28 오후: 원장 「글 2편 AI slop 심함 — 다른 강의 곳 글 참고해 커리큘럼 보고 비슷하게」 「랜딩 커리큘럼도」. 경쟁 과정 8곳 목차·모집 글 6편 원문 수집(research §8) →
+  /ai-work 8회 CURRICULUM(배우는 것·실습 결과물·도구), 글 A 「직장인 AI 업무자동화 수업, 8회 동안 무엇을 배우나요?」, 글 B 「사장님 AI 업무자동화, 가게 일 중 무엇을 자동화할 수 있나요?」 로 교체.
+  네이버 --update(같은 logNo). Richard 2차 통과. 총 수강료(8회 = 두 달) 표기는 원장 몫 — KG-AW-5

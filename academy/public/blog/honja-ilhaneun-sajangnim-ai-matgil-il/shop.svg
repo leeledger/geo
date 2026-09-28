@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 760" width="1200" height="760" role="img" aria-label="가게 일별 자동화 도구와 회차. 예약·문의 답장 초안은 구글 폼·시트·Apps Script로 5회. 주문 파일 합치기는 엑셀 매크로·VBA로 4회. 영수증 장부는 n8n 또는 Make로 6회. 단골 안내 메일은 시트·Apps Script·VBA로 4~5회. 리뷰 정리는 시트와 ChatGPT로 5회. 월별 매출 현황판은 피벗테이블·차트로 3회. 가게 FAQ 비서는 GPTs·Gems로 7회. 매일 아침 업계 소식 요약은 n8n 또는 Make로 6회.">
+  <rect width="1200" height="760" fill="#0B0F16"/>
+  <style>
+    text{font-family:'Noto Sans KR','Apple SD Gothic Neo','Malgun Gothic',sans-serif}
+    .t{fill:#E8ECF2;font-size:30px;font-weight:800}
+    .s{fill:#9AA4B2;font-size:19px}
+    .th{fill:#5B6573;font-size:16px;font-family:'IBM Plex Mono',monospace;letter-spacing:1px}
+    .a{fill:#E8ECF2;font-size:22px;font-weight:700}
+    .b{fill:#9AA4B2;font-size:19px}
+    .c{fill:#F5A623;font-size:20px;font-family:'IBM Plex Mono',monospace}
+    .m{font-family:'IBM Plex Mono',monospace;font-size:15px;fill:#5B6573}
+  </style>
+  <text x="60" y="76" class="t">가게 일 8가지, 어떤 도구로 몇 회차에</text>
+  <text x="60" y="110" class="s">성인 AI 업무자동화반 · 8회에 이 가운데 하나를 내 가게 것으로 완성</text>
+
+  <text x="60" y="168" class="th">가게 일</text>
+  <text x="520" y="168" class="th">도구</text>
+  <text x="1140" y="168" class="th" text-anchor="end">회차</text>
+  <line x1="60" y1="184" x2="1140" y2="184" stroke="#2A3240" stroke-width="2"/>
+
+  <text x="60" y="226" class="a">예약·문의 답장 초안</text><text x="520" y="226" class="b">구글 폼 · 시트 · Apps Script · Gmail</text><text x="1140" y="226" class="c" text-anchor="end">5회</text>
+  <line x1="60" y1="248" x2="1140" y2="248" stroke="#1B2230"/>
+  <text x="60" y="290" class="a">주문 파일 합치기</text><text x="520" y="290" class="b">엑셀 매크로 · VBA</text><text x="1140" y="290" class="c" text-anchor="end">4회</text>
+  <line x1="60" y1="312" x2="1140" y2="312" stroke="#1B2230"/>
+  <text x="60" y="354" class="a">영수증 → 장부</text><text x="520" y="354" class="b">n8n 또는 Make · Gmail · 시트</text><text x="1140" y="354" class="c" text-anchor="end">6회</text>
+  <line x1="60" y1="376" x2="1140" y2="376" stroke="#1B2230"/>
+  <text x="60" y="418" class="a">단골 안내 메일·안내문</text><text x="520" y="418" class="b">시트 · Apps Script · 엑셀 VBA</text><text x="1140" y="418" class="c" text-anchor="end">4~5회</text>
+  <line x1="60" y1="440" x2="1140" y2="440" stroke="#1B2230"/>
+  <text x="60" y="482" class="a">손님 리뷰 정리</text><text x="520" y="482" class="b">구글 시트 · ChatGPT</text><text x="1140" y="482" class="c" text-anchor="end">5회</text>
+  <line x1="60" y1="504" x2="1140" y2="504" stroke="#1B2230"/>
+  <text x="60" y="546" class="a">월별 매출 현황판</text><text x="520" y="546" class="b">엑셀 함수 · 피벗테이블 · 차트</text><text x="1140" y="546" class="c" text-anchor="end">3회</text>
+  <line x1="60" y1="568" x2="1140" y2="568" stroke="#1B2230"/>
+  <text x="60" y="610" class="a">가게 FAQ 비서</text><text x="520" y="610" class="b">GPTs · Gems · NotebookLM</text><text x="1140" y="610" class="c" text-anchor="end">7회</text>
+  <line x1="60" y1="632" x2="1140" y2="632" stroke="#1B2230"/>
+  <text x="60" y="674" class="a">매일 아침 업계 소식 요약</text><text x="520" y="674" class="b">n8n 또는 Make · RSS · Gmail</text><text x="1140" y="674" class="c" text-anchor="end">6회</text>
+
+  <text x="1140" y="730" class="m" text-anchor="end">로봇&amp;코딩학원 · 서울 송파구 석촌동</text>
+</svg>

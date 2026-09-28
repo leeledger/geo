@@ -49,6 +49,100 @@ const FAQ: [string, string][] = [
   ],
 ];
 
+/**
+ * 커리큘럼 뼈대는 경쟁 과정 목차에서 겹치는 순서를 따랐다 (handoff/research/ai-work-course-2026-09-28.md §8).
+ * 프롬프트 → 문서 → 엑셀 함수·피벗 → VBA·취합 → 구글 시트·Apps Script → n8n·Make → AI 비서·작은 도구 → 내 업무 완성·시연
+ */
+const CURRICULUM: { title: string; learn: string[]; out: string; tools: string }[] = [
+  {
+    title: "AI 업무 활용 시작 · 자동화할 업무 고르기",
+    learn: [
+      "ChatGPT·Claude·Gemini 가입과 화면, 무료와 유료의 차이",
+      "프롬프트 기본 구조: 역할 · 맥락 · 조건 · 출력 형식",
+      "내 업무 목록 적기 — 한 주 몇 번, 한 번에 몇 분",
+      "과정 끝까지 가져갈 내 업무 1가지 정하기",
+    ],
+    out: "내 업무 목록표, 자주 쓰는 지시문 모음",
+    tools: "ChatGPT · Claude · Gemini",
+  },
+  {
+    title: "문서 업무: 회의록 · 보고서 · 이메일",
+    learn: [
+      "녹음 파일을 받아쓰고 회의록으로 요약하기",
+      "PDF·긴 문서 요약, 보고서 초안 만들기",
+      "상황별 이메일 초안 (거래처 회신 · 일정 조율 · 안내문)",
+      "AI 가 지어낸 내용 찾아내는 법",
+    ],
+    out: "회의록 요약 양식, 상황별 메일 초안 모음",
+    tools: "클로바노트 · ChatGPT · NotebookLM",
+  },
+  {
+    title: "엑셀 ①: 함수 · 정리 · 현황판",
+    learn: [
+      "AI 에게 상황을 설명해 맞는 함수 받기 (IF · SUMIFS · XLOOKUP)",
+      "정렬 · 필터 · 조건부서식으로 데이터 정리",
+      "중복값 · 빈칸 한 번에 찾기",
+      "피벗테이블과 차트로 월별 현황판 만들기",
+    ],
+    out: "월별 매출·업무 현황판",
+    tools: "엑셀 · 구글 스프레드시트 · ChatGPT",
+  },
+  {
+    title: "엑셀 ②: 매크로 · VBA 로 반복 작업 없애기",
+    learn: [
+      "매크로 기록과 실행, VBA 편집기 쓰는 법",
+      "AI 가 짜 준 VBA 코드를 붙여넣고 돌려 보기",
+      "같은 양식 파일 여러 개를 하나로 합치기",
+      "명단으로 계약서 · 안내문 · 수료증 한꺼번에 만들기",
+    ],
+    out: "파일 취합 매크로, 명단 기반 문서 대량 생성",
+    tools: "엑셀 VBA · ChatGPT",
+  },
+  {
+    title: "구글 시트 + Apps Script",
+    learn: [
+      "구글 폼으로 받은 신청 · 문의를 시트에 쌓기",
+      "시트 명단으로 Gmail 개별 메일 보내기",
+      "시트 안에서 AI 로 문의 분류 · 답장 초안 만들기",
+      "정해진 시각에 저절로 돌게 예약(트리거) 걸기",
+    ],
+    out: "문의 접수 → 분류 → 답장 초안 메일",
+    tools: "구글 폼 · 스프레드시트 · Apps Script · Gmail",
+  },
+  {
+    title: "노코드 자동화: n8n · Make",
+    learn: [
+      "트리거 · 노드 · 실행 기록 개념",
+      "받은 메일 분류해서 시트에 기록하고 알림 보내기",
+      "뉴스 · 블로그 RSS 모아 요약 리포트 만들기",
+      "영수증 메일에서 금액 뽑아 장부 시트에 적기",
+    ],
+    out: "매일 아침 도착하는 요약 리포트, 영수증 → 장부 자동 기록",
+    tools: "n8n 또는 Make · Gmail · 구글 시트 · 텔레그램",
+  },
+  {
+    title: "나만의 AI 비서 · 작은 도구 만들기",
+    learn: [
+      "업무 매뉴얼 · FAQ 를 넣은 맞춤형 GPT(GPTs) · Gems 만들기",
+      "사내 문서를 근거로 답하게 하기 (NotebookLM)",
+      "말로 설명해서 화면 있는 웹 도구 만들기 (바이브코딩)",
+    ],
+    out: "우리 업무 FAQ 비서, 나만 쓰는 계산·정리 도구",
+    tools: "GPTs · Gems · NotebookLM · Claude",
+  },
+  {
+    title: "내 업무 자동화 완성 · 시연",
+    learn: [
+      "1회에 고른 업무를 끝까지 완성하기",
+      "멈췄을 때 실행 기록 읽고 고치는 법",
+      "개인정보 · 결제 확정은 자동화하지 않는 기준",
+      "본인 컴퓨터에서 실제로 돌리는 3분 시연",
+    ],
+    out: "매주 쓰는 내 업무 자동화 1개",
+    tools: "과정에서 쓴 도구 중 내 업무에 맞는 것",
+  },
+];
+
 const SCHEMA = {
   "@context": "https://schema.org",
   "@graph": [
@@ -63,6 +157,11 @@ const SCHEMA = {
       provider: { "@id": "https://robotncoding.com/#org" },
       audience: { "@type": "Audience", audienceType: "직장인, 자영업자, 1인 사업자" },
       teaches: ["AI 업무 활용", "업무 자동화", "엑셀 자동화", "노코드 자동화", "AI 에이전트"],
+      syllabusSections: CURRICULUM.map((c, i) => ({
+        "@type": "Syllabus",
+        name: `${i + 1}회 ${c.title}`,
+        description: `${c.learn.join(", ")}. 실습: ${c.out}`,
+      })),
       hasCourseInstance: {
         "@type": "CourseInstance",
         courseMode: "Onsite",
@@ -110,6 +209,17 @@ const CSS = `
 .aw-steps li::before{content:counter(s,decimal-leading-zero);font-family:'IBM Plex Mono',monospace;color:var(--amber);font-size:20px}
 .aw-steps b{display:block;margin-bottom:2px}
 .aw-steps span{color:var(--fg-2)}
+.paper .aw-card{border-color:var(--paper-line);background:var(--paper-card)}
+.paper .aw-card p{color:var(--paper-ink-2)}
+.paper .aw-card .k{color:#B5760A}
+.aw-cur{list-style:none;padding:0;margin:26px 0 0}
+.aw-cur>li{display:grid;grid-template-columns:64px 1fr;gap:16px;border-top:1px solid var(--paper-line);padding:20px 0}
+.aw-cur .n{color:#B5760A;font-size:18px;padding-top:2px}
+.aw-cur ul{margin:6px 0 10px;padding-left:18px}
+.aw-cur ul li{color:var(--paper-ink-2);margin:2px 0}
+.aw-cur .out{margin:0 0 4px}
+.aw-cur .out b{display:inline-block;font-size:12px;padding:2px 8px;border-radius:6px;background:var(--amber);color:#0B0F16;margin-right:6px}
+.aw-cur .tools{margin:0;font-size:13px;color:var(--paper-ink-2)}
 .aw-tw{overflow-x:auto;margin-top:22px}
 .aw-tw table{border-collapse:collapse;min-width:640px;width:100%}
 .aw-tw th,.aw-tw td{border-bottom:1px solid rgba(255,255,255,.1);padding:12px 10px;text-align:left;vertical-align:top;font-size:15px}
@@ -206,21 +316,33 @@ export default function AiWork() {
       <section className="aw paper">
         <div className="wrap">
           <div className="lab">Curriculum</div>
-          <h2>여덟 단계. 한 사람이 한 건씩</h2>
+          <h2>8회 커리큘럼</h2>
           <p className="lead">
-            수업은 회당 120분입니다. 한 단계에 몇 회가 걸리는지는 가져온 업무 크기에 따라 사람마다 다릅니다.
-            도구는 업무에 맞는 것 하나만 고릅니다. 여러 개를 맛보기로 돌지 않습니다.
+            회당 120분, 8회 과정입니다. 1~7회는 회차마다 실습 결과물을 하나씩 만들고,
+            8회에는 첫 시간에 고른 <b>내 업무 1가지</b>를 자동화로 완성해 시연합니다.
           </p>
-          <ol className="aw-steps">
-            <li><div><b>내 일 지도 그리기</b><span>한 주 동안 반복하는 일을 적고, 횟수와 걸리는 시간을 붙입니다. 맡길 일 하나를 고르고 맡기면 안 되는 일을 거릅니다.</span></div></li>
-            <li><div><b>AI 에게 일 시키는 문장</b><span>무엇을 받아서, 무엇을 내놓고, 어떤 경우를 조심해야 하는지. 애매하게 시키면 애매한 게 나옵니다.</span></div></li>
-            <li><div><b>문서·엑셀을 AI 로 정리</b><span>AI 가 만든 수식과 스크립트로 내 파일을 정리합니다. 결과를 원본과 맞춰 보는 법까지.</span></div></li>
-            <li><div><b>메일·시트·캘린더 잇기</b><span>구글 앱스 스크립트나 n8n·Make 가운데 가져온 업무에 맞는 하나로 흐름을 연결합니다.</span></div></li>
-            <li><div><b>나만 쓰는 작은 도구</b><span>말로 설명해 화면이 있는 도구를 만듭니다. 바이브코딩이라고 부르는 방식입니다.</span></div></li>
-            <li><div><b>사람 없이 돌게 하기</b><span>정해진 시각에 저절로 돌게 예약합니다. 이 단계부터 자동화라고 부를 수 있습니다.</span></div></li>
-            <li><div><b>멈췄을 때 고치기</b><span>자동화는 언젠가 멈춥니다. 기록을 읽고 원인을 찾는 법, 개인정보를 넣으면 안 되는 자리를 다룹니다.</span></div></li>
-            <li><div><b>돌아가는 것 보여 주기</b><span>본인 컴퓨터에서 실제로 돌려 봅니다. 다음에 맡길 일 한 건을 정하고 끝냅니다.</span></div></li>
+          <ol className="aw-cur">
+            {CURRICULUM.map((c, i) => (
+              <li key={c.title}>
+                <div className="n mono">{String(i + 1).padStart(2, "0")}회</div>
+                <div>
+                  <h3>{c.title}</h3>
+                  <ul>
+                    {c.learn.map((l) => (
+                      <li key={l}>{l}</li>
+                    ))}
+                  </ul>
+                  <p className="out"><b>실습</b> {c.out}</p>
+                  <p className="tools mono">{c.tools}</p>
+                </div>
+              </li>
+            ))}
           </ol>
+          <div className="aw-grid">
+            <div className="aw-card"><div className="k mono">준비물</div><h3>노트북 · 구글 계정 · 내 업무 1가지</h3><p>자동화할 반복 업무 하나를 정해 오세요. 회사 파일을 못 가져오면 칸 모양만 같은 연습용 파일로 합니다.</p></div>
+            <div className="aw-card"><div className="k mono">대상</div><h3>코딩을 몰라도 됩니다</h3><p>엑셀·메일·문서 작업을 매주 반복하는 직장인, 주문·예약·장부를 혼자 챙기는 사장님. 코드는 AI 가 쓰고, 붙여넣고 실행하는 법을 배웁니다.</p></div>
+            <div className="aw-card"><div className="k mono">방식</div><h3>석촌동 학원에서 직접</h3><p>녹화 영상이 아닙니다. 계정 연결·API 키·설정에서 막히면 그 자리에서 같이 풉니다.</p></div>
+          </div>
         </div>
       </section>
 
