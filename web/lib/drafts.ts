@@ -18,6 +18,7 @@ export type Draft = {
   tags: string[]; clientId: number; clientName: string; domain: string;
   createdAt: string; updatedAt: string;
   notes: { 확인필요?: string[]; 짜임새?: string[]; AI티?: { why: string; sample: string[] }[]; 모델?: string; 질문?: string | null; 경쟁출처?: string[]; 다듬음?: string; 원문?: string;
+    비공개이유?: string;
     /** 쓰기 전에 모은 근거 (Step 19, write-draft). 글은 이 표에 있는 숫자·날짜만 쓸 수 있다 */
     근거표?: { 사실?: string[]; 추정?: string[]; 확인필요?: string[] };
     삽화?: { 장수?: number; 버린것?: string[]; 쓴날?: string; 시도?: number } };
@@ -35,7 +36,8 @@ export async function listDrafts(clientId?: number): Promise<Draft[]> {
             (select jsonb_build_object('status', t.status, 'evidence', t.evidence) from geo.agent_tasks t
               where t.client_id = p.client_id and t.dedupe_key = 'review-' || p.slug limit 1) task
        from academy.posts p join geo.clients c on c.id = p.client_id
-      where not p.published and ($1::int is null or p.client_id = $1)
+      where not p.published and not (coalesce(to_jsonb(p) -> 'review_notes', '{}'::jsonb) ? '비공개이유')
+        and ($1::int is null or p.client_id = $1)
       order by p.created_at desc`,
     [clientId ?? null],
   ).catch(async (e) => {
@@ -46,7 +48,8 @@ export async function listDrafts(clientId?: number): Promise<Draft[]> {
               coalesce(p.tags, '{}') tags, p.client_id, c.name client_name, c.domain,
               p.created_at::text created_at, p.updated_at::text updated_at, '{}'::jsonb notes, null::jsonb task
          from academy.posts p join geo.clients c on c.id = p.client_id
-        where not p.published and ($1::int is null or p.client_id = $1) order by p.created_at desc`, [clientId ?? null]);
+        where not p.published and not (coalesce(to_jsonb(p) -> 'review_notes', '{}'::jsonb) ? '비공개이유')
+          and ($1::int is null or p.client_id = $1) order by p.created_at desc`, [clientId ?? null]);
   });
   // 초안 그림은 사이트(/blog/img)가 발행 전에는 안 내보낸다 — 검토 화면이 DB 에서 직접 읽어 미리 보여 준다
   const imgs: { slug: string; name: string; svg: string }[] = rows.length

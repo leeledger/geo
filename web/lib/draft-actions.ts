@@ -58,6 +58,8 @@ export async function publishDraft(form: FormData) {
   const { rows } = await inqPool().query(
     `update academy.posts set published=true, published_at=now(), updated_at=now()
       where slug=$1 and not published and position('![' in body) > 0
+        -- 다른 업체·과거 지점처럼 공식 엔티티를 오염시키는 글은 다시 발행 후보가 될 수 없다
+        and not (coalesce(review_notes, '{}'::jsonb) ? '비공개이유')
         -- 본문이 가리키는 /blog/img 그림이 post_images 에 다 있어야 한다 — 없는 그림 주소로 발행되면 빈 칸이 나간다
         and not exists (select 1 from regexp_matches(body, '/blog/img/([^/)\\s]+)/([a-z0-9-]+)\\.svg', 'g') m
                          where not exists (select 1 from academy.post_images i where i.slug = m[1] and i.name = m[2]))
