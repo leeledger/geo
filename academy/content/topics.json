@@ -17,10 +17,10 @@
   "topics": [
     {
       "id": "ai-sukje",
-      "title": "아이가 AI로 숙제했는데, 그냥 둬도 되나요?",
+      "title": "초등학생한테 챗GPT 쓰게 해도 될까요?",
       "category": "학부모안내",
       "tags": ["AI숙제", "AI교육", "학부모", "초등코딩"],
-      "angle": "막으면 몰래 쓴다. 같이 쓰면서 확인하는 편이 낫다. 혼낼 일이 아니라는 말이 반드시 들어가야 한다.",
+      "angle": "OpenAI 공식 연령 기준을 먼저 밝히고, 만 13세 미만은 어른이 실제 대화를 진행하는 방법을 안내한다.",
       "season": "any",
       "slug": "aiga-sukjereul-haetdamyeon"
     },
@@ -31,7 +31,7 @@
       "tags": ["챗GPT", "AI리터러시", "초등코딩", "AI교육"],
       "angle": "안 된다고만 하면 아무도 안 본다. 언제·무엇을·어떻게 쓰게 할지를 말한다.",
       "season": "any",
-      "slug": null
+      "slug": "aiga-sukjereul-haetdamyeon"
     },
     {
       "id": "suhaeng-ai",

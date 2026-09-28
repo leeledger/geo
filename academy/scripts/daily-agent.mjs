@@ -351,7 +351,9 @@ const main = async () => {
         // 78 = 건너뜀. 이번 주 글이 이미 있거나(주 1편) 글감이 없다 — 고장이 아니다(2026-09-24 원장: 없으면 패스)
         if (!slug && res.code === 78) {
           await 저장({
-            status: "완료", diagnosis: 진단, target_prompt: x.prompt_id, action_kind: "content", target_slug: null,
+            // 주간 한도 때문에 아무 작업도 하지 않은 날은 이 질문을 「진행 중」으로 잠그지 않는다.
+            // 다음 날 실제 기존 콘텐츠 개선이나 다른 질문을 고를 수 있어야 한다.
+            status: "완료", diagnosis: 진단, target_prompt: null, action_kind: null, target_slug: null,
             action: /이번주있음/.test(res.out) ? "이번 주 글이 이미 있어 초안은 쓰지 않았습니다(주 1편)." : "글감이 없어 이번에는 초안을 건너뛰었습니다.",
             evidence: res.out.replace(/\s+/g, " ").slice(-200),
           });
