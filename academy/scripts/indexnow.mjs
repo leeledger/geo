@@ -22,13 +22,18 @@
  */
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { selectClients } from "../clients.mjs";
+
+const ACADEMY_ROOT = fileURLToPath(new URL("../", import.meta.url));
 
 /** 키를 고른다. 이 저장소에 사이트가 있는 곳은 파일에서, 밖에 있는 곳은 설정에서. */
 function keyFor(c) {
   if (c.indexnowKey) return c.indexnowKey;
   if (!c.indexnowKeyFile) return null;
-  const file = path.join(process.cwd(), c.indexnowKeyFile);
+  // GitHub Actions와 heartbeat는 실행 위치가 다르다. cwd 기준이면 저장소 루트에 새 키를 만들고
+  // 운영에 없는 키로 알림을 시도하므로, academy 루트를 기준으로 고정한다.
+  const file = path.join(ACADEMY_ROOT, c.indexnowKeyFile);
   // 키는 한 번 만들면 바꾸지 않는다. 바꾸면 이전 알림의 소유 증명이 끊긴다.
   if (fs.existsSync(file)) return fs.readFileSync(file, "utf8").trim();
   const key = [...crypto.getRandomValues(new Uint8Array(16))]
