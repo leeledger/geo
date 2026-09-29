@@ -1240,3 +1240,4 @@ Known Gaps (26)
 - KG-27-5 schema.sql 의 client_hours 줄은 운영 DB 에 이미 표가 있으면 RLS 만 새로 켠다(앱은 소유자 권한이라 영향 없음)
 - 2026-09-30 Step 27 Richard PASS · Should Fix 반영(Bob): company.mjs client_hours 두 줄 각각 catch(로그만, 루프 계속) · 일반 문장에 받침 조사 도우미 josa(은/는·이/가·을/를·과/와·으로/로, ㄹ 예외 — 학원 문장은 옛 글자 그대로) · 어색한 두 문장 → 「{대상}이 {업종} 고를 때 뭘 봐야 해?」「{업종} 잘 고른 건지 어떻게 알아?」 · 학원 판별에 교실·과외 추가(Arch). 시험 21개 통과, tsc 0
 - KG-27-6 별칭 동시 등록 경합(같은 「고객 X」) 안 막음 — 관리자 1인(Arch)
+- 2026-09-30: Step 27 Richard PASS + Should Fix 4건 반영(ffeec83) · 치과 20문항 조사·말투 Arch 확인 → 배포. 리드 메일은 메일 설정 없음(KG-27-1)
