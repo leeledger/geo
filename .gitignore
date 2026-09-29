@@ -44,3 +44,7 @@ scratch-leads-backup.json
 design/**/*-page.html
 tools/heartbeat.log
 tools/.ai-web-measure.lock
+
+# PC 일꾼 상태·잠금 (tools/pc-runner.mjs)
+tools/.pc-runner-state.json
+tools/.pc-runner.lock
