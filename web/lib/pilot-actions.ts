@@ -31,7 +31,11 @@ export async function createPilot(form:FormData){await guard();
   const slug=String(form.get("slug")??"").toLowerCase().replace(/[^a-z0-9-]/g,"").slice(0,40);
   if(!slug)return;
   const db=await inqPool().connect(); let pilotId="";
-  try{await db.query("begin");
+  try{
+    // 학원·아이로그 같은 내부 고객 slug 로 등록하면 이름 판별이 덮여 「똑똑한 로봇&코딩학원」 제외가 사라진다(Step 25 리뷰). 외부 고객만 새로 만들거나 고친다
+    const same=(await db.query(`select relation from geo.clients where slug=$1`,[slug])).rows[0];
+    if(same&&same.relation!=="외부")return;
+    await db.query("begin");
     await db.query(`alter table geo.clients add column if not exists answer_pattern text`);
     await db.query(`alter table geo.clients add column if not exists measure_active boolean not null default false`);
     const c=(await db.query(`insert into geo.clients(slug,name,domain,alias,schema_name,started_on,note,relation,answer_pattern) values($1,$2,$3,$4,'academy',current_date,'39만원 30일 유료 파일럿','외부',$5) on conflict(slug) do update set name=excluded.name,domain=excluded.domain,answer_pattern=excluded.answer_pattern returning id`,[slug,brand,domain,`${district}의 단일 지점 ${category}`,pattern])).rows[0];

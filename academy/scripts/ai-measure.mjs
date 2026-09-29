@@ -270,6 +270,7 @@ const main = async () => {
   let 성공엔진 = 0;
   let 시도엔진 = 0;
   let 설정실패 = false;
+  let 질문대기 = false;
   const 요약 = [];
 
   /**
@@ -350,8 +351,9 @@ const main = async () => {
       [client.id],
     );
     if (!questions.length) {
-      요약.push(`${머리}승인된 질문이 없습니다`);
-      설정실패 = true;
+      // 질문 승인 전은 고장이 아니라 대기다(Step 25 리뷰). 빨간불을 켜지 않는다 — 승인은 원장 몫이고 화면 측정이 그 고객 일감을 올린다
+      요약.push(`${머리}승인된 질문이 없습니다 — 승인 대기`);
+      질문대기 = true;
       continue;
     }
 
@@ -507,6 +509,8 @@ const main = async () => {
   if (설정실패) {
     // 설정·질문이 없는 고객이 있으면 빨간불 — 다른 고객을 다 쟀어도 한 곳을 못 잰 것은 고장이다
     process.exitCode = 1;
+  } else if (질문대기 && 시도엔진 === 0) {
+    process.exitCode = 78; // 잴 수 있는 고객이 하나도 없다 — 승인 대기뿐이면 「건너뜀」
   } else if (시도엔진 === 0) {
     console.log("측정할 키가 없습니다. LLM_PROXY_URL·ANTHROPIC_API_KEY 중 하나가 필요합니다.");
     process.exitCode = 78;
