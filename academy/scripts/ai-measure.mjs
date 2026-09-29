@@ -19,6 +19,7 @@ import fs from "node:fs";
 import { Pool } from "pg";
 import { 오픈라우터, 재시도, 모델들 } from "./writer-common.mjs";
 import { 클로드코드, 클로드코드있음 } from "./claude-code.mjs";
+import { measureConf } from "../clients.mjs";
 
 for (const l of fs.readFileSync(new URL("../.env.local", import.meta.url), "utf8").split(/\r?\n/)) {
   const m = /^([A-Z_]+)=(.*)$/.exec(l);
@@ -225,10 +226,10 @@ const main = async () => {
   const [client] = await q(`select id, slug, name, domain from geo.clients where slug=$1`, [CLIENT]);
   if (!client) throw new Error(`고객사 없음: ${CLIENT}`);
 
-  // 「똑똑한 로봇&코딩학원」(glcedu.co.kr)은 다른 곳이다. 이름만 보고 세면 남의 노출을 우리 것으로 센다
-  const 이름 = client.slug === "robotncoding"
-    ? /(?<!똑똑한\s?)(로봇\s?(&|&amp;|앤|and)\s?코딩)|robotncoding/i
-    : new RegExp(client.domain.replace(/\./g, "\\."), "i");
+  // 이름 정규식은 academy/clients.mjs 한 곳에 둔다(tools/ai-web-measure.mjs 와 같은 정의). 없으면 지어내지 않고 멈춘다
+  const conf = measureConf(client.slug);
+  if (!conf) throw new Error(`측정 설정 없음: ${client.slug} — academy/clients.mjs 에 answerRe 를 넣어야 잽니다`);
+  const 이름 = conf.answerRe;
 
   const questions = await q(
     `select 'q' || q.position as prompt_id, q.stage, q.text
@@ -366,6 +367,19 @@ const main = async () => {
     if (e.engine === "claude-code-web" && 탐침수 > 0 && !LIMIT && done.size + ok === questions.length) {
       const [표] = await q(`select to_regclass('academy.ai_probe_questions')::text as t`);
       if (!표.t) continue;
+      /**
+       * 측정 몫 안에서만 (Step 23 D4). claude-code.mjs 는 측정을 「오늘 전체 호출 < CLAUDE_DAILY_MAX」로만 막는다.
+       * 측정이 몫(CLAUDE_MEASURE_RESERVE)을 넘겨 쓰면 나머지 일은 자기 몫을 그대로 쓰니 하루 합이 상한을 넘는다.
+       * 승인 20문항이 이미 몫을 다 썼으면 탐침은 건너뛴다. 새 상한은 만들지 않는다 — 있는 몫 값을 그대로 읽는다
+       */
+      const 몫 = /^\d+$/.test(String(process.env.CLAUDE_MEASURE_RESERVE ?? "").trim()) ? Number(process.env.CLAUDE_MEASURE_RESERVE) : 20;
+      const [씀] = await q(`select count(*)::int n from geo.claude_calls where purpose = 'measure'
+        and (at at time zone 'Asia/Seoul')::date = (now() at time zone 'Asia/Seoul')::date`).catch(() => [null]);
+      const 남은몫 = 씀 ? 몫 - 씀.n : 0;   // 못 세면 안 부른다
+      if (남은몫 <= 0) {
+        요약.push(`${e.engine} 탐침: 오늘 측정 몫 ${몫}회를 ${씀 ? `승인 질문이 ${씀.n}회로 다 써서` : "셀 수 없어"} 건너뜀`);
+        continue;
+      }
       await q(`create table if not exists academy.ai_probe_measurements (
         id bigserial primary key, client_id int not null default 1, measured_on date not null,
         collection_method text not null, engine text not null, model text, prompt_id text not null,
@@ -386,7 +400,7 @@ const main = async () => {
           order by m.last_day nulls first, p.id
           limit greatest(0, $4 - (select count(*) from academy.ai_probe_measurements
                                    where client_id=$1 and collection_method=$2 and measured_on=$3::date))`,
-        [client.id, e.method, 오늘, 탐침수]);
+        [client.id, e.method, 오늘, Math.min(탐침수, 남은몫)]);
       let pOk = 0, pHit = 0;
       for (const x of 탐침) {
         // 한 문항이 3분까지 걸린다. 문항마다 본다 — 묶음 앞에서 한 번만 보면 35분에 시작해 42분까지 간다

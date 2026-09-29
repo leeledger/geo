@@ -119,6 +119,27 @@ try {
      group by measured_on, collection_method, engine order by measured_on`, [CLIENT_ID])).rows;
 } catch { /* 이전 배포에서는 표가 없을 수 있다 */ }
 
+/**
+ * 측정 방법과 반복 비율 (Step 23 D3). 위 aiRounds 숫자는 그대로 두고 표시만 더한다.
+ * 곳(collection_method)마다 방법·기간·표본을 적고, 적중은 한 번 나온 것이 아니라 「최근 7일 n번 중 k번」으로 센다.
+ * 비율은 곳별로만 — 방법이 다른 숫자를 한 비율로 합치지 않는다.
+ */
+let 방법들 = [], 칠일 = [];
+try {
+  방법들 = (await pool.query(`
+    select collection_method, max(engine) as engine, count(*)::int n, count(distinct measured_on)::int days,
+           min(measured_on)::text as first, max(measured_on)::text as last,
+           count(*) filter (where raw is not null)::int as kept
+      from academy.ai_measurements where client_id=$1
+     group by collection_method order by collection_method`, [CLIENT_ID])).rows;
+  칠일 = (await pool.query(`
+    select prompt_id, max(stage) as stage, max(prompt_text) as q, collection_method,
+           count(*)::int n, count(*) filter (where mentioned or cited)::int k
+      from academy.ai_measurements
+     where client_id=$1 and measured_on > (now() at time zone 'Asia/Seoul')::date - 7
+     group by prompt_id, collection_method`, [CLIENT_ID])).rows;
+} catch { /* 표가 없으면 이 절을 안 쓴다 */ }
+
 // 검색 노출 — 오늘 상태와, 각 질의가 처음 잡힌 날
 // 하루에 두 번 돌면 같은 질의가 두 줄 들어온다. 질의마다 한 줄, 걸린 쪽을 남긴다.
 const serpRaw = (await pool.query(
@@ -200,6 +221,24 @@ const rivalHit = serp.some((r) => r.hit && r.kind === "경쟁");
 /** 엔진이 셋이다. 전에는 「naver 가 아니면 Bing」이라 통합검색 노출이 Bing 으로 찍혔다. */
 const ENG = { naver: "네이버 웹문서", naver_all: "네이버 통합검색", bing: "Bing" };
 const eng = (e) => ENG[e] ?? e;
+
+/** 곳 이름과 방법 한 줄 (web/lib/asks.ts howOf 와 같은 말) */
+const 곳이름 = (m) => /^chatgpt/.test(m) ? "ChatGPT" : /^perplexity/.test(m) ? "퍼플렉시티" : /^gemini/.test(m) ? "Gemini"
+  : /claude/.test(m) ? "Claude" : /openrouter/.test(m) ? "OpenRouter" : m.replace(/^api-/, "");
+const 방법글 = (m) =>
+  m.endsWith("-web-logged-out") ? "로그아웃 화면 · 한국어(ko-KR) · 하루 1회"
+  : m === "claude-code-headless-websearch" ? "Claude Code(Max) 웹 검색 경유 — claude.ai 화면과 다를 수 있음 · 하루 1회"
+  : m.startsWith("api-") ? "API 경유 — 소비자 화면이 아님"
+  : "손으로 잰 기록";
+const 방법줄 = 방법들.map((r) =>
+  `<b>${esc(곳이름(r.collection_method))}</b> — 방법: ${esc(방법글(r.collection_method))} · 기간 ${day(r.first)}~${day(r.last)} (잰 날 ${r.days}일) · 표본 ${r.n}`);
+const 원문보관 = 방법들.reduce((a, r) => a + r.kept, 0);
+const 표본합 = 방법들.reduce((a, r) => a + r.n, 0);
+const 칠일곳 = [...new Set(칠일.map((r) => r.collection_method))].sort();
+const 칠일질문 = [...new Map(칠일.map((r) => [r.prompt_id, r])).values()]
+  .sort((a, b) => (Number(a.prompt_id.replace(/\D/g, "")) || 0) - (Number(b.prompt_id.replace(/\D/g, "")) || 0));
+const 칸 = (pid, m) => 칠일.find((r) => r.prompt_id === pid && r.collection_method === m);
+const 곳합 = (m) => 칠일.filter((r) => r.collection_method === m).reduce((a, r) => ({ n: a.n + r.n, k: a.k + r.k }), { n: 0, k: 0 });
 
 const out = `<title>${TITLE}</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+KR:wght@400;500;700;800;900&display=swap">
@@ -399,6 +438,19 @@ ${serpFirst.length ? `
     ${aiRounds.length === 1 ? "기준선 한 번뿐이므로 개선률을 말할 수 없습니다." : "측정 방법이 같을 때만 전후를 비교합니다."}
     첫 기준선에서 학원 이름이 나온 답의 출처는 오늘학교·순위닷 같은 학원 목록 사이트였습니다.
     현재 ChatGPT 부분 측정에서는 공식 사이트 직접 링크가 1건 확인됐습니다. 엔진과 표본이 달라 성과 비율로 합치지 않습니다.</p>
+    ${방법줄.length ? `<p><b>곳마다 잰 방법</b><br>${방법줄.join("<br>")}<br>
+    답 원문과 출처 목록은 질문마다 보관합니다 (${표본합}건 중 ${원문보관}건). 나중에 다시 세어 볼 수 있습니다.</p>` : ""}
+  </div>
+  ${칠일곳.length ? `<p class="sub" style="margin-top:14px">최근 7일, 질문마다 곳별로 「물어본 횟수 중 학원 이름이나 사이트가 나온 횟수」입니다. 한 번 나온 것을 적중으로 세지 않습니다. 합계도 곳별로만 냅니다.</p>
+  <div class="tw"><table>
+    <thead><tr><th>질문</th>${칠일곳.map((m) => `<th>${esc(곳이름(m))}</th>`).join("")}</tr></thead>
+    <tbody>${칠일질문.map((x) => `<tr>
+      <td>${esc(x.prompt_id)} · ${esc(x.stage ?? "")}${PRIVATE ? ` · ${esc(x.q)}` : ""}</td>
+      ${칠일곳.map((m) => { const c = 칸(x.prompt_id, m); return `<td class="m">${c ? `${c.n}번 중 ${c.k}번` : "—"}</td>`; }).join("")}</tr>`).join("")}
+      <tr><td><b>곳별 합계</b></td>${칠일곳.map((m) => { const s = 곳합(m); return `<td class="m"><b>${s.n}번 중 ${s.k}번</b></td>`; }).join("")}</tr>
+    </tbody>
+  </table></div>` : ""}
+  <div class="box" style="margin-top:14px">
     <p><b>이 케이스에는 약점이 있습니다.</b> 학원 대표가 곧 이 프로젝트의 의뢰인이라
     사이트를 즉시 고칠 수 있었습니다. 실제 고객사는 도메인 권한·개발팀·결재 라인이 있어
     같은 작업에 몇 주가 걸립니다. <b>다음 고객사에서 시험할 것은 기술이 아니라 리드타임입니다.</b></p>

@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 
 import { isAdmin } from "@/lib/admin-auth";
 import { listClients } from "@/lib/ops";
-import { readAskDays, readAsks, readAskGrid, readProbeGrid, mainMethod, RESULT_TEXT, type AskResult, type AskDay } from "@/lib/asks";
+import { readAskDays, readAsks, readAskGrid, readProbeGrid, readWeekRates, mainMethod, RESULT_TEXT, type AskResult, type AskDay } from "@/lib/asks";
 import AdminNav from "../AdminNav";
 
 /**
@@ -108,16 +108,18 @@ export default async function AsksPage({
   let rows: Awaited<ReturnType<typeof readAsks>> = [];
   let grid: Awaited<ReturnType<typeof readAskGrid>> | null = null;
   let probe: Awaited<ReturnType<typeof readProbeGrid>> = null;
+  let week: Awaited<ReturnType<typeof readWeekRates>> | null = null;
   let day: string | null = null;
   if (client) {
     try {
       days = await readAskDays(client);
       day = days.find((x) => x.day === wantDay)?.day ?? days[0]?.day ?? null;
       const main = mainMethod(days);
-      [rows, grid, probe] = await Promise.all([
+      [rows, grid, probe, week] = await Promise.all([
         day ? readAsks(client, day) : Promise.resolve([]),
         main ? readAskGrid(client, main, 14) : Promise.resolve(null),
         readProbeGrid(client, 14),
+        readWeekRates(client),
       ]);
     } catch (e) {
       console.error("asks", e);
@@ -149,6 +151,27 @@ export default async function AsksPage({
 
         {err && <p className="sub" style={{ color: "var(--crit)" }}>{err}</p>}
         {!err && !days.length && <p className="sub" style={{ marginTop: 16 }}>아직 물어본 기록이 없습니다.</p>}
+
+        {week && week.places.length > 0 && (
+          <div className="ak-sum">
+            <h2>곳마다 잰 방법</h2>
+            <ul>
+              {week.places.map((p) => (
+                <li key={p.method}>
+                  {p.where} — 방법: {p.how}
+                  <span>
+                    기간 {mdShort(p.first)}~{mdShort(p.last)} (잰 날 {p.days}일) · 표본 {p.n}
+                    {p.week.n > 0 && <> · 최근 7일 <b>{p.week.n}번 중 {p.week.k}번</b> 이름이나 링크가 나옴</>}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <p className="ak-key">
+              답 원문과 출처 목록은 질문마다 보관합니다 ({week.places.reduce((a, p) => a + p.n, 0)}건 중 {week.places.reduce((a, p) => a + p.kept, 0)}건).
+              비율은 곳마다 따로 셉니다. 방법이 다르면 합치지 않습니다.
+            </p>
+          </div>
+        )}
 
         {days.length > 0 && (
           <>
@@ -236,6 +259,32 @@ export default async function AsksPage({
                       ))}
                     </tr>
                   ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+
+        {week && week.rows.length > 0 && (
+          <>
+            <h2>질문별 최근 7일 — 몇 번 중 몇 번</h2>
+            <p className="ak-key">한 번 나온 것을 적중으로 세지 않습니다. 곳마다 물어본 횟수 중 학원 이름이나 우리 링크가 나온 횟수입니다.</p>
+            <div className="ak-grid">
+              <table>
+                <thead>
+                  <tr><th>질문</th>{week.places.filter((p) => p.week.n > 0).map((p) => <th key={p.method}>{p.where}</th>)}</tr>
+                </thead>
+                <tbody>
+                  {week.rows.map((r) => (
+                    <tr key={r.promptId}>
+                      <td>{r.question}</td>
+                      {r.cells.map((c, i) => <td key={i}>{c ? `${c.n}번 중 ${c.k}번` : "—"}</td>)}
+                    </tr>
+                  ))}
+                  <tr>
+                    <td><b>곳별 합계</b></td>
+                    {week.places.filter((p) => p.week.n > 0).map((p) => <td key={p.method}><b>{p.week.n}번 중 {p.week.k}번</b></td>)}
+                  </tr>
                 </tbody>
               </table>
             </div>

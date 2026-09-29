@@ -324,6 +324,10 @@ export function judge(role: Role, input: JudgeInput, now: number): AgentRow {
     return row("stuck", `${said(latest)}${d >= 1 ? ` (${d}일 전)` : ""} — ${then}`);
   }
 
+  // PC 무실행 24시간 — 매시 점검(company.mjs PC살핌)이 서버에서 판정해 일감으로 올린 것. 회색이 아니라 늦음이다
+  const pcSilent = tasks.find((t) => t.kind === "pc-silent" && t.status === "사람 대기");
+  if (pcSilent) return row("late", plain(pcSilent.title));
+
   // 지연 — 유예가 지난 정해진 시각 뒤에 기록이 없다. 원장 PC 는 한 번은 회색, 두 번 연속이면 지연
   let pcMiss: string | null = null;
   for (const j of role.jobs) {

@@ -50,6 +50,73 @@ export function whereOf(engine: string, method: string): { where: string; auto: 
   return { where: `${who} (손으로)`, auto: false };
 }
 
+/**
+ * 곳마다 어떻게 쟀나 — 보고서·화면에 그대로 적는 말 (academy/scripts/case-report.mjs 방법글 과 같은 말).
+ * Claude 는 claude.ai 화면이 아니라 Claude Code(Max) 웹 검색을 거친다. 그 차이를 숨기지 않는다
+ */
+export function howOf(method: string): string {
+  if (method.endsWith("-web-logged-out")) return "로그아웃 화면 · 한국어(ko-KR) · 하루 1회";
+  if (method === "claude-code-headless-websearch") return "Claude Code(Max) 웹 검색 경유 — claude.ai 화면과 다를 수 있음 · 하루 1회";
+  if (method.startsWith("api-")) return "API 경유 — 소비자 화면이 아님";
+  return "손으로 잰 기록";
+}
+
+export type WeekPlace = {
+  method: string; where: string; how: string;
+  first: string; last: string; days: number; n: number; kept: number;
+  /** 최근 7일 이 곳 합계 — 물어본 횟수 n 중 이름이나 링크가 나온 k */
+  week: { n: number; k: number };
+};
+export type WeekRates = {
+  places: WeekPlace[];
+  rows: { promptId: string; question: string; cells: ({ n: number; k: number } | null)[] }[];
+};
+
+/**
+ * 반복 비율 (Step 23 D3). 한 번 나온 것을 적중으로 치지 않는다 — 질문×곳마다 「최근 7일 n번 중 k번」.
+ * 합계도 곳별로만. places 는 전체 기간의 방법·기간·표본(원문 보관 수 포함), rows 는 최근 7일.
+ */
+export async function readWeekRates(client: Client): Promise<WeekRates> {
+  const [all, week] = await Promise.all([
+    pool().query(
+      `select collection_method as method, max(engine) as engine, count(*)::int as n,
+              count(distinct measured_on)::int as days, min(measured_on)::text as first, max(measured_on)::text as last,
+              count(*) filter (where raw is not null)::int as kept
+         from academy.ai_measurements where client_id = $1 group by 1 order by 1`, [client.id]),
+    pool().query(
+      `select prompt_id, max(prompt_text) as q, collection_method as method,
+              count(*)::int as n, count(*) filter (where mentioned or cited)::int as k
+         from academy.ai_measurements
+        where client_id = $1 and measured_on > (now() at time zone 'Asia/Seoul')::date - 7
+        group by 1, 3`, [client.id]),
+  ]);
+  const inWeek = new Set(week.rows.map((x) => x.method as string));
+  const places: WeekPlace[] = all.rows.map((x) => {
+    const mine = week.rows.filter((w) => w.method === x.method);
+    return {
+      method: x.method, where: whereOf(x.engine, x.method).where, how: howOf(x.method),
+      first: x.first, last: x.last, days: x.days, n: x.n, kept: x.kept,
+      week: { n: mine.reduce((a, w) => a + w.n, 0), k: mine.reduce((a, w) => a + w.k, 0) },
+    };
+  });
+  const cols = places.filter((p) => inWeek.has(p.method)).map((p) => p.method);
+  const qs = new Map<string, string>();
+  for (const w of week.rows) if (!qs.has(w.prompt_id)) qs.set(w.prompt_id, w.q);
+  const num = (p: string) => Number(p.replace(/\D/g, "")) || 0;
+  return {
+    places,
+    rows: [...qs.entries()]
+      .sort((a, b) => num(a[0]) - num(b[0]) || a[0].localeCompare(b[0]))
+      .map(([promptId, question]) => ({
+        promptId, question,
+        cells: cols.map((m) => {
+          const c = week.rows.find((w) => w.prompt_id === promptId && w.method === m);
+          return c ? { n: c.n, k: c.k } : null;
+        }),
+      })),
+  };
+}
+
 const resultOf = (m: boolean, c: boolean): AskResult => (m && c ? "both" : c ? "cited" : m ? "named" : "none");
 
 export const RESULT_TEXT: Record<AskResult, string> = {

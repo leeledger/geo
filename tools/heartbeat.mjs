@@ -11,6 +11,7 @@
  */
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -40,6 +41,30 @@ if (process.argv.includes("--install")) {
   execFileSync(path.join(process.env.SystemRoot || "C:\\Windows", "System32", "WindowsPowerShell", "v1.0", "powershell.exe"),
     ["-NoProfile", "-Command", ps], { stdio: "inherit" });
   process.exit(0);
+}
+
+/**
+ * PC 가 살아 있다는 표시를 DB 에 남긴다 (Step 23 D2). 매시 점검(company.mjs)이 이걸 보고
+ * 24시간 넘게 조용하면 원장 일감을 올린다 — PC 가 꺼지면 PC 는 스스로 경보를 못 낸다.
+ * 여기가 실패해도 아래 GitHub 깨우기는 그대로 한다
+ */
+try {
+  for (const l of fs.readFileSync(path.join(HERE, "../academy/.env.local"), "utf8").split(/\r?\n/)) {
+    const m = /^([A-Z_]+)=(.*)$/.exec(l);
+    if (m && !process.env[m[1]]) process.env[m[1]] = m[2];
+  }
+  const { default: pg } = await import("pg");
+  const u = new URL(process.env.DATABASE_URL);
+  u.searchParams.delete("sslmode");
+  const c = new pg.Client({ connectionString: u.toString(), ssl: { rejectUnauthorized: process.env.DATABASE_SSL_INSECURE !== "true" } });
+  await c.connect();
+  try {
+    await c.query(`create table if not exists geo.settings (key text primary key, value text not null, updated_at timestamptz not null default now())`);
+    await c.query(`insert into geo.settings (key, value) values ('pc_heartbeat', $1)
+                   on conflict (key) do update set value = excluded.value, updated_at = now()`, [os.hostname()]);
+  } finally { await c.end().catch(() => {}); }
+} catch (e) {
+  기록(`PC 표시 못 남김 ${String(e.message).split("\n")[0].slice(0, 160)}`);
 }
 
 // gh 활성 계정이 codeis8520-ctrl 로 되돌아가는 일이 있다(CLAUDE.md 함정). 그 계정은 이 저장소 권한이 없다 —

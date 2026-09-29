@@ -7,12 +7,16 @@
  * 규칙 (ai-measure.mjs 와 같게 — 다른 방법의 숫자를 한 비율로 합치지 않도록 collection_method 를 따로 적는다)
  *   질문    geo.pilot_questions 승인된 20문항 (Claude 측정과 같은 것)
  *   세션    문항마다 새 브라우저 문맥 = 로그아웃 · 쿠키 없음 · 개인화 없음
- *   언급    학원 이름 정규식(「똑똑한 로봇&코딩학원」은 다른 곳이라 뺀다)
- *   인용    답 영역의 링크 중 robotncoding.com
+ *   고객    --client <slug> (기본 robotncoding). 이름 정규식·도메인은 academy/clients.mjs 한 곳에서 읽는다
+ *           거기 없는 고객은 「측정 설정 없음」, 승인 질문이 없으면 「승인 질문 없음」으로 멈추고 원장 일감을 올린다
+ *   언급    clients.mjs answerRe (학원은 「똑똑한 로봇&코딩학원」을 뺀 이름, 아이로그는 도메인)
+ *   인용    답 영역의 링크 중 그 고객 도메인
+ *   상한    모든 고객을 합쳐 하루 60질의(로그아웃 화면 3곳 × 20문항). 넘으면 그날은 더 묻지 않는다
  *   원문    answer·links 를 raw 에 남긴다 — 나중에 사람이 다시 볼 수 있게
  *
  *   node ai-web-measure.mjs                    세 엔진 × 오늘 안 잰 문항
  *   node ai-web-measure.mjs --engine chatgpt   한 엔진만
+ *   node ai-web-measure.mjs --client ilog      다른 고객 (clients.mjs 슬러그)
  *   node ai-web-measure.mjs --limit 3          문항 수 제한(시험)
  *   node ai-web-measure.mjs --install          작업 스케줄러 「Cited AI Measure」 매일 21:30 (PC 가 꺼져 있었으면 켜질 때)
  *
@@ -24,6 +28,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
+import { measureConf } from "../academy/clients.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const LOCK = path.join(HERE, ".ai-web-measure.lock");
@@ -51,6 +56,9 @@ if (process.argv.includes("--install")) {
 const arg = (n) => { const i = process.argv.indexOf(n); return i >= 0 ? process.argv[i + 1] : null; };
 const ONLY = arg("--engine");
 const LIMIT = Number(arg("--limit")) || 0;
+const SLUG = arg("--client") ?? "robotncoding";
+/** 모든 고객 합계. 로그아웃 소비자 화면은 소량으로만 묻는다(research/pilot-measurement-sop.md) */
+export const 하루상한 = 60;
 
 if (fs.existsSync(LOCK) && Date.now() - fs.statSync(LOCK).mtimeMs >= 3 * 3600 * 1000) fs.rmSync(LOCK, { force: true });
 try { fs.writeFileSync(LOCK, String(process.pid), { flag: "wx" }); } catch { 기록("이미 돌고 있습니다 — 건너뜀"); process.exit(0); }
@@ -68,8 +76,6 @@ const q = async (s, p = []) => {
   try { return (await c.query(s, p)).rows; } finally { await c.end().catch(() => {}); }
 };
 
-const CLIENT = { id: 1, domain: "robotncoding.com" };
-const 이름 = /(?<!똑똑한\s?)(로봇\s?(&|&amp;|앤|and)\s?코딩)|robotncoding/i;
 // 시작한 날로 적는다. 밤늦게 시작해 자정을 넘겨도 한 회차는 한 날짜 — 문항마다 날짜가 갈리면 같은 날끼리 비교가 깨진다
 const 오늘 = new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" });
 
@@ -175,12 +181,47 @@ const ENGINES = {
   },
 };
 
+/**
+ * 못 재는 고객은 멈추고 원장 일감으로 올린다 — 로그에만 남기면 아무도 안 본다.
+ * sticky: 회사 루프의 「신호 사라짐」 닫기에 걸리지 않게. 다음에 제대로 재면 아래에서 닫는다
+ */
+const 멈춤키 = (slug) => [`measure-conf-${slug}`, `measure-questions-${slug}`];
+const 멈추고알림 = async (slug, key, title, detail) => {
+  기록(`${slug}: ${title} — 멈춤`);
+  process.exitCode = 1;
+  await q(
+    `insert into geo.agent_tasks (client_id, agent, kind, dedupe_key, title, detail, status, priority, payload)
+     values (coalesce((select id from geo.clients where slug = $1), 1), 'measure', 'human', $2, $3, $4, '사람 대기', 20, '{"sticky":true}'::jsonb)
+     on conflict (client_id, dedupe_key) do update set status='사람 대기', title=excluded.title, detail=excluded.detail,
+       done_at=null, updated_at=now()`,
+    [slug, key, title, detail]).catch((e) => 기록(`일감 올리기 실패 ${e.message}`));
+};
+
 const main = async () => {
+  const CLIENT = measureConf(SLUG);
+  if (!CLIENT) {
+    await 멈추고알림(SLUG, 멈춤키(SLUG)[0], `AI 화면 측정 설정 없음: ${SLUG}`,
+      "academy/clients.mjs 에 이 고객의 도메인·이름 정규식(answerRe)이 없어 소비자 화면 측정을 못 합니다. 한 덩어리를 넣으면 다음 실행부터 잽니다.");
+    return;
+  }
+  const 이름 = CLIENT.answerRe;
   const questions = await q(
     `select 'q' || q.position as prompt_id, q.stage, q.text
        from geo.pilot_questions q join geo.pilots p on p.id = q.pilot_id
       where p.client_id = $1 and q.approved order by q.position`, [CLIENT.id]);
-  if (!questions.length) { 기록("승인된 질문이 없습니다"); return; }
+  // 질문을 지어내지 않는다. 고객이 승인한 질문 패널이 있어야 잰다
+  if (!questions.length) {
+    await 멈추고알림(SLUG, 멈춤키(SLUG)[1], `AI 화면 측정 승인 질문 없음: ${CLIENT.name}`,
+      "고객이 승인한 질문(geo.pilot_questions)이 없어 소비자 화면 측정을 멈췄습니다. 질문 패널을 받아 승인 표시를 하면 다음 실행부터 잽니다.");
+    return;
+  }
+  await q(`update geo.agent_tasks set status='완료', done_at=now(), updated_at=now()
+            where client_id=$1 and dedupe_key = any($2) and status='사람 대기'`, [CLIENT.id, 멈춤키(SLUG)]).catch(() => {});
+
+  // 하루 상한 — 모든 고객 합계. 막혀서 적재 안 된 시도도 화면에는 간 것이라 이번 실행에서 보낸 수는 따로 센다
+  const [{ n: 오늘보냄 }] = await q(
+    `select count(*)::int n from academy.ai_measurements where measured_on=$1 and collection_method like '%-web-logged-out'`, [오늘]);
+  let 보냄 = 0;
 
   // 화면 밖에 띄운다 — 원장이 PC 를 쓰는 중에 창이 앞을 가리지 않게. 헤드리스는 로그아웃 화면이 막는 경우가 있어 쓰지 않는다
   // 자동화 표시를 숨기는 플래그(--disable-blink-features=AutomationControlled)는 쓰지 않는다 — 남의 소비자 화면에서 그걸 숨기면
@@ -195,8 +236,10 @@ const main = async () => {
         [CLIENT.id, 오늘, e.method])).map((r) => r.prompt_id));
       let todo = questions.filter((x) => !done.has(x.prompt_id));
       if (LIMIT) todo = todo.slice(0, LIMIT);
-      let ok = 0, hit = 0, cite = 0, 연속실패 = 0, 멈춤 = "";
+      let ok = 0, hit = 0, cite = 0, 연속실패 = 0, 멈춤 = "", 상한걸림 = false;
       for (const x of todo) {
+        if (오늘보냄 + 보냄 >= 하루상한) { 상한걸림 = true; break; }
+        보냄++;
         const ctx = await b.newContext({ locale: "ko-KR", timezoneId: "Asia/Seoul", viewport: { width: 1280, height: 900 } });
         const p = await ctx.newPage();
         try {
@@ -230,10 +273,10 @@ const main = async () => {
         }
         await new Promise((res) => setTimeout(res, 4000 + Math.random() * 4000));
       }
-      const 줄 = `${key}: 오늘 ${done.size + ok}/${questions.length} · 이번에 이름 ${hit}/${ok} · 인용 ${cite}/${ok}${멈춤 ? ` · 멈춤(${멈춤})` : ""}`;
+      const 줄 = `${key}: 오늘 ${done.size + ok}/${questions.length} · 이번에 이름 ${hit}/${ok} · 인용 ${cite}/${ok}${멈춤 ? ` · 멈춤(${멈춤})` : ""}${상한걸림 ? ` · 하루 상한 ${하루상한}질의에 닿아 멈춤` : ""}`;
       요약.push(줄);
-      await q(`insert into geo.agent_activity (client_id, agent, action, ok, summary, run_url) values (1,'measure','소비자 화면 AI 측정',$1,$2,'local-agent')`,
-        [!멈춤, 줄]).catch(() => {});   // 멈춘 엔진은 실패로 적는다 — 몇 문항 됐어도 그날 끝까지 못 쟀다
+      await q(`insert into geo.agent_activity (client_id, agent, action, ok, summary, run_url) values ($3,'measure','소비자 화면 AI 측정',$1,$2,'local-agent')`,
+        [!멈춤, 줄, CLIENT.id]).catch(() => {});   // 멈춘 엔진은 실패로 적는다 — 몇 문항 됐어도 그날 끝까지 못 쟀다
     }
   } finally {
     await b.close().catch(() => {});

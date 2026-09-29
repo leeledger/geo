@@ -34,6 +34,7 @@ import { CLIENTS as CLIENT_CONF } from "../clients.mjs";
 import { 오픈라우터, 재시도, 모델들, 공급자들 } from "./writer-common.mjs";
 import { 프로필 } from "./profile.mjs";
 import { PM보고 } from "./pm-report.mjs";
+import { PC무소식, PC무소식글 } from "./pc-silent.mjs";
 
 for (const l of fs.readFileSync(new URL("../.env.local", import.meta.url), "utf8").split(/\r?\n/)) {
   const m = /^([A-Z_]+)=(.*)$/.exec(l);
@@ -326,6 +327,30 @@ const 밀린예약 = async () => {
   if (띄움.length) console.log(`  밀린 예약 대신 띄움: ${띄움.join(", ")}`);
 };
 
+/**
+ * 원장 PC 무실행 경보 (Step 23 D2). 판정은 pc-silent.mjs.
+ * sticky 라 아래 「신호 사라짐」 닫기에 안 걸린다 — PC 가 돌아오면 여기서 직접 닫는다.
+ * 흔적을 못 읽으면 열지도 닫지도 않는다
+ */
+const PC살핌 = async () => {
+  const [흔적] = await q(`select
+      (select updated_at from geo.settings where key = 'pc_heartbeat') as heartbeat,
+      (select max(imported_at) from academy.ai_measurements where collection_method like '%-web-logged-out') as measure,
+      (select max(at) from geo.agent_activity where agent = 'deliver' and action = '로컬 에이전트 출근') as local`).catch(() => [null]);
+  const 판정 = 흔적 ? PC무소식(흔적) : null;
+  if (!판정) { console.log("  ⚠ PC 흔적을 못 읽음 — PC 경보 판정 안 함"); return; }
+  if (판정.조용함) {
+    const 글 = PC무소식글(판정);
+    await 일감({ client_id: HOUSE, agent: "deliver", kind: "pc-silent", key: "pc-silent", priority: 5, status: "사람 대기",
+      title: 글.title, detail: 글.detail, payload: { sticky: true, hours: 판정.시간 } });
+    return;
+  }
+  for (const t of await q(`select id from geo.agent_tasks where client_id=$1 and dedupe_key='pc-silent' and status not in ('완료','닫힘')`, [HOUSE])) {
+    await 상태(t.id, "닫힘", { evidence: `${오늘()} PC 일꾼이 다시 돎 — ${판정.시간}시간 전 마지막 기록` });
+    await 활동(HOUSE, "deliver", "일감 닫음", true, "원장 PC 일꾼이 다시 돕니다", t.id);
+  }
+};
+
 // ─────────────────────────────────────────── 2. 계획
 const 계획 = async (clients, { latest: latestRuns, ok: ghOk }) => {
   const bySlug = Object.fromEntries(clients.map((c) => [c.slug, c]));
@@ -418,6 +443,8 @@ const 계획 = async (clients, { latest: latestRuns, ok: ghOk }) => {
     await 일감({ client_id: HOUSE, agent: "ops", kind: "workflow-failed", key: `wf-${file}`, priority: 5, cooldownH: 1,
       title: `자동 작업 실패: ${file}`, detail: `마지막 실행이 ${run.conclusion} 입니다.`, payload: { file, run_id: run.id, url: run.html_url }, link: run.html_url });
   }
+
+  await PC살핌();
 
   // 신호가 사라진 일감은 닫는다. 발행 후 알리기처럼 신호 없이 만든 일감(sticky)은 손대지 않는다
   const open = await q(`select id, client_id, dedupe_key, title from geo.agent_tasks

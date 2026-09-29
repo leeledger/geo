@@ -26,6 +26,9 @@ export const CLIENTS = [
     // 남의 페이지에 「우리가 올라 있나」는 이름만으로 못 가린다 — 로봇앤코딩학원이 강남·광진·서대문에도 있다.
     // 주소나 전화 끝자리가 같이 있어야 우리다 (who-wins.mjs)
     presenceRe: /석촌동\s*274-8|송파대로37길\s*52|422-?0525|1396-?0525/,
+    // AI 답에 이름이 나왔나 (ai-measure.mjs · tools/ai-web-measure.mjs 가 같이 쓴다).
+    // 「똑똑한 로봇&코딩학원」(glcedu.co.kr)은 다른 곳이다. 이름만 보고 세면 남의 노출을 우리 것으로 센다
+    answerRe: /(?<!똑똑한\s?)(로봇\s?(&|&amp;|앤|and)\s?코딩)|robotncoding/i,
     // 사이트 저장소가 이 저장소 안에 있어 키 파일을 직접 둔다
     indexnowKeyFile: "public/indexnow-key.txt",
     publishes: true,
@@ -54,6 +57,8 @@ export const CLIENTS = [
      * 글자로 세면 남의 노출을 우리 노출로 센다. 도메인으로만 센다.
      */
     brandRe: /ilog\.ai\.kr/i,
+    // AI 답도 같은 이유로 도메인으로만 센다
+    answerRe: /ilog\.ai\.kr/i,
     // 사이트 저장소가 밖에 있다. 키 파일은 전달 파일(deliverables/ilog/public)로 넘긴다
     indexnowKey: "7c1e9a4b2f6d8053a1c4e7b9d2f05a68",
     publishes: false,
@@ -96,3 +101,12 @@ export function selectClients(argv = process.argv) {
 }
 
 export const bySlug = (slug) => CLIENTS.find((x) => x.slug === slug);
+
+/**
+ * AI 답변 측정에 쓸 설정. 없으면 null — 부른 쪽이 「측정 설정 없음」으로 멈추고 일감을 올린다.
+ * 조용히 건너뛰면 아이로그처럼 아무도 모르게 안 잰다(09.10).
+ */
+export const measureConf = (slug) => {
+  const c = bySlug(slug);
+  return c && c.answerRe instanceof RegExp && c.domain ? c : null;
+};
