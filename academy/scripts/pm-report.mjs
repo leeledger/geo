@@ -174,7 +174,7 @@ export async function 보고짓기(q, now = new Date()) {
   const [p] = await q(
     `select count(*) filter (where created_at >= $1)::int 새초안,
             count(*) filter (where published and published_at >= $1)::int 발행,
-            count(*) filter (where not published)::int 검토대기
+            count(*) filter (where not published and not (coalesce(review_notes, '{}'::jsonb) ? '비공개이유'))::int 검토대기
        from academy.posts`, [시작]);
   const 색인 = 활동들.filter((a) => a.ok && (["announce", "crawl-push", "brand-defense", "gsc-submit"].includes(a.kind)
     || ["구글 색인 요청", "빙 주소 제출", "자동 작업 snapshot"].includes(a.action))).length;

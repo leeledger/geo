@@ -53,6 +53,8 @@ const u = new URL(process.env.DATABASE_URL);
 u.searchParams.delete("sslmode");
 const pool = new Pool({ connectionString: u.toString(), ssl: { rejectUnauthorized: process.env.DATABASE_SSL_INSECURE !== "true" } });
 const q = (s, p = []) => pool.query(s, p).then((r) => r.rows);
+/** 내린 글(review_notes.비공개이유)은 미발행이어도 초안이 아니다 — 검토 화면(web/lib/drafts.ts)과 같은 조건 */
+const 내린글아님 = `not (coalesce(review_notes, '{}'::jsonb) ? '비공개이유')`;
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
 
 // code 를 같이 준다 — 78(건너뜀)과 진짜 실패를 가려야 하는 자리가 있다 (weekly-draft)
@@ -362,7 +364,8 @@ const 계획 = async (clients, { latest: latestRuns, ok: ghOk }) => {
   }
 
   // 초안 — 검토 화면에서 읽고 발행할 일
-  for (const p of await q(`select slug, title, client_id from academy.posts where not published order by created_at`)) {
+  // 내린 글(비공개이유)은 초안이 아니다. 검토 화면이 안 보여 주는데 할 일로 띄우면 「초안이 없다」가 된다(2026-09-29)
+  for (const p of await q(`select slug, title, client_id from academy.posts where not published and ${내린글아님} order by created_at`)) {
     await 일감({ client_id: p.client_id, agent: "content", kind: "review", key: `review-${p.slug}`, priority: 15,
       title: `초안 검토: ${p.title}`, detail: "AI 티를 검사하고 다듬은 뒤, 사실 확인·발행을 원장에게 넘깁니다.",
       payload: { slug: p.slug }, link: `${ADMIN}/admin/drafts#${p.slug}` });
@@ -370,7 +373,7 @@ const 계획 = async (clients, { latest: latestRuns, ok: ghOk }) => {
   // 도해 없는 초안 — 도해는 무조건이다(원장 2026-09-22). 붙을 때까지 다시 그리고, 두 번 넘게 못 붙이면 사람에게도 알린다 (Step 12, illustrate.mjs)
   for (const p of await q(`select slug, title, client_id, coalesce((review_notes->'삽화'->>'시도')::int, 0) 시도,
                              review_notes->'삽화'->'버린것' 버린것 from academy.posts
-                            where not published and position('![' in body) = 0 and length(body) >= 600 order by created_at`)) {
+                            where not published and ${내린글아님} and position('![' in body) = 0 and length(body) >= 600 order by created_at`)) {
     await 일감({ client_id: p.client_id, agent: "content", kind: "illustrate", key: `illustrate-${p.slug}`, priority: 16,
       title: `도해 그리기: ${p.title}`, detail: "초안에 도해 2~3장을 그려 붙입니다. 본문에 없는 숫자·다른 고객사 이름·값에 안 맞는 막대가 든 그림은 버립니다.",
       payload: { slug: p.slug }, link: `${ADMIN}/admin/drafts#${p.slug}` });
@@ -542,7 +545,7 @@ const EXEC = {
 
   // ── 콘텐츠
   async "weekly-draft"(t, c) {
-    const [d] = await q(`select count(*)::int n from academy.posts where client_id=$1 and not published`, [c.id]);
+    const [d] = await q(`select count(*)::int n from academy.posts where client_id=$1 and not published and ${내린글아님}`, [c.id]);
     if (d.n > 0) {
       return { status: "사람 대기", evidence: `${오늘()} 검토 대기 초안 ${d.n}편이 있어 새로 쓰지 않음`,
         error: "초안을 사실 확인하고 발행하면 주 1편이 이어집니다", link: `${ADMIN}/admin/drafts` };
@@ -582,7 +585,7 @@ const EXEC = {
     if (!c.conf?.publishes || c.id !== 1) {
       return { status: "관찰", nextTry: 뒤(24 * 30), evidence: `${오늘()} ${c.name} 저장소에서 쓸 주제 — 원장 할 일에서 뺌` };
     }
-    const [d] = await q(`select count(*)::int n from academy.posts where client_id=$1 and not published`, [c.id]);
+    const [d] = await q(`select count(*)::int n from academy.posts where client_id=$1 and not published and ${내린글아님}`, [c.id]);
     if (d.n >= 3) return { status: "대기", nextTry: 뒤(12), evidence: `${오늘()} 검토 대기 초안 ${d.n}편 — 발행이 밀려 미룸` };
     const p = t.payload;
     const r = 실행(["scripts/write-draft.mjs", "--question", p.question, "--stage", p.stage ?? "local", "--sources", (p.sources ?? []).join(",")]);

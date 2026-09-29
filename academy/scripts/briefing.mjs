@@ -48,7 +48,7 @@ line(`\n━━ ${HOME.name} ━━`);
 // ── 발행 ─────────────────────────────────────────
 const [p] = await q(`
   select count(*) filter (where published)::int pub,
-         count(*) filter (where not published)::int draft,
+         count(*) filter (where not published and not (coalesce(review_notes, '{}'::jsonb) ? '비공개이유'))::int draft,
          max(published_at) last
     from academy.posts where client_id = $1`, [HOME.id]);
 const since = p.last ? days(p.last) : 999;

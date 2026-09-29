@@ -1129,3 +1129,6 @@ Decisions made (3차):
   - 2차(Richard 수정 필요 → Arch): 탐침 측정은 academy.ai_probe_measurements 로 따로 넣는다(ai_measurements 에 p* 없음, 영업 숫자 보호). /admin/asks 에 「넓혀 본 질문」 격자(readProbeGrid)를 붙였다.
     stalled 는 오늘-14 기준이고, 근거는 엔진별 전/후 건수다. Brave 캡차·빈 화면은 「확인 불가」로 적고 로컬 대기에 둔다. 출력 모자람이 3번이면 사람 대기. narrow·repeat 표본은 10건 이상, evidence 는 right(). REVIEW-FEEDBACK Should Fix 는 다 반영했다
 - KG-22-4 Brave 「확인 불가」 길에 상한 없음 — 캡차가 계속되면 local-agent 가 돌 때마다 브라우저를 연다(사람에게 안 넘어감). Richard 2차, 막지 않음
+
+- 2026-09-29 17:40: 원장 「읽고 발행하기 → 초안이 없다」. 9/27 에 내린 글(kodinghakweonui-seontaek, review_notes.비공개이유)을 회사 루프가 초안으로 셈 —
+  검토 화면만 비공개이유를 빼고 company.mjs(검토·도해 일감, weekly-draft 막음 판단)·pm-report·briefing·illustrate 는 안 뺐다. 같은 조건으로 맞춤, 일감 742 닫음. 실제 검토 대기 초안 0편

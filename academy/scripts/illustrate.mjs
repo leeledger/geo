@@ -425,7 +425,8 @@ const 대상들 = (slug = null, n = 1) => q(
   `select slug, title, body, client_id, updated_at::text as updated,
     to_char(updated_at at time zone 'Asia/Seoul', 'YYYY-MM-DD HH24:MI') as kst,
     coalesce((review_notes->'삽화'->>'시도')::int, 0) as 시도 from academy.posts
-    where not published and position('![' in body) = 0 and length(body) >= 600 and ($1::text is null or slug = $1)
+    where not published and not (coalesce(review_notes, '{}'::jsonb) ? '비공개이유')
+      and position('![' in body) = 0 and length(body) >= 600 and ($1::text is null or slug = $1)
     order by 시도, created_at limit $2`, [slug, n]);
 
 const 끝냄 = (r) => { console.log(`ILLUSTRATE=${JSON.stringify(r)}`); };
