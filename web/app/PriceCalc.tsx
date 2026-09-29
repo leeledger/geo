@@ -127,6 +127,7 @@ export default function PriceCalc() {
           ))}
         </ul>
         <button type="button" className="lp-total-cta lp-press" onClick={goContact}>이 조건으로 상담 신청</button>
+        <p className="fine">세금계산서 발행 · 부가세 별도</p>
       </div>
     </div>
   );
