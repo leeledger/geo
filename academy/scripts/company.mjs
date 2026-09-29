@@ -383,7 +383,7 @@ const 파일럿업무 = async (읽음) => {
   if (late && 늦은승인) 읽음.add("pilot");
   for (const p of 늦은승인 ?? []) {
     await 일감({ client_id: p.client_id, agent: "deliver", kind: "human", key: `pilot-kickoff-${p.id}`, priority: 12, status: "사람 대기",
-      title: `${p.name} 파일럿 질문 승인이 입금 뒤 ${p.n}일째 안 됐습니다${p.needs_build === "none" ? " — 17일 넘으면 판정할 수 없습니다" : ""}`,
+      title: `${p.name} 파일럿 질문 승인이 입금 뒤 ${p.n}일째 안 됐습니다${p.needs_build === "none" ? " — 17일이 되면 판정할 수 없습니다" : ""}`,
       detail: p.needs_build === "none"
         ? "30일은 입금 확인일부터 셉니다(신청서). 승인이 늦을수록 시작 기준(첫 7일)과 마지막 7일이 가까워지고, 17일이 넘으면 겹쳐서 늘었는지 판정할 수 없습니다. 고객에게 질문 20개 승인을 다시 요청해 주세요."
         : "질문 20개를 승인받아야 기준선(첫 7일)을 잴 수 있습니다. 고객에게 승인을 다시 요청해 주세요.",
