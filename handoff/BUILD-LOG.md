@@ -1188,3 +1188,5 @@ Known Gaps (25)
 - KG-25-4 API 엔진은 몫을 안 나눔(고객마다 다 잼)
 - KG-25-5 몫을 올리면 optimize.yml 50분 제한이 모자랄 수 있음(35분 가드는 탐침만)
 - KG-25-6 ai-measure 쪽 설정·질문 없음은 일감 없이 종료 1 (화면 측정 쪽이 일감을 올림)
+- 2026-09-30: Step 25 BUILT(df3e2d0, 푸시 안 함) — Richard 리뷰 전. Arch 승인: 나누기는 고객 2곳 이상일 때만 · 몫 모자라면 통째로 건너뛰고 일감 · 일감 키 measure-budget-<slug>-claude/-web. 남은 결정: schema.sql 두 줄 먼저 적용할지. KG-25-1~6
+- 다음: Step 25 Richard 리뷰 → 배포 → Step 26(파일럿 생애주기·보고, 경쟁사 점유율 추가) → Step 27. 사용 한도로 여기서 멈춤
