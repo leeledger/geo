@@ -368,9 +368,28 @@ const 파일럿업무 = async (읽음) => {
      where p.status in ('준비', '진행') and p.cancelled_on is null and t.status <> '완료'
        and t.due_on < (now() at time zone 'Asia/Seoul')::date
      order by t.due_on, t.id`).catch((e) => { console.log("  ⚠ 파일럿 업무를 못 읽음", 끝(e.message, 200)); return null; });
-  if (!late) return;
-  읽음.add("pilot");
-  for (const t of late) {
+  /**
+   * 입금 확인일 뒤 7일이 지나도 착수(질문 승인 뒤 첫 측정)가 없으면 원장 할 일로 올린다(Richard 26 2차, Arch).
+   * 30일은 입금 확인일부터라 승인이 17일 넘게 늦으면 기준선 7일과 마지막 7일이 겹쳐 판정할 수 없다.
+   * 착수되면 신호가 사라져 닫힌다. 준비·진행만(리허설·취소 제외)
+   */
+  const 늦은승인 = await q(`select p.id, p.client_id, p.needs_build, c.name,
+        ((now() at time zone 'Asia/Seoul')::date - p.paid_on)::int as n
+      from geo.pilots p join geo.clients c on c.id = p.client_id
+     where p.status in ('준비', '진행') and p.cancelled_on is null and p.kickoff_on is null and p.paid_on is not null
+       and (now() at time zone 'Asia/Seoul')::date - p.paid_on >= 7`)
+    .catch((e) => { console.log("  ⚠ 파일럿 착수 대기를 못 읽음", 끝(e.message, 200)); return null; });
+  // 둘 다 읽었을 때만 「읽음」 — 하나라도 못 읽으면 열린 pilot-* 일감을 신호 사라짐으로 닫지 않는다
+  if (late && 늦은승인) 읽음.add("pilot");
+  for (const p of 늦은승인 ?? []) {
+    await 일감({ client_id: p.client_id, agent: "deliver", kind: "human", key: `pilot-kickoff-${p.id}`, priority: 12, status: "사람 대기",
+      title: `${p.name} 파일럿 질문 승인이 입금 뒤 ${p.n}일째 안 됐습니다${p.needs_build === "none" ? " — 17일 넘으면 판정할 수 없습니다" : ""}`,
+      detail: p.needs_build === "none"
+        ? "30일은 입금 확인일부터 셉니다(신청서). 승인이 늦을수록 시작 기준(첫 7일)과 마지막 7일이 가까워지고, 17일이 넘으면 겹쳐서 늘었는지 판정할 수 없습니다. 고객에게 질문 20개 승인을 다시 요청해 주세요."
+        : "질문 20개를 승인받아야 기준선(첫 7일)을 잴 수 있습니다. 고객에게 승인을 다시 요청해 주세요.",
+      link: `${ADMIN}/admin/pilots/${p.id}` });
+  }
+  for (const t of late ?? []) {
     await 일감({ client_id: t.client_id, agent: "deliver", kind: "human", key: `pilot-${t.pilot_id}-${t.code}`, priority: 15, status: "사람 대기",
       title: `파일럿 기한 지남: ${t.title}`,
       detail: `${t.name} · 기한 ${t.due_on} · 맡은 쪽 ${t.owner}. 끝냈으면 파일럿 화면에서 완료로 바꾸고 근거를 적어 주세요. 고객 몫이면 고객에게 다시 요청합니다.`,

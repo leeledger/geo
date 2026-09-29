@@ -17,7 +17,7 @@ import { 파일럿일정, 착수찾기, kst날짜 } from "../pilot-plan.mjs";
 import { 측정설정 } from "../measure-targets.mjs";
 import {
   곳정보, 곳들, 곳이름, 창, 셈, 몇번, 비율글, 잰날, 브랜드문항, 이름정규식, 경쟁사목록, 점유, 점유칸,
-  곳비교, 판정, 최소잰날,
+  곳비교, 판정, 창겹침, 최소잰날,
 } from "../pilot-report-core.mjs";
 
 for (const l of fs.readFileSync(new URL("../.env.local", import.meta.url), "utf8").split(/\r?\n/)) {
@@ -222,7 +222,8 @@ async function main() {
         count(*) filter (where enrolled)::int enrolled, count(*) filter (where enrolled is null)::int unknown
       from academy.inquiries where client_id = $1 and day between $2 and $3`, [p.cid, 일정.시작, 일정.끝]);
     const 비교들 = 곳들(rows).map((m) => 곳비교(rows, m, b, f));
-    const 결론 = 판정({ 비교들, 문의: inq, 끝났나 });
+    const 겹침 = 창겹침(일정);
+    const 결론 = 판정({ 비교들, 문의: inq, 끝났나, 겹침 });
     const [tasks, audits, content] = await Promise.all([
       q(`select * from geo.pilot_tasks where pilot_id = $1 order by due_on, id`, [p.id]),
       q(`select * from geo.local_audits where pilot_id = $1`, [p.id]),
@@ -247,12 +248,14 @@ async function main() {
     w("|---|---|---|---|");
     for (const x of 비교들) {
       const 판 = !x.약속 ? "계약 밖 방법 — 판정에 안 씀"
+        : 겹침 ? "창 겹침 — 비교 안 함"
         : !x.비교됨 ? `표본 부족 (잰 날 ${x.기준날.잰.length}일 · ${x.끝날.잰.length}일)`
         : `언급 비율 ${x.변화}`;
       w(`| ${곳이름(x.곳)} | ${비율글(x.기준)} | ${비율글(x.끝)} | ${판} |`);
     }
     w();
     w("판정은 언급(답에 이름이 나온) 비율로만 한다. 인용 비율은 참고로 옆에 적었다.");
+    if (겹침) { w(); w(겹침); }
     w();
 
     w("## 질문별 결과");
