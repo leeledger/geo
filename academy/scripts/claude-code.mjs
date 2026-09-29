@@ -33,7 +33,7 @@ const 인증문구 = /Failed to authenticate|Invalid bearer token|API Error: 401
 /**
  * 모든 호출자(측정·초안·분석·감사·수리)가 같은 구독 한도를 쓴다. 한 곳이 폭주하면 원장 Claude 까지 멈춘다.
  * 그래서 호출마다 geo.claude_calls 에 한 줄 남기고, 오늘(KST) 센 수가 상한을 넘으면 부르지 않는다.
- * 측정이 먼저다 — 측정 아닌 호출은 CLAUDE_MEASURE_RESERVE(기본 20) 만큼 남겨 두고 멈춘다 (Step 10, 2026-09-22)
+ * 측정이 먼저다 — 측정 아닌 호출은 CLAUDE_MEASURE_RESERVE(기본 22 — 승인 20문항 + 탐침 2, Step 23 Arch) 만큼 남겨 두고 멈춘다 (Step 10, 2026-09-22)
  * 상한에 걸린 것은 「한도」로 돌려준다. 호출자들은 한도를 실패로 세지 않는다
  */
 // 빈 문자열도 기본값으로 — Actions 는 설정 안 한 변수를 "" 로 넘긴다. Number("") 는 0 이라 상한 0 이 됐다(9/22 첫 dry)
@@ -76,7 +76,7 @@ export async function 클로드코드(prompt, opts = {}) {
     if (!row && opts.capRequired) return 못셈;
     const 상한 = 정수(process.env.CLAUDE_DAILY_MAX, 40);
     const n = purpose === "measure" ? (row?.n ?? 0) : (row?.other ?? 0);
-    const 몫 = purpose === "measure" ? 상한 : 상한 - 정수(process.env.CLAUDE_MEASURE_RESERVE, 20);
+    const 몫 = purpose === "measure" ? 상한 : 상한 - 정수(process.env.CLAUDE_MEASURE_RESERVE, 22);
     if (n >= 몫) return { ok: false, 한도: true, 상한: true, error: `하루 상한 — 오늘 ${n}회 (${purpose} 몫 ${몫})`, text: "", urls: [], 거절: [] };
   }
   const 시작 = Date.now();

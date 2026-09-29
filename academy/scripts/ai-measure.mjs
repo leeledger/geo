@@ -372,7 +372,7 @@ const main = async () => {
        * 측정이 몫(CLAUDE_MEASURE_RESERVE)을 넘겨 쓰면 나머지 일은 자기 몫을 그대로 쓰니 하루 합이 상한을 넘는다.
        * 승인 20문항이 이미 몫을 다 썼으면 탐침은 건너뛴다. 새 상한은 만들지 않는다 — 있는 몫 값을 그대로 읽는다
        */
-      const 몫 = /^\d+$/.test(String(process.env.CLAUDE_MEASURE_RESERVE ?? "").trim()) ? Number(process.env.CLAUDE_MEASURE_RESERVE) : 20;
+      const 몫 = /^\d+$/.test(String(process.env.CLAUDE_MEASURE_RESERVE ?? "").trim()) ? Number(process.env.CLAUDE_MEASURE_RESERVE) : 22;
       const [씀] = await q(`select count(*)::int n from geo.claude_calls where purpose = 'measure'
         and (at at time zone 'Asia/Seoul')::date = (now() at time zone 'Asia/Seoul')::date`).catch(() => [null]);
       const 남은몫 = 씀 ? 몫 - 씀.n : 0;   // 못 세면 안 부른다
