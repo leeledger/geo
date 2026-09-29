@@ -1,4 +1,4 @@
-# Review Feedback — Step 27
+# Review Feedback — Step 28 (D19~D28)
 Date: 2026-09-30
 Ready for Builder: YES
 
@@ -6,21 +6,17 @@ Ready for Builder: YES
 없음.
 
 ## Should Fix
-- web/lib/pilot-intake.ts:27-29 (confidence: 9) — 일반 문장의 조사가 받침을 안 본다. 치과·직장인으로 돌리면 `직장인가 이용할 강남구 치과 고르는 기준 알려줘`가 나온다. 상호가 모음으로 끝나면 `스마일치과은 어떤 곳이야?`도 나온다. 업종 칸에 「식당」을 넣으면 `식당를 이용해도…`가 된다. 원인은 `${audience}가` `${brand}은/을` `${category}를/가` 줄이다. 고치는 법: 작은 조사 도우미를 쓴다(끝 글자 (code-0xAC00)%28 로 받침을 보고 이/가·은/는·을/를). 일반 20문항에만 적용한다. 학원 20문항은 글자 그대로 두기로 했으니 건드리지 않는다. 승인 전에 관리 화면에서 고칠 수 있어서(updateQuestion) 단계를 막지는 않는다. 다만 매번 사람이 고치게 두면 안 된다.
-- web/lib/pilot-intake.ts:28 (confidence: 7) — 사람이 검색창에 안 치는 문장이 둘 있다. `직장인에게 치과가 필요한지 판단하는 법은?`, `치과를 이용해도 만족 못 하는 경우는?`. 카페·식당이면 말이 안 된다. 학원 문장을 틀째 옮긴 흔적이다. 권고: 조사를 덜어 검색어처럼 쓴다. 예시 방향은 「치과 잘하는 곳 고르는 법」「치과 바꾸는 사람들 이유」다. 「오래 운영한 곳」「설명을 잘해주는 곳」「가격이 싼 곳과 비싼 곳 차이」「처음 방문할 때 확인할 것」은 자연스럽다. 금지 목록(빈 강조·흐린 끝맺음·과장 형용사)에 걸리는 것은 없다. 고객 정보도 등록 칸 값만 쓴다. 누출은 없다.
-- academy/scripts/company.mjs:184-189 (confidence: 6, verify this) — `ensure()`에는 catch 가 없다. `main()` 첫 줄에서 await 한다(849행). 그래서 client_hours DDL 이 실패하면 그 시간 회사 루프 전체가 멈춘다(계획·근무·아침 보고). 가장 걸리기 쉬운 줄은 `alter table geo.client_hours enable row level security`다. 이 줄은 표 소유자여야 돈다. 이 표는 지금까지 web 이 첫 입력 때 만들었다. web 과 Actions 의 DATABASE_URL 역할이 다르면 매시 「must be owner」로 죽는다. 소유자는 확인하지 못했다(운영 DB 읽기가 권한에서 거부됨). 매시 ACCESS EXCLUSIVE 잠금도 잡는다. 고치는 법: 두 줄을 `.catch((e) => console.log("  ⚠ client_hours 준비 실패", e.message))`로 감싼다. 관리 화면용 표 때문에 루프가 멈추면 안 된다. 1분짜리다. 바로 고치기를 권한다.
-- web/lib/pilot-actions.ts:43-44 (confidence: 5) — 별칭은 select 한 뒤 insert 한다. 두 건을 동시에 등록하면 같은 「고객 X」가 붙는다. alias 에 유일 제약도 없다. 관리자가 1인이라 실제로 일어날 일은 드물다. 권고: select 앞에 `select pg_advisory_xact_lock(27015)` 한 줄을 넣는다(이미 트랜잭션 안이다). 넣지 않으면 KG 로 남긴다.
+- academy/measure-targets.mjs:96-103 (confidence: 9/10) — env 가 한 칸만 있으면 상한과 측정 몫이 엇갈린다. 직접 돌려 봤다: `측정상한(true, { CLAUDE_DAILY_MAX: "40" })` → `{ claude: 40, reserve: 42 }`. claude-code.mjs:88 `상한 - 한도.reserve` = -2 가 되고, 유료 날에는 초안·수리·감사가 전부 막힌다. 지금은 vars 가 비어 있어 살아 있는 문제는 아니다(REVIEW-REQUEST 확인). 고칠 길은 둘: `reserve = Math.min(reserve, claude)` 로 묶거나, CLAUDE_DAILY_MAX 가 env 에서 왔으면 reserve 기본값을 22 로 둔다. 적어도 BUILD-LOG 에 「vars 는 둘 다 넣는다」를 남긴다.
+- web/app/api/lead/route.ts:64 (confidence: 7/10) — `await sendLeadAlert(...)` 가 폼 응답을 최대 5초 붙잡는다(AbortSignal.timeout(5000)). 한도는 있어서 폼이 멈추지는 않는다. Resend 가 느린 날에는 신청자가 5초를 기다린다. 이 Next 판에서 `after()`(next/server)가 되면 응답 뒤로 넘긴다. 안 되면 지금대로 둔다.
+- research/paid-pilot-order-form.md:51 (confidence: 6/10) — 「(원장 2026-09-30)」은 내부 메모다. 이 절은 입금 전에 고객에게 서면으로 준다. 고객에게 나가는 글에서는 뺀다. 예전 줄의 「(… BUILD-LOG KG)」도 같은 종류였다.
+- web/lib/lead-alert.ts:13 (confidence: 5/10) — 숫자가 1~3자리뿐인 연락처도 「(전화 안 남김)」으로 찍힌다. 남기긴 했는데 짧은 경우다. 문구만 「(연락처 확인 필요)」로 가르면 된다. 사소하다.
 
 ## Escalate to Architect
-- 「고객 A/B…」 순번은 고객 수와 등록 순서를 드러낸다. 「고객 C」가 보이면 적어도 세 곳이 있다는 뜻이다. 누구인지는 드러나지 않는다. 글자에는 지역·업종·규모 정보가 없다. 공개 케이스 리포트에 시작일과 함께 실리면 「첫 외부 고객」까지는 읽힌다. 괜찮은지는 영업 판단이다.
-- 학원 판별이 업종 칸 글자(/학원|교습소|공부방/)에 달려 있다. 「로봇교실」「수학」은 일반 문장과 교육청 점검 없음으로 간다. 칸 안내를 바꿨으니 됐다고 볼지, 칸을 따로 둘지 정해야 한다.
+- D25 env 우선 규칙: 나중에 CLAUDE_DAILY_MAX 만 40 으로 넣으면 유료 날 두 배가 꺼지고, 위 첫 항목대로 다른 일까지 막힌다. 원장에게 「vars 는 둘 다, 아니면 둘 다 비움」을 알릴지 Arch 가 정한다.
 
 ## Cleared
-확인 범위: 커밋 36b30c1 의 D13~D16 과 D12 건너뜀(KG-27-1). 결과:
-- 학원 20문항: HEAD^ 의 makeQuestions 와 deepEqual 이다(수학학원·코딩학원·영어교습소·공부방으로 확인).
-- 출처·칸 분기: 치과이면 교육청이 빠지고 「서비스·대상」이 된다.
-- 별칭: 빈 글자를 채운다. null 이 섞여도 된다.
-- submit-gsc: `--client`·CLIENT_ID 가 없으면 CLIENTS[0] 곧 robotncoding 이다. local-agent 는 CLIENT_ID 를 넘기지 않아 기본값이 그대로다.
-- health: 두 고객 모두 llmsTxt: true 라 동작이 전과 같다.
-- schema.sql 두 곳이 HOURS_DDL 과 같다.
-- web tsc 0, node --check 3개 통과.
+- D25: 학원만 있는 날 40·22·60, 유료 날 60·42·120. 빈/공백 vars 는 없는 값으로 친다. 음수·소수 env 는 기본값으로 간다. `유료측정일` 은 q 가 던지거나 null 이면 false 라 작은 쪽으로 돌고 측정은 안 멈춘다. claude-code.mjs 는 count 가 실패해도 capRequired 규칙을 그대로 지킨다. 세 실행기가 모두 한 함수를 쓴다.
+- D27: 저장이 성공한 뒤에만 보낸다. 키나 받는 주소가 없으면 건너뛴다. 5초 제한이 있고 던지지 않는다. 로그에는 status 나 e.message 만 찍히고 키·연락처는 안 찍힌다. 본문은 이름 첫 글자, 끝 4자리, /admin 링크뿐이고 이메일은 안 싣는다. 허니팟은 그 전에 끊는다.
+- D20: `미\s?소\s?치\s?과` 가 「미소 치과」에는 걸리고 빈칸 둘에는 안 걸린다. 40자 최악 입력이 2ms 라 ReDoS 는 없다. `\s*\s?` 이 붙는 자리도 없다. clients.mjs 는 diff 가 없어 학원 정규식이 그대로다. 경쟁사 정규식도 같은 규칙이다(Arch 승인).
+- D19 파라미터 SQL, D21 대기 종료코드, D22 `오늘 < 착수+60` ↔ SQL `>= kickoff_on + 60` 같은 날, 세 목록을 다 읽었을 때만 pilot 신호. D23 `fail()` 이 try 밖이라 redirect 가 삼켜지지 않고, slug 를 거절한다(Arch 승인). D24 vars 줄.
+- 신청서 30일 환불 절(46-50)은 web/lib/services.ts:63-67 과 글자가 같다. web tsc 0. node --check 8개 통과.

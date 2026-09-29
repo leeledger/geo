@@ -95,11 +95,10 @@ export async function 유료측정일(q, 오늘) {
  */
 export function 측정상한(유료, env = process.env) {
   const 값 = (v) => (/^\d+$/.test(String(v ?? "").trim()) ? Number(String(v).trim()) : null);
-  return {
-    claude: 값(env.CLAUDE_DAILY_MAX) ?? (유료 ? 60 : 40),
-    reserve: 값(env.CLAUDE_MEASURE_RESERVE) ?? (유료 ? 42 : 22),
-    web: 값(env.WEB_MEASURE_DAILY_MAX) ?? (유료 ? 120 : 60),
-  };
+  const claude = 값(env.CLAUDE_DAILY_MAX) ?? (유료 ? 60 : 40);
+  // 측정 몫은 하루 상한을 넘을 수 없다 — 한쪽 vars 만 넣으면 측정 아닌 몫이 음수가 돼 초안·수리·감사가 다 막힌다(Richard 28)
+  const reserve = Math.min(값(env.CLAUDE_MEASURE_RESERVE) ?? (유료 ? 42 : 22), claude);
+  return { claude, reserve, web: 값(env.WEB_MEASURE_DAILY_MAX) ?? (유료 ? 120 : 60) };
 }
 
 /**

@@ -10,7 +10,7 @@
 export function leadAlertBody(lead: { name: string | null; phone: string | null }, adminUrl: string): string {
   const name = lead.name ? `${[...lead.name.trim()][0]}**` : "(이름 안 남김)";
   const digits = String(lead.phone ?? "").replace(/\D/g, "");
-  const phone = digits.length >= 4 ? `끝자리 ${digits.slice(-4)}` : "(전화 안 남김)";
+  const phone = digits.length >= 4 ? `끝자리 ${digits.slice(-4)}` : digits.length ? "(번호가 짧음 — 관리 화면에서 확인)" : "(전화 안 남김)";
   return `새 상담 신청이 들어왔습니다.\n\n이름: ${name}\n연락처: ${phone}\n\n자세한 내용은 관리 화면에서 봅니다: ${adminUrl}`;
 }
 

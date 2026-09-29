@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { saveLead, isEmail } from "@/lib/leads";
 import { sendLeadAlert } from "@/lib/lead-alert";
 
@@ -61,6 +61,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "저장에 실패했습니다. 잠시 후 다시 시도해 주세요." }, { status: 500 });
   }
   // 원장에게 메일 한 통(설정 없으면 건너뜀 · 실패해도 저장은 성공 — lib/lead-alert.ts)
-  await sendLeadAlert({ name: str(body?.name, 60), phone: str(body?.phone, 40) }, `${req.nextUrl.origin}/admin`);
+  // 응답을 먼저 돌려주고 메일은 그 뒤에(Richard 28 — 발송 5초 제한이 폼 응답을 늦추지 않게)
+  after(() => sendLeadAlert({ name: str(body?.name, 60), phone: str(body?.phone, 40) }, `${req.nextUrl.origin}/admin`));
   return NextResponse.json({ ok: true, id });
 }

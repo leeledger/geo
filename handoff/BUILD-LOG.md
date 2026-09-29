@@ -1260,3 +1260,4 @@ Known Gaps (26)
 - D28 SOP 「막히면」에 PC 매일 10시 전후 한 줄
 - 확인: 시험 31개 통과(D25 8 · D27 4 추가), web tsc 0, node --check. DB 쓰기·실측정·메일 발송 없음
 - KG-28-3 Resend 키·받는 주소는 원장 몫(Vercel env 는 파일로 넣고 env pull 로 길이 확인 — CLAUDE.md 함정). 받는 주소가 Resend 계정 주인이 아니면 도메인 인증이 필요하다
+- 2026-09-30: Step 28 Richard PASS + Should Fix 4건 Arch 직접(측정 몫 ≤ 하루 상한 · 신청서 내부 메모 제거 · 메일은 after() 로 응답 뒤 · 짧은 번호 문구) → 배포. RESEND_API_KEY 운영 env 넣음(36자 확인, API 200). LEAD_ALERT_TO 는 원장 주소 대기
