@@ -163,7 +163,7 @@ export default function Growth({ g, err }: { g: G | null; err?: string }) {
       <section className="gr" aria-labelledby="gr-h">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
         <h2 id="gr-h">성과</h2>
-        <p className="sub">어제까지 7일을 그 전 7일과 비교합니다. 문의는 30일.</p>
+        <p className="sub">최근 7일을 그 전 7일과 비교합니다. 문의만 30일 기준입니다.</p>
         <div className="gr-grid">
           {/* 1 AI 답변 */}
           {g.ai === null ? <Card none head="AI 답변 — 확인 못함" />
@@ -171,13 +171,13 @@ export default function Growth({ g, err }: { g: G | null; err?: string }) {
             : (
               <Card
                 head={<>
-                  {engineName(aiTop.engine)}에게 물은 {aiLast.prompts}개 중 <b>{aiLast.mentioned}번</b> 학원 이름이 나왔습니다
-                  <span className="gc-s"> · {aiLast.cited > 0 ? `사이트 인용 ${aiLast.cited}번` : "사이트 인용은 아직 0"}</span>
+                  {engineName(aiTop.engine)}에게 물은 질문 {aiLast.prompts}개 중 <b>{aiLast.mentioned}개</b> 답에 학원 이름이 나왔습니다
+                  <span className="gc-s"> · 우리 사이트 링크 {aiLast.cited}개</span>
                 </>}
                 cmp={aiTop.compare ? <>
-                  {md(aiTop.compare.prevDay)} 같은 질문 {aiTop.compare.common}개: {aiTop.compare.mentioned[0]}번 → {aiTop.compare.mentioned[1]}번{" "}
+                  {aiTop.compare.common !== aiLast.prompts && `두 번 다 물은 질문 ${aiTop.compare.common}개 기준 · `}
+                  지난번({md(aiTop.compare.prevDay)}) {aiTop.compare.mentioned[0]}개 → 이번({md(aiLast.day)}) {aiTop.compare.mentioned[1]}개{" "}
                   <Word d={delta(aiTop.compare.mentioned[1], aiTop.compare.mentioned[0], "up")} />
-                  <span className="gc-d"> · {md(aiLast.day)} 측정</span>
                 </> : <>
                   <span className="gw mut">아직 비교 전</span> — 같은 방법으로 한 번 더 재면 비교됩니다
                   <span className="gc-d"> · {md(aiLast.day)} 측정</span>
@@ -232,7 +232,7 @@ export default function Growth({ g, err }: { g: G | null; err?: string }) {
       <section className="gr gr-card" aria-labelledby="cov-h">
         <h2 id="cov-h">검색 엔진이 읽어 간 우리 글</h2>
         {cov === null ? <p className="gr-empty">확인 못함</p> : <>
-          <p className="d">지금 있는 {cov.total}쪽 중 한 번이라도 읽어 간 쪽 수입니다. 시작한 날부터 셉니다. ChatGPT 검색은 빙을, 구글 AI 답변은 구글을 봅니다.</p>
+          <p className="d">우리 사이트 {cov.total}쪽 가운데 검색 엔진이 한 번이라도 읽어 간 쪽 수입니다. ChatGPT 검색은 빙이 읽은 것을, 구글 AI 답변은 구글이 읽은 것을 씁니다.</p>
           <CoverageChart total={cov.total} series={chartSeries} />
         </>}
       </section>

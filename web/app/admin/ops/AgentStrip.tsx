@@ -44,7 +44,7 @@ const CSS = `
 .ag-st{grid-area:st;display:flex;align-items:center;gap:8px;font-size:14px;color:var(--ink2);white-space:nowrap}
 .ag-nm{grid-area:nm;font-weight:800;white-space:nowrap}
 .ag-main{grid-area:main;min-width:0;color:var(--ink);overflow:hidden;
-  display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;word-break:keep-all;overflow-wrap:anywhere}
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;word-break:keep-all;overflow-wrap:anywhere}
 .ag-ago,.ag-nx,.ag-cnt{font-size:14px;color:var(--ink2);white-space:nowrap}
 .ag-ago{grid-area:ago}.ag-nx{grid-area:nx}.ag-cnt{grid-area:cnt}
 .ag-cnt b{color:var(--crit);font-weight:700}
@@ -146,7 +146,7 @@ export default function AgentStrip({ initial }: { initial: Agents }) {
       </div>
       {c && (
         <p className="ag-claude">
-          오늘 Claude 를 {c.n.toLocaleString("ko-KR")}번 불렀습니다{c.cap !== null && ` · 하루 ${c.cap.toLocaleString("ko-KR")}번까지`}
+          오늘 Claude 사용 {c.n.toLocaleString("ko-KR")}번{c.cap !== null && ` (하루 한도 ${c.cap.toLocaleString("ko-KR")}번)`}
         </p>
       )}
       <ol className="ag-list">
@@ -158,10 +158,10 @@ export default function AgentStrip({ initial }: { initial: Agents }) {
             </span>
             <b className="ag-nm">{r.name}</b>
             <span className="ag-main" title={r.reason ?? r.does}>{r.reason ?? r.does}</span>
-            <span className="ag-ago">{r.last ? `마지막 ${ago(r.last.at, now)}` : "최근 10일 기록 없음"}</span>
+            <span className="ag-ago">{r.last ? `${ago(r.last.at, now)} 실행` : "최근 10일 기록 없음"}</span>
             <span className="ag-nx">{r.next ? `다음 ${r.next}` : "필요할 때"}</span>
             <span className="ag-cnt">
-              오늘 {r.today.ok + r.today.fail}건{r.today.fail > 0 && <> · <b>실패 {r.today.fail}</b></>}
+              오늘 {r.today.ok + r.today.fail}번 실행{r.today.fail > 0 && <> · <b>실패 {r.today.fail}</b></>}
             </span>
           </li>
         ))}

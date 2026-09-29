@@ -12,6 +12,7 @@ import Growth, { GrowthMore } from "./Growth";
 import AgentBoard from "./AgentBoard";
 import Brief from "./Brief";
 import PmReport, { PM_CSS } from "./PmReport";
+import AskLog from "./AskLog";
 
 /** 로그인 뒤 돌아올 자리 */
 const HERE = "/admin/ops";
@@ -55,6 +56,9 @@ const CSS = `
 /* 랜딩 globals.css 의 section·nav·h2 규칙을 이 화면에서 끊는다 */
 :where(.ops) section{padding:0}
 :where(.ops) nav{position:static;z-index:auto;border:0;background:none;backdrop-filter:none}
+:where(.ops) details{border:0;border-radius:0;background:none;overflow:visible;box-shadow:none}
+:where(.ops) summary{padding:0;font-size:inherit;font-weight:inherit;display:list-item}
+:where(.ops) summary::after{content:none}
 .ops h1,.ops h2,.ops h3{max-width:none;color:var(--ink)}
 .ops h1{font-size:24px;font-weight:900;letter-spacing:-.03em;margin:0}
 .ops h2{font-size:21px;font-weight:800;letter-spacing:-.025em;margin:34px 0 4px}
@@ -153,6 +157,7 @@ export default async function OpsPage({
         <div className="ops-top">
           <h1>운영 현황{client && clients.length < 2 ? ` · ${client.name}` : ""}</h1>
           <nav className="ops-links" aria-label="다른 관리 화면">
+            <Link href={`/admin/asks${client ? `?c=${client.slug}` : ""}`}>AI 질문 기록</Link>
             <Link href="/admin/outreach">영업판</Link>
             <Link href="/admin/pilots">파일럿</Link>
             <Link href="/admin/inquiry">상담 기록</Link>
@@ -175,6 +180,7 @@ export default async function OpsPage({
         <Todo company={d.company} unresolved={gr.g?.inquiries ? gr.g.inquiries.unresolved : null} />
         <AgentStrip initial={agents} />
         <Growth g={gr.g} err={gr.err} />
+        <AskLog client={client} />
 
         <details className="ops-more">
           <summary>자세히 (운영자용)</summary>

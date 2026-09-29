@@ -72,24 +72,24 @@ export default function PmReport({ data }: { data: Data }) {
       {(b.AI답변 ?? []).length > 0 && (
         <>
           <table className="pm-ai" aria-label="엔진별 AI 답변">
-            <thead><tr><th>AI</th><th>학원 이름</th><th>사이트 인용</th><th>지난번과</th></tr></thead>
+            <thead><tr><th>물어본 곳</th><th>학원 이름이 나온 답</th><th>우리 링크가 붙은 답</th><th>지난번과</th></tr></thead>
             <tbody>
               {b.AI답변!.map((a) => (
                 <tr key={a.엔진}>
-                  <td><b>{a.엔진}</b> <span className="pm-ai-note">{월일(a.day)}</span></td>
-                  <td className="n">{a.이름}/{a.n}{a.전체 === false && <span className="pm-ai-note"> 일부</span>}</td>
-                  <td className="n">{a.링크없음 ? "—" : `${a.인용}/${a.n}`}</td>
-                  <td>{a.비교 ? `${월일(a.비교.day)} ${a.비교.전이름}→${a.비교.지금이름} · ${a.비교.말}` : "첫 측정"}</td>
+                  <td><b>{a.엔진}</b> <span className="pm-ai-note">{월일(a.day)} 측정</span></td>
+                  <td className="n">{a.n}개 중 {a.이름}개{a.전체 === false && <span className="pm-ai-note"> (일부만 물음)</span>}</td>
+                  <td className="n">{a.링크없음 ? "링크를 안 보여 줌" : `${a.n}개 중 ${a.인용}개`}</td>
+                  <td>{a.비교 ? `${월일(a.비교.day)} ${a.비교.전이름}개 → ${a.비교.지금이름}개 (${a.비교.말})` : "첫 측정"}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-          <p className="pm-ai-note">엔진마다 같은 질문을 하루 한 번 묻습니다. 한 번 잰 값은 흔들려서 3개 이하 차이는 「비슷」으로 봅니다. 인용은 답에 우리 사이트 링크가 붙었는지라 엔진마다 링크를 보여 주는 방식이 달라 엔진끼리 비교하지 않습니다. Gemini 는 링크를 거의 안 보여 「—」. Claude 는 로봇이 묻고, 나머지는 로그아웃 화면입니다.</p>
+          <p className="pm-ai-note">같은 질문을 매일 한 번 묻습니다. 답이 날마다 조금씩 달라서 3개 이하 차이는 「비슷」으로 봅니다. <a href="/admin/asks" style={{ color: "var(--acc)" }}>어떤 질문을 몇 시에 물었는지 보기 →</a></p>
         </>
       )}
-      <p className="pm-meta">원장님 할 일 {b.원장할일}건 · {b.산출물.join(" · ")}</p>
+      {b.산출물.length > 0 && <p className="pm-meta">어제부터 한 일: {b.산출물.join(" · ")}</p>}
       <details className="pm-staff">
-        <summary>직원별 한 줄 · 다음</summary>
+        <summary>담당별로 한 일과 다음 할 일</summary>
         <ul>
           {b.직원.map((s) => (
             <li key={s.id}><b>{s.이름}</b> {s.한일} <span>— {s.지금}</span></li>

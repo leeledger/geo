@@ -128,7 +128,8 @@ export const WORKING_FRESH_MIN = 30;
 /** 엔진 표기 — 문자열 안에 무엇이 들었나로만 가른다. 방법(method) 이름은 쓰지 않는다 */
 export function engineName(s: string): string {
   const t = s.toLowerCase();
-  if (t.includes("claude")) return "Claude";
+  if (t.includes("claude") || t.includes("anthropic")) return "Claude";
+  if (t.includes("openrouter")) return "OpenRouter";
   if (/gpt|openai|chatgpt/.test(t)) return "ChatGPT";
   if (t.includes("perplexity")) return "퍼플렉시티";
   if (t.includes("gemini")) return "Gemini";
@@ -305,7 +306,7 @@ export function judge(role: Role, input: JudgeInput, now: number): AgentRow {
       const text = why ? plain(why.summary.replace(/^수리공 멈춤 — /, "").replace(/\s*\(.*$/, "")) : "";
       return row("off", `멈춰 있습니다 — ${text || "사람이 풀 때까지"}`);
     }
-    if (shown && shown.summary.startsWith("스위치 꺼짐")) return row("off", "꺼 두었습니다. 켜면 코드 문제를 스스로 고칩니다 — 켜는 건 원장님");
+    if (shown && shown.summary.startsWith("스위치 꺼짐")) return row("off", "꺼 둠 · 켜는 건 원장님 결정");
   }
 
   // 막힘 — 가장 최근 활동이 실패. 수리공의 「검토 불합격」은 검토 관문이 제 일을 한 것이라 막힘으로 안 친다
@@ -329,7 +330,7 @@ export function judge(role: Role, input: JudgeInput, now: number): AgentRow {
     if (j.hourly !== undefined) {
       const last = acts.find((a) => matches(j, a));
       if (!last || now - Date.parse(last.at) > HOURLY_SILENT_MIN * 60000) {
-        return row("late", `${이가(j.name)} ${HOURLY_SILENT_MIN / 60}시간 넘게 안 돌았습니다 — 다음 예약(:23·:53)이나 다른 작업이 끝날 때 다시 뜹니다`);
+        return row("late", `${이가(j.name)} ${HOURLY_SILENT_MIN / 60}시간째 안 돌았습니다. 곧 다시 돌립니다`);
       }
       continue;
     }
@@ -338,15 +339,15 @@ export function judge(role: Role, input: JudgeInput, now: number): AgentRow {
     const doneSince = (t: number) => acts.some((a) => matches(j, a) && Date.parse(a.at) >= t);
     if (doneSince(due[0].t)) continue;
     if (j.pc) {
-      if (due[1] && !doneSince(due[1].t)) return row("late", `원장 PC 가 ${due[1].label}·${due[0].label} 두 번 안 켜져 있었습니다 — 네이버 이관·구글 색인 요청이 밀립니다`);
-      pcMiss = `원장 PC 가 ${due[0].label} 에 꺼져 있었습니다 — 다음 시각에 합니다`;
+      if (due[1] && !doneSince(due[1].t)) return row("late", `원장님 PC 가 꺼져 있어 ${due[1].label}·${due[0].label} 작업을 못 했습니다 (네이버 옮기기·구글 색인 밀림)`);
+      pcMiss = `원장님 PC 가 ${due[0].label} 에 꺼져 있었습니다. 다음 시각에 합니다`;
       continue;
     }
     // 매시 점검이 이미 대신 띄웠으면 늦음이 아니라 일하는 중이다 (company.mjs 밀린예약이 「<wf> — …」로 적는다)
     const 대신 = j.wf && (input.catchups ?? []).find((a) => a.ok && a.summary.startsWith(`${j.wf} —`) && Date.parse(a.at) >= due[0].t);
-    if (대신) return row("working", `${due[0].label} ${이가(j.name)} 안 떠서 대신 돌리는 중`);
+    if (대신) return row("working", `${due[0].label} ${이가(j.name)} 예약대로 안 돌아 지금 다시 돌리는 중`);
     return row("late", j.catchup
-      ? `${due[0].label} ${이가(j.name)} 안 돌았습니다 — 매시 점검이 대신 돌립니다`
+      ? `${due[0].label} ${이가(j.name)} 빠졌습니다. 다음 점검 때 다시 돌립니다`
       : `${due[0].label} ${이가(j.name)} 안 돌았습니다`);
   }
 
@@ -356,7 +357,7 @@ export function judge(role: Role, input: JudgeInput, now: number): AgentRow {
 
   // 원장님 차례 — 이 직원 일감 중 사람이 해야 넘어가는 것
   const human = tasks.filter((t) => t.status === "사람 대기").length;
-  if (human) return row("wait", `원장님 확인 ${human}건을 기다립니다`);
+  if (human) return row("wait", `원장님 확인 ${human}건 기다리는 중`);
 
   if (pcMiss) return row("pcoff", pcMiss);
 

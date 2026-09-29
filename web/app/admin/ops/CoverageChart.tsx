@@ -62,12 +62,11 @@ export default function CoverageChart({ total, series }: { total: number; series
     if (g && e.y - g[g.length - 1].y < MERGE) g.push(e);
     else groups.push([e]);
   }
-  const endLabels = groups.map((g) => {
-    const same = g.every((e) => e.v === g[0].v);
-    return {
-      y: g.reduce((s, e) => s + e.y, 0) / g.length,
-      text: same ? `${g.map((e) => e.label).join("·")} ${g[0].v}` : g.map((e) => `${e.label} ${e.v}`).join(" · "),
-    };
+  // 값이 같으면 「구글·네이버 50」 한 줄, 다르면 한 줄에 하나씩 세로로 쌓는다 — 한 줄로 이으면 오른쪽 여백을 넘어 잘린다
+  const endLabels = groups.flatMap((g) => {
+    const mid = g.reduce((s, e) => s + e.y, 0) / g.length;
+    if (g.every((e) => e.v === g[0].v)) return [{ y: mid, text: `${g.map((e) => e.label).join("·")} ${g[0].v}` }];
+    return g.map((e, k) => ({ y: mid + (k - (g.length - 1) / 2) * 16, text: `${e.label} ${e.v}` }));
   });
 
   const pick = (clientX: number, el: Element) => {
