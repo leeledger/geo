@@ -1132,3 +1132,33 @@ Decisions made (3차):
 
 - 2026-09-29 17:40: 원장 「읽고 발행하기 → 초안이 없다」. 9/27 에 내린 글(kodinghakweonui-seontaek, review_notes.비공개이유)을 회사 루프가 초안으로 셈 —
   검토 화면만 비공개이유를 빼고 company.mjs(검토·도해 일감, weekly-draft 막음 판단)·pm-report·briefing·illustrate 는 안 뺐다. 같은 조건으로 맞춤, 일감 742 닫음. 실제 검토 대기 초안 0편
+
+### Step 23·24 — 첫 고객 전 9가지 (다른 세션 역량 검토 반영) — BUILDING (2026-09-29)
+출처: C:\dev\AGI_AGENT\reports\사이티드 GEO 역량 검토.md (판정 「조건부 예」)
+- 원장 결정: ① 상품은 30일 파일럿 하나 ② Max 구독 유지(에이전트 작업용) ③ llms.txt 유료·진단 점수에서 빼고 무료 부수 작업 ④ 고객별 투입 시간 기록 + 환불안(착수 전 전액 · 기준선 보고 전 50% · 뒤 없음)
+- 원장 정정: 로그아웃 소비자 화면 측정은 주 지표로 유지 — 반복 비율·방법 기록·원문 보관·소량·우회 금지. 약관 위험은 소량으로 알고 받아들인 위험. Claude 측정은 「Claude Code(Max) 경유」 표기, 측정 몫 상한 유지
+- Step 23(main, 통과 즉시 배포): 고객 1번 하드코딩 제거 · PC 무실행 24시간 경보(서버 감시) · 방법·비율 표기 · 투입 시간 표 · 파일럿 내부 문서
+- Step 24(브랜치 step24-copy, 원장 미리보기 승인 뒤 병합): 랜딩 상품 하나로 · 측정 약속 · llms.txt 점수 제외 · KG-S17-1 숫자 · 문구 수정 8줄
+
+#### Step 23 — BUILT (커밋 8051c3e, main, 푸시·배포 안 함) · Richard 검토 대기 · 상태 DONE
+- D1 clients.mjs `answerRe`·`measureConf()` 한 곳. ai-web-measure `--client`(기본 robotncoding), 설정 없음·승인 질문 없음이면 멈추고 sticky 사람 대기 일감(`measure-conf-<slug>`·`measure-questions-<slug>`), 제대로 재면 닫음. ai-measure 도 같은 정규식. 아이로그는 승인 질문 0개 → 「승인 질문 없음」으로 멈춤(pc-runner 일정엔 안 넣음)
+- D1 부수: 로그아웃 화면 하루 60질의 상한을 코드로(모든 고객 합계) — --client 가 생겨 SOP 의 60 이 거짓이 될 수 있어서. 판단 필요 표시
+- D2 heartbeat.mjs 가 geo.settings `pc_heartbeat` 갱신 → company.mjs PC살핌(pc-silent.mjs 순수 판정) 24시간 넘으면 `pc-silent` 사람 대기(sticky), 돌아오면 닫음. 현황판 유통 줄 「늦음」
+- D3 case-report·/admin/asks 에 곳별 방법·기간·표본·원문 보관, 질문×곳 최근 7일 n번 중 k번(표시만, 기존 숫자 식 그대로)
+- D4 탐침은 오늘 measure 호출이 CLAUDE_MEASURE_RESERVE(20) 안일 때만. 기본값에선 승인 20문항이 몫을 다 써서 탐침이 늘 건너뛰어짐 — Arch 판단
+- D5 geo.client_hours(첫 입력 때 create if not exists) · /admin/pilots 입력칸·누적
+- D6 research 두 문서 개정. research/ 는 web/ 밖이라 서빙 안 됨(웹 코드에서 참조도 없음)
+
+#### Step 24 — BUILT (커밋 5dacf06, 브랜치 step24-copy, 병합·푸시 안 함) · 원장 미리보기·Richard 대기 · 상태 DONE_WITH_CONCERNS(화면 확인 안 함, tsc 만)
+- PILOT 한 덩어리(services.ts) = 신청서 글자 그대로(대조 스크립트 12문장 0 어긋남). 요금 계산기 → 파일럿 카드, 진행 두 달 → 30일
+- 진단 점수 llms.txt 제외(남은 가중치 합 93 으로 나눔), 참고 줄로만 표시. 랜딩 사례 게이지에 「채점 기준 바뀜(2026-09-29)」
+- 28%(Jaccard 72.2% 나머지, 3문항 쌍)·다섯에 하나(자사 인용 18.3%) 근거 찾음 → 「표본 작음」 붙여 남김. P_HAT 0.62 근거 없음 → Interval 위젯 삭제
+- 환불 문구는 「전액 환불」 대신 「390,000원 모두 돌려드립니다」 — D11 grep 과 원장 ④ 를 같이 만족시키려고
+
+Known Gaps (23·24)
+- KG-23-1 pilot-actions.ts createPilot 업무 목록이 옛 약속(ChatGPT Search·Google·네이버 기준선 2회씩)이다 — 새 SOP 와 안 맞음
+- KG-23-2 probe/src/scan.js(rescan → geo.clients.current_score)는 아직 llms.txt 가중치 7 — 공개 진단과 내부 점수 기준이 갈림. 맞추면 아이로그 44→84 같은 내부 비교에 「채점 기준 바뀜」 표기 필요
+- KG-23-3 /admin/outreach 영업 문구가 「3곳만 39만원 · 두 번 기준 측정」 — 옛 상품 (영업 멈춤 중이라 안 고침)
+- KG-23-4 web/public/case/academy.html 은 case-report 새 절(방법·7일 비율)을 반영해 다시 굽지 않았다 — 공개본 생성은 원장 결정
+- KG-23-5 main 의 research/paid-pilot-order-form.md 환불 줄은 「전액 환불」, 브랜치는 「모두 돌려드립니다」 — 병합하면 맞춰짐
+- Arch 반영(리뷰 전): main be97bd1 측정 몫 기본 22(탐침 2 포함, 상한 40 그대로, 나머지 일 몫 18) · step24-copy 77fcbe6 28%·「다섯에 하나」 공개 문구 삭제. 나머지 판단(P_HAT 삭제·12×15 정정·60 합계·환불 문구·기준선 7일) 승인
