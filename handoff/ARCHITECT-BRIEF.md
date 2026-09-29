@@ -47,3 +47,10 @@
 - DB 시각 KST. 새 숫자 지어내기 금지. 학원 영업 숫자(케이스 리포트·현황판) 계산식 불변.
 - 확인은 dry-run·가짜 행·tsc(`node ./node_modules/typescript/bin/tsc --noEmit`). 실측정·DB 쓰기 실행 금지(스키마 변경은 코드의 if not exists 로만).
 - 설계서 밖은 KG.
+
+## Step 26 추가 (Arch, 2026-09-30)
+
+- **D18 경쟁사 점유율(보고서 안).** 지오랭크는 경쟁사 3~5곳 점유율·언급 순위를 보고한다(research/georank-dossier.md §3·4). 우리만 없다.
+  새로 묻지 않는다 — 이미 보관한 답 원문(ai_measurements.raw.answer)에서 센다. `geo.pilots` 에 `competitors text`(쉼표로 이름, 등록 화면에서 받음, escape).
+  기준선·최종 보고에 질문×곳별로 「우리 n번 중 k번 · 경쟁사 A n번 중 k번 …」와 답 안에서 처음 나온 순서(평균이 아니라 분포: 첫째 x번, 둘째 y번). 곳끼리 합치지 않는다. 가중치·점수(GVI 같은)는 만들지 않는다.
+  학원(리허설 파일럿)은 경쟁사 이름을 원장이 넣기 전까지 칸을 비우고 절을 「경쟁사 미설정」으로.
