@@ -452,7 +452,7 @@ export default async function Home() {
             <div className="lp-lab">서비스</div>
             <h2 className="lp-h2">처음부터 <span className="hl">전부 맡기실 필요는</span> 없습니다</h2>
             <p className="lp-sub">
-              시작은 30일 파일럿 하나입니다. 측정이 그 중심입니다. 아래 나머지는 파일럿 뒤 선택이고, 파일럿을 끝낸 곳에만 안내합니다.
+              모두 30일 파일럿으로 시작합니다. 홈페이지가 없거나 AI 가 못 읽는 곳만 구축·기술 세팅을 한 번 더합니다. 월 구독은 파일럿을 끝낸 곳에만 안내합니다.
               이미 쓸 만한 홈페이지가 있다면 새로 만들 필요도 없습니다.
             </p>
             <div className="lp-svcs">
@@ -479,10 +479,10 @@ export default async function Home() {
         <section id="price" className="lp-sec lp-ground lp-sec-price">
           <div className="wrap">
             <div className="lp-lab">요금</div>
-            <h2 className="lp-h2">30일 파일럿<br /><span className="hl">하나로 시작합니다</span></h2>
+            <h2 className="lp-h2">우리 회사 조건으로<br /><span className="hl">바로 계산해 보세요</span></h2>
             <p className="lp-sub">
-              값은 {PILOT.price} 하나입니다. 30일 동안 할 일과 중간에 그만두실 때 돌려드리는 돈을 여기 그대로 적었습니다.
-              같은 내용을 입금 전에 서면으로 드립니다.
+              필요한 준비는 한 번이면 끝나서 따로 적었습니다. 30일 파일럿은 모두 같습니다. 월 구독은 파일럿 뒤에 정합니다.
+              파일럿 환불 기준은 입금 전에 서면으로 드립니다.
             </p>
             <PriceCalc />
             <p className="lp-pcompare">
