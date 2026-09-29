@@ -1190,3 +1190,21 @@ Known Gaps (25)
 - KG-25-6 ai-measure 쪽 설정·질문 없음은 일감 없이 종료 1 (화면 측정 쪽이 일감을 올림)
 - 2026-09-30: Step 25 BUILT(df3e2d0, 푸시 안 함) — Richard 리뷰 전. Arch 승인: 나누기는 고객 2곳 이상일 때만 · 몫 모자라면 통째로 건너뛰고 일감 · 일감 키 measure-budget-<slug>-claude/-web. 남은 결정: schema.sql 두 줄 먼저 적용할지. KG-25-1~6
 - 다음: Step 25 Richard 리뷰 → 배포 → Step 26(파일럿 생애주기·보고, 경쟁사 점유율 추가) → Step 27. 사용 한도로 여기서 멈춤
+
+### Step 26 — 파일럿 생애주기와 보고 (D5~D11 + D18 경쟁사) — BUILT · Richard 대기 (2026-09-30, Bob)
+- 새 파일: academy/pilot-plan.mjs(날짜 순수 함수 · 칸 준비 · 날짜 맞추기) · academy/pilot-report-core.mjs(보고서 셈 순수 함수) · web/lib/pilot-plan.ts(기본 업무 · 칸 · 환불 안내) · web/lib/manual-checks.ts · web/app/api/pilots/[id]/checks(POST 손 확인)·[cid](GET 캡처)
+- pilot-report.mjs 다시 씀: `--stage baseline|final --client <slug> [--dry]`. 파일은 deliverables/<slug>/pilot-reports/ (.gitignore 추가)
+- 결정(Bob, Arch 확인 요청):
+  - 착수일은 승인 KST 날짜 이후 첫 측정일(q1~q20). company.mjs 가 매시 채운다. 채운 뒤에는 안 바꾼다. 시작·종료·업무 기한도 company.mjs 한 곳에서만 센다
+  - 구축·세팅은 연 날이 없으면 임시 끝을 착수+29 로 둔다. measure-targets 는 「구축 대기」를 진행 중으로 본다. 진행 시작은 kickoff_on(없으면 started_on)이다. 취소하면 안 잰다(KG-25-2 해소)
+  - 업무 기한은 pilot_tasks.anchor(등록|착수|시작|끝)+offset_days 로 둔다. anchor 가 없는 옛 업무(학원 리허설)는 안 건드린다
+  - 기한 지남 일감은 status 준비·진행만 올린다. 리허설은 뺀다(학원 리허설 업무 7건이 한꺼번에 뜨는 걸 막으려고)
+  - 판정: 약속한 네 곳만 비교한다. 두 창 다 4일 이상 잰 곳만 비교하고, 못 미치면 표본 부족이다. 언급·인용 중 하나라도 늘면 「늘었다」, 한 곳이라도 늘면 성공이다. SOP 보류 조건과 「30일이 안 끝남」이면 보류
+  - 캡처 업로드는 서버 동작(본문 1MB)이 아니라 경로 처리기로 받는다. 관리자 쿠키(lax)와 같은 출처일 때만 받고, 형식은 머리 바이트로 가린다
+  - createPilot 의 시작일을 KST 로 바꿨다(KG-25-1 해소)
+- 확인: 순수 함수 시험 14개 통과(KST 경계 · 구축 없음/세팅/구축 · 날짜 맞추기를 가짜 q 로 · 대상 목록 · 점유 · 판정). 학원 baseline/final --dry 는 실제 DB 를 읽기만 했다. web tsc 0, next build 통과
+Known Gaps (26)
+- KG-26-1 학원 리허설 파일럿은 승인 시각이 없다. 착수는 보고서가 추정한다(9/17, openrouter 첫 측정). 화면에는 「착수 전」으로 뜬다
+- KG-26-2 새 칸이 DB 에 없으면 측정 실행기의 select 가 실패한다. 배포 전에 schema.sql 을 먼저 적용해야 한다(실행기가 ALTER 도 시도는 한다)
+- KG-26-3 approveQuestions 뒤 질문을 고치면(updateQuestion) 승인 시각·착수일은 처음 값 그대로다
+- KG-26-4 손 확인 캡처는 지우는 화면이 없다(잘못 올리면 DB 에서 지워야 함)

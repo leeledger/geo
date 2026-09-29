@@ -35,6 +35,7 @@ import { 오픈라우터, 재시도, 모델들, 공급자들 } from "./writer-co
 import { 프로필 } from "./profile.mjs";
 import { PM보고 } from "./pm-report.mjs";
 import { PC무소식, PC무소식글 } from "./pc-silent.mjs";
+import { 파일럿칸준비, 파일럿날짜맞추기 } from "../pilot-plan.mjs";
 
 for (const l of fs.readFileSync(new URL("../.env.local", import.meta.url), "utf8").split(/\r?\n/)) {
   const m = /^([A-Z_]+)=(.*)$/.exec(l);
@@ -351,6 +352,32 @@ const PC살핌 = async () => {
   }
 };
 
+/**
+ * 30일 파일럿 (Step 26 D5·D10).
+ * 착수일·기간·업무 기한을 맞추고(academy/pilot-plan.mjs), 기한이 지난 안 끝난 업무를 원장 「사람 대기」로 올린다.
+ * 키는 pilot-<파일럿>-<업무> — 완료로 바꾸면 신호가 사라져 닫힌다. 진행 중(준비·진행) 파일럿만. 리허설·취소는 안 올린다.
+ * 칸 준비·날짜 맞추기가 실패해도 기한 확인은 한다. 기한을 못 읽으면 「읽음」을 안 붙여 열린 일감을 닫지 않는다
+ */
+const 파일럿업무 = async (읽음) => {
+  await 파일럿칸준비(q).catch((e) => console.log("  ⚠ 파일럿 칸 준비 실패", 끝(e.message, 200)));
+  await 파일럿날짜맞추기(q)
+    .then((바뀜) => { for (const x of 바뀜) console.log(`  파일럿 날짜: ${x}`); })
+    .catch((e) => console.log("  ⚠ 파일럿 날짜를 못 맞춤", 끝(e.message, 200)));
+  const late = await q(`select t.code, t.title, t.owner, t.due_on::text as due_on, p.id as pilot_id, p.client_id, c.name
+      from geo.pilot_tasks t join geo.pilots p on p.id = t.pilot_id join geo.clients c on c.id = p.client_id
+     where p.status in ('준비', '진행') and p.cancelled_on is null and t.status <> '완료'
+       and t.due_on < (now() at time zone 'Asia/Seoul')::date
+     order by t.due_on, t.id`).catch((e) => { console.log("  ⚠ 파일럿 업무를 못 읽음", 끝(e.message, 200)); return null; });
+  if (!late) return;
+  읽음.add("pilot");
+  for (const t of late) {
+    await 일감({ client_id: t.client_id, agent: "deliver", kind: "human", key: `pilot-${t.pilot_id}-${t.code}`, priority: 15, status: "사람 대기",
+      title: `파일럿 기한 지남: ${t.title}`,
+      detail: `${t.name} · 기한 ${t.due_on} · 맡은 쪽 ${t.owner}. 끝냈으면 파일럿 화면에서 완료로 바꾸고 근거를 적어 주세요. 고객 몫이면 고객에게 다시 요청합니다.`,
+      link: `${ADMIN}/admin/pilots/${t.pilot_id}` });
+  }
+};
+
 // ─────────────────────────────────────────── 2. 계획
 const 계획 = async (clients, { latest: latestRuns, ok: ghOk }) => {
   const bySlug = Object.fromEntries(clients.map((c) => [c.slug, c]));
@@ -445,6 +472,7 @@ const 계획 = async (clients, { latest: latestRuns, ok: ghOk }) => {
   }
 
   await PC살핌();
+  await 파일럿업무(읽음);
 
   // 신호가 사라진 일감은 닫는다. 발행 후 알리기처럼 신호 없이 만든 일감(sticky)은 손대지 않는다
   const open = await q(`select id, client_id, dedupe_key, title from geo.agent_tasks
@@ -454,6 +482,7 @@ const 계획 = async (clients, { latest: latestRuns, ok: ghOk }) => {
                 when dedupe_key in ('inquiry-result', 'lead-new') then 'db'
                 when dedupe_key = 'material-need' then 'material'
                 when dedupe_key like 'login-%' then 'local'
+                when dedupe_key like 'pilot-%' then 'pilot'
                 else 'scout' end) = any($1)`, [[...읽음]]);
   for (const t of open) {
     if (본키.has(`${t.client_id}:${t.dedupe_key}`)) continue;

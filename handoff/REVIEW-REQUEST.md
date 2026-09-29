@@ -1,75 +1,111 @@
-# Review Request — Step 25 (여러 고객 측정 · D1~D4 + D17 토큰 기록)
+# Review Request — Step 26 (파일럿 생애주기와 보고 · D5~D11 + D18 경쟁사)
 Date: 2026-09-30
 Ready for Review: YES
-Status: DONE — 가짜 행·가짜 DB 로 확인. 실측정·DB 쓰기·푸시·배포 안 함
+Status: DONE — 순수 함수 시험 14개 · 학원 리허설 파일럿으로 baseline/final --dry(실제 DB 읽기만) · web tsc 0 · next build 통과. 실측정·DB 쓰기·푸시·배포 안 함
 
 ## Files Changed
-- academy/measure-targets.mjs (새 파일, 1-106) — 대상 목록. `측정설정준비`(컬럼 2개 add if not exists + 덩어리 정규식 원문으로 빈 answer_pattern 채움) · `측정설정`(DB 원문 먼저, 없으면 clients.mjs) · `대상고르기`(순수 함수: 유료 → 학원 → 측정 켠 고객) · `측정대상`(DB 읽기, --client 면 하나) · `예산부족알림/닫기`
-- academy/clients.mjs:105-109 — 안 쓰게 된 `measureConf` 삭제, DB 가 먼저라는 설명으로 대체
-- academy/scripts/ai-measure.mjs:15-33, 226-507 — 대상 목록을 돈다. 고객마다 기존 엔진 루프 그대로(들여쓰기만 한 칸). Claude 몫 나눔(고객 둘 이상일 때만), 탐침은 학원 승인 질문 바로 뒤·유료 고객 있는 날 끔, 설정 없는 고객은 그 고객만 멈추고 끝에 종료코드 1
-- tools/ai-web-measure.mjs:10-20, 32, 60-70, 188-314 — 같은 대상 목록. 상한 `WEB_MEASURE_DAILY_MAX`(기본 60). 고객 둘 이상이면 엔진 단위로 남은 상한 확인, 모자라면 사람 일감. `멈추고알림`의 `coalesce(…,1)` 제거
-- web/lib/answer-pattern.ts (새 파일, 1-16) — 쉼표 말 → escape 한 정규식 원문
-- web/lib/pilot-actions.ts:7, 28-30, 35-37 — createPilot 이 `answer_terms` 를 받아(필수) answer_pattern 저장, 컬럼 add if not exists
-- web/app/admin/pilots/page.tsx:46-49 — 등록 폼에 「답에서 찾을 이름」 칸 (관리 화면만, 공개 문구 아님)
-- web/db/schema.sql:88-90 — 두 컬럼 alter
-- .github/workflows/optimize.yml:54-56, 83-84 — 측정·루프 단계에 `vars.CLAUDE_MEASURE_RESERVE`·`vars.CLAUDE_DAILY_MAX` 전달(비면 기본 22·40)
-- academy/scripts/claude-code.mjs:16-17, 57-66, 92-100, 106-128, 176, 188, 212 — D17 토큰 칸 5개 add if not exists, result 줄에서 읽어 기록
-- web/lib/agents.ts:43-49, 435-447 — 오늘 토큰 합(기록된 호출만) 읽기
-- web/app/admin/ops/AgentStrip.tsx:85-91, 158-161 — 「오늘 Claude 사용 n번 · 토큰 입력 12만 · 출력 1.5만 (토큰이 기록된 k번 기준)」
+- academy/pilot-plan.mjs (새 파일, 1-132) — 날짜 순수 함수(`kst날짜`·`착수찾기`·`파일럿일정`·`기간칸`·`기준날짜`), `파일럿날짜맞추기`(착수일 채움 → started_on·ends_on → anchor 업무 기한), `파일럿칸준비`(Step 26 칸 if not exists)
+- academy/pilot-report-core.mjs (새 파일, 1-140) — 보고서 셈 순수 함수: 곳 정보(SOP 네 곳 방법 표기), 창·셈·잰 날/빠진 날, 경쟁사 이름 정규식(escape), 처음 나온 순서·점유, `곳비교`, `판정`(SOP 성공·보류·실패)
+- academy/scripts/pilot-report.mjs (다시 씀, 1-303) — `--stage baseline|final --client <slug> [--dry]`. 읽기만 한다. 파일은 deliverables/<slug>/pilot-reports/ 에 md와 캡처로 쓴다
+- academy/measure-targets.mjs:15, 51-66, 78-79, 89 — 진행 중 판정: 시작은 kickoff_on(없으면 started_on), 구축 대기면 계속, 취소면 안 잰다. 파일럿 칸 준비 호출. `더하기`는 pilot-plan 에서 가져온다
+- academy/scripts/company.mjs:38, 355-380, 475, 485 — `파일럿업무`: 칸 준비 → 날짜 맞추기 → 기한 지난 업무를 「사람 대기」로(키 pilot-<파일럿>-<업무>, 준비·진행만), 신호원 'pilot'
+- web/lib/pilot-plan.ts (새 파일, 1-72) — 기본 업무 14개(구축 없음이면 13개, 신청서 「제공」 1~6 + SOP 회차), 임시 기한, `ymd`, `PILOT_COLUMNS`, `refundGuide`(신청서 환불 절 그대로)
+- web/lib/pilot-actions.ts:7-8, 31-36, 47-53, 62-75 — createPilot 이 구축 여부·경쟁사·사업자 유형·환불 절 전달일을 받는다. 시작일은 KST(KG-25-1 해소). 업무는 anchor·offset_days 와 같이 넣는다. approveQuestions 가 `questions_approved_at` 을 남긴다. `updatePilotContract`·`markBaselineSent` 추가
+- web/lib/answer-pattern.ts:17-26 — `competitorNames`(쉼표 이름 다듬기, 5곳·40자, 정규식은 안 만든다)
+- web/lib/manual-checks.ts (새 파일, 1-16) — 화면·결과 선택지, 2MB, 머리 바이트로 PNG·JPEG·WebP 가림
+- web/app/api/pilots/[id]/checks/route.ts (새 파일, 1-50) — 손 확인 한 줄 POST. 관리자와 같은 출처만 받고, 검증 뒤 303 으로 돌려보낸다
+- web/app/api/pilots/[id]/checks/[cid]/route.ts (새 파일, 1-22) — 캡처 GET(관리자만 · no-store · nosniff)
+- web/lib/pilots.ts:14-23 — getPilot 이 손 확인 기록을 읽는다. 표가 없으면 빈 목록이라 화면이 404 가 안 난다
+- web/app/admin/pilots/[id]/page.tsx:7-9, 45-51, 71-72, 96-102, 146-207 — 착수·구축·기준선 보고 상태 줄, 「손 확인 기록」 입력 줄과 목록, 「계약·일정」 폼(구축·연 날·경쟁사·사업자 유형·환불 절·세금계산서·취소·환불액과 지금 취소 시 환불 안내), 기준선 보고 보냄 버튼
+- web/app/admin/pilots/page.tsx:7, 19, 53, 141-151 — 등록 폼에 사업자 유형·환불 절 전달일(필수), 필요한 준비, 경쟁사(선택). 업무 개수 설명 고침
+- web/db/schema.sql:141-166 · academy/db/schema.sql 끝 — 같은 Step 26 줄(pilots 칸 11 · pilot_tasks 칸 2 · pilot_manual_checks + RLS)
+- .gitignore 끝 — `deliverables/*/pilot-reports/`(고객 이름·원문이 든 보고서)
 
-## D1~D4 · D17 한 일
-- **D1** geo.clients 에 `answer_pattern text`, `measure_active boolean default false`. 칸을 더하는 곳은 측정 실행기 둘(`측정설정준비`)·createPilot·schema.sql, 모두 if not exists. 학원·아이로그는 answer_pattern 이 비었을 때만 지금 정규식 원문으로 채운다. 채운 값이 지금 정규식과 source·flags 가 같고, 표본 7개(「똑똑한 로봇&코딩학원」 포함) 판정도 같다. 등록 화면은 정규식 원문을 받지 않는다. 쉼표로 나눈 말을 escape 하고, 빈칸은 `\s*`, `&` 는 `(?:&|&amp;)` 로 바꾼다. 두 글자 이상, 말 10개·한 말 40자까지
-- **D2** 실행기 둘 다 `--client` 가 없으면 `측정대상()` 을 돈다. 대상은 진행 중 파일럿(시작일~종료일+7일), measure_active 고객, 학원(늘 포함). 순서는 유료 파일럿(가격>0, 시작일 순) → 학원 → 탐침 → 측정 켠 고객·0원 파일럿. `--client` 를 주면 그 고객 하나만 잰다(지금처럼 나누지 않음). pc-runner·optimize.yml 은 인자 없이 부르므로 호출부는 안 고쳤다
-- **D3** Claude 는 `CLAUDE_MEASURE_RESERVE`(기본 22)를 순서대로 나눈다. 앞 고객이 몫을 써서 남은 문항을 다 못 재면, 그 고객은 절반만 재지 않고 통째로 건너뛴다. 화면 측정은 하루 상한(`WEB_MEASURE_DAILY_MAX`, 기본 60)을 엔진 단위로 같은 방식으로 나눈다. 못 잰 고객은 사람 대기 일감(sticky)으로 올린다: 「오늘 측정 예산이 모자라 ○○ 를 못 쟀습니다 — 상한을 올릴지 정해 주세요」. 올리는 방법(저장소 변수 / .env.local 한 줄)도 일감 본문에 적었다. 그 실행기로 다 잰 날 근거(evidence)를 남기고 닫는다. 유료 고객이 있는 날은 탐침을 끈다
-- **D4** ai-web-measure `멈추고알림` 이 그 고객 id 에 붙는다. geo.clients 에 없는 슬러그면 기록만 하고 학원에 붙이지 않는다(KG-24-2 뒷절 해소)
-- **D17** 필드 이름은 추측하지 않고 설치된 CLI(2.1.284) 바이너리 안의 result 스키마에서 확인했다: `modelUsage[모델].inputTokens·outputTokens·cacheReadInputTokens·cacheCreationInputTokens`, 없으면 `usage.input_tokens…`. modelUsage 를 먼저 읽는다(하위 모델까지 합산). 숫자가 아닌 칸은 null 이다. 모델 이름은 modelUsage 열쇠에서, 없으면 init 줄에서 가져온다. ALTER 가 실패해도 호출 수는 계속 센다. INSERT 는 새 칸으로 실패하면 예전 모양으로 한 번 더 넣는다. 상한이 이 수로 돌기 때문이다. 현황판은 토큰이 기록된 행만 더한다. 기록이 0건이면 줄을 안 쓰고, 일부만 기록됐으면 「기록된 k번 기준」을 붙인다. 입력 합에는 캐시 읽기·쓰기를 넣었다
+## 한 일 (D5~D11 · D18)
+- **D5** 착수 = 승인 시각의 KST 날짜 이후 첫 측정일(q1~q20). company.mjs 가 매시 한 번 채우고, 채운 뒤에는 안 바꾼다. 구축 없음이면 착수 포함 30일(+29). 구축·세팅이면 기준선은 착수부터 7일이고, 30일은 site_launch_on 부터 센다. 연 날이 없는 동안에는 임시 끝을 착수+29 로 두고 측정은 「구축 대기」로 계속한다. `current_date` 는 안 쓴다(등록·기한 비교 모두 `(now() at time zone 'Asia/Seoul')::date`)
+- **D6** 기준선 보고: 곳마다 방법·엔진·기간·잰 날/빠진 날·표본을 적는다. 17문항과 브랜드 3문항을 표 두 개로 나누고 칸마다 「n번 중 k번 · 인용 k번」, 곳별 합계는 %를 붙인다. Claude 줄에는 「Claude Code(Max) 경유 — claude.ai 화면과 다를 수 있음」. 경쟁사 절과 손 확인 절이 붙는다
+- **D7** 최종 보고: 파일럿 기간만 본다. 기준선 7일과 마지막 7일을 같은 곳끼리만 비교하고(17문항, 브랜드 제외), 첫 행·끝 행 비교는 없앴다. 표본 부족·30일 미완은 「판정 보류」
+- **D8** geo.pilot_manual_checks 는 설계서 칸 그대로다(capture_type 추가). 화면에서는 질문 고르기·화면·결과·날짜·캡처·메모를 한 줄로 넣는다. 보고서는 기준선 회차와 30일 차 회차로 나눠 적는다
+- **D9** 새 파일럿부터 신청서 「제공」 6줄과 SOP 회차(기준선 보고 포함)가 업무가 된다. 옛 파일럿 업무는 안 건드린다(anchor 가 없다)
+- **D10** 기한 지난 업무 → 사람 대기. 완료로 바꾸면 신호가 사라져 닫힌다
+- **D11** 계약 칸 5개와 화면 입력. 환불 안내는 신청서 절 그대로다(착수 전 전액 / 기준선 보고 전 195,000원 / 뒤 0원)
+- **D18** geo.pilots.competitors 는 쉼표 이름 글자로 두고, 보고서가 이름마다 escape 해서 센다. 새로 묻지 않고 보관한 raw.answer 로만 센다. 질문×곳마다 「n번 중 k번 (첫째 x번, 둘째 y번)」, 곳마다 17문항 합계를 낸다. 곳끼리 합치거나 점수를 매기지 않는다. 비어 있으면 「경쟁사 미설정」
+
+## SOP 와 다르게 읽을 수 있는 곳 (Arch 확인 요청)
+- SOP 「7일 비율이 기준선보다 늘거나」의 비율이 언급인지 인용인지 적혀 있지 않다. 그래서 **둘 중 하나라도 늘면 늘었다**로 보고, 곳마다 어느 쪽인지 적는다. 성공은 **약속한 네 곳 가운데 한 곳이라도** 늘면이다(다른 곳이 줄어도 표에 그대로 나온다)
+- 「표본 부족」 기준은 SOP 에 없어서 **창마다 7일 중 4일 이상 잰 곳만 비교**하기로 했다(`최소잰날`)
+- 판정 순서: 성공 조건(비율 증가 또는 AI·검색 유입 ≥1)을 먼저 본다 → 아니고 비교가 없거나 상담 기록 0건이면 보류 → 둘 다 있는데 성공이 아니면 실패. 여기에 30일 마지막 날이 안 지났으면 보류를 더했다
+- 계약 밖 방법(api-openrouter 등)은 적기만 하고 판정에 안 쓴다
 
 ## 확인 출력
-하네스 위치: scratchpad `harness/run.mjs`·`unit.mjs`·`tokens.mjs`. 옛 파일은 HEAD 사본, 새 파일은 작업 트리 사본이다. `pg`·`playwright`·`claude-code.mjs`·`writer-common.mjs` 를 로더로 가짜로 바꿔 DB·네트워크에 닿지 않는다.
+**순수 함수 시험(scratchpad t26.mjs) — 14개 통과**
+```
+ok · KST 00:30 은 UTC 로 전날 15:30 — 날짜는 KST
+ok · 착수찾기 — 승인 KST 날짜 이후 첫 측정일      (UTC 10/1 15:30 승인 → 10/1 측정은 안 침 → 10/2)
+ok · 구축 없음 — 착수 포함 30일(+29), 기준선 +6, 최종 마지막 7일   (10/2 → 10/31, 최종 10/25~10/31)
+ok · 세팅 — 연 날 전: 기준선만, 30일 모름, 임시 끝 착수+29
+ok · 구축 — 연 날부터 30일, 기준선은 착수부터 7일            (연 날 11/10 → 12/9)
+ok · 착수 전 — null
+ok · 월말·윤년 넘김
+ok · 파일럿날짜맞추기 — P1 착수 10/3(10/1 측정은 승인 KST 10/2 전), P2 구축 대기는 착수 기준 업무만
+ok · 학원만 — 지금과 같음(학원 하나, 묶음 학원)
+ok · 유료 — 착수 전 등록일부터 재고, 착수 뒤 착수~끝+7
+ok · 구축 — 연 날 전에는 계속, 연 날을 앞날로 넣어도 착수부터 잰다
+ok · 취소 — 안 잰다
+ok · 처음순서 · 점유 — 첫째·둘째 분포, 곳 안에서만
+ok · 곳비교 — 같은 곳끼리, 브랜드 제외, 4일 미만 표본 부족
+ok · 판정 — SOP 성공·보류·실패
+```
 
-**학원만 있을 때 — 옛(HEAD)·새 실행기가 묻는 질문 순서·적재 행·종료코드 비교**
+**`node scripts/pilot-report.mjs --stage baseline --client robotncoding --dry` (실제 DB 읽기, 앞부분)**
 ```
-[claude]                       옛·새 같음   c1×20(q1…q20) → probe×2   종료 0
-[claude · 오늘 이미 측정 19번]   옛·새 같음   c1×20 · 「탐침: 몫 22회를 승인 질문이 39회로 다 써서 건너뜀」  종료 0
-[web]                          옛·새 같음   c1×60 (chatgpt·perplexity·gemini × 20)   종료 0
-[--client ilog]                옛·새 같음   c2×20 → probe×2
-학원만 있을 때 옛·새 같음: 예
+# 로봇&코딩학원 · 기준선 보고
+기준선: 2026-09-17 ~ 2026-09-23 (착수 뒤 첫 7일)
+착수 2026-09-17 (추정 — 승인 시각을 남기기 전 파일럿이라 등록 뒤 첫 측정일) · 구축 없음 · 30일 2026-09-17 ~ 2026-10-16
+- **Claude** — Claude Code(Max) 경유 — claude.ai 화면과 다를 수 있음 · 웹 검색 · 한국어 질문 · 엔진 기록 claude-code-web
+  - 기준선 2026-09-17 ~ 2026-09-23 · 잰 날 1/7 (빠진 날 09-17, 09-18, 09-19, 09-20, 09-21, 09-23) · 표본 20
+- **api-openrouter-web-exa** — 계약 밖 수집 방법이라 판정에 쓰지 않는다 · 엔진 기록 openrouter
+  - 기준선 2026-09-17 ~ 2026-09-23 · 잰 날 2/7 (빠진 날 09-19, 09-20, 09-21, 09-22, 09-23) · 표본 31
+| 1. 서울 송파구에서 초등학생 코딩학원 좀 추천해줘 | 1번 중 0번 · 인용 0번 | 2번 중 2번 · 인용 0번 |
+| 2. 석촌동 근처에 로봇이랑 코딩 같이 배울 수 있는 학원 있어? | 1번 중 1번 · 인용 0번 | 2번 중 2번 · 인용 0번 |
+| **곳별 합계** | 언급 17번 중 1번(6%) · 인용 0번(0%) | 언급 28번 중 6번(21%) · 인용 0번(0%) |
+브랜드 3문항 합계 | 언급 3번 중 3번(100%) … 
+## 경쟁사 — 기준선 7일
+경쟁사 미설정 — 파일럿 화면 「계약·일정」에 경쟁사 이름을 넣으면 이 절이 채워진다.
+## 손 확인 …
+손 확인 표가 아직 없다(스키마 적용 전).
 ```
-새 쪽에만 있는 차이: 다 잰 날 `measure-budget-robotncoding-claude/-web` 닫기 update 가 한 번씩 더 나간다. 열린 일감이 없으면 아무것도 안 바뀐다.
 
-**여러 고객 (가짜 유료 고객 id 3, 390,000원, 진행 중)**
+**`--stage final --dry` (앞부분)**
 ```
-B  기본 몫        claude: c3×20 · 학원 「몫 22회 가운데 20회를 앞 순서가 써서 남은 20문항을 못 잼」 → insert 일감 client=1 measure-budget-robotncoding-claude
-                  web:    c3×60 · 학원 3엔진 「하루 상한 60질의 가운데 0질의만 남아 20문항을 안 엶」 → insert 일감 client=1 measure-budget-robotncoding-web
-B' 몫 올림(42/60·web 120)  claude: c3×20 → c1×20 · 「탐침: 유료 파일럿 고객이 있는 날이라 끔」   web: c3×60 → c1×60
-C  + 측정 켠 아이로그       claude: c3×20 → c1×20 → c2×20
+비교: 기준선 2026-09-17 ~ 2026-09-23 vs 마지막 7일 2026-10-10 ~ 2026-10-16
+만든 날: 2026-09-30 — 마지막 7일이 아직 안 끝났다. 2026-09-30까지 잰 것만 적었다
+판정: **판정 보류** — 30일 마지막 7일이 아직 안 끝났다
+| ChatGPT | 안 잼 | 안 잼 | 표본 부족 (잰 날 0일 · 0일) |
+| Claude | 언급 17번 중 1번(6%) · 인용 0번(0%) | 안 잼 | 표본 부족 (잰 날 1일 · 0일) |
+| api-openrouter-web-exa | 언급 28번 중 6번(21%) · 인용 0번(0%) | 안 잼 | 계약 밖 방법 — 판정에 안 씀 |
+## 상담 유입 (30일)  전체 문의 2건 · AI 직접 확인 2건 …
 ```
-**순수 함수 18개 통과**(unit.mjs): 종료+7일 경계, 시작 전 제외, 0원 파일럿은 학원 뒤, 학원 정규식 동치, DB 에 `https://www.` 가 있어도 학원 도메인 그대로, 깨진 원문 → 외부 고객 null·학원은 덩어리, `(a+)+$` 가 글자로 escape 됨(50,000자 입력 200ms 미만), 한 글자·빈 말 제거, 10개 상한.
-**토큰읽기 4개 통과**(tokens.mjs): 두 모델 합산 · usage 만 · 둘 다 없음 → 전부 null · 숫자 아닌 칸만 null.
-**tsc**: `web` 에서 `node ./node_modules/typescript/bin/tsc --noEmit -p .` 종료 0. `.mjs` 는 전부 `node --check` 통과.
-**tok 표기**: 830 · 1.5만 · 12만 · 123.5만 · 2.5억.
+학원 리허설 파일럿의 소비자 화면 측정은 9/24 에 시작했다. 그래서 추정 착수(9/17) 기준선 창에는 Claude 1일과 openrouter 뿐이다. 데이터가 그렇다.
 
-## 판단한 곳 (Arch 확인 필요한 것은 ★)
-1. ★ **나눔은 고객이 둘 이상일 때만.** 학원 혼자면 지금처럼 claude-code.mjs 상한(측정은 하루 전체 40)과 화면 측정의 문항별 상한만 본다. 「학원만 있을 때 같다」를 구조로 지키려는 것이다. 새 몫 검사를 늘 켜면, 실패 호출이 쌓인 날 다시 돌렸을 때 학원이 22회에서 멈춘다. 지금은 40회까지 간다
-2. ★ **dedupe 키를 `measure-budget-<slug>-claude` / `-web` 로 나눴다.** 설계서는 `measure-budget-<client>` 하나다. 한 키로 두면 화면 측정이 다 잰 날 Claude 쪽 부족 일감까지 닫혀 부족이 가려진다
-3. ★ **절반은 재지 않는다.** Claude 는 고객 단위, 화면은 엔진 단위다. 남은 몫이 그 고객(엔진)의 남은 문항 수보다 적으면 통째로 건너뛰고 일감을 올린다. 기존 주석에 「질문마다 잰 날이 다르면 적중률을 비교할 수 없다」는 원칙이 있어서 그렇게 했다
-4. **탐침 자리**: 학원 승인 질문 바로 뒤에 둔다(기존 위치와 같다). measure_active 고객과 0원 진행 중 파일럿은 탐침 뒤로 보냈다. 기본 몫에서는 어느 순서든 결과가 같다(22 = 20 + 2)
-5. **도메인은 clients.mjs 덩어리가 먼저**이고, 덩어리가 없는 외부 고객만 geo.clients.domain 을 정리해서 쓴다. 학원 DB 의 domain 값을 확인하려던 읽기 전용 조회가 권한 분류기에 거절됐다. 그래서 값을 모르는 채로도 학원 인용 판정이 안 바뀌게 했다
-6. **answer_pattern 채움은 학원·아이로그 둘 다**(덩어리에 answerRe 가 있는 곳). 설계서는 학원만 적었다. 대체값과 같은 값이라 동작은 안 바뀐다
-7. **「유료」 = 창 안 · price > 0 · 학원 아님.** status(취소·환불)는 보지 않는다 → KG-25-2
-8. createPilot 은 `measure_active` 를 켜지 않는다. 파일럿 창(종료+7일)이 측정을 덮고, 창이 끝나면 저절로 빠진다
-9. ai-measure 에서 한 고객이 설정·질문 없음이면, 전에는 throw 로 전부 멈췄다. 이제는 다른 고객을 다 재고 끝에 종료코드 1 을 낸다(빨간불은 그대로다)
-10. `openrouter-credits` 일감은 회사 전체 일이라 학원 id 에 그대로 둔다
-11. D17 현황판 「입력」에는 캐시 읽기·쓰기를 더했다. 캐시를 빼면 입력이 수백 단위로 나와 사용량을 잘못 읽게 된다
+**경쟁사 셈을 실제 원문에 대 본 것(읽기만 · 9/24~9/30 · 가짜 경쟁사 칸)**
+```
+ChatGPT | 우리: 40번 중 12번 (첫째 12번) | 똑똑한 로봇&코딩학원: 40번 중 0번 | 코딩앤플레이: 40번 중 0번 | 와이즈만: 40번 중 0번
+Claude  | 우리: 120번 중 58번 (첫째 58번) | 똑똑한 로봇&코딩학원: 120번 중 3번 (둘째 3번) | 코딩앤플레이: 120번 중 1번 (둘째 1번) | 와이즈만: 120번 중 0번
+```
+
+- `web`: `node ./node_modules/typescript/bin/tsc --noEmit` 오류 0 · `next build` 통과(새 경로 /api/pilots/[id]/checks, /[cid])
+- 학원 영업 숫자: case-report·ops·현황판 계산식 파일은 안 건드렸다. measure-targets 의 학원 줄은 그대로다(학원은 날짜·취소와 상관없이 늘 잰다)
 
 ## Open Questions
-- 판단 1·2·3 (★)
-- 실행기는 DB 쓰기(ALTER·UPDATE 채움)를 첫 실행 때 스스로 한다. 준비가 실패해도 경고만 찍고 계속 간다. 다만 칸이 끝내 없으면 대상 select 가 실패해 측정 전체가 멈춘다. 배포 전에 schema.sql 두 줄을 먼저 적용할지 Arch 가 정해 주면 좋다. createPilot 의 ALTER 는 트랜잭션 안에 있어서, 실패하면 등록 자체가 안 된다
+- 위 「SOP 와 다르게 읽을 수 있는 곳」 네 가지
+- 배포 순서: **schema.sql 의 Step 26 줄을 먼저 적용해야 한다**. 새 칸이 없으면 ai-measure·ai-web-measure 의 대상 select 가 실패한다(실행기가 ALTER 를 시도하긴 하지만 권한에 달렸다)
+- 기한 지남 일감에서 리허설 파일럿을 뺐다. 넣으면 학원 리허설의 옛 업무 7건(ChatGPT/Google/네이버 기준선 1·2회 등)이 원장 할 일에 한꺼번에 뜬다
+- 캡처 POST 는 서버 동작이 아니라 경로 처리기다(1MB 상한 때문). 관리자 쿠키가 SameSite=Lax 이고 Origin 도 확인한다. 이 정도면 되는지
 
-## Out of Scope (BUILD-LOG Known Gaps)
-- KG-25-1 createPilot 의 `current_date`·`current_date+30` 이 DB UTC 날짜다. 00~09시(KST)에 등록하면 시작일이 하루 앞당겨지고, 측정 창도 하루 당겨진다
-- KG-25-2 파일럿 status(취소·환불)를 대상 목록이 안 본다 → Step 26 생애주기
-- KG-25-3 company·write 등 다른 워크플로는 `CLAUDE_MEASURE_RESERVE` 를 안 넘긴다. repair·sales 는 `CLAUDE_DAILY_MAX` 만 넘긴다. 원장이 두 변수를 올리면 이 둘은 「새 상한 − 22」를 자기 몫으로 쓴다
-- KG-25-4 API 엔진(openrouter·anthropic-web)은 몫을 나누지 않고 고객마다 다 잰다. 비용은 고객 수에 비례한다. 지금 MEASURE_ENGINES 가 Claude 만이면 영향 없다
-- KG-25-5 몫을 올리면 optimize.yml 50분 제한이 모자랄 수 있다. 35분 가드는 탐침에만 걸려 있다(60문항 × 문항당 최대 3분)
-- KG-25-6 ai-measure 쪽 「설정 없음·질문 없음」은 일감을 안 올린다(종료 1·요약만). 화면 측정 쪽이 같은 일감을 올린다
+## Out of Scope (logged in BUILD-LOG)
+- KG-26-1 학원 리허설 파일럿은 승인 시각이 없다. 화면은 「착수 전」, 보고서는 착수를 추정(9/17)
+- KG-26-2 스키마 먼저 적용(위)
+- KG-26-3 승인 뒤 질문을 고쳐도 승인 시각·착수일은 처음 값
+- KG-26-4 손 확인 캡처 지우는 화면 없음
+- Step 27(D12~D16)은 손대지 않았다. createPilot 의 가림 별칭(`${district}의 단일 지점 ${category}`)은 D15 몫이라 그대로 뒀다

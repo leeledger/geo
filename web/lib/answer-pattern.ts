@@ -14,3 +14,13 @@ export function answerPattern(raw: string): string | null {
     .join("\\s*");
   return terms.map(one).join("|");
 }
+
+/**
+ * 경쟁사 이름 → geo.pilots.competitors (Step 26 D18). 쉼표로 받은 이름을 다듬어 「A, B」 글자로 둔다.
+ * 정규식은 여기서 만들지 않는다 — 보고서(academy/scripts/pilot-report.mjs)가 이름마다 글자 그대로 escape 해 센다.
+ * 이름 안의 쉼표는 구분자라 못 쓴다. 한 글자 이름은 버린다(아무 답에나 걸린다). 5곳, 한 이름 40자까지.
+ */
+export function competitorNames(raw: string): string {
+  return [...new Set(raw.split(/[,，]/).map((s) => s.trim().replace(/\s+/g, " ")).filter((s) => s.length >= 2 && s.length <= 40))]
+    .slice(0, 5).join(", ");
+}

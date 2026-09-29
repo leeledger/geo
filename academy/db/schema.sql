@@ -133,3 +133,31 @@ alter table academy.snapshots add column if not exists pages_crawled int;
 alter table academy.snapshots add column if not exists coverage_pct  numeric(5,1);
 alter table academy.snapshots add column if not exists engines       int;
 alter table academy.snapshots add column if not exists lead_hours    int;
+
+-- geo.pilots 는 web/db/schema.sql 에서 만든다. 학원 스크립트(company.mjs · measure-targets · pilot-report)가 읽는 Step 26 칸을 같은 줄로 적어 둔다
+-- Step 26 파일럿 생애주기 — academy/pilot-plan.mjs 파일럿칸준비 · web/lib/pilot-plan.ts PILOT_COLUMNS 와 같은 줄
+-- 착수(질문 승인 뒤 첫 측정일, KST) · 기준선 보고 보낸 때 · 구축·세팅(none|setup|build)과 사이트 연 날 · 경쟁사(쉼표 이름) · 계약 칸
+alter table geo.pilots add column if not exists kickoff_on date;
+alter table geo.pilots add column if not exists questions_approved_at timestamptz;
+alter table geo.pilots add column if not exists baseline_sent_at timestamptz;
+alter table geo.pilots add column if not exists site_launch_on date;
+alter table geo.pilots add column if not exists needs_build text not null default 'none';
+alter table geo.pilots add column if not exists competitors text not null default '';
+alter table geo.pilots add column if not exists biz_type text;
+alter table geo.pilots add column if not exists refund_terms_sent_on date;
+alter table geo.pilots add column if not exists invoice_issued_on date;
+alter table geo.pilots add column if not exists cancelled_on date;
+alter table geo.pilots add column if not exists refund_amount int;
+-- 업무 기한의 기준(등록|착수|시작|끝)과 며칠 뒤. 없으면(옛 파일럿) 기한을 다시 세지 않는다
+alter table geo.pilot_tasks add column if not exists anchor text;
+alter table geo.pilot_tasks add column if not exists offset_days int;
+-- 손 확인 기록 — 구글 AI 개요·AI 모드·네이버 AI 브리핑을 사람이 본 결과와 캡처(이미지 2MB, 관리자만 읽음)
+create table if not exists geo.pilot_manual_checks (
+  id bigserial primary key, pilot_id uuid not null references geo.pilots(id) on delete cascade,
+  question text not null,
+  surface text not null check (surface in ('google_ai_overview','naver_ai_briefing','google_ai_mode')),
+  checked_on date not null, shown text not null check (shown in ('이름','링크','안 나옴','화면 없음')),
+  note text not null default '', capture bytea, capture_type text,
+  created_at timestamptz not null default now()
+);
+alter table geo.pilot_manual_checks enable row level security;

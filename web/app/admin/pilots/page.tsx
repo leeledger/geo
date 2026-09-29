@@ -4,6 +4,7 @@ import Link from "next/link";
 import { isAdmin } from "@/lib/admin-auth";
 import { listPilots } from "@/lib/pilots";
 import { createPilot } from "@/lib/pilot-actions";
+import { NEEDS_BUILD, NEEDS_BUILD_LABEL } from "@/lib/pilot-plan";
 import { listClients } from "@/lib/ops";
 import { listHours, hourSums, hm } from "@/lib/hours";
 import { addHours } from "@/lib/hours-actions";
@@ -15,7 +16,7 @@ export const runtime = "nodejs";
 
 /**
  * 30일 유료 파일럿 — 맨 위는 진행 고객, 결제 고객 등록 폼은 자세히.
- * 등록하면 질문 20개와 Day 0~30 업무 19개가 생긴다(createPilot). 동작은 그대로, 배치와 글자만 바꿨다.
+ * 등록하면 질문 20개와 신청서 「제공」·SOP 회차 업무 13개(구축·세팅이면 14개)가 생긴다(createPilot, lib/pilot-plan.ts).
  */
 
 const CSS = `
@@ -49,6 +50,7 @@ const FIELDS: [string, string][] = [
   ["district", "구"], ["neighborhood", "동네"],
   ["category", "업종·과목"], ["audience", "주 고객"], ["contact_name", "담당자"], ["contact_email", "담당자 이메일"],
   ["contact_phone", "담당자 전화"], ["receipt_type", "증빙 종류"], ["payment_ref", "입금 확인번호"], ["terms_evidence", "신청서·동의 증거 URL"],
+  ["biz_type", "사업자 유형"],
 ];
 
 const day = (x: unknown) => (x instanceof Date ? x.toISOString().slice(0, 10) : String(x ?? "").slice(0, 10));
@@ -136,9 +138,17 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ k
         <details className="adm-more">
           <summary>자세히 — 결제 고객 등록</summary>
           <div className="in">
-            <p className="sub">입금 확인 후 등록합니다. 등록하면 질문 20개와 Day 0~30 업무 19개가 생깁니다.</p>
+            <p className="sub">입금 확인 후 등록합니다. 등록하면 질문 20개와 착수·기준선·30일 업무가 생깁니다.</p>
             <form className="pl-form" action={createPilot}>
               {FIELDS.map(([n, l]) => <label key={n}>{l}<input name={n} required /></label>)}
+              <label>환불 절 서면 전달일<input type="date" name="refund_terms_sent_on" required /></label>
+              <label>필요한 준비
+                <select name="needs_build" defaultValue="none">
+                  {NEEDS_BUILD.map((n) => <option key={n} value={n}>{NEEDS_BUILD_LABEL[n]}</option>)}
+                </select>
+              </label>
+              {/* 비워도 된다 — 보고서 경쟁사 절이 「경쟁사 미설정」이 된다 */}
+              <label>경쟁사 (쉼표로 3~5곳 · 선택)<input name="competitors" maxLength={220} /></label>
               <SubmitButton className="adm-btn">30일 업무 생성</SubmitButton>
             </form>
           </div>
