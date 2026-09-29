@@ -1,6 +1,13 @@
 # Session Checkpoint — 2026-09-22
 *Read this before reading anything else. If it covers current state, skip BUILD-LOG.*
 
+
+## Where We Stopped (2026-09-29 저녁) — Step 22 배포(81589b3)
+
+- 개선 루프에 자기 점검: 좁은 적중(일반 질문 9개 4곳 모두 0) · 판정 정체 · 헛수고(일반 질문 글 고치기 7번, 이제 건너뜀) · 발견성(Brave 확인 일감, PC) · 넓힘 탐침
+- 탐침은 academy.ai_probe_measurements 에만. 영업 숫자(ai_measurements) 안 섞임. /admin/asks 「넓혀 본 질문」 격자
+- 원장 관찰: 구글 AI 모드 「송파구 코딩학원 추천」 두 번째 카드. 검색어형 씨앗 3개 생성. 구글 AI 모드 자동 측정은 캡차(KG-22-1)
+- 다음 세션: 내일 07:05 optimize 에서 탐침 2개가 실제로 재였는지, PC local-agent 가 brave-index-general 일감을 집었는지
 ---
 
 ## Where We Stopped (2026-09-24 오전 10시) — Step 18·19 배포
