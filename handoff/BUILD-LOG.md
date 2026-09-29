@@ -1172,3 +1172,19 @@ Known Gaps (23·24)
 
 ### Step 25~ — 서비스 가능 수준 고도화 (원장: 「목표에 도달할 때까지 멈추지 말 것」, 2026-09-29)
 목표 정의(Arch): 외부 고객 한 곳이 문의 → 계약 → 온보딩 → 기준선 → 30일 차 재측정 보고까지 **코드 수정 없이, 신청서대로** 받을 수 있다. 끝에서 끝 점검으로 끊김 목록을 만들고 치명부터 Step 단위로 닫는다
+- 2026-09-29: 원장 「Max 토큰을 실제 얼마나 쓰나」 → 호출당 토큰(입력·출력·캐시·모델) 기록을 Step 25 D17 로 추가. 지금까지는 횟수와 API 환산 달러만(9/24~29 하루 20~23번, $1.4~2.45)
+
+### Step 25 — 여러 고객 측정 (D1~D4) + D17 토큰 기록 — BUILT · Richard 대기 (2026-09-30, Bob)
+- 새 파일 academy/measure-targets.mjs(대상 목록·측정 설정·예산 일감) · web/lib/answer-pattern.ts(쉼표 말 → escape 정규식)
+- ai-measure.mjs·ai-web-measure.mjs 가 --client 없으면 대상 목록을 돈다: 유료 파일럿 → 학원 → 탐침 → 측정 켠 고객. --client 는 지금처럼 하나
+- 결정(Bob, Arch 확인 요청): 나눔은 고객 둘 이상일 때만 · 절반 측정 안 함(Claude 고객 단위·화면 엔진 단위) · 예산 일감 키 measure-budget-<slug>-claude/-web · 도메인은 clients.mjs 덩어리 먼저(DB 읽기 조회가 권한 분류기에 거절돼 학원 DB 값 미확인)
+- 확인: HEAD 사본과 가짜 DB·Claude·화면으로 학원만일 때 질문 순서·적재 행·종료코드 같음(claude·claude 19회 소진·web·--client ilog). 순수 함수 18 + 토큰 4 통과, web tsc 0
+- D17: claude_calls 에 input/output/cache_read/cache_write_tokens·model. 필드명은 설치 CLI 2.1.284 result 스키마에서 확인. /admin/ops 에 「토큰 입력 · 출력 (기록된 k번 기준)」
+- KG-24-2 뒷절(없는 슬러그 일감이 학원 칸) 해소
+Known Gaps (25)
+- KG-25-1 createPilot current_date 가 UTC 날짜 — 00~09시 등록이면 시작일 하루 앞
+- KG-25-2 대상 목록이 파일럿 status(취소·환불)를 안 봄 → Step 26
+- KG-25-3 다른 워크플로가 CLAUDE_MEASURE_RESERVE 를 안 넘김(repair·sales 는 DAILY_MAX 만) — 올리면 그쪽 몫이 「새 상한 − 22」
+- KG-25-4 API 엔진은 몫을 안 나눔(고객마다 다 잼)
+- KG-25-5 몫을 올리면 optimize.yml 50분 제한이 모자랄 수 있음(35분 가드는 탐침만)
+- KG-25-6 ai-measure 쪽 설정·질문 없음은 일감 없이 종료 1 (화면 측정 쪽이 일감을 올림)

@@ -12,14 +12,14 @@
  * 소비자 ChatGPT 화면이 아니다. collection_method 에 api- 를 붙여 남기고,
  * 다른 방법의 수치와 한 비율로 합치지 않는다.
  *
- *   node scripts/ai-measure.mjs                    오늘 안 잰 질문만
+ *   node scripts/ai-measure.mjs                    오늘 안 잰 질문만 · 대상 목록 전부(진행 중 파일럿 고객 → 학원 → 탐침)
  *   node scripts/ai-measure.mjs --client robotncoding --engine gemini --limit 3
  */
 import fs from "node:fs";
 import { Pool } from "pg";
 import { 오픈라우터, 재시도, 모델들 } from "./writer-common.mjs";
 import { 클로드코드, 클로드코드있음 } from "./claude-code.mjs";
-import { measureConf } from "../clients.mjs";
+import { 측정대상, HOUSE, 예산부족알림, 예산부족닫기 } from "../measure-targets.mjs";
 
 for (const l of fs.readFileSync(new URL("../.env.local", import.meta.url), "utf8").split(/\r?\n/)) {
   const m = /^([A-Z_]+)=(.*)$/.exec(l);
@@ -30,7 +30,7 @@ const arg = (name) => {
   const i = process.argv.indexOf(name);
   return i >= 0 ? process.argv[i + 1] : null;
 };
-const CLIENT = arg("--client") ?? "robotncoding";
+const CLIENT = arg("--client");   // 없으면 대상 목록 전부(academy/measure-targets.mjs) — 순서: 유료 파일럿 고객 → 학원 → 탐침
 const ONLY = arg("--engine");
 const LIMIT = Number(arg("--limit")) || 0;
 const 오늘 = new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" });
@@ -223,21 +223,18 @@ const pool = new Pool({ connectionString: u.toString(), ssl: { rejectUnauthorize
 const q = (s, p = []) => pool.query(s, p).then((r) => r.rows);
 
 const main = async () => {
-  const [client] = await q(`select id, slug, name, domain from geo.clients where slug=$1`, [CLIENT]);
-  if (!client) throw new Error(`고객사 없음: ${CLIENT}`);
-
-  // 이름 정규식은 academy/clients.mjs 한 곳에 둔다(tools/ai-web-measure.mjs 와 같은 정의). 없으면 지어내지 않고 멈춘다
-  const conf = measureConf(client.slug);
-  if (!conf) throw new Error(`측정 설정 없음: ${client.slug} — academy/clients.mjs 에 answerRe 를 넣어야 잽니다`);
-  const 이름 = conf.answerRe;
-
-  const questions = await q(
-    `select 'q' || q.position as prompt_id, q.stage, q.text
-       from geo.pilot_questions q join geo.pilots p on p.id = q.pilot_id
-      where p.client_id = $1 and q.approved order by q.position`,
-    [client.id],
-  );
-  if (!questions.length) throw new Error("승인된 질문이 없습니다");
+  // 누구를 잴지 — --client 가 없으면 진행 중 파일럿·측정 켠 고객·학원을 순서대로(academy/measure-targets.mjs)
+  const 대상 = await 측정대상(q, 오늘, CLIENT);
+  const 나눔 = 대상.length > 1;   // 학원만 있으면 나누지 않는다 — 지금과 같게
+  const 유료있음 = 대상.some((t) => t.묶음 === "유료");
+  const 집 = 대상.find((t) => t.slug === HOUSE) ?? 대상[0];
+  /** Claude 측정 몫. claude-code.mjs 와 같은 env·같은 기본값 — 새 상한을 만들지 않는다 */
+  const 몫 = /^\d+$/.test(String(process.env.CLAUDE_MEASURE_RESERVE ?? "").trim()) ? Number(process.env.CLAUDE_MEASURE_RESERVE) : 22;
+  const 측정씀 = async () => {
+    const [r] = await q(`select count(*)::int n from geo.claude_calls where purpose = 'measure'
+      and (at at time zone 'Asia/Seoul')::date = (now() at time zone 'Asia/Seoul')::date`).catch(() => [null]);
+    return r ? r.n : null;
+  };
 
   await q(`create table if not exists academy.ai_measurements (
     id bigserial primary key, client_id int not null default 1, measured_on date not null,
@@ -252,8 +249,8 @@ const main = async () => {
    * 한 문항 결과를 넣는다. 탐침(p*)은 academy.ai_probe_measurements 로 간다(x.form 이 있으면 탐침).
    * ai_measurements 를 날·곳으로 묶어 세는 곳이 케이스 리포트·현황판 등 여럿이다 — 탐침이 섞이면 영업 숫자가 바뀐다(Richard 22)
    */
-  const 적재 = async (e, x, r) => {
-    const mentioned = 이름.test(r.answer);
+  const 적재 = async (client, e, x, r) => {
+    const mentioned = client.answerRe.test(r.answer);
     const cited = r.citations.some((c) => c.domain === client.domain || c.domain.endsWith(`.${client.domain}`));
     const 탐침 = Boolean(x.form);
     await q(
@@ -272,155 +269,204 @@ const main = async () => {
 
   let 성공엔진 = 0;
   let 시도엔진 = 0;
+  let 설정실패 = false;
   const 요약 = [];
-  for (const e of ENGINES) {
-    if (ONLY && e.engine !== ONLY) continue;
-    // 제미나이·groq 무료 키는 한도에 막혀 있다(2026-09-17). OpenRouter 가 있으면 매일 헛두드리지 않는다.
-    // 결제를 켜면 MEASURE_ALL_ENGINES=1 로 다시 같이 잰다
-    // MEASURE_ENGINES 로 쓸 엔진을 고른다 (예: anthropic-web 또는 anthropic-web,openrouter).
-    // 안 정하면 OpenRouter 만 — 제미나이·groq 무료 키는 한도에 막혀 있어 매일 헛두드릴 이유가 없다
-    const 고른엔진 = (process.env.MEASURE_ENGINES ?? "").split(",").map((s) => s.trim()).filter(Boolean);
-    if (!ONLY && 고른엔진.length && !고른엔진.includes(e.engine)) continue;
-    if (!ONLY && !고른엔진.length && e.engine !== "openrouter" && 오픈라우터() && process.env.MEASURE_ALL_ENGINES !== "1") continue;
-    if (!e.key) {
-      요약.push(`${e.engine}: 키 없음 — 건너뜀`);
-      continue;
-    }
-    시도엔진++;
-    const done = new Set((await q(
-      `select prompt_id from academy.ai_measurements
-        where client_id=$1 and measured_on=$2 and collection_method=$3 and attempt=1`,
-      [client.id, 오늘, e.method],
-    )).map((r) => r.prompt_id));
-    let todo = questions.filter((x) => !done.has(x.prompt_id));
-    /**
-     * 매일 20문항을 다 재면 돈이 그만큼 나간다. 효과 판정은 7일 창으로 보니 그럴 필요가 없다.
-     * MEASURE_EVERY_DAYS=3 이면 3일에 한 번만 전부 잰다. 그 사이 날에는 아무것도 안 부른다.
-     * 다만 한 번 잴 때는 20문항을 통째로 잰다 — 질문마다 잰 날이 다르면 적중률을 비교할 수 없다.
-     */
-    const 주기 = Number(process.env.MEASURE_EVERY_DAYS) || 1;
-    if (주기 > 1 && todo.length && !LIMIT) {
-      const [최근] = await q(
-        `select max(measured_on)::text as last_day from academy.ai_measurements
-          where client_id=$1 and collection_method=$2`, [client.id, e.method]);
-      const 지난날 = 최근?.last_day ? Math.round((new Date(오늘) - new Date(최근.last_day)) / 86400000) : 999;
-      if (지난날 < 주기 && done.size === 0) {
-        요약.push(`${e.engine}: ${주기}일 주기 — 마지막 측정 ${지난날}일 전이라 오늘은 건너뜀`);
-        성공엔진++;
-        continue;
-      }
-    }
-    if (LIMIT) todo = todo.slice(0, LIMIT);
 
-    let ok = 0, fail = 0, hit = 0;
-    let 마지막오류 = "";
-    for (const x of todo) {
-      let r;
-      try { r = await e.ask(e, x.text); }
-      catch (err) { r = { status: 0, error: err.message }; }
-      if (r.error) {
-        fail++;
-        마지막오류 = `${r.status} ${r.error.replace(/\s+/g, " ").slice(0, 300)}`;
-        // 429 본문은 어느 한도(분당·일일·무료 등급)인지를, 404 는 쓸 모델 이름을 담아 온다. 첫 실패는 끝까지 찍는다
-        console.log(`  ✗ ${e.engine} ${x.prompt_id} ${fail === 1 ? `${r.status} ${r.error.replace(/\s+/g, " ")}` : 마지막오류.slice(0, 160)}`);
-        // 모델마다 무료 한도가 따로다. 막히면 같은 키로 되는 다른 모델을 한 번 찾아본다
-        if ([402, 404, 413, 429].includes(r.status) && ok === 0 && !e.probed) {
-          e.probed = true;
-          const 대안 = await 다른모델(e);
-          for (const m of 대안) {
-            const 원래 = e.model;
-            e.model = m;
-            const t = await e.ask(e, x.text).catch((err) => ({ status: 0, error: err.message }));
-            console.log(`    대안 모델 ${m}: ${t.error ? `${t.status} ${t.error.replace(/\s+/g, " ").slice(0, 140)}` : "성공"}`);
-            if (!t.error) { r = t; break; }
-            e.model = 원래;
-            await 쉼(e.gap);
-          }
-          if (!r.error) {
-            fail--;
-            요약.push(`${e.engine}: 기본 모델이 막혀 ${e.model} 로 쟀습니다 (MEASURE_* 변수로 고정 가능)`);
-          }
-        }
+  /**
+   * 넓힘 탐침 — daily-agent 자기 점검이 만든 「송파」「서울」「동네 없이」·검색어형 질문. 따로 표(ai_probe_measurements)에 넣는다.
+   * Claude(구독)로만, 승인 20문항을 다 잰 날에만 잰다. 기준선이 먼저다.
+   * optimize.yml 제한이 50분이라 35분이 지났으면 멈춘다 — 뒤의 개선 루프가 잘리면 안 된다
+   */
+  const 탐침재기 = async (client, e) => {
+    const [표] = await q(`select to_regclass('academy.ai_probe_questions')::text as t`);
+    if (!표.t) return;
+    /**
+     * 측정 몫 안에서만 (Step 23 D4). claude-code.mjs 는 측정을 「오늘 전체 호출 < CLAUDE_DAILY_MAX」로만 막는다.
+     * 측정이 몫(CLAUDE_MEASURE_RESERVE)을 넘겨 쓰면 나머지 일은 자기 몫을 그대로 쓰니 하루 합이 상한을 넘는다.
+     * 승인 20문항이 이미 몫을 다 썼으면 탐침은 건너뛴다. 새 상한은 만들지 않는다 — 있는 몫 값을 그대로 읽는다
+     */
+    const 씀 = await 측정씀();
+    const 남은몫 = 씀 !== null ? 몫 - 씀 : 0;   // 못 세면 안 부른다
+    if (남은몫 <= 0) {
+      요약.push(`${e.engine} 탐침: 오늘 측정 몫 ${몫}회를 ${씀 !== null ? `승인 질문이 ${씀}회로 다 써서` : "셀 수 없어"} 건너뜀`);
+      return;
+    }
+    await q(`create table if not exists academy.ai_probe_measurements (
+      id bigserial primary key, client_id int not null default 1, measured_on date not null,
+      collection_method text not null, engine text not null, model text, prompt_id text not null,
+      stage text, prompt_text text not null, attempt int not null default 1,
+      mentioned boolean not null default false, cited boolean not null default false,
+      citations jsonb not null default '[]'::jsonb, note text, raw jsonb not null,
+      form text not null default 'sentence', radius text,
+      imported_at timestamptz not null default now(),
+      unique (client_id, measured_on, collection_method, engine, prompt_id, attempt))`);
+    // 가장 오래 안 잰 탐침부터. 오늘 잰 것은 빼고, 오늘 이미 잰 만큼은 한도에서 뺀다
+    const 탐침 = await q(
+      `select p.prompt_id, 'probe' as stage, p.text, p.form, p.radius, m.last_day
+         from academy.ai_probe_questions p
+         left join (select prompt_id, max(measured_on) as last_day from academy.ai_probe_measurements
+                     where client_id=$1 and collection_method=$2 group by prompt_id) m
+           on m.prompt_id = p.prompt_id
+        where p.client_id=$1 and p.active and (m.last_day is null or m.last_day < $3::date)
+        order by m.last_day nulls first, p.id
+        limit greatest(0, $4 - (select count(*) from academy.ai_probe_measurements
+                                 where client_id=$1 and collection_method=$2 and measured_on=$3::date))`,
+      [client.id, e.method, 오늘, Math.min(탐침수, 남은몫)]);
+    let pOk = 0, pHit = 0;
+    for (const x of 탐침) {
+      // 한 문항이 3분까지 걸린다. 문항마다 본다 — 묶음 앞에서 한 번만 보면 35분에 시작해 42분까지 간다
+      if (Date.now() - 시작 > 35 * 60 * 1000) {
+        요약.push(`${e.engine} 탐침: 시작 후 35분이 지나 멈춤`);
+        break;
       }
+      const r = await e.ask(e, x.text).catch((err) => ({ status: 0, error: err.message }));
       if (r.error) {
-        // 한도·키·모델 문제는 나머지 질문도 똑같이 막힌다. 계속 두드리지 않는다
-        // 503 은 Claude Code 시간 초과, 500 은 결과 없이 끝남(CLI 고장) — 다음 문항도 같을 공산이 커 멈춘다
+        console.log(`  ✗ ${e.engine} 탐침 ${x.prompt_id} ${r.status} ${r.error.replace(/\s+/g, " ").slice(0, 160)}`);
         if ([400, 401, 402, 403, 404, 413, 429, 500, 503].includes(r.status)) break;
-        await 쉼(e.gap);
         continue;
       }
-      const { mentioned, cited } = await 적재(e, x, r);
-      ok++;
-      if (mentioned || cited) hit++;
-      console.log(`  ${cited ? "◎" : mentioned ? "○" : "·"} ${e.engine} ${x.prompt_id} 출처 ${r.citations.length}`);
+      const { mentioned, cited } = await 적재(client, e, x, r);
+      pOk++;
+      if (mentioned || cited) pHit++;
+      console.log(`  ${cited ? "◎" : mentioned ? "○" : "·"} ${e.engine} 탐침 ${x.prompt_id} 출처 ${r.citations.length}`);
       await 쉼(e.gap);
     }
-    if (ok > 0 || (todo.length === 0 && done.size > 0)) 성공엔진++;
-    요약.push(`${e.engine}: 오늘 ${done.size + ok}/${questions.length} 측정 · 이번 실행 언급·인용 ${hit}/${ok}` +
-      (fail ? ` · 실패 ${fail} (${마지막오류.slice(0, 120)})` : ""));
+    if (탐침.length) 요약.push(`${e.engine} 탐침: ${pOk}/${탐침.length} 측정 · 언급·인용 ${pHit}/${pOk}`);
+  };
 
-    /**
-     * 넓힘 탐침 — daily-agent 자기 점검이 만든 「송파」「서울」「동네 없이」·검색어형 질문. 따로 표(ai_probe_measurements)에 넣는다.
-     * Claude(구독)로만, 승인 20문항을 다 잰 날에만 잰다. 기준선이 먼저다.
-     * optimize.yml 제한이 50분이라 35분이 지났으면 멈춘다 — 뒤의 개선 루프가 잘리면 안 된다
-     */
-    if (e.engine === "claude-code-web" && 탐침수 > 0 && !LIMIT && done.size + ok === questions.length) {
-      const [표] = await q(`select to_regclass('academy.ai_probe_questions')::text as t`);
-      if (!표.t) continue;
-      /**
-       * 측정 몫 안에서만 (Step 23 D4). claude-code.mjs 는 측정을 「오늘 전체 호출 < CLAUDE_DAILY_MAX」로만 막는다.
-       * 측정이 몫(CLAUDE_MEASURE_RESERVE)을 넘겨 쓰면 나머지 일은 자기 몫을 그대로 쓰니 하루 합이 상한을 넘는다.
-       * 승인 20문항이 이미 몫을 다 썼으면 탐침은 건너뛴다. 새 상한은 만들지 않는다 — 있는 몫 값을 그대로 읽는다
-       */
-      const 몫 = /^\d+$/.test(String(process.env.CLAUDE_MEASURE_RESERVE ?? "").trim()) ? Number(process.env.CLAUDE_MEASURE_RESERVE) : 22;
-      const [씀] = await q(`select count(*)::int n from geo.claude_calls where purpose = 'measure'
-        and (at at time zone 'Asia/Seoul')::date = (now() at time zone 'Asia/Seoul')::date`).catch(() => [null]);
-      const 남은몫 = 씀 ? 몫 - 씀.n : 0;   // 못 세면 안 부른다
-      if (남은몫 <= 0) {
-        요약.push(`${e.engine} 탐침: 오늘 측정 몫 ${몫}회를 ${씀 ? `승인 질문이 ${씀.n}회로 다 써서` : "셀 수 없어"} 건너뜀`);
+  for (const t of 대상) {
+    const 머리 = 나눔 ? `${t.name} · ` : "";
+    // 이름 정규식이 없으면 지어내지 않고 그 고객만 멈춘다 — 다른 고객은 잰다
+    const client = t.conf;
+    if (!client) {
+      요약.push(`${머리}측정 설정 없음: ${t.slug} — geo.clients.answer_pattern 이나 academy/clients.mjs 에 이름 판별 말이 있어야 잽니다`);
+      설정실패 = true;
+      continue;
+    }
+    const questions = await q(
+      `select 'q' || q.position as prompt_id, q.stage, q.text
+         from geo.pilot_questions q join geo.pilots p on p.id = q.pilot_id
+        where p.client_id = $1 and q.approved order by q.position`,
+      [client.id],
+    );
+    if (!questions.length) {
+      요약.push(`${머리}승인된 질문이 없습니다`);
+      설정실패 = true;
+      continue;
+    }
+
+    for (const e of ENGINES) {
+      if (ONLY && e.engine !== ONLY) continue;
+      // 제미나이·groq 무료 키는 한도에 막혀 있다(2026-09-17). OpenRouter 가 있으면 매일 헛두드리지 않는다.
+      // 결제를 켜면 MEASURE_ALL_ENGINES=1 로 다시 같이 잰다
+      // MEASURE_ENGINES 로 쓸 엔진을 고른다 (예: anthropic-web 또는 anthropic-web,openrouter).
+      // 안 정하면 OpenRouter 만 — 제미나이·groq 무료 키는 한도에 막혀 있어 매일 헛두드릴 이유가 없다
+      const 고른엔진 = (process.env.MEASURE_ENGINES ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+      if (!ONLY && 고른엔진.length && !고른엔진.includes(e.engine)) continue;
+      if (!ONLY && !고른엔진.length && e.engine !== "openrouter" && 오픈라우터() && process.env.MEASURE_ALL_ENGINES !== "1") continue;
+      if (!e.key) {
+        요약.push(`${머리}${e.engine}: 키 없음 — 건너뜀`);
         continue;
       }
-      await q(`create table if not exists academy.ai_probe_measurements (
-        id bigserial primary key, client_id int not null default 1, measured_on date not null,
-        collection_method text not null, engine text not null, model text, prompt_id text not null,
-        stage text, prompt_text text not null, attempt int not null default 1,
-        mentioned boolean not null default false, cited boolean not null default false,
-        citations jsonb not null default '[]'::jsonb, note text, raw jsonb not null,
-        form text not null default 'sentence', radius text,
-        imported_at timestamptz not null default now(),
-        unique (client_id, measured_on, collection_method, engine, prompt_id, attempt))`);
-      // 가장 오래 안 잰 탐침부터. 오늘 잰 것은 빼고, 오늘 이미 잰 만큼은 한도에서 뺀다
-      const 탐침 = await q(
-        `select p.prompt_id, 'probe' as stage, p.text, p.form, p.radius, m.last_day
-           from academy.ai_probe_questions p
-           left join (select prompt_id, max(measured_on) as last_day from academy.ai_probe_measurements
-                       where client_id=$1 and collection_method=$2 group by prompt_id) m
-             on m.prompt_id = p.prompt_id
-          where p.client_id=$1 and p.active and (m.last_day is null or m.last_day < $3::date)
-          order by m.last_day nulls first, p.id
-          limit greatest(0, $4 - (select count(*) from academy.ai_probe_measurements
-                                   where client_id=$1 and collection_method=$2 and measured_on=$3::date))`,
-        [client.id, e.method, 오늘, Math.min(탐침수, 남은몫)]);
-      let pOk = 0, pHit = 0;
-      for (const x of 탐침) {
-        // 한 문항이 3분까지 걸린다. 문항마다 본다 — 묶음 앞에서 한 번만 보면 35분에 시작해 42분까지 간다
-        if (Date.now() - 시작 > 35 * 60 * 1000) {
-          요약.push(`${e.engine} 탐침: 시작 후 35분이 지나 멈춤`);
-          break;
-        }
-        const r = await e.ask(e, x.text).catch((err) => ({ status: 0, error: err.message }));
-        if (r.error) {
-          console.log(`  ✗ ${e.engine} 탐침 ${x.prompt_id} ${r.status} ${r.error.replace(/\s+/g, " ").slice(0, 160)}`);
-          if ([400, 401, 402, 403, 404, 413, 429, 500, 503].includes(r.status)) break;
+      시도엔진++;
+      const done = new Set((await q(
+        `select prompt_id from academy.ai_measurements
+          where client_id=$1 and measured_on=$2 and collection_method=$3 and attempt=1`,
+        [client.id, 오늘, e.method],
+      )).map((r) => r.prompt_id));
+      let todo = questions.filter((x) => !done.has(x.prompt_id));
+      /**
+       * 매일 20문항을 다 재면 돈이 그만큼 나간다. 효과 판정은 7일 창으로 보니 그럴 필요가 없다.
+       * MEASURE_EVERY_DAYS=3 이면 3일에 한 번만 전부 잰다. 그 사이 날에는 아무것도 안 부른다.
+       * 다만 한 번 잴 때는 20문항을 통째로 잰다 — 질문마다 잰 날이 다르면 적중률을 비교할 수 없다.
+       */
+      const 주기 = Number(process.env.MEASURE_EVERY_DAYS) || 1;
+      if (주기 > 1 && todo.length && !LIMIT) {
+        const [최근] = await q(
+          `select max(measured_on)::text as last_day from academy.ai_measurements
+            where client_id=$1 and collection_method=$2`, [client.id, e.method]);
+        const 지난날 = 최근?.last_day ? Math.round((new Date(오늘) - new Date(최근.last_day)) / 86400000) : 999;
+        if (지난날 < 주기 && done.size === 0) {
+          요약.push(`${머리}${e.engine}: ${주기}일 주기 — 마지막 측정 ${지난날}일 전이라 오늘은 건너뜀`);
+          성공엔진++;
           continue;
         }
-        const { mentioned, cited } = await 적재(e, x, r);
-        pOk++;
-        if (mentioned || cited) pHit++;
-        console.log(`  ${cited ? "◎" : mentioned ? "○" : "·"} ${e.engine} 탐침 ${x.prompt_id} 출처 ${r.citations.length}`);
+      }
+      if (LIMIT) todo = todo.slice(0, LIMIT);
+
+      /**
+       * Claude 측정 몫을 순서대로 나눈다(Step 25 D3). 고객이 둘 이상일 때만 — 학원 혼자면 지금처럼 claude-code.mjs 상한만 본다.
+       * 한 고객의 남은 문항을 다 못 잴 만큼 남았으면 아예 안 잰다 — 절반만 잰 날은 다른 날과 비교가 안 된다.
+       * 못 세면(표 없음 등) 나누지 않고 claude-code.mjs 상한에 맡긴다
+       */
+      if (나눔 && e.engine === "claude-code-web" && todo.length && !LIMIT) {
+        const 씀 = await 측정씀();
+        if (씀 !== null && 몫 - 씀 < todo.length) {
+          const 줄 = `${머리}${e.engine}: 오늘 측정 몫 ${몫}회 가운데 ${씀}회를 앞 순서가 써서 남은 ${todo.length}문항을 못 잼`;
+          요약.push(줄);
+          await 예산부족알림(q, t, "claude", `Claude 측정 몫(하루 ${몫}회)을 앞 순서 고객이 먼저 써서 ${오늘} ${t.name} 승인 질문 ${todo.length}문항을 못 쟀습니다`,
+            "GitHub 저장소 변수 CLAUDE_MEASURE_RESERVE(측정 몫)와 CLAUDE_DAILY_MAX(하루 전체)를 함께 올리면 다음 실행부터 잽니다.")
+            .catch((err) => console.log("  ⚠ 예산 일감 기록 실패", err.message));
+          continue;
+        }
+      }
+
+      let ok = 0, fail = 0, hit = 0;
+      let 마지막오류 = "";
+      for (const x of todo) {
+        let r;
+        try { r = await e.ask(e, x.text); }
+        catch (err) { r = { status: 0, error: err.message }; }
+        if (r.error) {
+          fail++;
+          마지막오류 = `${r.status} ${r.error.replace(/\s+/g, " ").slice(0, 300)}`;
+          // 429 본문은 어느 한도(분당·일일·무료 등급)인지를, 404 는 쓸 모델 이름을 담아 온다. 첫 실패는 끝까지 찍는다
+          console.log(`  ✗ ${e.engine} ${x.prompt_id} ${fail === 1 ? `${r.status} ${r.error.replace(/\s+/g, " ")}` : 마지막오류.slice(0, 160)}`);
+          // 모델마다 무료 한도가 따로다. 막히면 같은 키로 되는 다른 모델을 한 번 찾아본다
+          if ([402, 404, 413, 429].includes(r.status) && ok === 0 && !e.probed) {
+            e.probed = true;
+            const 대안 = await 다른모델(e);
+            for (const m of 대안) {
+              const 원래 = e.model;
+              e.model = m;
+              const t2 = await e.ask(e, x.text).catch((err) => ({ status: 0, error: err.message }));
+              console.log(`    대안 모델 ${m}: ${t2.error ? `${t2.status} ${t2.error.replace(/\s+/g, " ").slice(0, 140)}` : "성공"}`);
+              if (!t2.error) { r = t2; break; }
+              e.model = 원래;
+              await 쉼(e.gap);
+            }
+            if (!r.error) {
+              fail--;
+              요약.push(`${머리}${e.engine}: 기본 모델이 막혀 ${e.model} 로 쟀습니다 (MEASURE_* 변수로 고정 가능)`);
+            }
+          }
+        }
+        if (r.error) {
+          // 한도·키·모델 문제는 나머지 질문도 똑같이 막힌다. 계속 두드리지 않는다
+          // 503 은 Claude Code 시간 초과, 500 은 결과 없이 끝남(CLI 고장) — 다음 문항도 같을 공산이 커 멈춘다
+          if ([400, 401, 402, 403, 404, 413, 429, 500, 503].includes(r.status)) break;
+          await 쉼(e.gap);
+          continue;
+        }
+        const { mentioned, cited } = await 적재(client, e, x, r);
+        ok++;
+        if (mentioned || cited) hit++;
+        console.log(`  ${cited ? "◎" : mentioned ? "○" : "·"} ${e.engine} ${나눔 ? `${client.slug} ` : ""}${x.prompt_id} 출처 ${r.citations.length}`);
         await 쉼(e.gap);
       }
-      if (탐침.length) 요약.push(`${e.engine} 탐침: ${pOk}/${탐침.length} 측정 · 언급·인용 ${pHit}/${pOk}`);
+      if (ok > 0 || (todo.length === 0 && done.size > 0)) 성공엔진++;
+      요약.push(`${머리}${e.engine}: 오늘 ${done.size + ok}/${questions.length} 측정 · 이번 실행 언급·인용 ${hit}/${ok}` +
+        (fail ? ` · 실패 ${fail} (${마지막오류.slice(0, 120)})` : ""));
+
+      if (e.engine === "claude-code-web" && done.size + ok === questions.length) {
+        await 예산부족닫기(q, t, "claude", `${오늘} ${e.engine} ${questions.length}/${questions.length} 측정`)
+          .catch((err) => console.log("  ⚠ 예산 일감 닫기 실패", err.message));
+        // 탐침은 학원 승인 질문 바로 뒤 — 순서 「유료 → 학원 → 탐침」. 유료 파일럿 고객이 있는 날은 끈다(그 몫은 고객 기준선에 쓴다)
+        if (탐침수 > 0 && !LIMIT && (t.slug === HOUSE || !나눔)) {
+          if (유료있음) 요약.push(`${e.engine} 탐침: 유료 파일럿 고객이 있는 날이라 끔`);
+          else await 탐침재기(client, e);
+        }
+      }
     }
   }
 
@@ -428,11 +474,12 @@ const main = async () => {
   // 돈 쓰는 일은 사람만 할 수 있으니 일감으로 올려 대시보드에 띄운다 — 로그에만 남기면 아무도 안 본다
   // Anthropic 은 잔액이 바닥나면 402 가 아니라 400 「credit balance is too low」 로 답한다(2026-09-22).
   // 그걸 못 알아봐서 크레딧 일감을 「해결됨」으로 닫아 버렸다. 선불이다 — 월 청구라 적었던 BUILD-LOG 는 틀렸다
+  // 회사 전체 일이라 학원 id 에 둔다(전과 같은 자리)
   const 크레딧막힘 = 요약.some((s) => /Insufficient credits|402|credit balance is too low/i.test(s));
   const 앤트로픽막힘 = 요약.some((s) => /credit balance is too low/i.test(s));
   // 닫는 건 실제로 한 번이라도 잰 날만. 건너뛴 날(주기)이나 다른 이유로 실패한 날에 닫으면 거짓 완료다
   const 실제로잼 = 요약.some((s) => /오늘 [1-9]\d*\/\d+ 측정/.test(s));
-  await q(
+  if (집?.id) await q(
     크레딧막힘
       ? `insert into geo.agent_tasks (client_id, agent, kind, dedupe_key, title, detail, status, priority, payload, link)
          values ($1,'measure','human','openrouter-credits', $2, $3, '사람 대기', 5, '{"sticky":true}'::jsonb, $4)
@@ -443,21 +490,24 @@ const main = async () => {
             where client_id=$1 and dedupe_key='openrouter-credits' and status='사람 대기'`
         : `select 1`,
     크레딧막힘
-      ? [client.id,
+      ? [집.id,
          앤트로픽막힘 ? "Anthropic 크레딧이 바닥나 AI 답변 측정이 멈췄습니다" : "OpenRouter 크레딧이 없어 AI 답변 측정이 멈췄습니다",
          앤트로픽막힘
            ? "Claude 웹 검색으로 20문항을 3일에 한 번 잽니다. 한 번 약 $0.8, 한 달 약 $8 입니다. 초안 쓰기(편당 약 $0.09)도 같은 잔액을 씁니다. 충전하면 다음 실행부터 자동으로 다시 잽니다."
            : "무료 모델도 웹 검색을 켜면 요청당 약 $0.007 이 크레딧에서 나갑니다. 하루 20문항 기준 월 약 $5 입니다. 충전하면 다음 실행부터 자동으로 다시 잽니다.",
          앤트로픽막힘 ? "https://console.anthropic.com/settings/billing" : "https://openrouter.ai/settings/credits"]
-      : 실제로잼 ? [client.id] : [],
+      : 실제로잼 ? [집.id] : [],
   ).catch((e) => console.log("  ⚠ 크레딧 일감 기록 실패", e.message));
 
-  console.log(`\n${client.name} · ${오늘} AI 자동 측정`);
+  console.log(`\n${나눔 ? 대상.map((t) => t.name).join(" → ") : 집?.name ?? CLIENT} · ${오늘} AI 자동 측정`);
   for (const s of 요약) console.log(`  ${s}`);
   if (process.env.GITHUB_STEP_SUMMARY) {
     fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `### AI 자동 측정 ${오늘}\n${요약.map((s) => `- ${s}`).join("\n")}\n\n`);
   }
-  if (시도엔진 === 0) {
+  if (설정실패) {
+    // 설정·질문이 없는 고객이 있으면 빨간불 — 다른 고객을 다 쟀어도 한 곳을 못 잰 것은 고장이다
+    process.exitCode = 1;
+  } else if (시도엔진 === 0) {
     console.log("측정할 키가 없습니다. LLM_PROXY_URL·ANTHROPIC_API_KEY 중 하나가 필요합니다.");
     process.exitCode = 78;
   } else if (성공엔진 === 0) {

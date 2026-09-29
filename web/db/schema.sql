@@ -85,6 +85,9 @@ create table if not exists geo.clients (
   created_at timestamptz not null default now()
 );
 alter table geo.clients add column if not exists relation text not null default '외부';
+-- AI 답에서 이 고객 이름을 가리는 정규식 원문(등록 화면이 말을 escape 해 만든다) · 파일럿 밖에서도 매일 잴지 (Step 25)
+alter table geo.clients add column if not exists answer_pattern text;
+alter table geo.clients add column if not exists measure_active boolean not null default false;
 create table if not exists geo.pilots (
   id uuid primary key default gen_random_uuid(),
   client_id int not null references geo.clients(id),

@@ -7,16 +7,17 @@
  * 규칙 (ai-measure.mjs 와 같게 — 다른 방법의 숫자를 한 비율로 합치지 않도록 collection_method 를 따로 적는다)
  *   질문    geo.pilot_questions 승인된 20문항 (Claude 측정과 같은 것)
  *   세션    문항마다 새 브라우저 문맥 = 로그아웃 · 쿠키 없음 · 개인화 없음
- *   고객    --client <slug> (기본 robotncoding). 이름 정규식·도메인은 academy/clients.mjs 한 곳에서 읽는다
- *           거기 없는 고객은 「측정 설정 없음」, 승인 질문이 없으면 「승인 질문 없음」으로 멈추고 원장 일감을 올린다
- *   언급    clients.mjs answerRe (학원은 「똑똑한 로봇&코딩학원」을 뺀 이름, 아이로그는 도메인)
+ *   고객    --client <slug> 로 한 곳. 안 주면 대상 목록 전부 — 진행 중 파일럿 고객 → 학원 → 측정 켠 고객(academy/measure-targets.mjs)
+ *           이름 판별 말이 없는 고객은 「측정 설정 없음」, 승인 질문이 없으면 「승인 질문 없음」으로 그 고객만 멈추고 그 고객 일감을 올린다
+ *   언급    geo.clients.answer_pattern, 비었으면 clients.mjs answerRe (학원은 「똑똑한 로봇&코딩학원」을 뺀 이름, 아이로그는 도메인)
  *   인용    답 영역의 링크 중 그 고객 도메인
- *   상한    모든 고객을 합쳐 하루 60질의(로그아웃 화면 3곳 × 20문항). 넘으면 그날은 더 묻지 않는다
+ *   상한    모든 고객을 합쳐 하루 60질의(로그아웃 화면 3곳 × 20문항, env WEB_MEASURE_DAILY_MAX). 넘으면 그날은 더 묻지 않는다.
+ *           고객이 둘 이상이면 순서대로 나눠 쓰고, 못 잰 고객은 「예산 모자람」 사람 일감으로 올린다
  *   원문    answer·links 를 raw 에 남긴다 — 나중에 사람이 다시 볼 수 있게
  *
  *   node ai-web-measure.mjs                    세 엔진 × 오늘 안 잰 문항
  *   node ai-web-measure.mjs --engine chatgpt   한 엔진만
- *   node ai-web-measure.mjs --client ilog      다른 고객 (clients.mjs 슬러그)
+ *   node ai-web-measure.mjs --client ilog      한 고객만 (geo.clients 슬러그)
  *   node ai-web-measure.mjs --limit 3          문항 수 제한(시험)
  *   node ai-web-measure.mjs --install          작업 스케줄러 「Cited AI Measure」 매일 21:30 (PC 가 꺼져 있었으면 켜질 때)
  *
@@ -28,7 +29,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
-import { measureConf } from "../academy/clients.mjs";
+import { 측정대상, 예산부족알림, 예산부족닫기 } from "../academy/measure-targets.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const LOCK = path.join(HERE, ".ai-web-measure.lock");
@@ -56,9 +57,7 @@ if (process.argv.includes("--install")) {
 const arg = (n) => { const i = process.argv.indexOf(n); return i >= 0 ? process.argv[i + 1] : null; };
 const ONLY = arg("--engine");
 const LIMIT = Number(arg("--limit")) || 0;
-const SLUG = arg("--client") ?? "robotncoding";
-/** 모든 고객 합계. 로그아웃 소비자 화면은 소량으로만 묻는다(research/pilot-measurement-sop.md) */
-export const 하루상한 = 60;
+const SLUG = arg("--client");   // 없으면 대상 목록 전부
 
 if (fs.existsSync(LOCK) && Date.now() - fs.statSync(LOCK).mtimeMs >= 3 * 3600 * 1000) fs.rmSync(LOCK, { force: true });
 try { fs.writeFileSync(LOCK, String(process.pid), { flag: "wx" }); } catch { 기록("이미 돌고 있습니다 — 건너뜀"); process.exit(0); }
@@ -67,6 +66,8 @@ for (const l of fs.readFileSync(path.join(HERE, "../academy/.env.local"), "utf8"
   const m = /^([A-Z_]+)=(.*)$/.exec(l);
   if (m && !process.env[m[1]]) process.env[m[1]] = m[2];
 }
+/** 모든 고객 합계. 로그아웃 소비자 화면은 소량으로만 묻는다(research/pilot-measurement-sop.md). 올리는 건 원장 몫 — env 한 줄 */
+const 하루상한 = /^\d+$/.test(String(process.env.WEB_MEASURE_DAILY_MAX ?? "").trim()) ? Number(process.env.WEB_MEASURE_DAILY_MAX) : 60;
 const u = new URL(process.env.DATABASE_URL);
 u.searchParams.delete("sslmode");
 // 한 번 도는 데 한 시간 넘게 걸린다. 연결을 붙잡으면 Neon 이 끊으니 쿼리마다 연다(local-agent 와 같은 모양)
@@ -184,39 +185,47 @@ const ENGINES = {
 /**
  * 못 재는 고객은 멈추고 원장 일감으로 올린다 — 로그에만 남기면 아무도 안 본다.
  * sticky: 회사 루프의 「신호 사라짐」 닫기에 걸리지 않게. 다음에 제대로 재면 아래에서 닫는다
+ * 일감은 그 고객 id 에 붙인다. geo.clients 에 없는 슬러그면 붙일 곳이 없어 기록만 한다 — 학원에 붙이지 않는다(Step 25 D4)
  */
 const 멈춤키 = (slug) => [`measure-conf-${slug}`, `measure-questions-${slug}`];
-const 멈추고알림 = async (slug, key, title, detail) => {
-  기록(`${slug}: ${title} — 멈춤`);
+const 멈추고알림 = async (t, key, title, detail) => {
+  기록(`${t.slug}: ${title} — 멈춤`);
   process.exitCode = 1;
+  if (!t.id) { 기록(`${t.slug}: geo.clients 에 없는 고객이라 일감을 붙일 곳이 없음`); return; }
   await q(
     `insert into geo.agent_tasks (client_id, agent, kind, dedupe_key, title, detail, status, priority, payload)
-     values (coalesce((select id from geo.clients where slug = $1), 1), 'measure', 'human', $2, $3, $4, '사람 대기', 20, '{"sticky":true}'::jsonb)
+     values ($1, 'measure', 'human', $2, $3, $4, '사람 대기', 20, '{"sticky":true}'::jsonb)
      on conflict (client_id, dedupe_key) do update set status='사람 대기', title=excluded.title, detail=excluded.detail,
        done_at=null, updated_at=now()`,
-    [slug, key, title, detail]).catch((e) => 기록(`일감 올리기 실패 ${e.message}`));
+    [t.id, key, title, detail]).catch((e) => 기록(`일감 올리기 실패 ${e.message}`));
 };
 
 const main = async () => {
-  const CLIENT = measureConf(SLUG);
-  if (!CLIENT) {
-    await 멈추고알림(SLUG, 멈춤키(SLUG)[0], `AI 화면 측정 설정 없음: ${SLUG}`,
-      "academy/clients.mjs 에 이 고객의 도메인·이름 정규식(answerRe)이 없어 소비자 화면 측정을 못 합니다. 한 덩어리를 넣으면 다음 실행부터 잽니다.");
-    return;
+  // 누구를 잴지 — --client 가 없으면 진행 중 파일럿·측정 켠 고객·학원을 순서대로(academy/measure-targets.mjs)
+  const 대상 = await 측정대상(q, 오늘, SLUG);
+  const 나눔 = 대상.length > 1;   // 학원만 있으면 나누지 않는다 — 지금과 같게
+  const 잴것 = [];
+  for (const t of 대상) {
+    if (!t.conf) {
+      await 멈추고알림(t, 멈춤키(t.slug)[0], `AI 화면 측정 설정 없음: ${t.slug}`,
+        "이 고객의 도메인·이름 판별 말(geo.clients.answer_pattern 또는 academy/clients.mjs answerRe)이 없어 소비자 화면 측정을 못 합니다. 넣으면 다음 실행부터 잽니다.");
+      continue;
+    }
+    const questions = await q(
+      `select 'q' || q.position as prompt_id, q.stage, q.text
+         from geo.pilot_questions q join geo.pilots p on p.id = q.pilot_id
+        where p.client_id = $1 and q.approved order by q.position`, [t.conf.id]);
+    // 질문을 지어내지 않는다. 고객이 승인한 질문 패널이 있어야 잰다
+    if (!questions.length) {
+      await 멈추고알림(t, 멈춤키(t.slug)[1], `AI 화면 측정 승인 질문 없음: ${t.conf.name}`,
+        "고객이 승인한 질문(geo.pilot_questions)이 없어 소비자 화면 측정을 멈췄습니다. 질문 패널을 받아 승인 표시를 하면 다음 실행부터 잽니다.");
+      continue;
+    }
+    await q(`update geo.agent_tasks set status='완료', done_at=now(), updated_at=now()
+              where client_id=$1 and dedupe_key = any($2) and status='사람 대기'`, [t.conf.id, 멈춤키(t.slug)]).catch(() => {});
+    잴것.push({ t, CLIENT: t.conf, questions });
   }
-  const 이름 = CLIENT.answerRe;
-  const questions = await q(
-    `select 'q' || q.position as prompt_id, q.stage, q.text
-       from geo.pilot_questions q join geo.pilots p on p.id = q.pilot_id
-      where p.client_id = $1 and q.approved order by q.position`, [CLIENT.id]);
-  // 질문을 지어내지 않는다. 고객이 승인한 질문 패널이 있어야 잰다
-  if (!questions.length) {
-    await 멈추고알림(SLUG, 멈춤키(SLUG)[1], `AI 화면 측정 승인 질문 없음: ${CLIENT.name}`,
-      "고객이 승인한 질문(geo.pilot_questions)이 없어 소비자 화면 측정을 멈췄습니다. 질문 패널을 받아 승인 표시를 하면 다음 실행부터 잽니다.");
-    return;
-  }
-  await q(`update geo.agent_tasks set status='완료', done_at=now(), updated_at=now()
-            where client_id=$1 and dedupe_key = any($2) and status='사람 대기'`, [CLIENT.id, 멈춤키(SLUG)]).catch(() => {});
+  if (!잴것.length) return;
 
   // 하루 상한 — 모든 고객 합계. 막혀서 적재 안 된 시도도 화면에는 간 것이라 이번 실행에서 보낸 수는 따로 센다
   const [{ n: 오늘보냄 }] = await q(
@@ -229,54 +238,80 @@ const main = async () => {
   const b = await chromium.launch({ headless: false, args: ["--window-position=-2400,0"] });
   const 요약 = [];
   try {
-    for (const [key, e] of Object.entries(ENGINES)) {
-      if (ONLY && ONLY !== key) continue;
-      const done = new Set((await q(
-        `select prompt_id from academy.ai_measurements where client_id=$1 and measured_on=$2 and collection_method=$3`,
-        [CLIENT.id, 오늘, e.method])).map((r) => r.prompt_id));
-      let todo = questions.filter((x) => !done.has(x.prompt_id));
-      if (LIMIT) todo = todo.slice(0, LIMIT);
-      let ok = 0, hit = 0, cite = 0, 연속실패 = 0, 멈춤 = "", 상한걸림 = false;
-      for (const x of todo) {
-        if (오늘보냄 + 보냄 >= 하루상한) { 상한걸림 = true; break; }
-        보냄++;
-        const ctx = await b.newContext({ locale: "ko-KR", timezoneId: "Asia/Seoul", viewport: { width: 1280, height: 900 } });
-        const p = await ctx.newPage();
-        try {
-          await p.goto(e.home, { waitUntil: "domcontentloaded", timeout: 45000 });
-          await p.waitForTimeout(5000);
-          const r = await e.ask(p, x.text);
-          const 글 = 답만(r.answer, x.text);
-          if (e.막힘.test(글) || 글.length < 40) throw new Error(e.막힘.test(글) ? "막힘(로그인·캡차)" : "답 없음");
-          const mentioned = 이름.test(글);
-          const cited = r.links.some((c) => c.domain === CLIENT.domain || c.domain.endsWith(`.${CLIENT.domain}`));
-          await q(
-            `insert into academy.ai_measurements
-               (client_id, measured_on, collection_method, engine, model, prompt_id, stage, prompt_text,
-                attempt, mentioned, cited, citations, note, raw)
-             values ($1,$2,$3,$4,'web',$5,$6,$7,1,$8,$9,$10::jsonb,$11,$12::jsonb)
-             on conflict (client_id, measured_on, collection_method, engine, prompt_id, attempt) do nothing`,
-            [CLIENT.id, 오늘, e.method, e.engine, x.prompt_id, x.stage, x.text, mentioned, cited,
-              JSON.stringify(r.links), "소비자 화면 · 로그아웃 · 새 세션",
-              JSON.stringify({ answer: 글.slice(0, 8000), links: r.links.slice(0, 60) })]);
-          ok++; 연속실패 = 0;
-          if (mentioned) hit++;
-          if (cited) cite++;
-          console.log(`  ${cited ? "◎" : mentioned ? "○" : "·"} ${key} ${x.prompt_id} 링크 ${r.links.length}`);
-        } catch (err) {
-          연속실패++;
-          console.log(`  ✗ ${key} ${x.prompt_id} ${String(err.message).split("\n")[0].slice(0, 120)}`);
-          await p.screenshot({ path: path.join(HERE, `ai-web-${key}-fail.png`) }).catch(() => {});
-          if (연속실패 >= 3) { 멈춤 = String(err.message).split("\n")[0].slice(0, 80); break; }
-        } finally {
-          await ctx.close().catch(() => {});
+    for (const { t, CLIENT, questions } of 잴것) {
+      const 이름 = CLIENT.answerRe;
+      const 머리 = 나눔 ? `${CLIENT.name} ` : "";
+      let 모자람 = 0, 다잼 = true;
+      for (const [key, e] of Object.entries(ENGINES)) {
+        if (ONLY && ONLY !== key) continue;
+        const done = new Set((await q(
+          `select prompt_id from academy.ai_measurements where client_id=$1 and measured_on=$2 and collection_method=$3`,
+          [CLIENT.id, 오늘, e.method])).map((r) => r.prompt_id));
+        let todo = questions.filter((x) => !done.has(x.prompt_id));
+        if (LIMIT) todo = todo.slice(0, LIMIT);
+        /**
+         * 상한을 순서대로 나눈다(Step 25 D3). 고객이 둘 이상일 때만 — 학원 혼자면 지금처럼 문항마다 상한만 본다.
+         * 한 엔진의 남은 문항을 다 못 보낼 만큼 남았으면 그 엔진은 안 연다 — 절반만 잰 날은 다른 날과 비교가 안 된다
+         */
+        const 남음 = 하루상한 - 오늘보냄 - 보냄;
+        if (나눔 && !LIMIT && todo.length && 남음 < todo.length) {
+          모자람 += todo.length; 다잼 = false;
+          요약.push(`${머리}${key}: 오늘 ${done.size}/${questions.length} · 하루 상한 ${하루상한}질의 가운데 ${Math.max(0, 남음)}질의만 남아 ${todo.length}문항을 안 엶`);
+          continue;
         }
-        await new Promise((res) => setTimeout(res, 4000 + Math.random() * 4000));
+        let ok = 0, hit = 0, cite = 0, 연속실패 = 0, 멈춤 = "", 상한걸림 = false, 시도 = 0;
+        for (const x of todo) {
+          if (오늘보냄 + 보냄 >= 하루상한) { 상한걸림 = true; break; }
+          보냄++; 시도++;
+          const ctx = await b.newContext({ locale: "ko-KR", timezoneId: "Asia/Seoul", viewport: { width: 1280, height: 900 } });
+          const p = await ctx.newPage();
+          try {
+            await p.goto(e.home, { waitUntil: "domcontentloaded", timeout: 45000 });
+            await p.waitForTimeout(5000);
+            const r = await e.ask(p, x.text);
+            const 글 = 답만(r.answer, x.text);
+            if (e.막힘.test(글) || 글.length < 40) throw new Error(e.막힘.test(글) ? "막힘(로그인·캡차)" : "답 없음");
+            const mentioned = 이름.test(글);
+            const cited = r.links.some((c) => c.domain === CLIENT.domain || c.domain.endsWith(`.${CLIENT.domain}`));
+            await q(
+              `insert into academy.ai_measurements
+                 (client_id, measured_on, collection_method, engine, model, prompt_id, stage, prompt_text,
+                  attempt, mentioned, cited, citations, note, raw)
+               values ($1,$2,$3,$4,'web',$5,$6,$7,1,$8,$9,$10::jsonb,$11,$12::jsonb)
+               on conflict (client_id, measured_on, collection_method, engine, prompt_id, attempt) do nothing`,
+              [CLIENT.id, 오늘, e.method, e.engine, x.prompt_id, x.stage, x.text, mentioned, cited,
+                JSON.stringify(r.links), "소비자 화면 · 로그아웃 · 새 세션",
+                JSON.stringify({ answer: 글.slice(0, 8000), links: r.links.slice(0, 60) })]);
+            ok++; 연속실패 = 0;
+            if (mentioned) hit++;
+            if (cited) cite++;
+            console.log(`  ${cited ? "◎" : mentioned ? "○" : "·"} ${key} ${나눔 ? `${CLIENT.slug} ` : ""}${x.prompt_id} 링크 ${r.links.length}`);
+          } catch (err) {
+            연속실패++;
+            console.log(`  ✗ ${key} ${x.prompt_id} ${String(err.message).split("\n")[0].slice(0, 120)}`);
+            await p.screenshot({ path: path.join(HERE, `ai-web-${key}-fail.png`) }).catch(() => {});
+            if (연속실패 >= 3) { 멈춤 = String(err.message).split("\n")[0].slice(0, 80); break; }
+          } finally {
+            await ctx.close().catch(() => {});
+          }
+          await new Promise((res) => setTimeout(res, 4000 + Math.random() * 4000));
+        }
+        if (상한걸림) 모자람 += todo.length - 시도;
+        if (done.size + ok < questions.length) 다잼 = false;
+        const 줄 = `${머리}${key}: 오늘 ${done.size + ok}/${questions.length} · 이번에 이름 ${hit}/${ok} · 인용 ${cite}/${ok}${멈춤 ? ` · 멈춤(${멈춤})` : ""}${상한걸림 ? ` · 하루 상한 ${하루상한}질의에 닿아 멈춤` : ""}`;
+        요약.push(줄);
+        await q(`insert into geo.agent_activity (client_id, agent, action, ok, summary, run_url) values ($3,'measure','소비자 화면 AI 측정',$1,$2,'local-agent')`,
+          [!멈춤, 줄, CLIENT.id]).catch(() => {});   // 멈춘 엔진은 실패로 적는다 — 몇 문항 됐어도 그날 끝까지 못 쟀다
       }
-      const 줄 = `${key}: 오늘 ${done.size + ok}/${questions.length} · 이번에 이름 ${hit}/${ok} · 인용 ${cite}/${ok}${멈춤 ? ` · 멈춤(${멈춤})` : ""}${상한걸림 ? ` · 하루 상한 ${하루상한}질의에 닿아 멈춤` : ""}`;
-      요약.push(줄);
-      await q(`insert into geo.agent_activity (client_id, agent, action, ok, summary, run_url) values ($3,'measure','소비자 화면 AI 측정',$1,$2,'local-agent')`,
-        [!멈춤, 줄, CLIENT.id]).catch(() => {});   // 멈춘 엔진은 실패로 적는다 — 몇 문항 됐어도 그날 끝까지 못 쟀다
+      // 상한 때문에 못 잰 고객은 조용히 빠지지 않는다. 다 잰 날 닫는다(엔진·문항 제한을 건 시험 실행은 「다 잼」으로 치지 않는다)
+      if (모자람 > 0) {
+        await 예산부족알림(q, t, "web", `소비자 화면 측정 하루 상한(모든 고객 합계 ${하루상한}질의)을 앞 순서 고객이 먼저 써서 ${오늘} ${CLIENT.name} 질의 ${모자람}개를 못 보냈습니다`,
+          "PC 의 academy/.env.local 에 WEB_MEASURE_DAILY_MAX=<새 상한> 한 줄을 넣으면 다음 실행부터 잽니다. 로그아웃 화면은 소량으로만 묻는 게 원칙이라(research/pilot-measurement-sop.md) 올릴지는 원장이 정합니다.")
+          .catch((err) => 기록(`예산 일감 올리기 실패 ${err.message}`));
+      } else if (다잼 && !ONLY && !LIMIT) {
+        await 예산부족닫기(q, t, "web", `${오늘} 소비자 화면 ${Object.keys(ENGINES).length}곳 × ${questions.length}문항 측정`)
+          .catch((err) => 기록(`예산 일감 닫기 실패 ${err.message}`));
+      }
     }
   } finally {
     await b.close().catch(() => {});

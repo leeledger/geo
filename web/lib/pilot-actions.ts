@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { inqPool } from "./inquiries";
 
 import { isAdmin } from "./admin-auth";
+import { answerPattern } from "./answer-pattern";
 
 /** 서버 동작은 동작 번호만 알면 누구나 부를 수 있다. 화면이 관리자 전용이어도 동작 자체를 막아야 한다(2026-09-23 발견) */
 async function guard() {
@@ -24,12 +25,16 @@ export async function createPilot(form:FormData){await guard();
   const category=String(form.get("category")??"").trim(), audience=String(form.get("audience")??"").trim();
   const payment=String(form.get("payment_ref")??"").trim();
   const terms=String(form.get("terms_evidence")??"").trim(), contactName=String(form.get("contact_name")??"").trim(), contactEmail=String(form.get("contact_email")??"").trim(), contactPhone=String(form.get("contact_phone")??"").trim(), receiptType=String(form.get("receipt_type")??"").trim();
-  if(!brand||!domain||!district||!neighborhood||!category||!audience||!payment||!terms||!contactName||!contactEmail||!contactPhone||!receiptType)return;
+  // 답에 이 고객 이름이 나왔는지 가리는 말(쉼표로 여러 개). 없으면 측정이 「측정 설정 없음」으로 멈추니 등록 때 받는다(Step 25 D1)
+  const pattern=answerPattern(String(form.get("answer_terms")??""));
+  if(!brand||!domain||!district||!neighborhood||!category||!audience||!payment||!terms||!contactName||!contactEmail||!contactPhone||!receiptType||!pattern)return;
   const slug=String(form.get("slug")??"").toLowerCase().replace(/[^a-z0-9-]/g,"").slice(0,40);
   if(!slug)return;
   const db=await inqPool().connect(); let pilotId="";
   try{await db.query("begin");
-    const c=(await db.query(`insert into geo.clients(slug,name,domain,alias,schema_name,started_on,note,relation) values($1,$2,$3,$4,'academy',current_date,'39만원 30일 유료 파일럿','외부') on conflict(slug) do update set name=excluded.name,domain=excluded.domain returning id`,[slug,brand,domain,`${district}의 단일 지점 ${category}`])).rows[0];
+    await db.query(`alter table geo.clients add column if not exists answer_pattern text`);
+    await db.query(`alter table geo.clients add column if not exists measure_active boolean not null default false`);
+    const c=(await db.query(`insert into geo.clients(slug,name,domain,alias,schema_name,started_on,note,relation,answer_pattern) values($1,$2,$3,$4,'academy',current_date,'39만원 30일 유료 파일럿','외부',$5) on conflict(slug) do update set name=excluded.name,domain=excluded.domain,answer_pattern=excluded.answer_pattern returning id`,[slug,brand,domain,`${district}의 단일 지점 ${category}`,pattern])).rows[0];
     const p=(await db.query(`insert into geo.pilots(client_id,price,payment_ref,contact_name,contact_email,contact_phone,receipt_type,terms_evidence,paid_at,started_on,ends_on,status,terms_accepted_at) values($1,390000,$2,$3,$4,$5,$6,$7,now(),current_date,current_date+30,'진행',now()) on conflict(client_id) do update set payment_ref=excluded.payment_ref,contact_name=excluded.contact_name,contact_email=excluded.contact_email,contact_phone=excluded.contact_phone,receipt_type=excluded.receipt_type,terms_evidence=excluded.terms_evidence returning id,started_on,ends_on`,[c.id,payment,contactName,contactEmail,contactPhone,receiptType,terms])).rows[0];
     const qs=makeQuestions(brand,district,neighborhood,category,audience);
     for(let i=0;i<qs.length;i++)await db.query(`insert into geo.pilot_questions(pilot_id,position,stage,text) values($1,$2,$3,$4) on conflict(pilot_id,position) do update set text=excluded.text`,[p.id,i+1,i<8?'지역':i<13?'문제':i<17?'비교':'브랜드',qs[i]]);

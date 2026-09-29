@@ -82,6 +82,14 @@ const CSS = `
 }
 `;
 
+/** 토큰 수를 사람 말로 — 12만 · 1.5만 · 830. 반올림만 하고 지어내지 않는다 */
+function tok(n: number): string {
+  const one = (x: number) => String(Math.round(x * 10) / 10);
+  if (n >= 1e8) return `${one(n / 1e8)}억`;
+  if (n >= 1e4) return `${one(n / 1e4)}만`;
+  return n.toLocaleString("ko-KR");
+}
+
 export default function AgentStrip({ initial }: { initial: Agents }) {
   const [data, setData] = useState(initial);
   const [lost, setLost] = useState(false);
@@ -147,6 +155,10 @@ export default function AgentStrip({ initial }: { initial: Agents }) {
       {c && (
         <p className="ag-claude">
           오늘 Claude 사용 {c.n.toLocaleString("ko-KR")}번{c.cap !== null && ` (하루 한도 ${c.cap.toLocaleString("ko-KR")}번)`}
+          {c.tokens && c.tokens.recorded > 0 && (
+            <> · 토큰 입력 {tok(c.tokens.input)} · 출력 {tok(c.tokens.output)}
+              {c.tokens.recorded < c.n ? ` (토큰이 기록된 ${c.tokens.recorded.toLocaleString("ko-KR")}번 기준)` : ""}</>
+          )}
         </p>
       )}
       <ol className="ag-list">

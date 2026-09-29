@@ -13,7 +13,8 @@
  *
  *   const r = await 클로드코드("질문", { tools: ["WebSearch"] })
  *   r.ok · r.text · r.urls(검색 결과로 읽은 주소) · r.error · r.한도 · r.인증실패 · r.시간초과 · r.거절(권한에 막힌 도구 호출)
- *   r.callId (geo.claude_calls 행) · 옵션 purpose(measure·writer·audit·repair…) · taskId
+ *   r.callId (geo.claude_calls 행) · r.토큰 { input, output, cacheRead, cacheWrite, model } — 못 읽은 칸은 null
+ *   옵션 purpose(measure·writer·audit·repair…) · taskId
  */
 import { spawn, execFile } from "node:child_process";
 import fs from "node:fs";
@@ -53,7 +54,13 @@ const 기록쿼리 = async () => {
   }
   if (기록q && !표준비) {
     표준비 = 기록q(`create table if not exists geo.claude_calls (id bigserial primary key, at timestamptz not null default now(),
-      purpose text not null, ok boolean not null, secs int, cost_usd numeric, task_id bigint, note text not null default '')`);
+      purpose text not null, ok boolean not null, secs int, cost_usd numeric, task_id bigint, note text not null default '')`)
+      // 토큰 — 원장이 구독 한도를 얼마나 쓰는지 보려고(Step 25 D17). 못 읽은 호출은 null 로 둔다
+      .then(() => 기록q(`alter table geo.claude_calls add column if not exists input_tokens int,
+        add column if not exists output_tokens int, add column if not exists cache_read_tokens int,
+        add column if not exists cache_write_tokens int, add column if not exists model text`)
+        // 칸을 못 더해도 호출 수는 센다 — 상한이 그 수로 돈다
+        .catch((e) => console.log(`  ⚠ claude_calls 토큰 칸 못 더함: ${e.message}`)));
   }
   if (표준비) await 표준비;
   return 기록q;
@@ -82,11 +89,41 @@ export async function 클로드코드(prompt, opts = {}) {
   const 시작 = Date.now();
   const r = await 한번부르기(prompt, opts);
   if (q) {
-    const [row] = await q(`insert into geo.claude_calls (purpose, ok, secs, cost_usd, task_id, note) values ($1,$2,$3,$4,$5,$6) returning id`,
-      [purpose, r.ok, Math.round((Date.now() - 시작) / 1000), r.cost ?? null, opts.taskId ?? null, String(r.error ?? "").slice(0, 300)]).catch(() => []);
+    const t = r.토큰 ?? {};
+    const [row] = await q(`insert into geo.claude_calls (purpose, ok, secs, cost_usd, task_id, note, input_tokens, output_tokens, cache_read_tokens, cache_write_tokens, model)
+        values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) returning id`,
+      [purpose, r.ok, Math.round((Date.now() - 시작) / 1000), r.cost ?? null, opts.taskId ?? null, String(r.error ?? "").slice(0, 300),
+        t.input ?? null, t.output ?? null, t.cacheRead ?? null, t.cacheWrite ?? null, t.model ?? null])
+      // 토큰 칸이 없으면 예전 모양으로라도 한 줄 남긴다 — 빠지면 오늘 호출 수가 줄어 상한이 샌다
+      .catch(() => q(`insert into geo.claude_calls (purpose, ok, secs, cost_usd, task_id, note) values ($1,$2,$3,$4,$5,$6) returning id`,
+        [purpose, r.ok, Math.round((Date.now() - 시작) / 1000), r.cost ?? null, opts.taskId ?? null, String(r.error ?? "").slice(0, 300)]))
+      .catch(() => []);
     r.callId = row?.id ?? null;
   }
   return r;
+}
+
+/**
+ * result 줄에서 토큰을 읽는다. modelUsage(모델별 누계 — 하위 호출 모델까지)를 먼저, 없으면 usage.
+ * 필드 이름은 설치된 CLI(2.1.284) 안의 result 스키마에서 확인했다: modelUsage[모델].inputTokens·outputTokens·
+ * cacheReadInputTokens·cacheCreationInputTokens / usage.input_tokens·output_tokens·cache_read_input_tokens·cache_creation_input_tokens.
+ * 숫자가 아니면 그 칸은 null — 지어내지 않는다. 모델 이름은 modelUsage 열쇠, 없으면 시작(init) 줄의 model
+ */
+const 수 = (v) => (Number.isInteger(v) && v >= 0 ? v : null);
+export function 토큰읽기(result, 시작모델 = null) {
+  const mu = result?.modelUsage && typeof result.modelUsage === "object" ? Object.entries(result.modelUsage) : [];
+  if (mu.length) {
+    const 합 = (k) => {
+      let s = 0;
+      for (const [, v] of mu) { const n = 수(v?.[k]); if (n === null) return null; s += n; }
+      return s;
+    };
+    return { input: 합("inputTokens"), output: 합("outputTokens"), cacheRead: 합("cacheReadInputTokens"),
+      cacheWrite: 합("cacheCreationInputTokens"), model: mu.map(([m]) => m).join(",").slice(0, 200) };
+  }
+  const u = result?.usage;
+  return { input: 수(u?.input_tokens), output: 수(u?.output_tokens), cacheRead: 수(u?.cache_read_input_tokens),
+    cacheWrite: 수(u?.cache_creation_input_tokens), model: typeof 시작모델 === "string" ? 시작모델.slice(0, 200) : null };
 }
 
 async function 한번부르기(prompt, { system = 기본시스템, tools = [], model = "sonnet", maxTurns = 8, timeoutMs = 5 * 60 * 1000, cwd = null, envDrop = [], allow = [], deny = [] } = {}) {
@@ -136,7 +173,7 @@ async function 한번부르기(prompt, { system = 기본시스템, tools = [], m
     child.on("close", (code) => {
       clearTimeout(timer);
       const urls = new Map();
-      let result = null;
+      let result = null, 시작모델 = null;
       for (const line of out.split("\n")) {
         let m;
         try { m = JSON.parse(line); } catch { continue; }
@@ -148,6 +185,7 @@ async function 한번부르기(prompt, { system = 기본시스템, tools = [], m
             for (const x of t.matchAll(/"title":"((?:[^"\\]|\\.)*)","url":"([^"]+)"/g)) urls.set(x[2], { title: x[1], url: x[2] });
           }
         }
+        if (m.type === "system" && m.subtype === "init") 시작모델 = m.model ?? null;
         if (m.type === "result") result = m;
       }
       const text = result?.result ?? "";
@@ -171,6 +209,7 @@ async function 한번부르기(prompt, { system = 기본시스템, tools = [], m
         // error_max_turns 처럼 is_error 는 아닌데 실패인 경우도 이유를 남긴다
         error: ok ? null : (text.slice(0, 300) || result.subtype || "알 수 없음"),
         cost: result.total_cost_usd ?? null,
+        토큰: 토큰읽기(result, 시작모델),
         // 권한 규칙에 막힌 도구 호출(CLI 가 직접 센 것). 칸막이 시험의 증거다
         거절: result.permission_denials ?? [],
       });

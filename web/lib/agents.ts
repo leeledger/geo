@@ -40,8 +40,14 @@ export type Agents = {
   at: string;
   rows: AgentRow[];
   /** 오늘(KST) Claude 호출 수. cap 은 env CLAUDE_DAILY_MAX — 없으면 null 이고 화면은 상한을 안 쓴다 */
-  claude: { n: number; cap: number | null } | null;
+  claude: { n: number; cap: number | null; tokens: ClaudeTokens | null } | null;
 };
+
+/**
+ * 오늘(KST) 토큰 합 — 토큰을 읽어 둔 호출만(Step 25 D17). 입력은 캐시 읽기·쓰기를 더한 전체.
+ * recorded 는 합에 든 호출 수. 0 이면 화면은 토큰 줄을 안 쓴다(모르는 걸 0 으로 보이지 않는다)
+ */
+export type ClaudeTokens = { recorded: number; input: number; output: number };
 
 /**
  * 정해진 일 하나.
@@ -426,7 +432,19 @@ export async function readAgents(now = Date.now()): Promise<Agents> {
       const { rows: [c] } = await p.query(
         `select count(*)::int as n from geo.claude_calls
           where (at at time zone 'Asia/Seoul')::date = (now() at time zone 'Asia/Seoul')::date`);
-      claude = { n: c.n, cap: claudeCap() };
+      // 토큰 칸은 claude-code.mjs 가 첫 호출 때 더한다. 칸이 아직 없어도 호출 수는 보인다
+      let tokens: ClaudeTokens | null = null;
+      try {
+        const { rows: [t] } = await p.query(
+          `select count(*)::int as k,
+                  coalesce(sum(input_tokens + coalesce(cache_read_tokens, 0) + coalesce(cache_write_tokens, 0)), 0)::bigint as i,
+                  coalesce(sum(output_tokens), 0)::bigint as o
+             from geo.claude_calls
+            where (at at time zone 'Asia/Seoul')::date = (now() at time zone 'Asia/Seoul')::date
+              and input_tokens is not null and output_tokens is not null`);
+        tokens = { recorded: t.k, input: Number(t.i), output: Number(t.o) };
+      } catch (e) { console.error("claude_calls 토큰 읽기 실패", e); }
+      claude = { n: c.n, cap: claudeCap(), tokens };
     } catch (e) { console.error("claude_calls 읽기 실패", e); }
 
     const acts: Act[] = ar.map((r) => ({ agent: r.agent, action: r.action, ok: !!r.ok, summary: r.summary, at: iso(r.at), kind: r.kind ?? null }));

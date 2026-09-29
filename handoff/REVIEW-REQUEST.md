@@ -1,207 +1,75 @@
-# Review Request — Step 23 · 24 · 첫 고객 전 9가지 (역량 검토 반영)
-Date: 2026-09-29
+# Review Request — Step 25 (여러 고객 측정 · D1~D4 + D17 토큰 기록)
+Date: 2026-09-30
 Ready for Review: YES
+Status: DONE — 가짜 행·가짜 DB 로 확인. 실측정·DB 쓰기·푸시·배포 안 함
 
-- Step 23: main 커밋 `8051c3e` — 푸시·배포 안 함. 상태 **DONE**
-- Step 24: 브랜치 `step24-copy` 커밋 `5dacf06` — 병합·푸시 안 함, 작업트리는 main 으로 돌려 둠. 상태 **DONE_WITH_CONCERNS** (tsc 만 돌렸고 화면은 안 봤다 — 미리보기 필요)
-- DB 쓰기 실행 없음(읽기 select 만: 상태 확인·case-report 표준출력). 실측정(ai-measure·ai-web-measure) 안 돌림. 새 표는 코드의 `create table if not exists` 로만
+## Files Changed
+- academy/measure-targets.mjs (새 파일, 1-106) — 대상 목록. `측정설정준비`(컬럼 2개 add if not exists + 덩어리 정규식 원문으로 빈 answer_pattern 채움) · `측정설정`(DB 원문 먼저, 없으면 clients.mjs) · `대상고르기`(순수 함수: 유료 → 학원 → 측정 켠 고객) · `측정대상`(DB 읽기, --client 면 하나) · `예산부족알림/닫기`
+- academy/clients.mjs:105-109 — 안 쓰게 된 `measureConf` 삭제, DB 가 먼저라는 설명으로 대체
+- academy/scripts/ai-measure.mjs:15-33, 226-507 — 대상 목록을 돈다. 고객마다 기존 엔진 루프 그대로(들여쓰기만 한 칸). Claude 몫 나눔(고객 둘 이상일 때만), 탐침은 학원 승인 질문 바로 뒤·유료 고객 있는 날 끔, 설정 없는 고객은 그 고객만 멈추고 끝에 종료코드 1
+- tools/ai-web-measure.mjs:10-20, 32, 60-70, 188-314 — 같은 대상 목록. 상한 `WEB_MEASURE_DAILY_MAX`(기본 60). 고객 둘 이상이면 엔진 단위로 남은 상한 확인, 모자라면 사람 일감. `멈추고알림`의 `coalesce(…,1)` 제거
+- web/lib/answer-pattern.ts (새 파일, 1-16) — 쉼표 말 → escape 한 정규식 원문
+- web/lib/pilot-actions.ts:7, 28-30, 35-37 — createPilot 이 `answer_terms` 를 받아(필수) answer_pattern 저장, 컬럼 add if not exists
+- web/app/admin/pilots/page.tsx:46-49 — 등록 폼에 「답에서 찾을 이름」 칸 (관리 화면만, 공개 문구 아님)
+- web/db/schema.sql:88-90 — 두 컬럼 alter
+- .github/workflows/optimize.yml:54-56, 83-84 — 측정·루프 단계에 `vars.CLAUDE_MEASURE_RESERVE`·`vars.CLAUDE_DAILY_MAX` 전달(비면 기본 22·40)
+- academy/scripts/claude-code.mjs:16-17, 57-66, 92-100, 106-128, 176, 188, 212 — D17 토큰 칸 5개 add if not exists, result 줄에서 읽어 기록
+- web/lib/agents.ts:43-49, 435-447 — 오늘 토큰 합(기록된 호출만) 읽기
+- web/app/admin/ops/AgentStrip.tsx:85-91, 158-161 — 「오늘 Claude 사용 n번 · 토큰 입력 12만 · 출력 1.5만 (토큰이 기록된 k번 기준)」
 
----
+## D1~D4 · D17 한 일
+- **D1** geo.clients 에 `answer_pattern text`, `measure_active boolean default false`. 칸을 더하는 곳은 측정 실행기 둘(`측정설정준비`)·createPilot·schema.sql, 모두 if not exists. 학원·아이로그는 answer_pattern 이 비었을 때만 지금 정규식 원문으로 채운다. 채운 값이 지금 정규식과 source·flags 가 같고, 표본 7개(「똑똑한 로봇&코딩학원」 포함) 판정도 같다. 등록 화면은 정규식 원문을 받지 않는다. 쉼표로 나눈 말을 escape 하고, 빈칸은 `\s*`, `&` 는 `(?:&|&amp;)` 로 바꾼다. 두 글자 이상, 말 10개·한 말 40자까지
+- **D2** 실행기 둘 다 `--client` 가 없으면 `측정대상()` 을 돈다. 대상은 진행 중 파일럿(시작일~종료일+7일), measure_active 고객, 학원(늘 포함). 순서는 유료 파일럿(가격>0, 시작일 순) → 학원 → 탐침 → 측정 켠 고객·0원 파일럿. `--client` 를 주면 그 고객 하나만 잰다(지금처럼 나누지 않음). pc-runner·optimize.yml 은 인자 없이 부르므로 호출부는 안 고쳤다
+- **D3** Claude 는 `CLAUDE_MEASURE_RESERVE`(기본 22)를 순서대로 나눈다. 앞 고객이 몫을 써서 남은 문항을 다 못 재면, 그 고객은 절반만 재지 않고 통째로 건너뛴다. 화면 측정은 하루 상한(`WEB_MEASURE_DAILY_MAX`, 기본 60)을 엔진 단위로 같은 방식으로 나눈다. 못 잰 고객은 사람 대기 일감(sticky)으로 올린다: 「오늘 측정 예산이 모자라 ○○ 를 못 쟀습니다 — 상한을 올릴지 정해 주세요」. 올리는 방법(저장소 변수 / .env.local 한 줄)도 일감 본문에 적었다. 그 실행기로 다 잰 날 근거(evidence)를 남기고 닫는다. 유료 고객이 있는 날은 탐침을 끈다
+- **D4** ai-web-measure `멈추고알림` 이 그 고객 id 에 붙는다. geo.clients 에 없는 슬러그면 기록만 하고 학원에 붙이지 않는다(KG-24-2 뒷절 해소)
+- **D17** 필드 이름은 추측하지 않고 설치된 CLI(2.1.284) 바이너리 안의 result 스키마에서 확인했다: `modelUsage[모델].inputTokens·outputTokens·cacheReadInputTokens·cacheCreationInputTokens`, 없으면 `usage.input_tokens…`. modelUsage 를 먼저 읽는다(하위 모델까지 합산). 숫자가 아닌 칸은 null 이다. 모델 이름은 modelUsage 열쇠에서, 없으면 init 줄에서 가져온다. ALTER 가 실패해도 호출 수는 계속 센다. INSERT 는 새 칸으로 실패하면 예전 모양으로 한 번 더 넣는다. 상한이 이 수로 돌기 때문이다. 현황판은 토큰이 기록된 행만 더한다. 기록이 0건이면 줄을 안 쓰고, 일부만 기록됐으면 「기록된 k번 기준」을 붙인다. 입력 합에는 캐시 읽기·쓰기를 넣었다
 
-## Step 23 (main)
+## 확인 출력
+하네스 위치: scratchpad `harness/run.mjs`·`unit.mjs`·`tokens.mjs`. 옛 파일은 HEAD 사본, 새 파일은 작업 트리 사본이다. `pg`·`playwright`·`claude-code.mjs`·`writer-common.mjs` 를 로더로 가짜로 바꿔 DB·네트워크에 닿지 않는다.
 
-### Files Changed
-- academy/clients.mjs:29-31, 60-61, 104-112 — 고객마다 `answerRe`(AI 답 언급 정의) 한 곳. 학원은 「똑똑한」 제외 정규식, 아이로그는 도메인만. `measureConf(slug)` 없으면 null
-- tools/ai-web-measure.mjs:10-19, 31, 59-61 — 머리 주석(고객·상한), `--client`(기본 robotncoding), `하루상한 = 60`
-- tools/ai-web-measure.mjs:184-224 — `멈추고알림()`: 설정 없음 → `measure-conf-<slug>`, 승인 질문 없음 → `measure-questions-<slug>` 사람 대기(sticky) + exitCode 1. 질문을 읽으면 두 일감을 완료로 닫음. 오늘 로그아웃 화면 적재 수(모든 고객)를 읽음
-- tools/ai-web-measure.mjs:239-242, 276-279 — 시도마다 상한 확인(막힌 시도도 셈). 상한에 닿으면 멈춤이지만 실패로 안 적음. agent_activity client_id 를 고객 id 로(전엔 1 고정)
-- academy/scripts/ai-measure.mjs:22, 229-232 — 이름 정규식을 clients.mjs 에서. 없으면 「측정 설정 없음」 throw
-- academy/scripts/ai-measure.mjs:370-382, 403 — D4 탐침 전 오늘 `purpose='measure'` 호출 수 ≥ `CLAUDE_MEASURE_RESERVE`(기본 20)면 건너뜀, 아니면 남은 몫까지만. 못 세면 안 부름
-- tools/heartbeat.mjs:14, 46-69 — 매시 geo.settings `pc_heartbeat`(값=호스트명, updated_at) upsert. 실패해도 GitHub 깨우기는 그대로
-- academy/scripts/pc-silent.mjs (새 파일) — 순수 판정 `PC무소식(흔적, now)` · `PC무소식글()`
-- academy/scripts/company.mjs:37, 330-353, 447-448 — `PC살핌()`: 흔적 셋(심장박동·로그아웃 측정 imported_at·로컬 에이전트 출근) 중 가장 최근이 24시간 넘으면 `pc-silent` 사람 대기(sticky, 우선 5, agent deliver), 돌아오면 닫고 활동 한 줄. 못 읽으면 판정 안 함. 계획() 끝, 신호 닫기 앞에서 부름
-- web/lib/agents.ts:327-330 — 열린 `pc-silent` 일감이 있으면 그 줄(유통) 「늦음」 + 일감 제목
-- academy/scripts/case-report.mjs:122-142 — 곳별 방법·기간·표본·원문 보관 수, 질문×곳 최근 7일 쿼리
-- academy/scripts/case-report.mjs:225-242 — `방법글()`·곳이름·7일 표 계산
-- academy/scripts/case-report.mjs:441-453 — 06절에 「곳마다 잰 방법」 + 원문 보관 한 줄, 그 아래 7일 「n번 중 k번」 표(곳별 합계). 공개본은 질문 번호·단계만, `--private` 만 질문 원문. 기존 aiRounds 줄은 그대로
-- web/lib/asks.ts:53-119 — `howOf()`(case-report 와 같은 말) · `readWeekRates()`
-- web/app/admin/asks/page.tsx:6, 111, 118, 122, 155-175, 268-293 — 「곳마다 잰 방법」 요약과 「질문별 최근 7일 — 몇 번 중 몇 번」 표
-- web/lib/hours.ts (새 파일) — `geo.client_hours` DDL(day 기본값 KST), 읽기(표 없으면 42P01 → 빈 목록), 분→시간 표기
-- web/lib/hours-actions.ts (새 파일) — `addHours` 서버 동작(guard, 분 1~1440, 한 일 필수, 날짜 없으면 KST 오늘). 첫 입력 때 표 생성
-- web/app/admin/pilots/page.tsx:7-9, 30-44, 55-66, 96-133 — 고객 칩 · 날짜/분/한 일 입력칸 · 고객별 누적 · 선택 고객 최근 10줄. keep-all
-- research/paid-pilot-order-form.md — 전면 개정: 제공 6줄(=Step 24 랜딩 문구 원본), llms.txt 무료 부수, 보장 줄, 환불 세 줄(서면), 파일럿 뒤 선택
-- research/pilot-measurement-sop.md — 전면 개정: 곳·방법 표, 반복 비율, 막히면(우회 없음·3회 멈춤·원장 손 확인), 「소량으로 알고 받아들인 위험」(OpenAI 약관 조항 인용·하루 60·캡차 3회), Claude Max 몫, 회차·성공 판정
+**학원만 있을 때 — 옛(HEAD)·새 실행기가 묻는 질문 순서·적재 행·종료코드 비교**
+```
+[claude]                       옛·새 같음   c1×20(q1…q20) → probe×2   종료 0
+[claude · 오늘 이미 측정 19번]   옛·새 같음   c1×20 · 「탐침: 몫 22회를 승인 질문이 39회로 다 써서 건너뜀」  종료 0
+[web]                          옛·새 같음   c1×60 (chatgpt·perplexity·gemini × 20)   종료 0
+[--client ilog]                옛·새 같음   c2×20 → probe×2
+학원만 있을 때 옛·새 같음: 예
+```
+새 쪽에만 있는 차이: 다 잰 날 `measure-budget-robotncoding-claude/-web` 닫기 update 가 한 번씩 더 나간다. 열린 일감이 없으면 아무것도 안 바뀐다.
 
-### 결정별로 한 일
-- **D1** 위 clients.mjs·ai-web-measure·ai-measure. 아이로그는 설정은 들어 있지만 DB 에 승인 질문이 0개라(읽기 확인) 돌리면 「승인 질문 없음」으로 멈추고 일감이 뜬다. pc-runner 일정엔 안 넣었다 — 넣으면 하루 60 상한(3곳×20)을 학원 혼자 다 쓴다
-- **D2** heartbeat.mjs 는 전까지 로컬 로그(heartbeat.log)에만 남겼다 — 서버에서 볼 수 없었다. geo.settings 한 줄로 남기게 했다(새 표 없이, repair.mjs 와 같은 DDL). 판정은 흔적 셋 중 **가장 최근** 기준(하나라도 돌면 PC 는 켜져 있다)
-- **D3** 영업 숫자 식은 안 건드림. case-report 의 aiRounds·기존 문장 그대로, 표시만 더함
-- **D4** 확인 결과: 측정은 「오늘 전체 호출 < 40」만 본다. 측정이 몫 20 을 넘겨 쓰면 다른 일은 자기 몫 20 을 그대로 쓰니 하루 합이 40 을 넘을 수 있다(측정이 먼저 도는 07:05 기준 20+2+20). 그래서 탐침은 measure 호출 수가 몫 안일 때만. 새 상한 없음(env 값을 그대로 읽음)
-- **D5** /admin/pilots 에 넣었다(/admin/ops 는 이미 무겁다). 인증은 기존 isAdmin 그대로(화면·동작 둘 다)
-- **D6** research/ 는 web/ 밖 — Vercel 루트가 web/ 이고 웹 코드에서 research 경로 참조 0건. 공개 경로로 안 나감
+**여러 고객 (가짜 유료 고객 id 3, 390,000원, 진행 중)**
+```
+B  기본 몫        claude: c3×20 · 학원 「몫 22회 가운데 20회를 앞 순서가 써서 남은 20문항을 못 잼」 → insert 일감 client=1 measure-budget-robotncoding-claude
+                  web:    c3×60 · 학원 3엔진 「하루 상한 60질의 가운데 0질의만 남아 20문항을 안 엶」 → insert 일감 client=1 measure-budget-robotncoding-web
+B' 몫 올림(42/60·web 120)  claude: c3×20 → c1×20 · 「탐침: 유료 파일럿 고객이 있는 날이라 끔」   web: c3×60 → c1×60
+C  + 측정 켠 아이로그       claude: c3×20 → c1×20 → c2×20
+```
+**순수 함수 18개 통과**(unit.mjs): 종료+7일 경계, 시작 전 제외, 0원 파일럿은 학원 뒤, 학원 정규식 동치, DB 에 `https://www.` 가 있어도 학원 도메인 그대로, 깨진 원문 → 외부 고객 null·학원은 덩어리, `(a+)+$` 가 글자로 escape 됨(50,000자 입력 200ms 미만), 한 글자·빈 말 제거, 10개 상한.
+**토큰읽기 4개 통과**(tokens.mjs): 두 모델 합산 · usage 만 · 둘 다 없음 → 전부 null · 숫자 아닌 칸만 null.
+**tsc**: `web` 에서 `node ./node_modules/typescript/bin/tsc --noEmit -p .` 종료 0. `.mjs` 는 전부 `node --check` 통과.
+**tok 표기**: 830 · 1.5만 · 12만 · 123.5만 · 2.5억.
 
-### 확인 출력
-- `node ./node_modules/typescript/bin/tsc --noEmit` (web/) → exit 0
-- `node --check` ai-web-measure.mjs · ai-measure.mjs · company.mjs · heartbeat.mjs · clients.mjs → OK
-- measureConf / 정규식:
-  ```
-  robotncoding → id 1 · robotncoding.com · /(?<!똑똑한\s?)(로봇\s?(&|&amp;|앤|and)\s?코딩)|robotncoding/i
-  ilog → id 2 · ilog.ai.kr · /ilog\.ai\.kr/i        nope → null
-  "석촌동 로봇앤코딩학원" true · "똑똑한 로봇&코딩학원 잠실점" false · "robotncoding.com 참고" true · "코딩학원 목록" false
-  "아이로그 학원관리" false · "https://ilog.ai.kr/" true
-  ```
-- PC 판정(가짜 시각, now=2026-09-29 12:00 KST):
-  ```
-  모두 최근 → 조용함 false 1h · 심장만 최근(측정 끊김) → false 1h · 25시간 무소식 → true 25h
-  정확히 24시간 → false · 심장박동 없음·나머지 100~120h → true 100h · 셋 다 없음 → null(판정 안 함) · Date 객체 → true 30h
-  ```
-- case-report 표준출력(파일 안 씀): 곳 6줄(OpenRouter API · ChatGPT 로그아웃 13~25일차 표본 42 · Claude Code 18~25일차 140 · Claude 손 8 · Gemini 40 · 퍼플렉시티 40), 7일 합계 ChatGPT 40번 중 12번 · Claude 120번 중 58번 · Gemini 40번 중 13번 · 퍼플렉시티 40번 중 13번
-- DB 읽기: ai_measurements 301행 전부 raw 있음 · geo.client_hours 아직 없음 · 최근 3일 claude_calls measure 80
-
-### 판단이 필요했던 곳
-1. **하루 60질의 상한을 코드로 넣었다(D1 부수).** SOP 에 「하루 60」을 쓰라고 했는데, `--client` 가 생기면 고객마다 60 이 되어 문서가 거짓이 된다. 모든 고객 합계로 셈
-2. **D4 결과로 탐침이 기본값에서 늘 건너뛰어진다.** 승인 20문항 = 몫 20. 탐침을 살리려면 `CLAUDE_MEASURE_RESERVE` 를 22 로(있는 손잡이). Arch 결정
-3. **기준선 보고 = 착수 뒤 첫 7일**로 정의했다(신청서·SOP). 환불 경계가 이 사건에 걸려서 정의가 필요했다. 7일은 「최근 7일 비율」과 맞춘 값
-4. **성공 판정**을 「같은 곳·같은 방법의 7일 비율이 기준선보다 늘면」으로 옮겼다. 옛 문구(언급·인용이 기준선보다 늘면)의 뜻을 반복 비율에 맞춘 것
-5. case-report·asks 의 「하루 1회」는 방법 설명이고, 실제로 빠진 날이 있어 옆에 「잰 날 n일」을 같이 적었다(ChatGPT 13일 기간에 3일)
-6. PC 경보 일감 agent 를 deliver 로 — 현황판에서 「원장 PC 작업」이 있는 유통 줄에 늦음이 뜨게
-
----
-
-## Step 24 (브랜치 step24-copy)
-
-### Files Changed
-- web/lib/services.ts:40-70 — `PILOT`(이름·390,000원·선결제·기간·제공 6줄·llms·보장·환불 3줄·환불 주석·파일럿 뒤) + `AFTER`
-- web/lib/services.ts:82-164 — 측정: 「약 4분의 1」→ 28% + 표본 작음, 30개→20개, 「4곳에 여러 번」→ 제공 1줄, 7일 비율, 구글·네이버 사람 확인 항목, 비용 → 파일럿/파일럿 뒤
-- web/lib/services.ts:164-176 — 기술 세팅: llms.txt 항목 삭제 → 한계에 무료·근거 약함 줄, 크롤러 「검색용·학습용 구분」, 색인 구글·Bing·네이버, 비용 → 파일럿 뒤
-- web/lib/services.ts:186, 219-224, 248, 272 — 외부 문서: 「다섯에 하나」에 표본(답 15개·표본 작음), 「효과 확인 2~3개월」 → 수정안 4줄, 구축·이관 가격 삭제
-- web/app/PriceCalc.tsx (다시 씀) — 계산기 → 파일럿 카드(PILOT 그대로). 상담 폼에 「30일 파일럿 · 390,000원」 넘김
-- web/app/FlowSteps.tsx:7-45 — 두 달 네 단계 → 30일(첫 7일 · 2~3주 · 30일 차 · 파일럿 뒤), llms.txt 칩 삭제
-- web/app/page.tsx — FAQ(여러 번→날마다·파일럿, 보장 수정안, **환불 FAQ 추가**, 약정), 사례 게이지 「채점 기준 바뀜(2026-09-29)」, 34곳 「회사당 15회 표본」, 28% 카드 라벨, 서비스·요금·진행 절 문구, 500만원 수정안+출처 링크, 「1위」 → 「가장 높은」, Interval 제거, 발끝 문구
-- web/app/Interval.tsx (삭제) · web/app/landing.css — 계산기·신뢰구간 위젯 규칙 88줄 삭제, `.lp-pilot*` 3줄(keep-all)
-- web/lib/scan.ts:131-146, 232, 258, 352-360 — WEIGHTS 에서 llmstxt 삭제, 합(93)으로 나눔, 결과엔 「llms.txt (참고 · 점수 제외)」 가중치 0 줄. llms 안내는 pri 3 「참고 · 점수 제외」
-- web/app/ScanForm.tsx:92, 96 · web/lib/platform.ts:127 — 「llms.txt 는 참고, 점수 제외」, 플랫폼 안내에서 llms 뺌
-- web/lib/guides.ts — 가이드 다섯 편의 28%·「약 4분의 1」·「질문 12개 × 15회」(틀린 설명)·요금(250/80/39/79)·500만원·「30개·월 2회」·「1위」·7개 항목 문구
-- web/app/RecordTabs.tsx:13, 62-63, 106 · HeroDemo.tsx:85 · layout.tsx:11 · geo/page.tsx:58 — 「여러 번」→「날마다」, 회사당 15회 표본, 「1위」
-- web/public/llms.txt — 하는 일·직접 측정한 것·가격 절
-- research/paid-pilot-order-form.md — 환불 세 줄을 랜딩과 같은 글자로(「모두 돌려드립니다」)
-
-### 결정별로 한 일
-- **D7** 파는 것은 PILOT 하나. 서비스 네 장은 남기되 비용 칸은 「파일럿 뒤 선택 — 파일럿을 끝낸 곳에만 안내」, 가격 숫자(39·79·80·250만원) 공개면에서 전부 내림
-- **D8** 수정안 1·2줄을 PILOT·서비스·FlowSteps·가이드·llms.txt 에. 「여러 번」 → 「날마다 / 하루 1회」
-- **D9** 가중치 비례 재분배 = 남은 가중치(합 93)로 나누기. 사례 학원 게이지(옛 진단 83→92)에 「채점 기준 바뀜(2026-09-29)」. 수정안 3줄은 서비스 기술 세팅·llms.txt
-- **D10** 아래 근거 표. 34곳 수치엔 「회사당 15회 표본」, 500만원은 수정안 6줄 + 출처 링크(확인함)
-- **D11** 「효과 확인 2~3개월」 수정안, 보장 수정안(FAQ·PILOT·llms.txt), 환불 서면 줄. grep 결과는 아래
-
-### 공개 문구 전/후 대조표 (주요)
-| 곳 | 전 | 후 |
-|---|---|---|
-| 요금 절 | 구축 250 · 세팅 80 · 이관 +80 · 월 39/79 계산기 | 30일 파일럿 390,000원 하나 · 제공 6줄 · 보장 줄 · 환불 3줄 · 「파일럿 뒤 선택」 |
-| 측정 약속 | 질문 30개를 AI 4곳에 여러 번 · 월 2회 | 승인한 질문 20개를 ChatGPT·Perplexity·Gemini·Claude에 날짜별로 묻고, 답 원문과 출처를 보관합니다. 수집 방법과 횟수는 보고서마다 적습니다 |
-| 구글·네이버 | (파일럿 문서) ChatGPT Search·Google AI 개요·네이버 AI × 기준선 2회 | 자동 측정 도구가 없어 담당자가 직접 확인합니다(시작·30일 차 각 1회, 화면 캡처 첨부). 표본이 작아 방향 참고용입니다 |
-| 기술 세팅 | robots.txt · llms.txt · 구조화 데이터 적용 / 「llms.txt 를 씁니다」 | AI 검색 봇 접근 허용(검색용·학습용 구분) · 색인 등록(구글·Bing·네이버) · 구조화 데이터 정리 / llms.txt 는 요청하면 무료, 효과 근거 약함 |
-| 진행 | 두 달을 이렇게 씁니다 · 1주차~8주차 · 첫 리포트 착수 후 2주 | 30일을 이렇게 씁니다 · 첫 7일~파일럿 뒤 · 기준선 보고 착수 뒤 7일 안 |
-| 외부 문서 기간 | 월 단위 · 효과 확인까지 2~3개월 | 두세 달마다 같은 방법으로 다시 재서 보고 (+한계: 변화가 없거나 나빠져도 그대로 적습니다) |
-| 28% | 같은 질문을 한 번 더 했을 때 바뀐 추천 목록 / 가이드: 질문 12개 × 15회 | + 자체 측정 3문항 · 표본 작음 · 방향 신호 |
-| 약 4분의 1 | 추천 목록의 약 4분의 1이 바뀝니다 | 자체 측정 3문항을 두 번씩 물었더니 28%가 바뀌었습니다. 표본이 작아 방향 신호로만 봅니다 |
-| 다섯에 하나 | 직접 물어봤을 때 홈페이지는 다섯에 하나가 안 됐습니다 | 한 업계 질문으로 AI 답 15개를 받아 출처를 세어 보니 … 표본이 작아 방향 신호로만 봅니다 |
-| P_HAT 62% 위젯 | 「같은 62%라도 몇 번 물었느냐에 따라」 | 삭제 |
-| 34곳 | 회사마다 15번씩이라 | 회사당 15회 표본이라 |
-| 500만원 | 국내 GEO 대행사 한 곳의 공개 가격이 월 500만원 | 공개 가격이 있는 국내 GEO 대행사 1곳 기준 월 500만원입니다(출처 링크) |
-| 보장 FAQ | 안 합니다. 대신 … 두 달 뒤 | 노출·순위·문의를 보장하지 않습니다. 우리가 보장하는 것은 약속한 작업의 수행과 같은 조건의 재측정 보고입니다 … 30일 차 |
-| 환불 | (없음) | 새 FAQ 「중간에 그만두면 돌려받나요?」 + 요금 카드: 착수 전 390,000원 모두 / 기준선 보고 전 195,000원(50%) / 뒤 없음 · 입금 전 서면 |
-| 약정 | 최소 약정 없음 · 한 달 단위로 멈춤 | 파일럿은 30일로 끝나고, 이어갈지는 그 뒤에 정합니다 |
-| 1위 | 사이트 점수 1위 회사 / 「1위」라 적는 건 | 사이트 점수가 가장 높은 회사 / 「몇 위」라 적는 건 |
-| 무료 진단 | 7가지를 봅니다 · 가중치 llms.txt 7 | 7가지를 봅니다(llms.txt 는 참고, 점수 제외) · 점수 6항목 |
-
-### 찾은 숫자 근거 (D10)
-| 숫자 | 근거 | 표본 | 처리 |
-|---|---|---|---|
-| 28% · 약 4분의 1 | `probe/data/report.websearch.txt:26` 반복 간 브랜드 집합 일치도(Jaccard) 72.2% → 1−0.722 = 27.8%. `probe/src/analyze.js:109-120` 식. `mentions.websearch.jsonl` 로 다시 셈: 두 번 물은 문항 p11·p17·p30 세 쌍, Jaccard 0.7222 | 3문항 × 2회 (쌍 3개) | 보고서 수정안 문구 「자체 측정 3문항, 표본 작음, 방향 신호」로 남김. 가이드의 「질문 12개 × 15회」는 **틀린 설명**이라 고침 |
-| 다섯에 하나가 안 됨 | 같은 리포트 `:47` 자사 도메인 인용 비중 18.3% (나머지 81.7% 제3자) | ERP 한 업계, 답 15개 | 「답 15개 · 표본 작음」 붙여 남김. 공개 링크는 없다(probe/ 는 배포 안 됨) |
-| P_HAT 0.62 | 못 찾음. 가장 가까운 값은 `sample-b2b-joined.json` 더존 presence 62.5 (8회 중 5) — 출처라는 기록 없음 | — | 위젯 삭제 |
-| 회사당 15회 | `report.websearch.txt:3` 「실행 15회 · 프롬프트 12개」, 노출률 분모 15 | 답 15개 | 라벨 붙임 |
-| 월 500만원 | https://maily.so/georank/posts/32z8d2l1rn4 (지오랭크 뉴스레터, 「단일 언어 월 500만원, 한·영 월 900만원」 — curl 로 200·문구 확인) · research/georank-dossier.md:124 | — | 수정안 6줄 + 링크 |
-
-### 확인 출력
-- `node ./node_modules/typescript/bin/tsc --noEmit` (web/, 브랜치) → exit 0
-- 신청서 대조(services.ts PILOT 문자열 20자 이상 12개가 research/paid-pilot-order-form.md 에 그대로 있나) → `문장 12 · 어긋남 0` (짧은 「상담 유입 기록표를 드립니다.」도 같은 글자)
-- D11 grep `보장|1위|전액|환불` (web/app·lib·public, admin 제외) — 남은 것은 전부 부정·정해진 수정안 문구: page.tsx FAQ 「성과를 보장하나요?」·수정안, PriceCalc 「보장하지 않는 것」, RecordTabs 「「몇 위 보장」은 없습니다」, guides 보장 경계 설명 3곳, services 「게재를 보장하지 않습니다」·환불 주석, llms.txt 환불·보장 줄, public/case/academy.html 「1위」 4곳(검색 순위 측정값 — 생성물이라 안 건드림), lib/ops.ts 주석. 「전액」 0건
-
-### 판단이 필요했던 곳
-1. **환불 줄에서 「전액 환불」을 안 썼다.** D11 은 「전액 환불」 표현을 web/ 에서 없애라, 원장 ④ 는 착수 전 전액. 「390,000원 모두 돌려드립니다」로 둘 다 맞춤. 신청서도 같은 글자로 바꿈(브랜치에서만 — main 신청서는 병합 때 맞춰짐, KG-23-5)
-2. **P_HAT 위젯을 통째로 뺐다.** 근거가 없어 「삭제」를 따랐다. 「예시 50%」로 라벨을 달아 살리는 길도 있다 — 원장·Arch 선택
-3. **28%·「다섯에 하나」는 근거를 찾아 남겼다.** 다만 공개 링크가 없다(probe/ 비공개). 링크가 꼭 있어야 한다고 보면 지워야 한다
-4. **진단 가중치**: 정수로 다시 나누면 20·20 동점에서 한쪽을 골라야 해서, 비율 그대로 두고 합(93)으로 나눴다. 화면은 가중치 숫자를 안 보여 준다
-5. **probe/src/scan.js(내부 재진단)는 안 고쳤다** — 설계서가 web/lib/scan.ts 만 짚었다. 공개 진단과 내부 점수 기준이 갈린다(KG-23-2)
-6. 서비스 네 장을 지우지 않고 「파일럿 뒤 선택」으로 둔 것 — 서비스 상세 페이지·구조화 데이터·가이드 링크가 걸려 있어서
-7. **「부가세 별도」「세금계산서 발행」을 요금 카드에서 뺐다** — 신청서에 없는 약속이라
+## 판단한 곳 (Arch 확인 필요한 것은 ★)
+1. ★ **나눔은 고객이 둘 이상일 때만.** 학원 혼자면 지금처럼 claude-code.mjs 상한(측정은 하루 전체 40)과 화면 측정의 문항별 상한만 본다. 「학원만 있을 때 같다」를 구조로 지키려는 것이다. 새 몫 검사를 늘 켜면, 실패 호출이 쌓인 날 다시 돌렸을 때 학원이 22회에서 멈춘다. 지금은 40회까지 간다
+2. ★ **dedupe 키를 `measure-budget-<slug>-claude` / `-web` 로 나눴다.** 설계서는 `measure-budget-<client>` 하나다. 한 키로 두면 화면 측정이 다 잰 날 Claude 쪽 부족 일감까지 닫혀 부족이 가려진다
+3. ★ **절반은 재지 않는다.** Claude 는 고객 단위, 화면은 엔진 단위다. 남은 몫이 그 고객(엔진)의 남은 문항 수보다 적으면 통째로 건너뛰고 일감을 올린다. 기존 주석에 「질문마다 잰 날이 다르면 적중률을 비교할 수 없다」는 원칙이 있어서 그렇게 했다
+4. **탐침 자리**: 학원 승인 질문 바로 뒤에 둔다(기존 위치와 같다). measure_active 고객과 0원 진행 중 파일럿은 탐침 뒤로 보냈다. 기본 몫에서는 어느 순서든 결과가 같다(22 = 20 + 2)
+5. **도메인은 clients.mjs 덩어리가 먼저**이고, 덩어리가 없는 외부 고객만 geo.clients.domain 을 정리해서 쓴다. 학원 DB 의 domain 값을 확인하려던 읽기 전용 조회가 권한 분류기에 거절됐다. 그래서 값을 모르는 채로도 학원 인용 판정이 안 바뀌게 했다
+6. **answer_pattern 채움은 학원·아이로그 둘 다**(덩어리에 answerRe 가 있는 곳). 설계서는 학원만 적었다. 대체값과 같은 값이라 동작은 안 바뀐다
+7. **「유료」 = 창 안 · price > 0 · 학원 아님.** status(취소·환불)는 보지 않는다 → KG-25-2
+8. createPilot 은 `measure_active` 를 켜지 않는다. 파일럿 창(종료+7일)이 측정을 덮고, 창이 끝나면 저절로 빠진다
+9. ai-measure 에서 한 고객이 설정·질문 없음이면, 전에는 throw 로 전부 멈췄다. 이제는 다른 고객을 다 재고 끝에 종료코드 1 을 낸다(빨간불은 그대로다)
+10. `openrouter-credits` 일감은 회사 전체 일이라 학원 id 에 그대로 둔다
+11. D17 현황판 「입력」에는 캐시 읽기·쓰기를 더했다. 캐시를 빼면 입력이 수백 단위로 나와 사용량을 잘못 읽게 된다
 
 ## Open Questions
-- 탐침을 살릴지(CLAUDE_MEASURE_RESERVE 22) — Step 23 판단 2
-- 공개 case/academy.html 을 새 절(방법·7일 비율)로 다시 구울지 — 원장 결정(KG-23-4)
+- 판단 1·2·3 (★)
+- 실행기는 DB 쓰기(ALTER·UPDATE 채움)를 첫 실행 때 스스로 한다. 준비가 실패해도 경고만 찍고 계속 간다. 다만 칸이 끝내 없으면 대상 select 가 실패해 측정 전체가 멈춘다. 배포 전에 schema.sql 두 줄을 먼저 적용할지 Arch 가 정해 주면 좋다. createPilot 의 ALTER 는 트랜잭션 안에 있어서, 실패하면 등록 자체가 안 된다
 
-## Out of Scope (logged in BUILD-LOG)
-- KG-23-1 createPilot 업무 목록이 옛 약속 · KG-23-2 probe scan.js llms 가중치 · KG-23-3 /admin/outreach 옛 상품 문구 · KG-23-4 공개 케이스 리포트 재생성 · KG-23-5 main/브랜치 신청서 환불 줄 차이
-
----
-
-## Arch 반영 (2026-09-29, 리뷰 전)
-
-- **main `be97bd1`** — 측정 몫 기본값 20 → 22. `academy/scripts/claude-code.mjs:36`(주석)·`:79`(기본값), `academy/scripts/ai-measure.mjs:375`(탐침 몫 판정 기본값), `research/pilot-measurement-sop.md:42`. 하루 상한 40 그대로. 승인 20문항 뒤 탐침 2개가 몫 안에 들어간다. 대신 측정 아닌 일(초안·도해·감사·수리)의 몫은 40−22 = 18 로 준다. 워크플로·env 에 `CLAUDE_MEASURE_RESERVE` 를 따로 준 곳은 없다(grep 0건). `node --check` 두 파일 OK
-- **step24-copy `77fcbe6`** — 28%·「다섯에 하나」(와 같은 근거인 llms.txt 「다섯 중 넷」)를 공개 문구에서 삭제. page.tsx 28% 카드(lp-stats 에 7/34 카드 하나만 남음), guides.ts 본문 2곳 + 사실 카드 3장, services.ts 본문 2곳, public/llms.txt 2줄. 문장은 숫자 없이 「물을 때마다 달라집니다」, 「출처에는 홈페이지 말고도 비교 기사·목록·커뮤니티 글이 섞여 있습니다」로 이었다. 숫자는 주석(page.tsx:32, guides.ts:17)에 내린 이유와 함께만 남음. tsc exit 0, grep `28%|다섯에 하나|다섯 중 넷|3문항` → 주석 2줄뿐
-- 승인됨(변경 없음): P_HAT 위젯 삭제 · 가이드 12×15 정정 · 60질의 모든 고객 합계 · 「390,000원 모두 돌려드립니다」 · 기준선 = 착수 뒤 첫 7일
-- 위 Step 24 대조표·D10 근거표의 28%·「다섯에 하나」 줄은 「남김」에서 「삭제」로 바뀐 것으로 읽어 주세요
-
----
-
-## Step 24 리뷰 반영 (REVIEW-FEEDBACK 2026-09-29)
-
-- 브랜치를 main 위로 rebase 함(충돌 없음). 이제 step24-copy = be97bd1(몫 22) · d6ec9e4 위 `bee561d` → `ed691f8` → **`de2129c`**. claude-code.mjs 기본값 22 확인
-- **Must Fix 1** web/lib/guides.ts:91 「약 4분의 1」 → 「AI 답은 물을 때마다 달라지기 때문에, 횟수가 빠진 한 번의 값은 근거가 되지 않습니다.」 다시 grep `4분의|다섯에|28%|%가 바뀌|다섯 중|흔들리는|3문항` (web/app·lib·public, admin 제외) → 주석 2줄(page.tsx:32, guides.ts:17 — 내린 이유)만 남음
-- **Must Fix 2** web/lib/services.ts 측정 gives 「질문별 노출률과 흔들리는 범위」 → 「질문·AI별 최근 7일 n번 중 k번」. 신청서 「제공」 아래에 같은 표현 한 줄 추가(「보고서의 비율은 질문·AI별 최근 7일 n번 중 k번으로 적습니다…」)
-- **Should Fix** guides.ts:92 「계약서에 적고」 → 「어떤 방법으로 묻는지 시작 전에 적고」(page.tsx FAQ 와 같은 말)
-- **Arch 결정 — 방문 기록**: 신청서에 크롤러 방문 기록이 없다 → 측정 카드 gives 「AI 방문 기록」 줄과 does 「AI가 실제로 읽었는지 확인합니다」(같은 약속) 삭제. 신청서에 「AI 크롤러 방문 기록(고객 서버 장치)은 파일럿에 들지 않습니다」 한 줄. 기술 세팅·구축 카드(파일럿 뒤 선택)의 방문 기록 장치는 그대로
-- **Arch 결정 — 케이스 리포트 1위**: academy/scripts/case-report.mjs 검색 노출 표의 순위 칸에 측정일·엔진을 붙임(serp 쿼리에 day 추가). 공개본은 날짜 규칙(달력 날짜 → 일차)대로 「25일차 측정 · 네이버 웹문서」, `--private` 는 「09. 29. 측정 · 네이버 웹문서」(표준출력으로 확인). web/public/case/academy.html 은 다시 굽지 않음 → KG-24-1
-- tsc(web/, 브랜치) exit 0
-- 안 한 것: Step 23 Should Fix(hours-actions 날짜 검증·ai-web-measure 없는 슬러그 칸)는 이번 지시 범위 밖이라 BUILD-LOG 에만
-
----
-
-## Step 24 가격표 (D12~D15, 원장 2026-09-29 밤) — step24-copy `5a30bfa`
-
-구조: 필요한 준비(1회, 필요한 곳만) + 30일 파일럿 39만원(모두) + 월 구독 39/79(파일럿 뒤). 금액은 원래 요금표 그대로, 새 숫자 없음.
-
-### Files Changed
-- web/app/PriceCalc.tsx (다시 씀) — D12. 1단계 셋(250·80·0) + 이관 스위치(+80, main 모양 재사용), 2단계 파일럿 고정 39만원(PILOT 제공·순서·llms·보장·환불), 3단계 월 구독은 고르는 칸 없이 안내 줄 + 항목(질문 20개 × AI 4곳 · 하루 1회 · 7일 n번 중 k번 · 원문 · 고칠 곳 / 관리). 합계 「처음 n만원」 = 1단계 + 이관 + 39. 상담 폼 조건 「홈페이지 없음 · 이관 · 30일 파일럿 39만원 · 처음 369만원」
-- web/app/landing.css — main 의 요금 CSS 되살림(월 플랜 고르기 규칙 `.lp-opts2`·`.lp-opt.plan`·`.big.m` 은 뺌) + `.lp-pilot-box`·`.lp-after`(keep-all)
-- web/lib/services.ts — D13. PILOT `order`(D14 순서) 추가, `refundNote` 「이 환불 기준은 30일 파일럿 390,000원에만」(D15), `after` 「월 구독(리포트 39만원 · 관리 79만원)은 파일럿 뒤 선택」. 비용 칸: 구축 「초기 1회 250만원 (기술 세팅 포함) · 글 이관 +80만원」, 기술 세팅 「초기 1회 80만원」, 측정·외부 문서(관리) 「30일 파일럿 39만원으로 시작 · 파일럿 뒤 월 39만/79만원」
-- research/paid-pilot-order-form.md — 「필요한 준비」 절(금액·예 369), 「순서」 절(PILOT.order 와 같은 글자), 환불 주석, 「구축·세팅 환불은 계약서에 따로 적습니다」(D15, 랜딩엔 안 씀), 파일럿 뒤 줄
-- web/app/page.tsx — 서비스 절 안내, 요금 절 제목 「우리 회사 조건으로 바로 계산해 보세요」·설명
-- web/app/FlowSteps.tsx — 첫 7일 단계에 순서 한 줄(구축 전 기준선, 새 사이트 연 날부터 30일), 파일럿 뒤 단계는 월 구독만
-- web/lib/guides.ts (GEO 비용) — 세 덩어리 설명, 사실 카드 3장(250/80/0 · 39 · 39/79), 「세팅만 받고 측정은 안 해도 되나요?」 → 안 됩니다(파일럿과 함께)
-- web/public/llms.txt — 가격 절
-
-### 가격표 전/후
-| 곳 | 전 (step24 앞판) | 후 |
-|---|---|---|
-| 요금 절 | 30일 파일럿 390,000원 카드 하나, 「월 구독·기술 세팅·사이트 구축은 파일럿 뒤」 | 계산기: 1 · 지금 홈페이지는(구축 250 · 세팅 80 · 0, 이관 +80) → 2 · 30일 파일럿 39만원(모두) → 3 · 파일럿 뒤 월 39/79 안내. 합계 「처음 n만원」 |
-| 요금 절 (main 운영판) | 계산기: 초기(250·80·0 + 이관 80) + 월 39/79 고르기 | 월 고르기 대신 파일럿 39 고정, 월은 안내 줄 |
-| 구축 카드 비용 | 파일럿 뒤 선택 — 파일럿을 끝낸 곳에만 안내 | 초기 1회 250만원 (기술 세팅 포함) · 글 이관 +80만원 |
-| 기술 세팅 카드 비용 | 파일럿 뒤 선택 | 초기 1회 80만원 |
-| 측정·외부 문서 카드 | 30일 파일럿 390,000원 / 파일럿 뒤 선택 | 30일 파일럿 39만원으로 시작 · 파일럿 뒤 월 39만/79만원 |
-| PILOT.after | 월 구독·기술 세팅·사이트 구축은 파일럿 뒤 선택 | 월 구독(리포트 39만원 · 관리 79만원)은 파일럿 뒤 선택 |
-| 순서 | (없음) | 구축·세팅이 있는 곳은 계약 직후 기준선을 먼저 잽니다(첫 7일, 구축 전) → 구축·세팅 → 새 사이트를 연 날부터 30일 → 30일 차 재측정 |
-| 환불 | 파일럿 환불 3줄 · 「환불 기준은 입금 전에 서면으로」 | 같은 3줄 + 「이 환불 기준은 30일 파일럿 390,000원에만 해당합니다」. 구축·세팅 환불은 신청서에만 「계약서에 따로」 |
-| GEO 비용 가이드 | 파일럿 하나 · 나머지 파일럿 뒤 | 세 덩어리(준비 1회 · 파일럿 모두 · 월 파일럿 뒤) · 예 369만원 |
-
-### 확인
-- tsc(web/, 브랜치) exit 0
-- PILOT ↔ 신청서 대조(12자 넘는 문자열 15개) → 어긋남 0
-- grep `4분의|28%|흔들리는|전액|30개 ×|월 2회` → 주석 2줄뿐. 「구축·세팅은 파일럿 뒤」 취지의 공개 문구 0건
-
-### 판단한 곳
-- 파일럿 값 표기: 계산기·카드는 「39만원」(원장 표), PILOT.price·환불은 「390,000원」(신청서) — 같은 값
-- 「부가세 별도·세금계산서」는 main 계산기에 있었지만 신청서에 없어 다시 넣지 않았다
-- 월 리포트 항목에서 main 의 「경쟁사 3곳 나란히」는 뺐다 — 지금 측정·보고서 어디에도 만드는 곳이 없다
-- 신청서 「기간: 입금 확인일 포함 30일」에 「구축·세팅이 있는 곳은 아래 순서대로 센다」를 붙였다(D14 와 부딪혀서)
+## Out of Scope (BUILD-LOG Known Gaps)
+- KG-25-1 createPilot 의 `current_date`·`current_date+30` 이 DB UTC 날짜다. 00~09시(KST)에 등록하면 시작일이 하루 앞당겨지고, 측정 창도 하루 당겨진다
+- KG-25-2 파일럿 status(취소·환불)를 대상 목록이 안 본다 → Step 26 생애주기
+- KG-25-3 company·write 등 다른 워크플로는 `CLAUDE_MEASURE_RESERVE` 를 안 넘긴다. repair·sales 는 `CLAUDE_DAILY_MAX` 만 넘긴다. 원장이 두 변수를 올리면 이 둘은 「새 상한 − 22」를 자기 몫으로 쓴다
+- KG-25-4 API 엔진(openrouter·anthropic-web)은 몫을 나누지 않고 고객마다 다 잰다. 비용은 고객 수에 비례한다. 지금 MEASURE_ENGINES 가 Claude 만이면 영향 없다
+- KG-25-5 몫을 올리면 optimize.yml 50분 제한이 모자랄 수 있다. 35분 가드는 탐침에만 걸려 있다(60문항 × 문항당 최대 3분)
+- KG-25-6 ai-measure 쪽 「설정 없음·질문 없음」은 일감을 안 올린다(종료 1·요약만). 화면 측정 쪽이 같은 일감을 올린다

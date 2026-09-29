@@ -102,11 +102,8 @@ export function selectClients(argv = process.argv) {
 
 export const bySlug = (slug) => CLIENTS.find((x) => x.slug === slug);
 
-/**
- * AI 답변 측정에 쓸 설정. 없으면 null — 부른 쪽이 「측정 설정 없음」으로 멈추고 일감을 올린다.
- * 조용히 건너뛰면 아이로그처럼 아무도 모르게 안 잰다(09.10).
+/*
+ * AI 답변 측정 설정(이름 판별 answerRe)은 geo.clients.answer_pattern 이 먼저다(Step 25).
+ * 여기 answerRe 는 DB 칸이 비었을 때 쓰는 대체값이고, 비어 있는 DB 칸을 처음 채우는 원문이기도 하다.
+ * 외부 고객은 여기 덩어리 없이 등록 화면(/admin/pilots)에서 이름 판별 말을 받아 DB 에만 둔다 → academy/measure-targets.mjs
  */
-export const measureConf = (slug) => {
-  const c = bySlug(slug);
-  return c && c.answerRe instanceof RegExp && c.domain ? c : null;
-};
