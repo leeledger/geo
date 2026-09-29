@@ -1225,3 +1225,16 @@ Known Gaps (26)
 - KG-26-8 (Arch) 등록 기준 업무(intake·questions·inquiry-sheet)의 임시 기한은 입금 확인일 기준이고, 입금일을 고쳐도 다시 세지 않는다
 - 메모: 구축 없음이면 승인이 입금 뒤 정확히 17일째여도 겹친다(기준선 끝 = 마지막 7일 시작). 일감 제목은 Arch 문구대로 「17일 넘으면」이다
 - 2026-09-30: Step 26 Richard 3차 PASS. Arch: 창 겹침이면 비율 비교만 끄고 상담 AI 유입 1건 이상이면 SOP 56행대로 성공(표본 부족과 같은 규칙) — Arch 가 직접 고침, 시험 18개 통과. 스키마(web/db/schema.sql 141-168) 운영 DB 선적용 후 배포
+
+### Step 27 — 운영 위생 (D12~D16) — BUILT · Richard 대기 (2026-09-30, Bob)
+- D12 리드 알림: **건너뜀.** health.mjs 는 메일을 직접 보내지 않는다 — watch.yml 이 실패(종료 1)하면 GitHub 가 저장소 주인에게 보내는 알림이 「메일 경로」다. 키·env·메일 서비스가 없다(저장소에 nodemailer·resend·SMTP 없음). web Vercel env 이름 확인: ANTHROPIC·LLM_PROXY_TOKEN·OPENROUTER·GROQ·ADMIN_*·IP_HASH_SALT·DATABASE_URL — 메일 설정 없음. 새 키·서비스를 만들지 않으니 지금처럼 company.mjs `lead-new` 사람 대기 일감으로만 간다 → KG-27-1
+- D13 health.mjs llms.txt 검사는 `c.llmsTxt` 가 있는 고객만. 학원·아이로그 둘 다 true(2026-09-30 두 곳 /llms.txt 200 확인) — 지금 동작 그대로
+- D14 submit-gsc.mjs 도메인 → academy/clients.mjs. `--client <slug>`/CLIENT_ID 로 고르고 없으면 학원(목록 첫째, 예전과 같음). 속성은 `gscProperty ?? sc-domain:<domain>`
+- D15 web/lib/pilot-intake.ts 새로: 업종에 학원·교습소·공부방이 있으면 예전 20문항 그대로(시험으로 글자 단위 동일 확인), 아니면 업종 무관 20문항. 정합성 출처의 「교육청 공개정보」와 칸 「과정·대상」은 학원만(아니면 「서비스·대상」). 가림 별칭은 「고객 A/B…」(쓴 것 피해 가장 앞 글자) — 새 등록만, on conflict 는 alias 안 고침. 등록 화면 칸 이름 「학원명」→「상호」, 업종 칸 안내
+- D16 geo.client_hours 를 company.mjs ensure 에서 만든다(+ RLS). schema.sql 양쪽에 추가. 입력 때 만드는 줄은 company 가 돌기 전 입력 대비로 남김. pilot_manual_checks·파일럿 칸은 Step 26 이 이미 company.mjs(파일럿칸준비)에서 만든다 — 겹치지 않음
+- 확인: 순수 함수 시험 13개(질문·출처·칸·별칭), gsc 고객 고르기·health URL 목록 가짜 실행, node --check 셋, web tsc 0. DB 쓰기·실측정 안 함
+- KG-27-1 리드 알림 메일 없음 — 원장 몫(메일 서비스 키를 줄지). 지금은 매시 일감 「연락 안 한 리드 n건」뿐
+- KG-27-2 이미 있는 외부 고객 alias 는 옛 「○○구의 단일 지점 ○○」 그대로 — DB 에서 한 번 고쳐야 한다(이번엔 DB 쓰기 금지)
+- KG-27-3 write-draft 인격(학원 원장)이 고정 — 외부 고객 글은 못 쓴다(D14 설계서대로 KG)
+- KG-27-4 신청서(research/paid-pilot-order-form.md 62행)는 「과정·대상」 — 학원 아닌 고객 점검 칸은 「서비스·대상」으로 만든다. 공개 문구라 안 고침
+- KG-27-5 schema.sql 의 client_hours 줄은 운영 DB 에 이미 표가 있으면 RLS 만 새로 켠다(앱은 소유자 권한이라 영향 없음)

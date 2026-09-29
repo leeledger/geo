@@ -166,6 +166,16 @@ create table if not exists geo.pilot_manual_checks (
   created_at timestamptz not null default now()
 );
 alter table geo.pilot_manual_checks enable row level security;
+-- 고객별 투입 시간(Step 23 D5). 첫 입력이 아니라 company.mjs 시작에서 만든다(Step 27 D16) — web/lib/hours.ts HOURS_DDL 과 같은 줄
+create table if not exists geo.client_hours (
+  id bigserial primary key,
+  client_id int not null references geo.clients(id),
+  day date not null default ((now() at time zone 'Asia/Seoul')::date),
+  minutes int not null check (minutes > 0 and minutes <= 1440),
+  what text not null default '',
+  created_at timestamptz not null default now()
+);
+alter table geo.client_hours enable row level security;
 alter table geo.pilots enable row level security;
 alter table geo.pilot_questions enable row level security;
 alter table geo.pilot_tasks enable row level security;

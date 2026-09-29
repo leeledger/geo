@@ -11,7 +11,7 @@ async function guard() {
   if (!(await isAdmin())) throw new Error("관리자만 할 수 있습니다");
 }
 
-/** 오늘 한 일 · 분 — 한 줄. 표는 첫 입력 때 만든다 */
+/** 오늘 한 일 · 분 — 한 줄. 표는 company.mjs 가 매시 시작에서 만든다(Step 27 D16). 그 전에 입력이 먼저 와도 되게 여기서도 한 번 */
 export async function addHours(form: FormData) {
   await guard();
   const clientId = Number(form.get("client_id"));

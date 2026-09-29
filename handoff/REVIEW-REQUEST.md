@@ -1,157 +1,39 @@
-# Review Request — Step 26 (파일럿 생애주기와 보고 · D5~D11 + D18 경쟁사)
+# Review Request — Step 27 (운영 위생 D12~D16)
 Date: 2026-09-30
 Ready for Review: YES
-Status: DONE — 2차(Richard NO 반영 + Arch 결정 3개). 순수 함수 시험 17개 · 학원 리허설 파일럿으로 baseline/final --dry(실제 DB 읽기만) · web tsc 0. 실측정·DB 쓰기·푸시·배포 안 함
+Status: DONE (D12 는 설정 없음으로 건너뜀 — 아래)
 
-## 2차 — Richard 막는 항목 + Arch 결정
-- **막는 항목(네 곳 늘 싣기)** — `곳들()` 이 약속한 네 곳(ChatGPT·Perplexity·Gemini 로그아웃 화면, Claude Code)을 늘 먼저 돌려준다(pilot-report-core.mjs:34-38). 그래서 수집 방법·질문표·곳별 비교·경쟁사 절에 네 곳이 다 나온다. 못 잰 곳은 「안 잼 — 표본 0」 또는 「표본 부족 (잰 날 a일 · b일)」로 적는다. `곳문장()`(core 끝부분)이 판정 줄 바로 아래에 이 문장을 붙인다: 「약속한 4곳 중 비교된 m곳, 그중 k곳에서 언급 비율이 늘었다 — 늘어난 곳: … · 그대로·줄어든 곳: …(줄었다/그대로) · 못 잰 곳: …(잰 날)」. 성공·보류·실패 모두에 붙는다. 시험 「한 곳 늘고 한 곳 줄고 두 곳 못 잼」을 더했다
-- **Arch (2) 30일 기산점 — D5 와 다른 점**: D5 에서는 구축 없음도 착수(승인 뒤 첫 측정일)부터 +29 로 셌다. 이제는 신청서 8행대로 **입금 확인일(`paid_on`) 포함 30일**이고, 고객 승인이 늦어진 기간도 30일에 든다. 구축·세팅은 전과 같이 site_launch_on 부터 센다. 기준선 7일도 전과 같이 착수(kickoff)부터 센다. `paid_on date` 칸을 새로 만들었다(양쪽 schema.sql · 파일럿칸준비 · PILOT_COLUMNS). 등록 폼에서는 필수이고 오늘(KST)이 기본값이다. 파일럿 화면 「계약·일정」에서 고칠 수 있다. 입금 확인일이 없으면 30일을 시작하지 않는다. 보고서는 「입금 확인 전」을 내고 멈추고, 화면에도 같은 말이 뜬다. createPilot 은 started_on=paid_on, ends_on=paid_on+29 로 넣는다. 날짜 맞추기는 이제 승인 여부와 상관없이 취소 안 된 파일럿을 다 본다(입금일·연 날을 고치면 기간이 따라간다)
-- **Arch (3) 판정 비율 = 언급 하나**: `곳비교` 는 `변화: 늘었다|그대로|줄었다|null` 을 언급 비율로만 정한다(나눗셈 대신 곱셈으로 비교). 「둘 중 하나라도」는 없앴다. 인용은 표의 옆 칸에만 나오고, 표 아래에 「판정은 언급 비율로만」 한 줄을 붙였다. research/pilot-measurement-sop.md 「성공 판정」 절에 한 줄 넣었다(비율 = 언급, 인용은 참고)
-- **Should Fix 두 개**는 KG-26-5·26-6 으로 넘겼다. KG-26-7: 학원 리허설에는 입금 확인일이 없다. 그래서 실제 DB 로 돌린 final --dry 는 「입금 확인 전」에서 멈춘다. 렌더링 확인은 paid_on 만 9/17 로 바꾼 임시 사본으로 했다(아래)
-
-### 2차 확인 출력
-시험 17개 통과. 새로 넣은 것:
-```
-ok · 구축 없음 — 입금 확인일 포함 30일(+29, 승인 지연 포함), 기준선은 착수부터 +6   (9/30 입금·10/2 착수 → 30일 9/30~10/29)
-ok · 구축 없음 — 입금 확인 전이면 30일 시작 안 함(착수만 있으면 임시 기간)
-ok · 파일럿날짜맞추기 — P1 착수 10/3·30일은 입금일 9/30부터, P2 구축 대기, P3 리허설 안 바뀜, P4 입금일 고침 따라감
-ok · 곳비교 — 같은 곳끼리, 브랜드 제외, 언급 비율만, 4일 미만 표본 부족   (인용만 늘면 「그대로」)
-ok · 곳들 — 약속한 네 곳은 못 잰 날에도 늘 싣는다
-   약속한 4곳 중 비교된 2곳, 그중 1곳에서 언급 비율이 늘었다 — 늘어난 곳: ChatGPT · 그대로·줄어든 곳: Claude(줄었다) · 못 잰 곳: Perplexity(잰 날 0일·0일), Gemini(잰 날 0일·2일)
-ok · 한 곳 늘고 한 곳 줄고 두 곳 못 잼 — 네 곳 모두 표에, 이유에 「4곳 중」과 이름
-```
-`--stage final --client robotncoding --dry` (실제 DB): `로봇&코딩학원: 입금 확인 전 — 30일은 입금 확인일부터 셉니다(신청서). 파일럿 화면 「계약·일정」에 입금 확인일을 넣어 주세요`
-
-같은 명령을 paid_on=2026-09-17 인 임시 사본으로 돌린 결과(사본은 지웠다):
-```
-판정: **판정 보류** — 30일 마지막 7일이 아직 안 끝났다
-약속한 4곳 중 비교된 0곳, 그중 0곳에서 언급 비율이 늘었다 — 늘어난 곳: 없음 · 그대로·줄어든 곳: 없음 · 못 잰 곳: ChatGPT(잰 날 0일·0일), Perplexity(잰 날 0일·0일), Gemini(잰 날 0일·0일), Claude(잰 날 1일·0일)
-| ChatGPT | 안 잼 — 표본 0 | 안 잼 — 표본 0 | 표본 부족 (잰 날 0일 · 0일) |
-| Perplexity | 안 잼 — 표본 0 | 안 잼 — 표본 0 | 표본 부족 (잰 날 0일 · 0일) |
-| Gemini | 안 잼 — 표본 0 | 안 잼 — 표본 0 | 표본 부족 (잰 날 0일 · 0일) |
-| Claude | 언급 17번 중 1번(6%) · 인용 0번(0%) | 안 잼 — 표본 0 | 표본 부족 (잰 날 1일 · 0일) |
-| api-openrouter-web-exa | 언급 28번 중 6번(21%) · 인용 0번(0%) | 안 잼 — 표본 0 | 계약 밖 방법 — 판정에 안 씀 |
-판정은 언급(답에 이름이 나온) 비율로만 한다. 인용 비율은 참고로 옆에 적었다.
-```
-baseline --dry(실제 DB)도 이제 질문표 열이 ChatGPT·Perplexity·Gemini·Claude·api-openrouter 다섯 개다. 앞의 셋은 「안 잼」이다.
-
-2차에서 바뀐 파일: academy/pilot-plan.mjs(1-106 날짜·맞추기, 112 paid_on) · academy/pilot-report-core.mjs(34-38 곳들, 48 비율글, 101 뒤 곳비교·곳문장·판정) · academy/scripts/pilot-report.mjs(일정·입금 확인 전·곳 문장·표) · web/lib/pilot-plan.ts(임시 기한, paid_on) · web/lib/pilot-actions.ts(createPilot paid_on 필수, updatePilotContract paid_on) · web/app/admin/pilots/page.tsx·[id]/page.tsx(입금 확인일 칸·「입금 확인 전」 표시) · web/db/schema.sql·academy/db/schema.sql(paid_on 한 줄) · research/pilot-measurement-sop.md(성공 판정 한 줄)
-
----
-(아래는 1차 요청 그대로. 「SOP 와 다르게 읽을 수 있는 곳」 네 개 중 둘은 위 Arch 결정으로 정리됐다)
+## D12 리드 알림 — 코드 없음
+- health.mjs 의 「메일」은 코드가 아니다. `.github/workflows/watch.yml` 이 health.mjs 종료코드 1 로 실패하면 GitHub 가 저장소 주인에게 보내는 실패 알림이다. 서비스·env 없음(저장소 전체에 nodemailer/resend/SMTP 0건).
+- web Vercel env 이름만 확인(`npx vercel env ls`): ANTHROPIC_API_KEY, LLM_PROXY_TOKEN, OPENROUTER_API_KEY, GROQ_API_KEY, ADMIN_ID, ADMIN_PASSWORD, ADMIN_TOKEN, IP_HASH_SALT, DATABASE_URL. 메일 설정 없음.
+- 그래서 설계서대로 건너뛰고 지금처럼 할 일로만(company.mjs 431·474 `lead-new`). KG-27-1.
 
 ## Files Changed
-- academy/pilot-plan.mjs (새 파일, 1-132) — 날짜 순수 함수(`kst날짜`·`착수찾기`·`파일럿일정`·`기간칸`·`기준날짜`), `파일럿날짜맞추기`(착수일 채움 → started_on·ends_on → anchor 업무 기한), `파일럿칸준비`(Step 26 칸 if not exists)
-- academy/pilot-report-core.mjs (새 파일, 1-140) — 보고서 셈 순수 함수: 곳 정보(SOP 네 곳 방법 표기), 창·셈·잰 날/빠진 날, 경쟁사 이름 정규식(escape), 처음 나온 순서·점유, `곳비교`, `판정`(SOP 성공·보류·실패)
-- academy/scripts/pilot-report.mjs (다시 씀, 1-303) — `--stage baseline|final --client <slug> [--dry]`. 읽기만 한다. 파일은 deliverables/<slug>/pilot-reports/ 에 md와 캡처로 쓴다
-- academy/measure-targets.mjs:15, 51-66, 78-79, 89 — 진행 중 판정: 시작은 kickoff_on(없으면 started_on), 구축 대기면 계속, 취소면 안 잰다. 파일럿 칸 준비 호출. `더하기`는 pilot-plan 에서 가져온다
-- academy/scripts/company.mjs:38, 355-380, 475, 485 — `파일럿업무`: 칸 준비 → 날짜 맞추기 → 기한 지난 업무를 「사람 대기」로(키 pilot-<파일럿>-<업무>, 준비·진행만), 신호원 'pilot'
-- web/lib/pilot-plan.ts (새 파일, 1-72) — 기본 업무 14개(구축 없음이면 13개, 신청서 「제공」 1~6 + SOP 회차), 임시 기한, `ymd`, `PILOT_COLUMNS`, `refundGuide`(신청서 환불 절 그대로)
-- web/lib/pilot-actions.ts:7-8, 31-36, 47-53, 62-75 — createPilot 이 구축 여부·경쟁사·사업자 유형·환불 절 전달일을 받는다. 시작일은 KST(KG-25-1 해소). 업무는 anchor·offset_days 와 같이 넣는다. approveQuestions 가 `questions_approved_at` 을 남긴다. `updatePilotContract`·`markBaselineSent` 추가
-- web/lib/answer-pattern.ts:17-26 — `competitorNames`(쉼표 이름 다듬기, 5곳·40자, 정규식은 안 만든다)
-- web/lib/manual-checks.ts (새 파일, 1-16) — 화면·결과 선택지, 2MB, 머리 바이트로 PNG·JPEG·WebP 가림
-- web/app/api/pilots/[id]/checks/route.ts (새 파일, 1-50) — 손 확인 한 줄 POST. 관리자와 같은 출처만 받고, 검증 뒤 303 으로 돌려보낸다
-- web/app/api/pilots/[id]/checks/[cid]/route.ts (새 파일, 1-22) — 캡처 GET(관리자만 · no-store · nosniff)
-- web/lib/pilots.ts:14-23 — getPilot 이 손 확인 기록을 읽는다. 표가 없으면 빈 목록이라 화면이 404 가 안 난다
-- web/app/admin/pilots/[id]/page.tsx:7-9, 45-51, 71-72, 96-102, 146-207 — 착수·구축·기준선 보고 상태 줄, 「손 확인 기록」 입력 줄과 목록, 「계약·일정」 폼(구축·연 날·경쟁사·사업자 유형·환불 절·세금계산서·취소·환불액과 지금 취소 시 환불 안내), 기준선 보고 보냄 버튼
-- web/app/admin/pilots/page.tsx:7, 19, 53, 141-151 — 등록 폼에 사업자 유형·환불 절 전달일(필수), 필요한 준비, 경쟁사(선택). 업무 개수 설명 고침
-- web/db/schema.sql:141-166 · academy/db/schema.sql 끝 — 같은 Step 26 줄(pilots 칸 11 · pilot_tasks 칸 2 · pilot_manual_checks + RLS)
-- .gitignore 끝 — `deliverables/*/pilot-reports/`(고객 이름·원문이 든 보고서)
+- academy/scripts/health.mjs:35-36 — llms.txt 검사를 `c.llmsTxt` 인 고객만 (D13)
+- academy/clients.mjs:34-35, 66-67 — 학원·아이로그 `llmsTxt: true` (둘 다 /llms.txt 200 확인, 동작 불변)
+- tools/submit-gsc.mjs:16-19, 24, 27-30 — SITE·PROP 하드코딩 → clients.mjs. `--client`/CLIENT_ID 없으면 CLIENTS[0](학원) = 예전과 같음 (D14)
+- web/lib/pilot-intake.ts (새 파일) — makeQuestions(학원이면 옛 20문항 그대로 / 아니면 업종 무관), auditSources·auditFields(교육청·과정은 학원만), nextAlias(「고객 A/B…」, 빈 글자부터) (D15)
+- web/lib/pilot-actions.ts:9, 16(삭제), 42-44, 50 — 위 함수 사용. alias 는 insert 값에만, on conflict 는 alias 안 건드림 → 기존 고객 불변
+- web/app/admin/pilots/page.tsx:47, 51-52 — 등록 칸 이름 「학원명」→「상호」, 업종 칸 안내(학원 판별 말). 관리 화면만, 공개 문구 아님
+- academy/scripts/company.mjs:183-189 — ensure 에서 geo.client_hours 생성 + RLS (D16)
+- web/db/schema.sql:169-178 · academy/db/schema.sql:166-175 — geo.client_hours 같은 줄
+- web/lib/hours-actions.ts:14 — 주석만(입력 때 DDL 은 company 가 돌기 전 대비로 둠)
 
-## 한 일 (D5~D11 · D18)
-- **D5** 착수 = 승인 시각의 KST 날짜 이후 첫 측정일(q1~q20). company.mjs 가 매시 한 번 채우고, 채운 뒤에는 안 바꾼다. 구축 없음이면 착수 포함 30일(+29). 구축·세팅이면 기준선은 착수부터 7일이고, 30일은 site_launch_on 부터 센다. 연 날이 없는 동안에는 임시 끝을 착수+29 로 두고 측정은 「구축 대기」로 계속한다. `current_date` 는 안 쓴다(등록·기한 비교 모두 `(now() at time zone 'Asia/Seoul')::date`)
-- **D6** 기준선 보고: 곳마다 방법·엔진·기간·잰 날/빠진 날·표본을 적는다. 17문항과 브랜드 3문항을 표 두 개로 나누고 칸마다 「n번 중 k번 · 인용 k번」, 곳별 합계는 %를 붙인다. Claude 줄에는 「Claude Code(Max) 경유 — claude.ai 화면과 다를 수 있음」. 경쟁사 절과 손 확인 절이 붙는다
-- **D7** 최종 보고: 파일럿 기간만 본다. 기준선 7일과 마지막 7일을 같은 곳끼리만 비교하고(17문항, 브랜드 제외), 첫 행·끝 행 비교는 없앴다. 표본 부족·30일 미완은 「판정 보류」
-- **D8** geo.pilot_manual_checks 는 설계서 칸 그대로다(capture_type 추가). 화면에서는 질문 고르기·화면·결과·날짜·캡처·메모를 한 줄로 넣는다. 보고서는 기준선 회차와 30일 차 회차로 나눠 적는다
-- **D9** 새 파일럿부터 신청서 「제공」 6줄과 SOP 회차(기준선 보고 포함)가 업무가 된다. 옛 파일럿 업무는 안 건드린다(anchor 가 없다)
-- **D10** 기한 지난 업무 → 사람 대기. 완료로 바꾸면 신호가 사라져 닫힌다
-- **D11** 계약 칸 5개와 화면 입력. 환불 안내는 신청서 절 그대로다(착수 전 전액 / 기준선 보고 전 195,000원 / 뒤 0원)
-- **D18** geo.pilots.competitors 는 쉼표 이름 글자로 두고, 보고서가 이름마다 escape 해서 센다. 새로 묻지 않고 보관한 raw.answer 로만 센다. 질문×곳마다 「n번 중 k번 (첫째 x번, 둘째 y번)」, 곳마다 17문항 합계를 낸다. 곳끼리 합치거나 점수를 매기지 않는다. 비어 있으면 「경쟁사 미설정」
-
-## SOP 와 다르게 읽을 수 있는 곳 (Arch 확인 요청)
-- SOP 「7일 비율이 기준선보다 늘거나」의 비율이 언급인지 인용인지 적혀 있지 않다. 그래서 **둘 중 하나라도 늘면 늘었다**로 보고, 곳마다 어느 쪽인지 적는다. 성공은 **약속한 네 곳 가운데 한 곳이라도** 늘면이다(다른 곳이 줄어도 표에 그대로 나온다)
-- 「표본 부족」 기준은 SOP 에 없어서 **창마다 7일 중 4일 이상 잰 곳만 비교**하기로 했다(`최소잰날`)
-- 판정 순서: 성공 조건(비율 증가 또는 AI·검색 유입 ≥1)을 먼저 본다 → 아니고 비교가 없거나 상담 기록 0건이면 보류 → 둘 다 있는데 성공이 아니면 실패. 여기에 30일 마지막 날이 안 지났으면 보류를 더했다
-- 계약 밖 방법(api-openrouter 등)은 적기만 하고 판정에 안 쓴다
-
-## 확인 출력
-**순수 함수 시험(scratchpad t26.mjs) — 14개 통과**
-```
-ok · KST 00:30 은 UTC 로 전날 15:30 — 날짜는 KST
-ok · 착수찾기 — 승인 KST 날짜 이후 첫 측정일      (UTC 10/1 15:30 승인 → 10/1 측정은 안 침 → 10/2)
-ok · 구축 없음 — 착수 포함 30일(+29), 기준선 +6, 최종 마지막 7일   (10/2 → 10/31, 최종 10/25~10/31)
-ok · 세팅 — 연 날 전: 기준선만, 30일 모름, 임시 끝 착수+29
-ok · 구축 — 연 날부터 30일, 기준선은 착수부터 7일            (연 날 11/10 → 12/9)
-ok · 착수 전 — null
-ok · 월말·윤년 넘김
-ok · 파일럿날짜맞추기 — P1 착수 10/3(10/1 측정은 승인 KST 10/2 전), P2 구축 대기는 착수 기준 업무만
-ok · 학원만 — 지금과 같음(학원 하나, 묶음 학원)
-ok · 유료 — 착수 전 등록일부터 재고, 착수 뒤 착수~끝+7
-ok · 구축 — 연 날 전에는 계속, 연 날을 앞날로 넣어도 착수부터 잰다
-ok · 취소 — 안 잰다
-ok · 처음순서 · 점유 — 첫째·둘째 분포, 곳 안에서만
-ok · 곳비교 — 같은 곳끼리, 브랜드 제외, 4일 미만 표본 부족
-ok · 판정 — SOP 성공·보류·실패
-```
-
-**`node scripts/pilot-report.mjs --stage baseline --client robotncoding --dry` (실제 DB 읽기, 앞부분)**
-```
-# 로봇&코딩학원 · 기준선 보고
-기준선: 2026-09-17 ~ 2026-09-23 (착수 뒤 첫 7일)
-착수 2026-09-17 (추정 — 승인 시각을 남기기 전 파일럿이라 등록 뒤 첫 측정일) · 구축 없음 · 30일 2026-09-17 ~ 2026-10-16
-- **Claude** — Claude Code(Max) 경유 — claude.ai 화면과 다를 수 있음 · 웹 검색 · 한국어 질문 · 엔진 기록 claude-code-web
-  - 기준선 2026-09-17 ~ 2026-09-23 · 잰 날 1/7 (빠진 날 09-17, 09-18, 09-19, 09-20, 09-21, 09-23) · 표본 20
-- **api-openrouter-web-exa** — 계약 밖 수집 방법이라 판정에 쓰지 않는다 · 엔진 기록 openrouter
-  - 기준선 2026-09-17 ~ 2026-09-23 · 잰 날 2/7 (빠진 날 09-19, 09-20, 09-21, 09-22, 09-23) · 표본 31
-| 1. 서울 송파구에서 초등학생 코딩학원 좀 추천해줘 | 1번 중 0번 · 인용 0번 | 2번 중 2번 · 인용 0번 |
-| 2. 석촌동 근처에 로봇이랑 코딩 같이 배울 수 있는 학원 있어? | 1번 중 1번 · 인용 0번 | 2번 중 2번 · 인용 0번 |
-| **곳별 합계** | 언급 17번 중 1번(6%) · 인용 0번(0%) | 언급 28번 중 6번(21%) · 인용 0번(0%) |
-브랜드 3문항 합계 | 언급 3번 중 3번(100%) … 
-## 경쟁사 — 기준선 7일
-경쟁사 미설정 — 파일럿 화면 「계약·일정」에 경쟁사 이름을 넣으면 이 절이 채워진다.
-## 손 확인 …
-손 확인 표가 아직 없다(스키마 적용 전).
-```
-
-**`--stage final --dry` (앞부분)**
-```
-비교: 기준선 2026-09-17 ~ 2026-09-23 vs 마지막 7일 2026-10-10 ~ 2026-10-16
-만든 날: 2026-09-30 — 마지막 7일이 아직 안 끝났다. 2026-09-30까지 잰 것만 적었다
-판정: **판정 보류** — 30일 마지막 7일이 아직 안 끝났다
-| ChatGPT | 안 잼 | 안 잼 | 표본 부족 (잰 날 0일 · 0일) |
-| Claude | 언급 17번 중 1번(6%) · 인용 0번(0%) | 안 잼 | 표본 부족 (잰 날 1일 · 0일) |
-| api-openrouter-web-exa | 언급 28번 중 6번(21%) · 인용 0번(0%) | 안 잼 | 계약 밖 방법 — 판정에 안 씀 |
-## 상담 유입 (30일)  전체 문의 2건 · AI 직접 확인 2건 …
-```
-학원 리허설 파일럿의 소비자 화면 측정은 9/24 에 시작했다. 그래서 추정 착수(9/17) 기준선 창에는 Claude 1일과 openrouter 뿐이다. 데이터가 그렇다.
-
-**경쟁사 셈을 실제 원문에 대 본 것(읽기만 · 9/24~9/30 · 가짜 경쟁사 칸)**
-```
-ChatGPT | 우리: 40번 중 12번 (첫째 12번) | 똑똑한 로봇&코딩학원: 40번 중 0번 | 코딩앤플레이: 40번 중 0번 | 와이즈만: 40번 중 0번
-Claude  | 우리: 120번 중 58번 (첫째 58번) | 똑똑한 로봇&코딩학원: 120번 중 3번 (둘째 3번) | 코딩앤플레이: 120번 중 1번 (둘째 1번) | 와이즈만: 120번 중 0번
-```
-
-- `web`: `node ./node_modules/typescript/bin/tsc --noEmit` 오류 0 · `next build` 통과(새 경로 /api/pilots/[id]/checks, /[cid])
-- 학원 영업 숫자: case-report·ops·현황판 계산식 파일은 안 건드렸다. measure-targets 의 학원 줄은 그대로다(학원은 날짜·취소와 상관없이 늘 잰다)
+## 확인
+- 순수 함수 시험 13개 통과(scratchpad, node --experimental-strip-types): 학원 20문항이 HEAD 의 makeQuestions 와 deepEqual(수학학원·코딩학원), 치과 20문항에 학원|수업|체험|교육청|배우 없음, 브랜드 3문항 끝, 출처 4/3·칸, 별칭 A → 빈 곳 B → 26개 뒤 AA
+- submit-gsc 고르기 가짜 실행: 기본 → robotncoding.com / sc-domain:robotncoding.com, `--client ilog` → ilog.ai.kr
+- health URL 목록: 두 고객 모두 llms.txt 포함(예전과 같음)
+- node --check health·company·submit-gsc, web tsc 0. DB 쓰기·실측정·배포 안 함
 
 ## Open Questions
-- 위 「SOP 와 다르게 읽을 수 있는 곳」 네 가지
-- 배포 순서: **schema.sql 의 Step 26 줄을 먼저 적용해야 한다**. 새 칸이 없으면 ai-measure·ai-web-measure 의 대상 select 가 실패한다(실행기가 ALTER 를 시도하긴 하지만 권한에 달렸다)
-- 기한 지남 일감에서 리허설 파일럿을 뺐다. 넣으면 학원 리허설의 옛 업무 7건(ChatGPT/Google/네이버 기준선 1·2회 등)이 원장 할 일에 한꺼번에 뜬다
-- 캡처 POST 는 서버 동작이 아니라 경로 처리기다(1MB 상한 때문). 관리자 쿠키가 SameSite=Lax 이고 Origin 도 확인한다. 이 정도면 되는지
+- 학원 판별이 업종 칸 글자(`/학원|교습소|공부방/`)다. 「수학」처럼 과목만 쓰면 일반 문장으로 간다 — 그래서 칸 안내를 바꿨다. 칸을 따로 둘지 Arch 판단
+- 일반 20문항 문구(pilot-intake.ts 27-31)는 제가 지었다. 「오래 운영한 곳」「설명을 잘해주는 곳」 같은 말이 괜찮은지 봐 주세요
+- 「로봇교실」은 학원으로 안 친다(요가교실 같은 오판 방지). 교육청 등록 로봇교실이면 업종에 「로봇학원」을 쓰게 해야 한다
+- 별칭 동시 등록 경쟁(같은 글자)은 막지 않았다 — 관리자 1인
 
 ## Out of Scope (logged in BUILD-LOG)
-- KG-26-1 학원 리허설 파일럿은 승인 시각이 없다. 화면은 「착수 전」, 보고서는 착수를 추정(9/17)
-- KG-26-2 스키마 먼저 적용(위)
-- KG-26-3 승인 뒤 질문을 고쳐도 승인 시각·착수일은 처음 값
-- KG-26-4 손 확인 캡처 지우는 화면 없음
-- Step 27(D12~D16)은 손대지 않았다. createPilot 의 가림 별칭(`${district}의 단일 지점 ${category}`)은 D15 몫이라 그대로 뒀다
-
----
-## 3차 — Richard 2차 NO 반영 (2026-09-30)
-- academy/pilot-report-core.mjs `창겹침(일정)`: 기준선.to 가 최종.from 과 같거나 뒤면 사람 말 한 줄을 돌려준다. 구축 없음이면 「질문 승인이 입금 뒤 n일 늦어 시작 기준(첫 7일)과 마지막 7일이 겹쳤습니다. 신청서대로 기간은 늘지 않고, 이번에는 늘었는지 판정할 수 없습니다.」, 구축이면 연 날 문구다. `판정({…, 겹침})` 은 겹치면 가장 먼저 「판정 보류」를 돌려준다. AI·검색 유입이 있어도 보류다(Arch 문구대로 — 확인 부탁)
-- academy/scripts/pilot-report.mjs: 최종 보고가 `창겹침` 을 판정에 넘긴다. 곳별 표에는 「창 겹침 — 비교 안 함」, 표 아래에는 겹침 문구를 적는다
-- academy/scripts/company.mjs `파일럿업무`: 입금 확인일 +7일까지 kickoff_on 이 없으면(준비·진행, 취소 아님) 사람 대기 `pilot-kickoff-<id>` 를 올린다. 제목은 「○○ 파일럿 질문 승인이 입금 뒤 n일째 안 됐습니다 — 17일 넘으면 판정할 수 없습니다」(구축 없음일 때만 뒷절이 붙는다). 착수되면 신호가 사라져 닫힌다. 두 목록을 다 읽었을 때만 'pilot' 을 읽음으로 친다
-- 시험 18개 통과. 추가한 시험: 「창 겹침 — 입금 9/30·착수 10/20 → 판정 보류, 사람 말 문구」, 경계 17일(착수 10/17)은 겹침, 16일은 안 겹침
-- 메모: 정확히 17일째도 겹친다(기준선 끝 10/23 = 마지막 7일 시작 10/23). 일감 제목의 「17일 넘으면」이 하루 느슨하다. 「17일이 되면」으로 바꿀지 Arch 가 정해 주세요
-- KG-26-8: 등록 기준 업무 기한(입금일 기준)은 입금일을 고쳐도 다시 세지 않는다
+- KG-27-1 리드 알림 메일 설정 없음(원장 몫)
+- KG-27-2 기존 외부 고객 alias 옛 문구 — DB 한 번 수정 필요
+- KG-27-3 write-draft 인격 고정
+- KG-27-4 신청서 「과정·대상」 문구
+- KG-27-5 client_hours RLS 새로 켜짐

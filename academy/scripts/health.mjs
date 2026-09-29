@@ -32,7 +32,8 @@ const URLS = [
   ...CLIENTS.flatMap((c) => [
     [`${c.name} 홈`, `https://${c.domain}/`],
     [`${c.name} 사이트맵`, `https://${c.domain}/sitemap.xml`],
-    [`${c.name} llms.txt`, `https://${c.domain}/llms.txt`],
+    // llms.txt 는 있다고 설정한 고객만 본다. 없는 곳을 실패로 치면 매번 헛경보다
+    ...(c.llmsTxt ? [[`${c.name} llms.txt`, `https://${c.domain}/llms.txt`]] : []),
   ]),
   ["사이티드 홈", `${CITED}/`],
   ["사이티드 사이트맵", `${CITED}/sitemap.xml`],

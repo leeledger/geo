@@ -44,11 +44,12 @@ const kstToday = () => new Date(Date.now() + 9 * 3600 * 1000).toISOString().slic
 const md = (d: string) => `${Number(d.slice(5, 7))}/${Number(d.slice(8, 10))}`;
 
 const FIELDS: [string, string][] = [
-  ["name", "학원명"], ["slug", "영문 관리명"], ["domain", "홈페이지 도메인"],
+  ["name", "상호"], ["slug", "영문 관리명"], ["domain", "홈페이지 도메인"],
   // AI 답에서 이 고객을 찾는 말. 정규식은 받지 않는다(web/lib/answer-pattern.ts). 흔한 이름이면 도메인·지점명을 넣는다
   ["answer_terms", "답에서 찾을 이름 (쉼표로 여러 개 · 예: ○○수학학원, example.kr)"],
   ["district", "구"], ["neighborhood", "동네"],
-  ["category", "업종·과목"], ["audience", "주 고객"], ["contact_name", "담당자"], ["contact_email", "담당자 이메일"],
+  // 학원·교습소·공부방이 들어가면 학원 질문·교육청 점검이 붙는다(lib/pilot-intake.ts)
+  ["category", "업종 (학원이면 「수학학원」처럼 학원까지 · 예: 치과)"], ["audience", "주 고객"], ["contact_name", "담당자"], ["contact_email", "담당자 이메일"],
   ["contact_phone", "담당자 전화"], ["receipt_type", "증빙 종류"], ["payment_ref", "입금 확인번호"], ["terms_evidence", "신청서·동의 증거 URL"],
   ["biz_type", "사업자 유형"],
 ];

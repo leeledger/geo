@@ -13,14 +13,21 @@
  *
  *   node submit-gsc.mjs
  *   node submit-gsc.mjs --all     사이트맵에서 앞 6개
+ *   node submit-gsc.mjs --all --client ilog   다른 고객사 (기본은 학원)
+ *
+ * 속성은 도메인 속성(sc-domain:)이다. 고객사 덩어리에 gscProperty 가 있으면 그걸 쓴다.
+ * 고객 Search Console 에 이 프로필 계정 권한이 없으면 검사창이 안 뜬다 — 권한은 사람이 받는다.
  */
 import { chromium } from "playwright";
 import path from "node:path";
 import { readFile, writeFile } from "node:fs/promises";
+import { CLIENTS, selectClients } from "../academy/clients.mjs";
 
 const PROFILE = path.join(process.cwd(), ".browser-profile");
-const SITE = "https://robotncoding.com";
-const PROP = "sc-domain:robotncoding.com";
+// 한 번에 한 속성만 돈다. 지정이 없으면 학원(목록 첫째) — 예전 동작 그대로
+const CLIENT = process.argv.includes("--client") || process.env.CLIENT_ID ? selectClients()[0] : CLIENTS[0];
+const SITE = `https://${CLIENT.domain}`;
+const PROP = CLIENT.gscProperty ?? `sc-domain:${CLIENT.domain}`;
 const ALL = process.argv.includes("--all");
 
 /**

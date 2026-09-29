@@ -6,19 +6,13 @@ import { inqPool } from "./inquiries";
 import { isAdmin } from "./admin-auth";
 import { answerPattern, competitorNames } from "./answer-pattern";
 import { NEEDS_BUILD, PILOT_COLUMNS, pilotTasks, ymd } from "./pilot-plan";
+import { auditFields, auditSources, makeQuestions, nextAlias } from "./pilot-intake";
 
 /** 서버 동작은 동작 번호만 알면 누구나 부를 수 있다. 화면이 관리자 전용이어도 동작 자체를 막아야 한다(2026-09-23 발견) */
 async function guard() {
   if (!(await isAdmin())) throw new Error("관리자만 할 수 있습니다");
 }
 
-
-const makeQuestions=(brand:string,district:string,neighborhood:string,category:string,audience:string)=>[
- `${district}에서 ${audience} ${category} 추천해줘`,`${neighborhood} 근처 ${category} 어디가 좋아?`,`${district} ${category} 중 상담을 잘해주는 곳 알려줘`,`${neighborhood}에서 가까운 ${category} 비교해줘`,`${district} ${category} 비용은 보통 얼마야`,`${district}에서 후기 말고 수업 근거가 분명한 ${category} 알려줘`,`${audience}가 다닐 ${district} ${category} 고르는 기준 알려줘`,`${district} ${category} 중 소규모로 가르치는 곳 있어?`,
- `${audience}에게 ${category}가 필요한지 판단하는 법은?`,`${category}를 시작하기 좋은 시기는 언제야?`,`${category} 상담 때 무엇을 물어봐야 해?`,`${category}를 다녀도 효과 없는 경우는?`,`${category}에서 실제로 무엇을 배우는지 확인하는 법은?`,
- `대형 ${category}와 동네 ${category} 중 어디가 나아?`,`${category} 온라인 수업과 오프라인 학원 차이는?`,`${district} ${category} 두 곳을 비교할 때 볼 기준은?`,`${category} 체험수업에서 확인할 것은?`,
- `${brand}은 어떤 곳이야?`,`${brand}의 위치와 수업 대상을 알려줘`,`${brand}을 선택해도 되는 사람과 안 맞는 사람을 알려줘`
-];
 
 export async function createPilot(form:FormData){await guard();
   const brand=String(form.get("name")??"").trim(), domain=String(form.get("domain")??"").trim().replace(/^https?:\/\//,"").replace(/\/$/,"");
@@ -45,13 +39,15 @@ export async function createPilot(form:FormData){await guard();
     await db.query(`alter table geo.clients add column if not exists answer_pattern text`);
     await db.query(`alter table geo.clients add column if not exists measure_active boolean not null default false`);
     for(const s of PILOT_COLUMNS)await db.query(s);
-    const c=(await db.query(`insert into geo.clients(slug,name,domain,alias,schema_name,started_on,note,relation,answer_pattern) values($1,$2,$3,$4,'academy',(now() at time zone 'Asia/Seoul')::date,'39만원 30일 유료 파일럿','외부',$5) on conflict(slug) do update set name=excluded.name,domain=excluded.domain,answer_pattern=excluded.answer_pattern returning id`,[slug,brand,domain,`${district}의 단일 지점 ${category}`,pattern])).rows[0];
+    // 가림 별칭은 새 고객에만 붙는다 — 이미 있는 고객은 on conflict 가 alias 를 안 고친다(Step 27 D15)
+    const alias=nextAlias((await db.query(`select alias from geo.clients where alias like '고객 %'`)).rows.map((r:{alias:string})=>r.alias));
+    const c=(await db.query(`insert into geo.clients(slug,name,domain,alias,schema_name,started_on,note,relation,answer_pattern) values($1,$2,$3,$4,'academy',(now() at time zone 'Asia/Seoul')::date,'39만원 30일 유료 파일럿','외부',$5) on conflict(slug) do update set name=excluded.name,domain=excluded.domain,answer_pattern=excluded.answer_pattern returning id`,[slug,brand,domain,alias,pattern])).rows[0];
     // 시작·종료는 입금 확인일 포함 30일(신청서 8행 — 고객 승인이 늦어진 기간도 든다). 구축·세팅이면 사이트 연 날이 생길 때 company.mjs 가 고친다(academy/pilot-plan.mjs)
     const p=(await db.query(`insert into geo.pilots(client_id,price,payment_ref,contact_name,contact_email,contact_phone,receipt_type,terms_evidence,paid_at,started_on,ends_on,status,terms_accepted_at,needs_build,competitors,biz_type,refund_terms_sent_on,paid_on) values($1,390000,$2,$3,$4,$5,$6,$7,now(),$12::date,$12::date+29,'진행',now(),$8,$9,$10,$11,$12) on conflict(client_id) do update set payment_ref=excluded.payment_ref,contact_name=excluded.contact_name,contact_email=excluded.contact_email,contact_phone=excluded.contact_phone,receipt_type=excluded.receipt_type,terms_evidence=excluded.terms_evidence,needs_build=excluded.needs_build,competitors=excluded.competitors,biz_type=excluded.biz_type,refund_terms_sent_on=excluded.refund_terms_sent_on,paid_on=excluded.paid_on returning id,started_on::text as started_on`,[c.id,payment,contactName,contactEmail,contactPhone,receiptType,terms,needsBuild,competitors,bizType,refundTermsOn,paidOn])).rows[0];
     const qs=makeQuestions(brand,district,neighborhood,category,audience);
     for(let i=0;i<qs.length;i++)await db.query(`insert into geo.pilot_questions(pilot_id,position,stage,text) values($1,$2,$3,$4) on conflict(pilot_id,position) do update set text=excluded.text`,[p.id,i+1,i<8?'지역':i<13?'문제':i<17?'비교':'브랜드',qs[i]]);
     for(const t of pilotTasks(needsBuild))await db.query(`insert into geo.pilot_tasks(pilot_id,code,title,due_on,owner,anchor,offset_days) values($1,$2,$3,$4::date+$5::int,$6,$7,$8) on conflict(pilot_id,code) do nothing`,[p.id,t.code,t.title,p.started_on,t.provisional,t.owner,t.anchor,t.offset]);
-    for(const source of ["공식 사이트","네이버 플레이스","Google Business Profile","교육청 공개정보"])for(const field of ["상호","주소","전화","운영시간","과정·대상"])await db.query(`insert into geo.local_audits(pilot_id,source,field) values($1,$2,$3) on conflict do nothing`,[p.id,source,field]);
+    for(const source of auditSources(category))for(const field of auditFields(category))await db.query(`insert into geo.local_audits(pilot_id,source,field) values($1,$2,$3) on conflict do nothing`,[p.id,source,field]);
     await db.query(`insert into geo.content_approvals(pilot_id) select $1 where not exists(select 1 from geo.content_approvals where pilot_id=$1)`,[p.id]);
     await db.query("commit"); pilotId=p.id;
   }catch(e){await db.query("rollback");throw e}finally{db.release()}

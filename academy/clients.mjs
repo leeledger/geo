@@ -31,6 +31,8 @@ export const CLIENTS = [
     answerRe: /(?<!똑똑한\s?)(로봇\s?(&|&amp;|앤|and)\s?코딩)|robotncoding/i,
     // 사이트 저장소가 이 저장소 안에 있어 키 파일을 직접 둔다
     indexnowKeyFile: "public/indexnow-key.txt",
+    // health.mjs 가 /llms.txt 가 열리는지 본다. 안 둔 고객은 빼 둔다
+    llmsTxt: true,
     publishes: true,
     queries: [
       { id: "idx", q: "site:robotncoding.com", kind: "색인" },
@@ -61,6 +63,8 @@ export const CLIENTS = [
     answerRe: /ilog\.ai\.kr/i,
     // 사이트 저장소가 밖에 있다. 키 파일은 전달 파일(deliverables/ilog/public)로 넘긴다
     indexnowKey: "7c1e9a4b2f6d8053a1c4e7b9d2f05a68",
+    // deliverables/ilog/public/llms.txt 로 넘겼고 열린다(2026-09-30 확인 200)
+    llmsTxt: true,
     publishes: false,
     queries: [
       { id: "idx", q: "site:ilog.ai.kr", kind: "색인" },
