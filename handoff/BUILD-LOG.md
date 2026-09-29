@@ -1166,3 +1166,5 @@ Known Gaps (23·24)
 - KG-24-1 web/public/case/academy.html 은 순위 측정일 붙은 판으로 아직 안 구움(공개본은 일차 표기)
 - KG-24-2 Step 23 Should Fix 미처리: hours-actions 날짜 실제성 검사·잘못된 입력 무표시 / ai-web-measure 없는 슬러그 일감이 학원(1) 칸에 붙음
 - 2026-09-29 밤: Step 23 PASS → 배포(d6ec9e4, 운영 Ready). Step 24 3차 PASS(ec48de8) → 브랜치 step24-copy 미리보기 https://geo-9wp3yboyq-codeis-projects-4c570294.vercel.app — **원장 승인 뒤 main 병합**. 병합 전 공개 케이스 리포트 재생성(KG-24-1)
+- Step 24 가격표 5a30bfa(step24-copy): 필요한 준비(구축 250·세팅 80·0 + 이관 80, 1회) + 30일 파일럿 39(모두) + 월 39/79(파일럿 뒤). 구축 전 기준선 순서. 파일럿 환불은 파일럿에만
+- KG-24-3 구축·세팅 환불 기준 원장 결정 필요 — 신청서엔 「계약서에 따로 적습니다」만, 랜딩엔 안 씀
