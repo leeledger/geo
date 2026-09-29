@@ -45,7 +45,13 @@ u.searchParams.delete("sslmode");
 const db = new Pool({ connectionString: u.toString(), ssl: { rejectUnauthorized: process.env.DATABASE_SSL_INSECURE !== "true" } });
 const q = (s, p = []) => db.query(s, p).then((r) => r.rows);
 
-const LADDER = { brand: ["entity", "content", "offsite"], local: ["content", "offsite"], problem: ["content", "offsite"], consider: ["content", "offsite"] };
+const LADDER = {
+  brand: ["entity", "content", "discover", "offsite"],
+  local: ["content", "discover", "offsite"],
+  problem: ["content", "discover", "offsite"],
+  consider: ["content", "discover", "offsite"],
+};
+const DISCOVER_GROUP = { brand: "brand", local: "local", problem: "general", consider: "general" };
 const STAGE_ORDER = { local: 0, brand: 1, problem: 2, consider: 3 };
 
 /** 노드 스크립트를 셸 없이 부른다. Git Bash 경로 변환·& 문제를 피한다 */
@@ -448,6 +454,24 @@ const main = async () => {
         return;
       }
 
+      if (kind === "discover") {
+        // 글이 AI 검색 결과에 한 번도 들어가지 않았다면 바깥 출처를 더 만들기 전에
+        // 실제 검색 색인부터 확인한다. 인용된 아무 도메인이나 "등록할 곳"으로 제시하면
+        // 앱스토어·뉴스·개인 블로그처럼 우리가 등록할 수 없는 곳이 사람 일로 잘못 올라간다.
+        const 발견 = 점검.discover.find((d) => d.group === DISCOVER_GROUP[x.stage] && d.slugs.length);
+        if (!발견) continue;
+        const key = `brave-index-${발견.group}`;
+        const [task] = await q(
+          `select id, status, detail, evidence from geo.agent_tasks where client_id=$1 and dedupe_key=$2`,
+          [c.id, key]);
+        await 저장({
+          status: "사람 대기", diagnosis: 진단, target_prompt: x.prompt_id, action_kind: "discover",
+          action: task?.detail || `Brave 색인에서 관련 글 ${발견.slugs.length}편을 확인하고, 빠진 주소는 URL 제출 화면에서 요청합니다.`,
+          evidence: `${발견.finding.evidence}${task ? ` · 일감 #${task.id} ${task.status}${task.evidence ? ` · ${String(task.evidence).trim().split("\n").at(-1)}` : ""}` : ""}`,
+        });
+        return;
+      }
+
       if (kind === "offsite") {
         const 출처 = Object.entries(창(x.prompt_id, 날더하기(오늘, -27)).flatMap((r) => r.citations ?? [])
           .map((s) => s.domain).filter((d) => d && d !== c.domain)
@@ -456,9 +480,9 @@ const main = async () => {
         await 저장({
           status: "사람 대기", diagnosis: 진단, target_prompt: x.prompt_id, action_kind: "offsite",
           action: 출처.length
-            ? `사이트 글로는 안 움직였습니다. AI 가 대신 읽는 곳에 학원 정보가 실리게 합니다: ${출처.map(([d]) => d).join(", ")}`
+            ? "사이트 글과 검색 색인으로도 안 움직였습니다. 네이버 플레이스·Google Business Profile처럼 학원이 직접 관리할 수 있는 외부 정보의 사실 일치와 최신성을 확인합니다."
             : "사이트 글로는 안 움직였고, 답에 출처가 안 잡혀 등록할 곳을 고르지 못했습니다. 네이버 플레이스·지역 카페 노출을 먼저 확인합니다.",
-          evidence: 출처.map(([d, n]) => `${d} ${n}회`).join(", ") || "출처 없음",
+          evidence: (출처.length ? `AI 답변의 참고 출처(등록 대상 아님): ${출처.map(([d, n]) => `${d} ${n}회`).join(", ")}` : "출처 없음"),
         });
         return;
       }
