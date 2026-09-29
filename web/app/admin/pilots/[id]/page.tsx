@@ -195,7 +195,7 @@ export default async function Page({ params, searchParams }: { params: Promise<{
               <label>세금계산서 발행일<input type="date" name="invoice_issued_on" defaultValue={x.pilot.invoice_issued_on ? D(x.pilot.invoice_issued_on) : ""} /></label>
               <label>취소일<input type="date" name="cancelled_on" defaultValue={x.pilot.cancelled_on ? D(x.pilot.cancelled_on) : ""} /></label>
               <label>환불액(원)<input name="refund_amount" inputMode="numeric" pattern="\d{1,7}" defaultValue={x.pilot.refund_amount ?? ""} /></label>
-              <p className="sub w2">지금 취소하면: {refundGuide(x.pilot)}. 구축·세팅 환불은 계약서 기준입니다.</p>
+              <p className="sub w2">지금 취소하면: {refundGuide(x.pilot)}. 구축·세팅 환불은 따로: 작업 착수 전 전액 · 시안(세팅은 작업 보고) 보인 뒤 50% · 사이트 공개(세팅 완료) 뒤 없음(신청서).</p>
               <SubmitButton className="adm-btn">저장</SubmitButton>
             </form>
             {!x.pilot.baseline_sent_at && (

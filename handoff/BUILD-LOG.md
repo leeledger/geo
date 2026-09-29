@@ -1252,3 +1252,11 @@ Known Gaps (26)
 - 확인: 가짜 행·순수 함수 16개 통과(학원 answerRe·도메인 = clients.mjs 원문 그대로, 40자 최악 입력 1ms), node --check 6개, web tsc 0. DB 쓰기·실측정·푸시 안 함
 - KG-28-1 이미 DB 에 저장된 외부 고객 answer_pattern 은 옛 규칙(띄어쓰기 미허용) — 등록 화면에서 다시 저장하거나 DB 갱신 필요(DB 쓰기 금지라 안 함)
 - KG-28-2 D23 오류 뒤 폼 입력값은 되살리지 않는다(브라우저 폼 초기화)
+- 2026-09-30 원장 결정: ① 측정 상한은 유료 고객 있는 날만 두 배(Claude 40→60·측정 몫 22→42, 화면 60→120) ② 구축·세팅 환불: 착수 전 전액 · 시안 뒤 50% · 공개 뒤 없음 ③ 리드 알림은 메일(Resend, 키는 원장) ④ 파일럿 기간 PC 매일 10시 전후 켜 둠. → Step 28 D25~D28
+- 2026-09-30 Arch: 설계 밖 둘(경쟁사 정규식 같은 규칙 · slug 거절) 승인. 원장 결정 D25~D28 을 Step 28 에 추가(설계서 끝에 Bob 기록)
+- D25 measure-targets `유료측정일(q, 오늘)`(DB 전체로 판단, 칸 준비 없음, 못 읽으면 false) + `측정상한(유료, env)` → 40/22/60, 유료 날 60/42/120. env 숫자가 먼저, "" 는 없는 것. claude-code.mjs(모든 워크플로의 Claude 호출이 지나는 곳)·ai-measure 측정 몫·ai-web-measure 하루상한이 이것 하나로 고른다 → 합계가 맞다. 측정 아닌 일 몫은 두 날 다 18. claude-code 의 옛 `정수` 도우미는 안 쓰여 지움. GitHub vars 에 CLAUDE_* 없음 확인(gh variable list) — 기본값이 돈다
+- D26 research/paid-pilot-order-form.md 「계약서에 따로」 → 구축·세팅 환불 세 줄(작업 착수 전 전액 · 시안(세팅은 작업 보고) 뒤 50% · 사이트 공개(세팅 완료) 뒤 없음). 30일 파일럿 환불 세 줄·web/lib/services.ts 는 그대로(대조 유지). 「착수는 …」 줄을 「30일 파일럿의 착수는 …」으로(구축 착수와 헷갈림). 관리 화면 파일럿 상세의 「계약서 기준」도 같은 글자로. 랜딩 안 바꿈
+- D27 web/lib/lead-alert.ts 새로 + /api/lead 저장 뒤 await(5초 제한, 던지지 않음). RESEND_API_KEY·LEAD_ALERT_TO 둘 다 있을 때만. 제목 「새 상담 신청」, 본문 이름 첫 글자+** · 전화 끝 4자리 · `<origin>/admin`. 보내는 주소 onboarding@resend.dev(도메인 인증 전 — 계정 주인에게만 감)
+- D28 SOP 「막히면」에 PC 매일 10시 전후 한 줄
+- 확인: 시험 31개 통과(D25 8 · D27 4 추가), web tsc 0, node --check. DB 쓰기·실측정·메일 발송 없음
+- KG-28-3 Resend 키·받는 주소는 원장 몫(Vercel env 는 파일로 넣고 env pull 로 길이 확인 — CLAUDE.md 함정). 받는 주소가 Resend 계정 주인이 아니면 도메인 인증이 필요하다

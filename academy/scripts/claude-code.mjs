@@ -20,6 +20,8 @@ import { spawn, execFile } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+// 빈 문자열("")은 없는 것으로 친다 — Actions 는 설정 안 한 변수를 "" 로 넘긴다(9/22 첫 dry 에 상한 0). 규칙은 measure-targets 측정상한
+import { 측정상한, 유료측정일 } from "../measure-targets.mjs";
 
 /** 토큰이 있거나(Actions) 로컬에서 로그인한 claude 를 쓰겠다고 했을 때(CLAUDE_CODE_LOCAL=1) */
 export const 클로드코드있음 = () => Boolean(process.env.CLAUDE_CODE_OAUTH_TOKEN || process.env.CLAUDE_CODE_LOCAL === "1");
@@ -34,11 +36,9 @@ const 인증문구 = /Failed to authenticate|Invalid bearer token|API Error: 401
 /**
  * 모든 호출자(측정·초안·분석·감사·수리)가 같은 구독 한도를 쓴다. 한 곳이 폭주하면 원장 Claude 까지 멈춘다.
  * 그래서 호출마다 geo.claude_calls 에 한 줄 남기고, 오늘(KST) 센 수가 상한을 넘으면 부르지 않는다.
- * 측정이 먼저다 — 측정 아닌 호출은 CLAUDE_MEASURE_RESERVE(기본 22 — 승인 20문항 + 탐침 2, Step 23 Arch) 만큼 남겨 두고 멈춘다 (Step 10, 2026-09-22)
+ * 측정이 먼저다 — 측정 아닌 호출은 CLAUDE_MEASURE_RESERVE(기본 22 — 승인 20문항 + 탐침 2, Step 23 Arch · 유료 고객 있는 날 42, 하루 40→60, Step 28 D25) 만큼 남겨 두고 멈춘다 (Step 10, 2026-09-22)
  * 상한에 걸린 것은 「한도」로 돌려준다. 호출자들은 한도를 실패로 세지 않는다
  */
-// 빈 문자열도 기본값으로 — Actions 는 설정 안 한 변수를 "" 로 넘긴다. Number("") 는 0 이라 상한 0 이 됐다(9/22 첫 dry)
-const 정수 = (v, d) => { if (v === undefined || v === null || String(v).trim() === "") return d; const n = Number(v); return Number.isInteger(n) && n >= 0 ? n : d; };
 let 기록q = null;
 let 표준비 = null;
 /** DB 를 이미 연 호출자는 자기 쿼리 함수를 준다(감사관은 부르기 전에 DATABASE_URL 을 환경에서 지운다) */
@@ -81,9 +81,11 @@ export async function 클로드코드(prompt, opts = {}) {
     const [row] = await q(`select count(*)::int n, count(*) filter (where purpose is distinct from 'measure')::int other from geo.claude_calls
       where (at at time zone 'Asia/Seoul')::date = (now() at time zone 'Asia/Seoul')::date`).catch(() => [null]);
     if (!row && opts.capRequired) return 못셈;
-    const 상한 = 정수(process.env.CLAUDE_DAILY_MAX, 40);
+    // 유료 파일럿 고객이 측정 대상에 있는 날만 두 배(40→60 · 측정 몫 22→42). env 가 먼저. 판단은 DB 로 — 어느 워크플로가 불러도 같은 값(Step 28 D25)
+    const 한도 = 측정상한(await 유료측정일(q, new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" })));
+    const 상한 = 한도.claude;
     const n = purpose === "measure" ? (row?.n ?? 0) : (row?.other ?? 0);
-    const 몫 = purpose === "measure" ? 상한 : 상한 - 정수(process.env.CLAUDE_MEASURE_RESERVE, 22);
+    const 몫 = purpose === "measure" ? 상한 : 상한 - 한도.reserve;
     if (n >= 몫) return { ok: false, 한도: true, 상한: true, error: `하루 상한 — 오늘 ${n}회 (${purpose} 몫 ${몫})`, text: "", urls: [], 거절: [] };
   }
   const 시작 = Date.now();

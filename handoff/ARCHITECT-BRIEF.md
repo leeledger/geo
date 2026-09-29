@@ -63,3 +63,11 @@
 - **D22** 구축·세팅 고객이 site_launch_on 을 안 넣으면: 착수 + 60일에 측정 대상에서 빼고 원장 할 일(dedupe pilot-launch-<id>) 「사이트 연 날을 넣어 주세요」.
 - **D23** 등록 폼 검증 실패를 조용히 돌려보내지 않는다 — `?err=` 로 무엇이 빠졌는지 사람 말 한 줄(slug 는 영문·숫자·- 만).
 - **D24 (KG-25-3)** repair.yml·sales.yml 등 claude-code.mjs 를 부르는 워크플로 전부 `CLAUDE_MEASURE_RESERVE`·`CLAUDE_DAILY_MAX` 를 vars 에서 넘기게(optimize.yml 과 같은 줄). 값은 안 바꾼다.
+
+### Step 28 추가 — 원장 결정 (2026-09-30, Arch 승인 · Bob 기록)
+
+- 설계 밖 두 가지 승인: 경쟁사 정규식도 D20 같은 규칙 · slug 는 몰래 고치지 않고 거절
+- **D25 측정 상한.** 유료 파일럿 고객이 측정 대상에 있는 날만 두 배 — Claude 하루 40→60 · 측정 몫 22→42, 화면 60→120질의. 없는 날은 지금 값. measure-targets 가 「유료 있음」을 알려 주고 claude-code.mjs·ai-measure·ai-web-measure 가 그걸로 상한을 고른다. env 가 있으면 env 우선. repair·sales 등 다른 워크플로도 같은 규칙(유료 있음은 DB 로 판단)으로 합계가 맞게.
+- **D26 구축·세팅 환불.** 착수 전 전액 · 시안(세팅은 작업 보고) 보여 준 뒤 50% · 사이트 공개(세팅 완료) 뒤 환불 없음. research/paid-pilot-order-form.md 의 「계약서에 따로」를 이 글자로. 신청서와 web 문구 대조 규칙 유지. 랜딩 공개 문구는 안 바꾼다.
+- **D27 리드 메일.** Resend HTTP API. /api/lead 저장 뒤 `RESEND_API_KEY`·`LEAD_ALERT_TO` 가 있으면 한 통(제목 「새 상담 신청」, 본문: 이름 첫 글자+**, 연락처 끝 4자리만, 관리 화면 링크). 없으면 조용히 건너뜀. 실패해도 저장은 성공. 키는 원장이 만든다 — 코드만.
+- **D28 PC.** 코드 없음. SOP 에 「파일럿 기간 PC 매일 10시 전후 켜 둠」 한 줄.

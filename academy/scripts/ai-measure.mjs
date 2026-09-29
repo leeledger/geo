@@ -19,7 +19,7 @@ import fs from "node:fs";
 import { Pool } from "pg";
 import { 오픈라우터, 재시도, 모델들 } from "./writer-common.mjs";
 import { 클로드코드, 클로드코드있음 } from "./claude-code.mjs";
-import { 측정대상, HOUSE, 예산부족알림, 예산부족닫기 } from "../measure-targets.mjs";
+import { 측정대상, HOUSE, 예산부족알림, 예산부족닫기, 측정상한, 유료측정일 } from "../measure-targets.mjs";
 
 for (const l of fs.readFileSync(new URL("../.env.local", import.meta.url), "utf8").split(/\r?\n/)) {
   const m = /^([A-Z_]+)=(.*)$/.exec(l);
@@ -228,8 +228,8 @@ const main = async () => {
   const 나눔 = 대상.length > 1;   // 학원만 있으면 나누지 않는다 — 지금과 같게
   const 유료있음 = 대상.some((t) => t.묶음 === "유료");
   const 집 = 대상.find((t) => t.slug === HOUSE) ?? 대상[0];
-  /** Claude 측정 몫. claude-code.mjs 와 같은 env·같은 기본값 — 새 상한을 만들지 않는다 */
-  const 몫 = /^\d+$/.test(String(process.env.CLAUDE_MEASURE_RESERVE ?? "").trim()) ? Number(process.env.CLAUDE_MEASURE_RESERVE) : 22;
+  /** Claude 측정 몫. claude-code.mjs 와 같은 규칙(measure-targets 측정상한 — 유료 고객 있는 날 42, 아니면 22, env 먼저) */
+  const 몫 = 측정상한(await 유료측정일(q, 오늘)).reserve;
   const 측정씀 = async () => {
     const [r] = await q(`select count(*)::int n from geo.claude_calls where purpose = 'measure'
       and (at at time zone 'Asia/Seoul')::date = (now() at time zone 'Asia/Seoul')::date`).catch(() => [null]);

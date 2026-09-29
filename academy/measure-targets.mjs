@@ -81,6 +81,28 @@ const 고객행 = `select c.id, c.slug, c.name, c.domain, c.answer_pattern, c.me
   from geo.clients c left join geo.pilots p on p.client_id = c.id`;
 
 /**
+ * 오늘 유료 파일럿 고객이 측정 대상에 있는가(Step 28 D25). 모든 실행기(claude-code.mjs·ai-measure·ai-web-measure)가
+ * 이것 하나로 상한을 골라야 하루 합이 맞는다 — --client 로 한 고객만 재도 DB 전체로 판단한다.
+ * 칸 준비(ALTER)는 하지 않는다. 못 읽으면 false — 지금 값(작은 쪽)으로 돈다
+ */
+export async function 유료측정일(q, 오늘) {
+  try { return 대상고르기(await q(고객행), 오늘).some((r) => r.묶음 === "유료"); } catch { return false; }
+}
+
+/**
+ * 하루 상한(원장 2026-09-30). 유료 고객이 있는 날만 두 배 — Claude 하루 40→60 · 측정 몫 22→42 · 화면 60→120질의.
+ * env(CLAUDE_DAILY_MAX·CLAUDE_MEASURE_RESERVE·WEB_MEASURE_DAILY_MAX)에 숫자가 있으면 그것이 먼저다. 빈 글자("")는 없는 것으로 친다(Actions 가 안 정한 vars 를 "" 로 넘긴다)
+ */
+export function 측정상한(유료, env = process.env) {
+  const 값 = (v) => (/^\d+$/.test(String(v ?? "").trim()) ? Number(String(v).trim()) : null);
+  return {
+    claude: 값(env.CLAUDE_DAILY_MAX) ?? (유료 ? 60 : 40),
+    reserve: 값(env.CLAUDE_MEASURE_RESERVE) ?? (유료 ? 42 : 22),
+    web: 값(env.WEB_MEASURE_DAILY_MAX) ?? (유료 ? 120 : 60),
+  };
+}
+
+/**
  * 오늘 잴 대상. --client 를 주면 그 고객 하나(지금처럼 — 나누지 않는다).
  * 오늘은 KST 날짜('YYYY-MM-DD'). 없는 슬러그는 conf=null · id=null 로 돌려준다
  */
