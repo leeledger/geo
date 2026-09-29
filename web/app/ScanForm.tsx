@@ -89,11 +89,11 @@ export default function ScanForm({ id, placeholder }: { id: string; placeholder?
 
       {busy && (
         <p className="formnote loading">
-          robots.txt, llms.txt, sitemap, 본문 페이지를 받아 7가지를 보고 있습니다. 10~30초 걸립니다.
+          robots.txt, llms.txt, sitemap, 본문 페이지를 받아 7가지를 보고 있습니다(llms.txt 는 참고, 점수 제외). 10~30초 걸립니다.
         </p>
       )}
       {!busy && !result && !error && (
-        <p className="formnote">7가지를 자동으로 봅니다. 가입도 결제도 없이 바로 결과가 나옵니다.</p>
+        <p className="formnote">7가지를 자동으로 봅니다(llms.txt 는 참고, 점수 제외). 가입도 결제도 없이 바로 결과가 나옵니다.</p>
       )}
       {error && <p className="err">{error}</p>}
 

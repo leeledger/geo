@@ -143,7 +143,7 @@ try {
 // 검색 노출 — 오늘 상태와, 각 질의가 처음 잡힌 날
 // 하루에 두 번 돌면 같은 질의가 두 줄 들어온다. 질의마다 한 줄, 걸린 쪽을 남긴다.
 const serpRaw = (await pool.query(
-  `select engine, kind, query, hit, rank from academy.serp_checks
+  `select engine, kind, query, hit, rank, day::text as day from academy.serp_checks
     where client_id=$1 and day = (select max(day) from academy.serp_checks where client_id=$1)
     order by engine, kind desc, query`,
   [CLIENT_ID],
@@ -409,7 +409,7 @@ ${serp.length ? `
       <td class="m">${esc(eng(r.engine))}</td>
       <td class="m">${esc(r.kind)}</td>
       <td>${esc(r.query)}</td>
-      <td class="m">${r.hit ? (r.rank ? `<b>${r.rank}위</b>` : `<b>노출</b>`) : `<span class="no">미노출</span>`}</td>
+      <td class="m">${r.hit ? (r.rank ? `<b>${r.rank}위</b><br><small>${day(`${r.day}T12:00:00+09:00`)} 측정 · ${esc(eng(r.engine))}</small>` : `<b>노출</b>`) : `<span class="no">미노출</span>`}</td>
     </tr>`).join("")}
     </tbody>
   </table></div>

@@ -10,7 +10,7 @@ import { tabKeys } from "./tabkeys";
  * 크롤러는 스크립트를 안 돌리니 세 장을 다 읽는다. 이 회사가 파는 게 그거다.
  *
  * ERP 측정 — probe/data/report.websearch.txt · diagnoses/doto.json.
- * 질문 12개, 웹 검색을 켠 AI 에 15회. 회사 이름은 A·B·C 로 쓴다.
+ * 질문 12개로 웹 검색을 켠 AI 답 15개(회사당 15회 표본). 회사 이름은 A·B·C 로 쓴다.
  */
 
 const TABS = [
@@ -59,8 +59,8 @@ export default function RecordTabs() {
       <div className="lp-card lp-rec-panel">
         <div role="tabpanel" id="rec-panel-0" aria-labelledby={id(0)} tabIndex={0} hidden={tab !== 0}>
           <div className="eb">소프트웨어 회사 진단 리포트 · 회사 이름 가림</div>
-          <h3>홈페이지 점수 1위 회사가 <span className="hl">15번 중 3번</span></h3>
-          <p className="p">그 업계 손님이 물어볼 질문을 AI 에게 15번 묻고, 회사마다 이름이 몇 번 나왔는지 셌습니다. 15번이라 순위가 아니라 방향으로 봅니다.</p>
+          <h3>홈페이지 점수가 가장 높은 회사가 <span className="hl">15번 중 3번</span></h3>
+          <p className="p">그 업계 손님이 물어볼 질문을 AI 에게 15번 묻고, 회사마다 이름이 몇 번 나왔는지 셌습니다. 회사당 15회 표본이라 순위가 아니라 방향으로 봅니다.</p>
           <div className="lp-bars">
             {ERP_BARS.map(([name, n, me]) => (
               <div key={name} className={me ? "me" : undefined}>
@@ -103,7 +103,7 @@ export default function RecordTabs() {
 
       <p className="lp-rec-note">
         <b>「몇 위 보장」은 없습니다.</b> AI 답은 물을 때마다 바뀝니다.
-        그래서 여러 번 묻고, 몇 번 물었는지를 숫자 옆에 같이 적습니다.
+        그래서 날마다 묻고, 몇 번 물었는지를 숫자 옆에 같이 적습니다.
       </p>
     </div>
   );

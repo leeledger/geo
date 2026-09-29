@@ -82,7 +82,7 @@ export default function HeroDemo({ children }: { children: React.ReactNode }) {
         <h1 className="lp-h1">손님이 AI에게 물었을 때<br /><span>우리 이름이 나오나요?</span></h1>
         <p className="lp-lede">
           「{s.q}」. 이렇게 물으면 AI 는 링크 대신 <b>이름 세 개쯤</b>으로 답합니다.
-          거기 우리가 있는지 여러 번 물어 세고, 없으면 들어가게 만듭니다.
+          거기 우리가 있는지 날마다 물어 세고, 없으면 들어가게 만듭니다.
         </p>
         <div className="lp-inds" role="group" aria-label="업종 바꿔 보기">
           <span className="lp-inds-k" aria-hidden="true">업종 바꿔 보기</span>
