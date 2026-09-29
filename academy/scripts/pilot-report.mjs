@@ -63,11 +63,16 @@ async function main() {
     착수 = (await 첫날들(p.started_on_t))[0] ?? null;
     착수근거 = "추정 — 승인 시각을 남기기 전 파일럿이라 등록 뒤 첫 측정일";
   }
-  const 일정 = 파일럿일정({ kickoff_on: 착수, needs_build: p.needs_build ?? "none", site_launch_on: 날칸(p.site_launch_on) });
-  if (!일정) { console.log(`${p.name}: 착수 전입니다 — 승인한 질문으로 첫 측정을 한 날이 착수일입니다`); return; }
+  const 일정 = 파일럿일정({ kickoff_on: 착수, paid_on: 날칸(p.paid_on), needs_build: p.needs_build ?? "none", site_launch_on: 날칸(p.site_launch_on) });
+  if (!일정.착수) { console.log(`${p.name}: 착수 전입니다 — 승인한 질문으로 첫 측정을 한 날이 착수일입니다`); return; }
 
   const 끝창 = stage === "final" ? 일정.최종 : 일정.기준선;
-  if (!끝창) { console.log(`${p.name}: 사이트 연 날이 없어 30일 창을 못 정합니다 — 파일럿 화면 「계약·일정」에 연 날을 넣어 주세요`); return; }
+  if (!끝창) {
+    console.log(일정.구축
+      ? `${p.name}: 사이트 연 날이 없어 30일 창을 못 정합니다 — 파일럿 화면 「계약·일정」에 연 날을 넣어 주세요`
+      : `${p.name}: 입금 확인 전 — 30일은 입금 확인일부터 셉니다(신청서). 파일럿 화면 「계약·일정」에 입금 확인일을 넣어 주세요`);
+    return;
+  }
 
   // 측정 — 승인 질문(q<번호>)만, 지금 질문 문구와 같은 기록만. 문구가 바뀐 옛 기록은 세지 않고 몇 건인지 적는다
   const 범위 = { from: 일정.기준선.from, to: 끝창.to };
@@ -105,7 +110,7 @@ async function main() {
     w();
     for (const m of 곳들(rows)) {
       const 엔진 = [...new Set(rows.filter((r) => r.collection_method === m).map((r) => r.engine))].join(", ");
-      w(`- **${곳이름(m)}** — ${곳정보[m]?.방법 ?? "계약 밖 수집 방법이라 판정에 쓰지 않는다"} · 엔진 기록 ${엔진}`);
+      w(`- **${곳이름(m)}** — ${곳정보[m]?.방법 ?? "계약 밖 수집 방법이라 판정에 쓰지 않는다"} · 엔진 기록 ${엔진 || "없음"}`);
       for (const [이름, 창w] of 창들) {
         const 날 = 잰날(창(rows.filter((r) => r.collection_method === m), 창w), 창w);
         const n = 창(rows.filter((r) => r.collection_method === m), 창w).length;
@@ -124,7 +129,6 @@ async function main() {
     const ms = 곳들(창(rows, 창w));
     w(`### ${제목}`);
     w();
-    if (!ms.length) { w("잰 기록 없음"); w(); return; }
     w(`| 질문 | ${ms.map(곳이름).join(" | ")} |`);
     w(`|---|${ms.map(() => "---").join("|")}|`);
     for (const x of 대상) {
@@ -152,6 +156,7 @@ async function main() {
       const mine = 창(rows, 창w).filter((r) => r.collection_method === m);
       w(`### ${곳이름(m)}`);
       w();
+      if (!mine.length) { w("안 잼 — 표본 0"); w(); continue; }
       w(`| 질문 | ${이름들.map((x) => 칸(x.key)).join(" | ")} |`);
       w(`|---|${이름들.map(() => "---").join("|")}|`);
       for (const x of 성과) {
@@ -189,7 +194,7 @@ async function main() {
     }
   };
 
-  const 기간줄 = `착수 ${일정.착수} (${착수근거}) · ${일정.구축 ? `구축·세팅 있음 · 사이트 연 날 ${일정.시작 ?? "미입력"}` : "구축 없음"} · 30일 ${일정.시작 ?? "—"} ~ ${일정.끝 ?? "—"}`;
+  const 기간줄 = `착수 ${일정.착수} (${착수근거}) · ${일정.구축 ? `구축·세팅 있음 · 사이트 연 날 ${일정.시작 ?? "미입력"}` : `구축 없음 · 입금 확인일 ${일정.시작 ?? "미입력"}`} · 30일 ${일정.시작 ? `${일정.시작} ~ ${일정.끝}` : 일정.구축 ? "연 날 미입력" : "입금 확인 전"}`;
 
   if (stage === "baseline") {
     const b = 일정.기준선;
@@ -229,7 +234,8 @@ async function main() {
     w(`${기간줄}  `);
     w(`비교: 기준선 ${b.from} ~ ${b.to} vs 마지막 7일 ${f.from} ~ ${f.to}  `);
     w(`만든 날: ${오늘}${끝났나 ? "" : ` — 마지막 7일이 아직 안 끝났다. ${오늘}까지 잰 것만 적었다`}  `);
-    w(`판정: **${결론.결과}** — ${결론.이유}`);
+    w(`판정: **${결론.결과}** — ${결론.이유}  `);
+    w(결론.곳);
     w();
     방법절([["기준선", b], ["마지막 7일", f]]);
 
@@ -242,10 +248,11 @@ async function main() {
     for (const x of 비교들) {
       const 판 = !x.약속 ? "계약 밖 방법 — 판정에 안 씀"
         : !x.비교됨 ? `표본 부족 (잰 날 ${x.기준날.잰.length}일 · ${x.끝날.잰.length}일)`
-        : x.늘었다 ? `${x.무엇.join("·")} 늘었다` : "늘지 않았다";
+        : `언급 비율 ${x.변화}`;
       w(`| ${곳이름(x.곳)} | ${비율글(x.기준)} | ${비율글(x.끝)} | ${판} |`);
     }
-    if (!비교들.length) w("| — | 잰 기록 없음 | 잰 기록 없음 | 비교 없음 |");
+    w();
+    w("판정은 언급(답에 이름이 나온) 비율로만 한다. 인용 비율은 참고로 옆에 적었다.");
     w();
 
     w("## 질문별 결과");

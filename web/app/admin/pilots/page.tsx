@@ -141,6 +141,8 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ k
             <p className="sub">입금 확인 후 등록합니다. 등록하면 질문 20개와 착수·기준선·30일 업무가 생깁니다.</p>
             <form className="pl-form" action={createPilot}>
               {FIELDS.map(([n, l]) => <label key={n}>{l}<input name={n} required /></label>)}
+              {/* 구축 없음이면 30일이 이날부터다(신청서 8행) */}
+              <label>입금 확인일<input type="date" name="paid_on" defaultValue={kstToday()} required /></label>
               <label>환불 절 서면 전달일<input type="date" name="refund_terms_sent_on" required /></label>
               <label>필요한 준비
                 <select name="needs_build" defaultValue="none">

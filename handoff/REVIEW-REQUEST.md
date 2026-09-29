@@ -1,7 +1,44 @@
 # Review Request — Step 26 (파일럿 생애주기와 보고 · D5~D11 + D18 경쟁사)
 Date: 2026-09-30
 Ready for Review: YES
-Status: DONE — 순수 함수 시험 14개 · 학원 리허설 파일럿으로 baseline/final --dry(실제 DB 읽기만) · web tsc 0 · next build 통과. 실측정·DB 쓰기·푸시·배포 안 함
+Status: DONE — 2차(Richard NO 반영 + Arch 결정 3개). 순수 함수 시험 17개 · 학원 리허설 파일럿으로 baseline/final --dry(실제 DB 읽기만) · web tsc 0. 실측정·DB 쓰기·푸시·배포 안 함
+
+## 2차 — Richard 막는 항목 + Arch 결정
+- **막는 항목(네 곳 늘 싣기)** — `곳들()` 이 약속한 네 곳(ChatGPT·Perplexity·Gemini 로그아웃 화면, Claude Code)을 늘 먼저 돌려준다(pilot-report-core.mjs:34-38). 그래서 수집 방법·질문표·곳별 비교·경쟁사 절에 네 곳이 다 나온다. 못 잰 곳은 「안 잼 — 표본 0」 또는 「표본 부족 (잰 날 a일 · b일)」로 적는다. `곳문장()`(core 끝부분)이 판정 줄 바로 아래에 이 문장을 붙인다: 「약속한 4곳 중 비교된 m곳, 그중 k곳에서 언급 비율이 늘었다 — 늘어난 곳: … · 그대로·줄어든 곳: …(줄었다/그대로) · 못 잰 곳: …(잰 날)」. 성공·보류·실패 모두에 붙는다. 시험 「한 곳 늘고 한 곳 줄고 두 곳 못 잼」을 더했다
+- **Arch (2) 30일 기산점 — D5 와 다른 점**: D5 에서는 구축 없음도 착수(승인 뒤 첫 측정일)부터 +29 로 셌다. 이제는 신청서 8행대로 **입금 확인일(`paid_on`) 포함 30일**이고, 고객 승인이 늦어진 기간도 30일에 든다. 구축·세팅은 전과 같이 site_launch_on 부터 센다. 기준선 7일도 전과 같이 착수(kickoff)부터 센다. `paid_on date` 칸을 새로 만들었다(양쪽 schema.sql · 파일럿칸준비 · PILOT_COLUMNS). 등록 폼에서는 필수이고 오늘(KST)이 기본값이다. 파일럿 화면 「계약·일정」에서 고칠 수 있다. 입금 확인일이 없으면 30일을 시작하지 않는다. 보고서는 「입금 확인 전」을 내고 멈추고, 화면에도 같은 말이 뜬다. createPilot 은 started_on=paid_on, ends_on=paid_on+29 로 넣는다. 날짜 맞추기는 이제 승인 여부와 상관없이 취소 안 된 파일럿을 다 본다(입금일·연 날을 고치면 기간이 따라간다)
+- **Arch (3) 판정 비율 = 언급 하나**: `곳비교` 는 `변화: 늘었다|그대로|줄었다|null` 을 언급 비율로만 정한다(나눗셈 대신 곱셈으로 비교). 「둘 중 하나라도」는 없앴다. 인용은 표의 옆 칸에만 나오고, 표 아래에 「판정은 언급 비율로만」 한 줄을 붙였다. research/pilot-measurement-sop.md 「성공 판정」 절에 한 줄 넣었다(비율 = 언급, 인용은 참고)
+- **Should Fix 두 개**는 KG-26-5·26-6 으로 넘겼다. KG-26-7: 학원 리허설에는 입금 확인일이 없다. 그래서 실제 DB 로 돌린 final --dry 는 「입금 확인 전」에서 멈춘다. 렌더링 확인은 paid_on 만 9/17 로 바꾼 임시 사본으로 했다(아래)
+
+### 2차 확인 출력
+시험 17개 통과. 새로 넣은 것:
+```
+ok · 구축 없음 — 입금 확인일 포함 30일(+29, 승인 지연 포함), 기준선은 착수부터 +6   (9/30 입금·10/2 착수 → 30일 9/30~10/29)
+ok · 구축 없음 — 입금 확인 전이면 30일 시작 안 함(착수만 있으면 임시 기간)
+ok · 파일럿날짜맞추기 — P1 착수 10/3·30일은 입금일 9/30부터, P2 구축 대기, P3 리허설 안 바뀜, P4 입금일 고침 따라감
+ok · 곳비교 — 같은 곳끼리, 브랜드 제외, 언급 비율만, 4일 미만 표본 부족   (인용만 늘면 「그대로」)
+ok · 곳들 — 약속한 네 곳은 못 잰 날에도 늘 싣는다
+   약속한 4곳 중 비교된 2곳, 그중 1곳에서 언급 비율이 늘었다 — 늘어난 곳: ChatGPT · 그대로·줄어든 곳: Claude(줄었다) · 못 잰 곳: Perplexity(잰 날 0일·0일), Gemini(잰 날 0일·2일)
+ok · 한 곳 늘고 한 곳 줄고 두 곳 못 잼 — 네 곳 모두 표에, 이유에 「4곳 중」과 이름
+```
+`--stage final --client robotncoding --dry` (실제 DB): `로봇&코딩학원: 입금 확인 전 — 30일은 입금 확인일부터 셉니다(신청서). 파일럿 화면 「계약·일정」에 입금 확인일을 넣어 주세요`
+
+같은 명령을 paid_on=2026-09-17 인 임시 사본으로 돌린 결과(사본은 지웠다):
+```
+판정: **판정 보류** — 30일 마지막 7일이 아직 안 끝났다
+약속한 4곳 중 비교된 0곳, 그중 0곳에서 언급 비율이 늘었다 — 늘어난 곳: 없음 · 그대로·줄어든 곳: 없음 · 못 잰 곳: ChatGPT(잰 날 0일·0일), Perplexity(잰 날 0일·0일), Gemini(잰 날 0일·0일), Claude(잰 날 1일·0일)
+| ChatGPT | 안 잼 — 표본 0 | 안 잼 — 표본 0 | 표본 부족 (잰 날 0일 · 0일) |
+| Perplexity | 안 잼 — 표본 0 | 안 잼 — 표본 0 | 표본 부족 (잰 날 0일 · 0일) |
+| Gemini | 안 잼 — 표본 0 | 안 잼 — 표본 0 | 표본 부족 (잰 날 0일 · 0일) |
+| Claude | 언급 17번 중 1번(6%) · 인용 0번(0%) | 안 잼 — 표본 0 | 표본 부족 (잰 날 1일 · 0일) |
+| api-openrouter-web-exa | 언급 28번 중 6번(21%) · 인용 0번(0%) | 안 잼 — 표본 0 | 계약 밖 방법 — 판정에 안 씀 |
+판정은 언급(답에 이름이 나온) 비율로만 한다. 인용 비율은 참고로 옆에 적었다.
+```
+baseline --dry(실제 DB)도 이제 질문표 열이 ChatGPT·Perplexity·Gemini·Claude·api-openrouter 다섯 개다. 앞의 셋은 「안 잼」이다.
+
+2차에서 바뀐 파일: academy/pilot-plan.mjs(1-106 날짜·맞추기, 112 paid_on) · academy/pilot-report-core.mjs(34-38 곳들, 48 비율글, 101 뒤 곳비교·곳문장·판정) · academy/scripts/pilot-report.mjs(일정·입금 확인 전·곳 문장·표) · web/lib/pilot-plan.ts(임시 기한, paid_on) · web/lib/pilot-actions.ts(createPilot paid_on 필수, updatePilotContract paid_on) · web/app/admin/pilots/page.tsx·[id]/page.tsx(입금 확인일 칸·「입금 확인 전」 표시) · web/db/schema.sql·academy/db/schema.sql(paid_on 한 줄) · research/pilot-measurement-sop.md(성공 판정 한 줄)
+
+---
+(아래는 1차 요청 그대로. 「SOP 와 다르게 읽을 수 있는 곳」 네 개 중 둘은 위 Arch 결정으로 정리됐다)
 
 ## Files Changed
 - academy/pilot-plan.mjs (새 파일, 1-132) — 날짜 순수 함수(`kst날짜`·`착수찾기`·`파일럿일정`·`기간칸`·`기준날짜`), `파일럿날짜맞추기`(착수일 채움 → started_on·ends_on → anchor 업무 기한), `파일럿칸준비`(Step 26 칸 if not exists)

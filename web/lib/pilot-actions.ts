@@ -31,9 +31,9 @@ export async function createPilot(form:FormData){await guard();
   // Step 26 — 구축·세팅 여부(날짜 계산이 갈린다), 경쟁사(보고서 점유율, 비워도 된다), 신청 때 적는 사업자 유형·환불 절 서면 전달일
   const needsBuild=String(form.get("needs_build")??"");
   const competitors=competitorNames(String(form.get("competitors")??""));
-  const bizType=String(form.get("biz_type")??"").trim().slice(0,40), refundTermsOn=ymd(form.get("refund_terms_sent_on"));
+  const bizType=String(form.get("biz_type")??"").trim().slice(0,40), refundTermsOn=ymd(form.get("refund_terms_sent_on")), paidOn=ymd(form.get("paid_on"));
   if(!brand||!domain||!district||!neighborhood||!category||!audience||!payment||!terms||!contactName||!contactEmail||!contactPhone||!receiptType||!pattern)return;
-  if(!NEEDS_BUILD.includes(needsBuild)||!bizType||!refundTermsOn)return;
+  if(!NEEDS_BUILD.includes(needsBuild)||!bizType||!refundTermsOn||!paidOn)return;
   const slug=String(form.get("slug")??"").toLowerCase().replace(/[^a-z0-9-]/g,"").slice(0,40);
   if(!slug)return;
   const db=await inqPool().connect(); let pilotId="";
@@ -46,8 +46,8 @@ export async function createPilot(form:FormData){await guard();
     await db.query(`alter table geo.clients add column if not exists measure_active boolean not null default false`);
     for(const s of PILOT_COLUMNS)await db.query(s);
     const c=(await db.query(`insert into geo.clients(slug,name,domain,alias,schema_name,started_on,note,relation,answer_pattern) values($1,$2,$3,$4,'academy',(now() at time zone 'Asia/Seoul')::date,'39만원 30일 유료 파일럿','외부',$5) on conflict(slug) do update set name=excluded.name,domain=excluded.domain,answer_pattern=excluded.answer_pattern returning id`,[slug,brand,domain,`${district}의 단일 지점 ${category}`,pattern])).rows[0];
-    // 시작·종료는 착수 전 임시값(등록일 KST, +29). 착수일이 생기면 company.mjs 가 착수 기준으로 고친다(Step 26 D5, academy/pilot-plan.mjs)
-    const p=(await db.query(`insert into geo.pilots(client_id,price,payment_ref,contact_name,contact_email,contact_phone,receipt_type,terms_evidence,paid_at,started_on,ends_on,status,terms_accepted_at,needs_build,competitors,biz_type,refund_terms_sent_on) values($1,390000,$2,$3,$4,$5,$6,$7,now(),(now() at time zone 'Asia/Seoul')::date,(now() at time zone 'Asia/Seoul')::date+29,'진행',now(),$8,$9,$10,$11) on conflict(client_id) do update set payment_ref=excluded.payment_ref,contact_name=excluded.contact_name,contact_email=excluded.contact_email,contact_phone=excluded.contact_phone,receipt_type=excluded.receipt_type,terms_evidence=excluded.terms_evidence,needs_build=excluded.needs_build,competitors=excluded.competitors,biz_type=excluded.biz_type,refund_terms_sent_on=excluded.refund_terms_sent_on returning id,started_on::text as started_on`,[c.id,payment,contactName,contactEmail,contactPhone,receiptType,terms,needsBuild,competitors,bizType,refundTermsOn])).rows[0];
+    // 시작·종료는 입금 확인일 포함 30일(신청서 8행 — 고객 승인이 늦어진 기간도 든다). 구축·세팅이면 사이트 연 날이 생길 때 company.mjs 가 고친다(academy/pilot-plan.mjs)
+    const p=(await db.query(`insert into geo.pilots(client_id,price,payment_ref,contact_name,contact_email,contact_phone,receipt_type,terms_evidence,paid_at,started_on,ends_on,status,terms_accepted_at,needs_build,competitors,biz_type,refund_terms_sent_on,paid_on) values($1,390000,$2,$3,$4,$5,$6,$7,now(),$12::date,$12::date+29,'진행',now(),$8,$9,$10,$11,$12) on conflict(client_id) do update set payment_ref=excluded.payment_ref,contact_name=excluded.contact_name,contact_email=excluded.contact_email,contact_phone=excluded.contact_phone,receipt_type=excluded.receipt_type,terms_evidence=excluded.terms_evidence,needs_build=excluded.needs_build,competitors=excluded.competitors,biz_type=excluded.biz_type,refund_terms_sent_on=excluded.refund_terms_sent_on,paid_on=excluded.paid_on returning id,started_on::text as started_on`,[c.id,payment,contactName,contactEmail,contactPhone,receiptType,terms,needsBuild,competitors,bizType,refundTermsOn,paidOn])).rows[0];
     const qs=makeQuestions(brand,district,neighborhood,category,audience);
     for(let i=0;i<qs.length;i++)await db.query(`insert into geo.pilot_questions(pilot_id,position,stage,text) values($1,$2,$3,$4) on conflict(pilot_id,position) do update set text=excluded.text`,[p.id,i+1,i<8?'지역':i<13?'문제':i<17?'비교':'브랜드',qs[i]]);
     for(const t of pilotTasks(needsBuild))await db.query(`insert into geo.pilot_tasks(pilot_id,code,title,due_on,owner,anchor,offset_days) values($1,$2,$3,$4::date+$5::int,$6,$7,$8) on conflict(pilot_id,code) do nothing`,[p.id,t.code,t.title,p.started_on,t.provisional,t.owner,t.anchor,t.offset]);
@@ -62,14 +62,14 @@ export async function updateAudit(form:FormData){await guard();await inqPool().q
 /** 승인 시각을 남긴다(Step 26 D5). 처음 승인한 때만 — 착수일은 이 시각의 KST 날짜 이후 첫 측정일로 company.mjs 가 정한다 */
 export async function approveQuestions(form:FormData){await guard();const id=String(form.get("pilot_id"));await inqPool().query(`update geo.pilot_questions set approved=true where pilot_id=$1`,[id]);await inqPool().query(`update geo.pilots set questions_approved_at=coalesce(questions_approved_at,now()) where id=$1`,[id]);revalidatePath(String(form.get("path")));}
 /**
- * 계약 칸(Step 26 D11)과 구축 여부·사이트 연 날(D5)·경쟁사(D18). 날짜는 'YYYY-MM-DD' 만, 비우면 null.
- * 시작·종료·업무 기한은 여기서 안 고친다 — company.mjs 가 매시 착수·연 날로 다시 센다(한 곳에서만 센다)
+ * 계약 칸(Step 26 D11)과 입금 확인일·구축 여부·사이트 연 날(D5)·경쟁사(D18). 날짜는 'YYYY-MM-DD' 만, 비우면 null.
+ * 시작·종료·업무 기한은 여기서 안 고친다 — company.mjs 가 매시 착수·입금 확인일·연 날로 다시 센다(한 곳에서만 센다)
  */
 export async function updatePilotContract(form:FormData){await guard();
   const needs=String(form.get("needs_build")??"");if(!NEEDS_BUILD.includes(needs))return;
   const refund=String(form.get("refund_amount")??"").trim();const amount=/^\d{1,7}$/.test(refund)?Number(refund):null;
-  await inqPool().query(`update geo.pilots set needs_build=$2,site_launch_on=$3,competitors=$4,biz_type=nullif($5,''),refund_terms_sent_on=$6,invoice_issued_on=$7,cancelled_on=$8,refund_amount=$9 where id=$1`,
-    [String(form.get("pilot_id")),needs,needs==="none"?null:ymd(form.get("site_launch_on")),competitorNames(String(form.get("competitors")??"")),String(form.get("biz_type")??"").trim().slice(0,40),ymd(form.get("refund_terms_sent_on")),ymd(form.get("invoice_issued_on")),ymd(form.get("cancelled_on")),amount]);
+  await inqPool().query(`update geo.pilots set needs_build=$2,site_launch_on=$3,competitors=$4,biz_type=nullif($5,''),refund_terms_sent_on=$6,invoice_issued_on=$7,cancelled_on=$8,refund_amount=$9,paid_on=$10 where id=$1`,
+    [String(form.get("pilot_id")),needs,needs==="none"?null:ymd(form.get("site_launch_on")),competitorNames(String(form.get("competitors")??"")),String(form.get("biz_type")??"").trim().slice(0,40),ymd(form.get("refund_terms_sent_on")),ymd(form.get("invoice_issued_on")),ymd(form.get("cancelled_on")),amount,ymd(form.get("paid_on"))]);
   revalidatePath(String(form.get("path")));}
 /** 기준선 보고를 고객에게 보낸 때(환불 기준이 이 시각으로 갈린다). 한 번만 적는다 */
 export async function markBaselineSent(form:FormData){await guard();await inqPool().query(`update geo.pilots set baseline_sent_at=coalesce(baseline_sent_at,now()) where id=$1`,[String(form.get("pilot_id"))]);revalidatePath(String(form.get("path")));}

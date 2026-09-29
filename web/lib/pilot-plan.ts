@@ -3,7 +3,7 @@
  *
  * 업무는 신청서(research/paid-pilot-order-form.md) 「제공」 여섯 줄과 SOP(research/pilot-measurement-sop.md) 「회차」다.
  * 기한은 기준 날짜(anchor) + 며칠(offset_days)로 둔다. 기준은 등록일 · 착수 · 시작(30일 첫날) · 끝(30일 마지막 날).
- * 등록할 때는 착수·시작을 모르니 임시 기한을 넣고, 착수일·사이트 연 날이 생기면 company.mjs 가 안 끝난 업무의 기한을 고친다
+ * 등록할 때는 착수·시작을 모르니 임시 기한을 넣고, 착수일·입금 확인일·사이트 연 날이 생기거나 바뀌면 company.mjs 가 안 끝난 업무의 기한을 고친다
  * (academy/pilot-plan.mjs 기준날짜). anchor 가 없는 옛 파일럿 업무는 건드리지 않는다.
  */
 
@@ -31,12 +31,12 @@ const TASKS: TaskDef[] = [
 ];
 
 /**
- * 등록일에서 센 임시 기한(일). 착수는 승인(등록+1) 다음 날 첫 측정으로 본다.
+ * 입금 확인일에서 센 임시 기한(일). 착수는 승인(+1) 다음 날 첫 측정으로 본다. 구축 없음이면 30일 시작은 입금 확인일 그날(신청서 8행).
  * 구축·세팅은 기준선 7일 뒤 사이트를 연다고 보고 센다 — 실제 날짜가 들어오면 고쳐진다
  */
 export function pilotTasks(needsBuild: string) {
   const build = needsBuild === "setup" || needsBuild === "build";
-  const 착수 = 2, 시작 = build ? 착수 + 7 : 착수;
+  const 착수 = 2, 시작 = build ? 착수 + 7 : 0;
   const base: Record<Anchor, number> = { 등록: 0, 착수, 시작, 끝: 시작 + 29 };
   return TASKS.filter((t) => build || !t.buildOnly).map((t) => ({ ...t, provisional: base[t.anchor] + t.offset }));
 }
@@ -50,6 +50,7 @@ export function ymd(v: FormDataEntryValue | null): string | null {
 /** academy/pilot-plan.mjs 파일럿칸준비 와 같은 줄(파일럿 칸만). 등록이 처음 도는 날 칸이 없으면 만든다 */
 export const PILOT_COLUMNS = [
   `alter table geo.pilots add column if not exists kickoff_on date`,
+  `alter table geo.pilots add column if not exists paid_on date`,
   `alter table geo.pilots add column if not exists questions_approved_at timestamptz`,
   `alter table geo.pilots add column if not exists baseline_sent_at timestamptz`,
   `alter table geo.pilots add column if not exists site_launch_on date`,

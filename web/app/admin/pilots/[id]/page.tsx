@@ -96,7 +96,9 @@ export default async function Page({ params, searchParams }: { params: Promise<{
         <p className="pd-k">
           {x.pilot.kickoff_on ? <>착수 {D(x.pilot.kickoff_on)}</> : <>착수 전 — 질문 승인 뒤 첫 측정일이 착수일이 됩니다</>}
           {" · "}{NEEDS_BUILD_LABEL[x.pilot.needs_build] ?? "구축 여부 미입력"}
-          {x.pilot.kickoff_on && x.pilot.needs_build !== "none" && !x.pilot.site_launch_on ? " · 사이트 연 날 미입력 — 30일은 연 날부터 셉니다" : ""}
+          {x.pilot.needs_build && x.pilot.needs_build !== "none"
+            ? (!x.pilot.site_launch_on ? " · 사이트 연 날 미입력 — 30일은 연 날부터 셉니다" : "")
+            : (!x.pilot.paid_on ? " · 입금 확인 전 — 30일은 입금 확인일부터 셉니다" : "")}
           {" · "}기준선 보고 {x.pilot.baseline_sent_at ? `보냄 ${D(new Date(new Date(x.pilot.baseline_sent_at).getTime() + 9 * 3600 * 1000))}` : "안 보냄"}
           {x.pilot.cancelled_on ? ` · 취소 ${D(x.pilot.cancelled_on)}` : ""}
         </p>
@@ -188,6 +190,7 @@ export default async function Page({ params, searchParams }: { params: Promise<{
               <label>사이트 연 날(구축·세팅만)<input type="date" name="site_launch_on" defaultValue={x.pilot.site_launch_on ? D(x.pilot.site_launch_on) : ""} /></label>
               <label className="w2">경쟁사 (쉼표로 3~5곳 · 보고서 점유율)<input name="competitors" defaultValue={x.pilot.competitors ?? ""} maxLength={220} /></label>
               <label>사업자 유형<input name="biz_type" defaultValue={x.pilot.biz_type ?? ""} maxLength={40} /></label>
+              <label>입금 확인일(구축 없음이면 30일 첫날)<input type="date" name="paid_on" defaultValue={x.pilot.paid_on ? D(x.pilot.paid_on) : ""} /></label>
               <label>환불 절 서면 전달일<input type="date" name="refund_terms_sent_on" defaultValue={x.pilot.refund_terms_sent_on ? D(x.pilot.refund_terms_sent_on) : ""} /></label>
               <label>세금계산서 발행일<input type="date" name="invoice_issued_on" defaultValue={x.pilot.invoice_issued_on ? D(x.pilot.invoice_issued_on) : ""} /></label>
               <label>취소일<input type="date" name="cancelled_on" defaultValue={x.pilot.cancelled_on ? D(x.pilot.cancelled_on) : ""} /></label>

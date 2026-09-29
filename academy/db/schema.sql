@@ -138,6 +138,8 @@ alter table academy.snapshots add column if not exists lead_hours    int;
 -- Step 26 파일럿 생애주기 — academy/pilot-plan.mjs 파일럿칸준비 · web/lib/pilot-plan.ts PILOT_COLUMNS 와 같은 줄
 -- 착수(질문 승인 뒤 첫 측정일, KST) · 기준선 보고 보낸 때 · 구축·세팅(none|setup|build)과 사이트 연 날 · 경쟁사(쉼표 이름) · 계약 칸
 alter table geo.pilots add column if not exists kickoff_on date;
+-- 입금 확인일 — 구축 없음이면 30일이 이날부터(신청서 8행, Arch 2026-09-30)
+alter table geo.pilots add column if not exists paid_on date;
 alter table geo.pilots add column if not exists questions_approved_at timestamptz;
 alter table geo.pilots add column if not exists baseline_sent_at timestamptz;
 alter table geo.pilots add column if not exists site_launch_on date;
