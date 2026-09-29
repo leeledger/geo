@@ -180,13 +180,16 @@ const ensure = async () => {
     id bigserial primary key, client_id int not null default 1, slug text not null,
     title text not null default '', reasons text[] not null default '{}', note text not null default '',
     excerpt text not null default '', created_at timestamptz not null default now())`);
-  // 관리 화면이 읽는 표는 첫 입력 전에 있어야 한다(Step 27 D16). web/lib/hours.ts HOURS_DDL 과 같은 줄 — 한쪽만 고치지 않는다
-  await q(`create table if not exists geo.client_hours (
-    id bigserial primary key, client_id int not null references geo.clients(id),
-    day date not null default ((now() at time zone 'Asia/Seoul')::date),
-    minutes int not null check (minutes > 0 and minutes <= 1440),
-    what text not null default '', created_at timestamptz not null default now())`);
-  await q(`alter table geo.client_hours enable row level security`);
+  // 관리 화면이 읽는 표는 첫 입력 전에 있어야 한다(Step 27 D16). web/lib/hours.ts HOURS_DDL 과 같은 줄 — 한쪽만 고치지 않는다.
+  // 화면 편의용이라 실패해도 루프는 계속 돈다(Richard 27) — 줄마다 따로 잡는다
+  for (const s of [
+    `create table if not exists geo.client_hours (
+      id bigserial primary key, client_id int not null references geo.clients(id),
+      day date not null default ((now() at time zone 'Asia/Seoul')::date),
+      minutes int not null check (minutes > 0 and minutes <= 1440),
+      what text not null default '', created_at timestamptz not null default now())`,
+    `alter table geo.client_hours enable row level security`,
+  ]) await q(s).catch((e) => console.log("  ⚠ client_hours 표 준비 실패", 끝(e.message, 200)));
 };
 
 const 본키 = new Set(); // 이번 계획에서 신호가 살아 있는 일감

@@ -7,8 +7,20 @@
  * "use server" 모듈(pilot-actions.ts)은 async 만 내보낼 수 있어 따로 둔다.
  */
 
-/** 업종 칸에 학원·교습소·공부방이 있으면 학원 문장을 쓴다(교육청 등록 대상). 「로봇교실」처럼 안 쓰면 일반 문장으로 간다 */
-export const isAcademy = (category: string) => /학원|교습소|공부방/.test(category);
+/** 업종 칸에 학원·교습소·공부방·교실·과외가 있으면 학원 문장을 쓴다(Arch 2026-09-30) */
+export const isAcademy = (category: string) => /학원|교습소|공부방|교실|과외/.test(category);
+
+/**
+ * 받침 보고 조사를 붙인다. 학원 문장은 옛 글자 그대로 두려고 일반 문장에만 쓴다.
+ * 으로/로 는 ㄹ받침이면 로. 한글로 안 끝나면(영문·숫자) 받침 없는 쪽.
+ */
+const JOSA = { 은: ["은", "는"], 이: ["이", "가"], 을: ["을", "를"], 과: ["과", "와"], 으로: ["으로", "로"] } as const;
+export function josa(word: string, kind: keyof typeof JOSA): string {
+  const c = word.charCodeAt(word.length - 1) - 0xac00;
+  const jong = c >= 0 && c <= 11171 ? c % 28 : 0;
+  const has = kind === "으로" ? jong !== 0 && jong !== 8 : jong !== 0;
+  return word + JOSA[kind][has ? 0 : 1];
+}
 
 /** 20개. 지역 8 · 문제 5 · 비교 4 · 브랜드 3 (pilot-actions.ts 가 순서로 단계를 붙인다) */
 export function makeQuestions(brand: string, district: string, neighborhood: string, category: string, audience: string): string[] {
@@ -18,11 +30,12 @@ export function makeQuestions(brand: string, district: string, neighborhood: str
     `대형 ${category}와 동네 ${category} 중 어디가 나아?`, `${category} 온라인 수업과 오프라인 학원 차이는?`, `${district} ${category} 두 곳을 비교할 때 볼 기준은?`, `${category} 체험수업에서 확인할 것은?`,
     `${brand}은 어떤 곳이야?`, `${brand}의 위치와 수업 대상을 알려줘`, `${brand}을 선택해도 되는 사람과 안 맞는 사람을 알려줘`,
   ];
+  const J = josa;
   return [
-    `${district}에서 ${audience} ${category} 추천해줘`, `${neighborhood} 근처 ${category} 어디가 좋아?`, `${district} ${category} 중 설명을 잘해주는 곳 알려줘`, `${neighborhood}에서 가까운 ${category} 비교해줘`, `${district} ${category} 비용은 보통 얼마야`, `${district}에서 후기 말고 근거가 분명한 ${category} 알려줘`, `${audience}가 이용할 ${district} ${category} 고르는 기준 알려줘`, `${district} ${category} 중 오래 운영한 곳 있어?`,
-    `${audience}에게 ${category}가 필요한지 판단하는 법은?`, `${category}에 처음 가기 전에 알아둘 것은?`, `${category}에 문의할 때 무엇을 물어봐야 해?`, `${category}를 이용해도 만족 못 하는 경우는?`, `${category}의 실력을 미리 확인하는 법은?`,
-    `대형 ${category}와 동네 ${category} 중 어디가 나아?`, `${category} 가격이 싼 곳과 비싼 곳 차이는?`, `${district} ${category} 두 곳을 비교할 때 볼 기준은?`, `${category} 처음 방문할 때 확인할 것은?`,
-    `${brand}은 어떤 곳이야?`, `${brand}의 위치와 주요 서비스를 알려줘`, `${brand}을 선택해도 되는 사람과 안 맞는 사람을 알려줘`,
+    `${district}에서 ${audience} ${category} 추천해줘`, `${neighborhood} 근처 ${category} 어디가 좋아?`, `${district} ${category} 중 설명을 잘해주는 곳 알려줘`, `${neighborhood}에서 가까운 ${category} 비교해줘`, `${district} ${category} 비용은 보통 얼마야`, `${district}에서 후기 말고 근거가 분명한 ${category} 알려줘`, `${J(audience, "이")} 이용할 ${district} ${category} 고르는 기준 알려줘`, `${district} ${category} 중 오래 운영한 곳 있어?`,
+    `${J(audience, "이")} ${category} 고를 때 뭘 봐야 해?`, `${category}에 처음 가기 전에 알아둘 것은?`, `${category}에 문의할 때 무엇을 물어봐야 해?`, `${category} 잘 고른 건지 어떻게 알아?`, `${category}의 실력을 미리 확인하는 법은?`,
+    `대형 ${J(category, "과")} 동네 ${category} 중 어디가 나아?`, `${category} 가격이 싼 곳과 비싼 곳 차이는?`, `${district} ${category} 두 곳을 비교할 때 볼 기준은?`, `${category} 처음 방문할 때 확인할 것은?`,
+    `${J(brand, "은")} 어떤 곳이야?`, `${brand}의 위치와 주요 서비스를 알려줘`, `${J(brand, "을")} 선택해도 되는 사람과 안 맞는 사람을 알려줘`,
   ];
 }
 
