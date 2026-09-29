@@ -29,7 +29,7 @@ import "./landing.css";
  *
  * 사례 학원은 가린다 — 이름·지역·사이트 주소·글 주소. 조합되면 특정된다.
  * 시장 숫자의 출처는 probe/data (사이트 진단 34곳 · ERP 질문 12개로 받은 AI 답 15개(회사당 15회 표본) · 진단 리포트).
- * 28% 는 report.websearch.txt 반복 간 Jaccard 72.2% 의 나머지 — 두 번씩 물은 3문항뿐이라 「자체 측정 3문항 · 표본 작음」을 붙인다.
+ * 재질의 변동(28%)·「출처 중 홈페이지 다섯에 하나」는 내렸다 — 두 번 물은 3쌍·답 15개라 사전 실증에 못 댄다(Arch 2026-09-29).
  * 회사 이름은 A·B·C 로 쓴다. 우리 고객이 아니어도 남의 회사 점수를 이름 붙여 걸지 않는다.
  * 구조화 데이터의 FAQ 는 화면의 질문 그대로다 — 같은 배열을 <Faq> 에 넘긴다.
  * 탭·아코디언에 가려진 내용도 HTML 에는 전부 들어 있다(hidden). 크롤러는 다 읽는다.
@@ -441,10 +441,6 @@ export default async function Home() {
               <div className="lp-glass lp-stat">
                 <div className="v"><b><Count to={7} /></b><span>/34</span></div>
                 <p>60점을 넘긴 홈페이지. 절반인 <b>17곳은 40점 아래</b>였고 AI 크롤러 접근이 0점인 곳도 있었습니다.</p>
-              </div>
-              <div className="lp-glass lp-stat">
-                <div className="v"><b><Count to={28} /></b><span>%</span></div>
-                <p>같은 질문을 한 번 더 했을 때 바뀐 추천 목록. <b>자체 측정 3문항 · 표본 작음 · 방향 신호</b>입니다. 그래도 한 번 물어보고 「몇 위」라 적는 건 동전 한 번 던진 것입니다.</p>
               </div>
             </div>
           </div>
