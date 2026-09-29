@@ -54,3 +54,12 @@
   새로 묻지 않는다 — 이미 보관한 답 원문(ai_measurements.raw.answer)에서 센다. `geo.pilots` 에 `competitors text`(쉼표로 이름, 등록 화면에서 받음, escape).
   기준선·최종 보고에 질문×곳별로 「우리 n번 중 k번 · 경쟁사 A n번 중 k번 …」와 답 안에서 처음 나온 순서(평균이 아니라 분포: 첫째 x번, 둘째 y번). 곳끼리 합치지 않는다. 가중치·점수(GVI 같은)는 만들지 않는다.
   학원(리허설 파일럿)은 경쟁사 이름을 원장이 넣기 전까지 칸을 비우고 절을 「경쟁사 미설정」으로.
+
+## Step 28 — 재점검(2026-09-30 01시) 잔여 (코드 치명 0 · 원장 몫 제외)
+
+- **D19 (15)** submit-gsc.mjs 가 clients.mjs 에 없으면 measure-targets 처럼 `geo.clients.domain` 으로 대체. 기본값 학원 그대로.
+- **D20** 이름 판별 말 띄어쓰기: `answer-pattern` 조립 때 한글 글자 사이 `\s?` 허용(「미소치과」가 「미소 치과」에도 걸리게). ReDoS 없게 글자 수 상한 유지. 학원 정규식(clients.mjs 원문)은 건드리지 않는다.
+- **D21** ai-web-measure.mjs: 질문 승인 전(질문 없음)은 exitCode 를 건드리지 않는다 — ai-measure 와 같은 「대기」.
+- **D22** 구축·세팅 고객이 site_launch_on 을 안 넣으면: 착수 + 60일에 측정 대상에서 빼고 원장 할 일(dedupe pilot-launch-<id>) 「사이트 연 날을 넣어 주세요」.
+- **D23** 등록 폼 검증 실패를 조용히 돌려보내지 않는다 — `?err=` 로 무엇이 빠졌는지 사람 말 한 줄(slug 는 영문·숫자·- 만).
+- **D24 (KG-25-3)** repair.yml·sales.yml 등 claude-code.mjs 를 부르는 워크플로 전부 `CLAUDE_MEASURE_RESERVE`·`CLAUDE_DAILY_MAX` 를 vars 에서 넘기게(optimize.yml 과 같은 줄). 값은 안 바꾼다.
