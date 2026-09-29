@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   robots: process.env.NEXT_PUBLIC_ALLOW_INDEX === "true" ? undefined : { index: false, follow: false },
   openGraph: {
     title: "Cited 사이티드 — AI 답변 노출 측정 · GEO",
-    description: "AI 답변에 우리 이름이 나오는지 여러 번 물어 셉니다. 홈페이지 주소만 넣으면 무료 진단.",
+    description: "AI 답변에 우리 이름이 나오는지 날마다 물어 셉니다. 홈페이지 주소만 넣으면 무료 진단.",
     type: "website",
   },
 };

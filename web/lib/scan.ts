@@ -128,13 +128,21 @@ const BOTS = [
 
 export const SITE_LABELS: Record<string, string> = {
   crawler: "AI 크롤러 접근", ssr: "본문 추출 가능성", schema: "구조화 데이터",
-  chunk: "인용 가능한 문단", patterns: "AI 친화 패턴", llmstxt: "llms.txt", sitemap: "sitemap.xml",
+  chunk: "인용 가능한 문단", patterns: "AI 친화 패턴", llmstxt: "llms.txt (참고 · 점수 제외)", sitemap: "sitemap.xml",
 };
 
+/**
+ * 채점 기준 바뀜(2026-09-29): llms.txt 를 점수에서 뺐다(가중치 7). 구글은 AI 개요에 쓰려고 AI 텍스트 파일을 만들 필요가 없다고 적었고,
+ * 공개된 llms.txt 대부분이 요청을 한 번도 받지 않았다는 조사가 있다(역량 검토 「첫 고객 전 5」). 검사는 계속 하고 결과는 「참고」로만 보인다.
+ * 남은 가중치는 비율 그대로 둔다 — 합계(93)로 나눠 100 점 만점을 맞춘다. 그래서 이날 전 점수와 바로 견주지 않는다.
+ */
 const WEIGHTS: [string, number][] = [
   ["crawler", 25], ["ssr", 20], ["schema", 20], ["chunk", 15],
-  ["patterns", 10], ["llmstxt", 7], ["sitemap", 3],
+  ["patterns", 10], ["sitemap", 3],
 ];
+const W_SUM = WEIGHTS.reduce((s, [, w]) => s + w, 0);
+/** 점수에는 안 넣고 결과에 보이기만 하는 항목 */
+const REFERENCE = ["llmstxt"];
 
 export function normalizeTarget(raw: string): string | null {
   const t = (raw || "").trim();
@@ -221,7 +229,7 @@ export async function scanSite(rawTarget: string, maxPages = 5): Promise<ScanRes
       score: Math.min(100, (bytes > 800 ? 50 : 25) + Math.min(30, sections * 5) + (hasEntity ? 20 : 0)),
       exists: true, bytes, sections,
     };
-    if (bytes < 800) notes.push({ pri: 3, msg: "llms.txt 가 너무 짧습니다. 회사 소개가 아니라 인용용 설명문을 담으세요." });
+    if (bytes < 800) notes.push({ pri: 3, msg: "llms.txt 가 짧습니다(참고 · 점수 제외). 효과 근거가 약해 급하지 않습니다." });
   }
 
   /* 3) 페이지 수집 */
@@ -247,7 +255,7 @@ export async function scanSite(rawTarget: string, maxPages = 5): Promise<ScanRes
   if (platform) notes.push(platformAdvice(platform));
   // 루트 파일을 못 올리는 플랫폼에 "llms.txt 를 넣으세요"라고 하면 실행 불가능한 조치가 된다
   if (llmsMissing && platform?.rootFile !== "no") {
-    notes.push({ pri: 2, msg: "llms.txt 가 없습니다. AI가 그대로 인용할 브랜드 설명문을 길이별로 넣으세요." });
+    notes.push({ pri: 3, msg: "llms.txt 가 없습니다(참고 · 점수 제외). 효과 근거가 약해 급하지 않습니다." });
   }
 
   /* 4) 페이지 분석 (동시) */
@@ -341,12 +349,15 @@ export async function scanSite(rawTarget: string, maxPages = 5): Promise<ScanRes
   if (ok.length && qh === 0) notes.push({ pri: 2, msg: "질문형 제목이 하나도 없습니다. 사람이 AI에게 묻는 문장을 그대로 제목으로 쓰세요." });
   if (ok.length && nums < 5) notes.push({ pri: 3, msg: "수치가 거의 없습니다. AI는 숫자·조건이 붙은 문장을 인용합니다." });
 
-  const total = Math.round(WEIGHTS.reduce((s, [k, w]) => s + (checks[k]?.score ?? 0) * w, 0) / 100);
+  const total = Math.round(WEIGHTS.reduce((s, [k, w]) => s + (checks[k]?.score ?? 0) * w, 0) / W_SUM);
   const grade = total >= 80 ? "우수" : total >= 60 ? "보통" : total >= 40 ? "미흡" : "위험";
 
   return {
     origin: base, scannedAt: new Date().toISOString(), total, grade, checks, platform,
-    weights: WEIGHTS.map(([key, weight]) => ({ key, weight, label: SITE_LABELS[key], score: checks[key]?.score ?? 0 })),
+    weights: [
+      ...WEIGHTS.map(([key, weight]) => ({ key, weight: Math.round((weight / W_SUM) * 1000) / 10, label: SITE_LABELS[key], score: checks[key]?.score ?? 0 })),
+      ...REFERENCE.map((key) => ({ key, weight: 0, label: SITE_LABELS[key], score: checks[key]?.score ?? 0 })),
+    ],
     pages: pages.map((p) => ({ url: p.url, ok: p.ok, textLen: (p as any).textLen, status: (p as any).status })),
     notes: notes.sort((a, b) => a.pri - b.pri),
   };

@@ -124,7 +124,7 @@ export function detectPlatform(
 export function platformAdvice(p: Platform): { pri: 1 | 2 | 3; msg: string } {
   if (p.rootFile === "no") {
     return { pri: 2, msg:
-      `${p.name} 감지 — ${p.note} llms.txt·robots.txt 항목은 플랫폼 제약이므로 감점으로 보지 마시고, 남이 쓴 비교·추천 문서에 이름을 넣는 쪽에 예산을 쓰는 편이 낫습니다.` };
+      `${p.name} 감지 — ${p.note} robots.txt 항목은 플랫폼 제약이므로 감점으로 보지 마시고, 남이 쓴 비교·추천 문서에 이름을 넣는 쪽에 예산을 쓰는 편이 낫습니다.` };
   }
   if (p.kind === "자체개발") {
     return { pri: 3, msg:

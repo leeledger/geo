@@ -4,14 +4,13 @@ import ScanForm from "./ScanForm";
 import ContactForm from "./ContactForm";
 import Reveal from "./Reveal";
 import SiteNav from "./SiteNav";
-import Interval from "./Interval";
 import Count from "./Count";
 import HeroDemo from "./HeroDemo";
 import RecordTabs from "./RecordTabs";
 import PriceCalc from "./PriceCalc";
 import FlowSteps from "./FlowSteps";
 import Faq from "./Faq";
-import { SERVICES } from "@/lib/services";
+import { SERVICES, PILOT } from "@/lib/services";
 import { GUIDES } from "@/lib/guides";
 import { readOps } from "@/lib/ops";
 import { readPlaceRank } from "@/lib/place";
@@ -29,7 +28,8 @@ import "./landing.css";
  *   「재 본다는 말이 어색하다」 — 묻는다·센다·확인한다·진단한다로 쓴다.
  *
  * 사례 학원은 가린다 — 이름·지역·사이트 주소·글 주소. 조합되면 특정된다.
- * 시장 숫자의 출처는 probe/data (사이트 진단 34곳 · ERP 질문 12개 × 15회 · 진단 리포트).
+ * 시장 숫자의 출처는 probe/data (사이트 진단 34곳 · ERP 질문 12개로 받은 AI 답 15개(회사당 15회 표본) · 진단 리포트).
+ * 28% 는 report.websearch.txt 반복 간 Jaccard 72.2% 의 나머지 — 두 번씩 물은 3문항뿐이라 「자체 측정 3문항 · 표본 작음」을 붙인다.
  * 회사 이름은 A·B·C 로 쓴다. 우리 고객이 아니어도 남의 회사 점수를 이름 붙여 걸지 않는다.
  * 구조화 데이터의 FAQ 는 화면의 질문 그대로다 — 같은 배열을 <Faq> 에 넘긴다.
  * 탭·아코디언에 가려진 내용도 HTML 에는 전부 들어 있다(hidden). 크롤러는 다 읽는다.
@@ -39,17 +39,19 @@ const CASE_URL = "/case/academy.html";
 
 const FAQ: [string, string][] = [
   ["직접 하면 안 되나요?",
-   "기술 세팅은 직접 하실 수 있고 그러시길 권합니다. 어려운 건 AI 4곳에 같은 질문을 여러 번 물어 세는 일과, 경쟁사는 있고 우리만 없는 비교 글을 찾아내는 일입니다. 저희가 파는 건 그 둘입니다."],
+   "기술 세팅은 직접 하실 수 있고 그러시길 권합니다. 어려운 건 AI 네 곳에 같은 질문을 날마다 물어 세는 일과, 경쟁사는 있고 우리만 없는 비교 글을 찾아내는 일입니다. 저희가 파는 건 그 둘을 30일 동안 해 보는 파일럿입니다."],
   ["얼마나 걸리나요?",
    "사례 학원은 착수 넷째 날 네이버 검색에 사이트가 처음 잡혔고, 여섯째 날 학원 이름 없이 친 지역 검색어에 나오기 시작했습니다. AI 답변에 이름이 붙기까지 얼마나 걸리는지는 아직 모릅니다. 결과가 나오면 사례 기록에 그대로 적습니다."],
   ["성과를 보장하나요?",
-   "안 합니다. 대신 어떤 질문을, 어느 AI 에, 몇 번 묻는지를 계약서에 적고 시작할 때 숫자를 남깁니다. 두 달 뒤 같은 방법으로 다시 센 결과를 그대로 드립니다."],
+   "노출·순위·문의를 보장하지 않습니다. 우리가 보장하는 것은 약속한 작업의 수행과 같은 조건의 재측정 보고입니다. 어떤 질문을 어느 AI 에 어떤 방법으로 묻는지 시작 전에 적고, 30일 차에 같은 방법으로 다시 센 결과를 그대로 드립니다."],
+  ["중간에 그만두면 돌려받나요?",
+   `${PILOT.refund.join(". ")}. ${PILOT.refundNote}`],
   ["숫자를 어떻게 믿나요?",
    "믿어 달라고 하지 않습니다. 질문, 답변 원문, 답에 붙은 출처 주소, 물어본 시각이 전부 남아 있고 요청하시면 그대로 드립니다."],
   ["SEO 대행사와 뭐가 다른가요?",
    "SEO 는 검색 결과에서 클릭을 얻는 일입니다. 이건 AI 답 속에 이름이 나오게 하는 일입니다. 저희가 잰 한 업계에서는 홈페이지 점수가 높은 회사보다 비교 글에 이름이 실린 회사가 AI 답에 더 자주 나왔습니다. 그래서 손볼 곳이 다릅니다. 두 회사를 본 것이라 법칙으로 말하진 않습니다."],
   ["그만두면 뭐가 남나요?",
-   "사이트를 만들어 드렸다면 도메인·저장소·호스팅 계정이 전부 고객사 명의라 그대로 남습니다. 그동안의 답변 원문과 리포트도 드립니다. 최소 약정이 없어서 한 달 단위로 멈출 수 있습니다."],
+   "그동안의 답변 원문과 보고서를 드립니다. 사이트를 손봤다면 도메인·저장소·호스팅 계정은 전부 고객사 명의라 그대로 남습니다. 파일럿은 30일로 끝나고, 이어갈지는 그 뒤에 정합니다."],
 ];
 
 const SCHEMA = {
@@ -280,7 +282,7 @@ export default async function Home() {
                   <dt>얻는 것</dt><dd>AI 답 속에 이름이 나옴</dd>
                   <dt>손님 눈에 보이는 것</dt><dd>추천 이름 두세 개</dd>
                   <dt>손봐야 할 곳</dt><dd>홈페이지와 AI 가 읽는 남의 글</dd>
-                  <dt>잘됐는지 보는 법</dt><dd>같은 질문을 여러 번 해서 몇 번 나오는지</dd>
+                  <dt>잘됐는지 보는 법</dt><dd>같은 질문을 날마다 해서 몇 번 중 몇 번 나오는지</dd>
                 </dl>
               </div>
             </div>
@@ -300,8 +302,8 @@ export default async function Home() {
               <div className="lp-lab">말 대신 기록</div>
               <h2 className="lp-h2">사례 학원 사이트,<br /><span className="hl">7개 항목 중 6개가 90점 넘게</span></h2>
               <p className="lp-sub">
-                홈페이지 주소를 넣으면 나오는 무료 진단과 같은 7개 항목입니다.
                 착수 첫날 새로 지은 사이트가 {SCAN.baseline}점이었고, 첫 주에 고친 뒤 다시 돌린 결과입니다.
+                <b>채점 기준 바뀜(2026-09-29)</b> — 무료 진단은 이날부터 llms.txt 를 점수에서 뺍니다. 아래는 그 전 기준(llms.txt 포함 7개 항목)으로 잰 값이라 지금 무료 진단 점수와 바로 견주지 않습니다.
               </p>
               <div className="lp-gauges">
                 <Gauge v={SCAN.total} label="종합" note={`착수 때 ${SCAN.baseline}`} delay={0} />
@@ -401,7 +403,7 @@ export default async function Home() {
             <h2 className="lp-h2">사이트 점수와 AI 노출은<br /><span className="hl">따로 움직였습니다</span></h2>
             <p className="lp-sub">
               국내 소프트웨어 회사 34곳의 홈페이지를 진단했습니다. 그중 한 업계는 AI 에게 직접 물어 회사마다 몇 번 나오는지도 셌습니다.
-              회사마다 15번씩이라 방향으로만 봐 주세요.
+              <b>회사당 15회 표본</b>이라 방향으로만 봐 주세요.
             </p>
 
             <div className="lp-glass lp-split">
@@ -431,7 +433,7 @@ export default async function Home() {
               </div>
               <p className="lp-split-foot">
                 그래서 일이 둘로 나뉩니다. 사이트를 AI 가 <b>읽을 수 있게</b> 만드는 일과, AI 가 참고하는 비교 글·목록에 이름을 <b>넣는</b> 일.
-                사이트 점수가 1위여도 뒤엣것이 없으면 답에 안 나옵니다.
+                사이트 점수가 가장 높아도 뒤엣것이 없으면 답에 안 나옵니다.
               </p>
             </div>
 
@@ -442,7 +444,7 @@ export default async function Home() {
               </div>
               <div className="lp-glass lp-stat">
                 <div className="v"><b><Count to={28} /></b><span>%</span></div>
-                <p>같은 질문을 한 번 더 했을 때 바뀐 추천 목록. <b>한 번 물어보고 「1위」라 적는 건 동전 한 번 던진 것</b>입니다.</p>
+                <p>같은 질문을 한 번 더 했을 때 바뀐 추천 목록. <b>자체 측정 3문항 · 표본 작음 · 방향 신호</b>입니다. 그래도 한 번 물어보고 「몇 위」라 적는 건 동전 한 번 던진 것입니다.</p>
               </div>
             </div>
           </div>
@@ -454,7 +456,7 @@ export default async function Home() {
             <div className="lp-lab">서비스</div>
             <h2 className="lp-h2">처음부터 <span className="hl">전부 맡기실 필요는</span> 없습니다</h2>
             <p className="lp-sub">
-              측정부터 해 보시길 권합니다. 나머지는 결과를 보고 정하시면 됩니다.
+              시작은 30일 파일럿 하나입니다. 측정이 그 중심입니다. 아래 나머지는 파일럿 뒤 선택이고, 파일럿을 끝낸 곳에만 안내합니다.
               이미 쓸 만한 홈페이지가 있다면 새로 만들 필요도 없습니다.
             </p>
             <div className="lp-svcs">
@@ -481,14 +483,14 @@ export default async function Home() {
         <section id="price" className="lp-sec lp-ground lp-sec-price">
           <div className="wrap">
             <div className="lp-lab">요금</div>
-            <h2 className="lp-h2">우리 회사 조건으로<br /><span className="hl">바로 계산해 보세요</span></h2>
+            <h2 className="lp-h2">30일 파일럿<br /><span className="hl">하나로 시작합니다</span></h2>
             <p className="lp-sub">
-              세팅은 한 번이면 끝나서 월 요금에 안 넣습니다. 섞어 두면 그만둘 때
-              「세팅비는 다 낸 건가」로 다투게 됩니다.
+              값은 {PILOT.price} 하나입니다. 30일 동안 할 일과 중간에 그만두실 때 돌려드리는 돈을 여기 그대로 적었습니다.
+              같은 내용을 입금 전에 서면으로 드립니다.
             </p>
             <PriceCalc />
             <p className="lp-pcompare">
-              국내 GEO 대행사 한 곳의 공개 가격이 월 500만원입니다. 저희는 <b>학원·병원·사무소 한 곳 규모</b>에 맞췄습니다.
+              공개 가격이 있는 국내 GEO 대행사 1곳 기준 월 500만원입니다(<a href="https://maily.so/georank/posts/32z8d2l1rn4" target="_blank" rel="noopener noreferrer">출처</a>). 저희는 <b>학원·병원·사무소 한 곳 규모</b>에 맞췄습니다.
               더 싼 해외 측정 도구도 있습니다. 대신 질문을 직접 짜고, 결과를 직접 읽고, 직접 고쳐야 합니다.
               영어권 도구라 「○○구 코딩학원」 같은 한국어 지역 질문도 직접 넣으셔야 합니다.
               <b> 직접 하실 수 있으면 그 도구가 낫습니다.</b>
@@ -500,13 +502,13 @@ export default async function Home() {
         <section id="how" className="lp-sec lp-white">
           <div className="wrap">
             <div className="lp-lab">진행</div>
-            <h2 className="lp-h2">두 달을 이렇게 씁니다</h2>
+            <h2 className="lp-h2">30일을 이렇게 씁니다</h2>
             <p className="lp-sub">
-              첫 주에 지금 숫자를 남기고, 마지막 주에 같은 질문으로 다시 셉니다. 그 사이가 일입니다.
+              첫 7일로 지금 숫자를 남기고, 30일 차에 같은 질문으로 다시 셉니다. 그 사이가 일입니다.
             </p>
             <FlowSteps />
             <p className="lp-flownote">
-              첫 리포트는 <b>착수 후 2주</b>에 나갑니다. 플레이스·구글 비즈니스 프로필처럼 대표자 인증이 필요한 곳은
+              기준선 보고는 <b>착수 뒤 7일 안</b>에 나갑니다. 플레이스·구글 비즈니스 프로필처럼 대표자 인증이 필요한 곳은
               사장님이 권한을 열어 주셔야 진행됩니다.
             </p>
           </div>
@@ -610,7 +612,6 @@ export default async function Home() {
             <p className="lp-sub">
               「AI 가시성 97%」 같은 딱 떨어지는 숫자는 몇 번 물었는지가 빠져 있기 쉽습니다. 저희 리포트는 이렇게 적습니다.
             </p>
-            <Interval />
             <div className="lp-diff2">
               <div className="lp-card flat">
                 <h3>답변 원문을 드립니다</h3>
@@ -622,7 +623,7 @@ export default async function Home() {
                 <h3>고칠 게 없으면 없다고 합니다</h3>
                 <div className="them">사이트 80점 → 개선 제안 12건</div>
                 <div className="us">사이트 80점 → 「사이트는 됐는데 안 불립니다」</div>
-                <p>위에서 본 사이트 점수 1위 회사의 실제 진단 결론입니다. 대신 경쟁 3사는 있고 이 회사만 빠진 비교 글 세 곳을 먼저 들어갈 곳으로 적었습니다.</p>
+                <p>위에서 본 사이트 점수가 가장 높은 회사의 실제 진단 결론입니다. 대신 경쟁 3사는 있고 이 회사만 빠진 비교 글 세 곳을 먼저 들어갈 곳으로 적었습니다.</p>
               </div>
             </div>
           </div>
@@ -696,7 +697,7 @@ export default async function Home() {
               <div className="lp-lab">시작</div>
               <h2 className="lp-h2">홈페이지 주소부터<br /><span className="hl">넣어 보세요</span></h2>
               <p className="lp-sub">
-                AI 가 읽을 수 있는 상태인지 7개 항목 점수가 바로 나옵니다.
+                AI 가 읽을 수 있는 상태인지 점수가 바로 나옵니다(7개 항목을 보고, llms.txt 는 참고로만 보여 드립니다).
                 그다음이 필요하면 아래에 남겨 주세요. 홈페이지가 없어도 됩니다.
               </p>
             </div>
@@ -734,13 +735,13 @@ export default async function Home() {
                 <ul>
                   <li><a href={CASE_URL}>도입 사례 리포트</a></li>
                   <li><a href="/#geo">GEO 와 SEO 의 차이</a></li>
-                  <li><a href="/#how">두 달 진행 순서</a></li>
+                  <li><a href="/#how">30일 진행 순서</a></li>
                   <li><a href="/#price">요금</a></li>
                 </ul>
               </div>
             </div>
             <div className="wm">
-              이 페이지의 시장 숫자(홈페이지 34곳 진단 · 한 업계 질문을 AI 에게 15번 물은 결과)는 저희가 직접 측정한 값입니다.
+              이 페이지의 시장 숫자(홈페이지 34곳 진단 · 한 업계 질문을 AI 에게 15번 물은 결과 · 회사당 15회 표본)는 저희가 직접 측정한 값입니다.
               표본이 작아 <b>대략의 방향</b>으로 봐 주세요. 사례의 방문 기록은 서버에 남은 원본이고, 학원 이름과 지역만 가렸습니다.
             </div>
             <div className="bottom">
