@@ -35,7 +35,7 @@ import { 오픈라우터, 재시도, 모델들, 공급자들 } from "./writer-co
 import { 프로필 } from "./profile.mjs";
 import { PM보고 } from "./pm-report.mjs";
 import { PC무소식, PC무소식글 } from "./pc-silent.mjs";
-import { 파일럿칸준비, 파일럿날짜맞추기 } from "../pilot-plan.mjs";
+import { 파일럿칸준비, 파일럿날짜맞추기, 구축대기한도 } from "../pilot-plan.mjs";
 
 for (const l of fs.readFileSync(new URL("../.env.local", import.meta.url), "utf8").split(/\r?\n/)) {
   const m = /^([A-Z_]+)=(.*)$/.exec(l);
@@ -389,8 +389,24 @@ const 파일럿업무 = async (읽음) => {
      where p.status in ('준비', '진행') and p.cancelled_on is null and p.kickoff_on is null and p.paid_on is not null
        and (now() at time zone 'Asia/Seoul')::date - p.paid_on >= 7`)
     .catch((e) => { console.log("  ⚠ 파일럿 착수 대기를 못 읽음", 끝(e.message, 200)); return null; });
-  // 둘 다 읽었을 때만 「읽음」 — 하나라도 못 읽으면 열린 pilot-* 일감을 신호 사라짐으로 닫지 않는다
-  if (late && 늦은승인) 읽음.add("pilot");
+  /**
+   * 구축·세팅 고객이 착수 뒤 60일이 되도록 사이트 연 날이 없으면 측정에서 빠진다(measure-targets.mjs). 원장이 넣어야 30일이 시작된다(Step 28 D22).
+   * 연 날을 넣으면 신호가 사라져 닫힌다
+   */
+  const 연날없음 = await q(`select p.id, p.client_id, c.name, p.kickoff_on::text as kickoff_on
+      from geo.pilots p join geo.clients c on c.id = p.client_id
+     where p.status in ('준비', '진행') and p.cancelled_on is null and p.needs_build in ('setup', 'build')
+       and p.kickoff_on is not null and p.site_launch_on is null
+       and (now() at time zone 'Asia/Seoul')::date >= p.kickoff_on + $1::int`, [구축대기한도])
+    .catch((e) => { console.log("  ⚠ 파일럿 사이트 연 날 대기를 못 읽음", 끝(e.message, 200)); return null; });
+  // 셋 다 읽었을 때만 「읽음」 — 하나라도 못 읽으면 열린 pilot-* 일감을 신호 사라짐으로 닫지 않는다
+  if (late && 늦은승인 && 연날없음) 읽음.add("pilot");
+  for (const p of 연날없음 ?? []) {
+    await 일감({ client_id: p.client_id, agent: "deliver", kind: "human", key: `pilot-launch-${p.id}`, priority: 12, status: "사람 대기",
+      title: `${p.name} 사이트 연 날을 넣어 주세요`,
+      detail: `착수(${p.kickoff_on}) 뒤 ${구축대기한도}일이 지나도록 사이트 연 날이 비어 있어 AI 측정에서 뺐습니다. 30일은 연 날부터 셉니다. 파일럿 화면에서 연 날을 넣으면 다음 측정부터 다시 잽니다.`,
+      link: `${ADMIN}/admin/pilots/${p.id}` });
+  }
   for (const p of 늦은승인 ?? []) {
     await 일감({ client_id: p.client_id, agent: "deliver", kind: "human", key: `pilot-kickoff-${p.id}`, priority: 12, status: "사람 대기",
       title: `${p.name} 파일럿 질문 승인이 입금 뒤 ${p.n}일째 안 됐습니다${p.needs_build === "none" ? " — 17일이 되면 판정할 수 없습니다" : ""}`,

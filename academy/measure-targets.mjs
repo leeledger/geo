@@ -12,7 +12,7 @@
  * 설정이 없는 고객도 목록에 남는다(conf=null). 실행기가 그 고객 id 로 「측정 설정 없음」 일감을 올린다 — 조용히 빼지 않는다.
  */
 import { bySlug, CLIENTS } from "./clients.mjs";
-import { 더하기, 구축있음, 파일럿칸준비 } from "./pilot-plan.mjs";
+import { 더하기, 구축있음, 구축대기한도, 파일럿칸준비 } from "./pilot-plan.mjs";
 
 export const HOUSE = "robotncoding";
 
@@ -26,7 +26,7 @@ export async function 측정설정준비(q) {
   }
 }
 
-const 도메인정리 = (d) => String(d ?? "").trim().toLowerCase()
+export const 도메인정리 = (d) => String(d ?? "").trim().toLowerCase()
   .replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/[/?#].*$/, "");
 
 /**
@@ -55,13 +55,14 @@ export function 측정설정(row) {
  * 진행 중(Step 26 D5): 착수일(없으면 등록 때 시작일)부터 종료+7일까지. 착수 전에도 재야 착수일이 생긴다.
  * 구축·세팅 고객은 착수 뒤 사이트 연 날이 들어오기 전까지 「구축 대기」로 계속 잰다 — 기준선과 30일 사이가 끊기지 않게.
  * 사이트 연 날을 앞날로 넣어도 착수일부터 재니 빠지지 않는다. 취소(cancelled_on)한 파일럿은 안 잰다
+ * 연 날이 착수+60일(구축대기한도)까지 안 들어오면 그날부터 뺀다 — 끝없이 재지 않는다. 원장 할 일은 company.mjs 가 올린다(Step 28 D22)
  */
 export function 대상고르기(rows, 오늘) {
   const 진행중 = (r) => {
     if (r.cancelled_on) return false;
     const 처음 = r.kickoff_on || r.started_on;
     if (!처음 || 처음 > 오늘) return false;
-    if (r.kickoff_on && 구축있음(r.needs_build) && !r.site_launch_on) return true;
+    if (r.kickoff_on && 구축있음(r.needs_build) && !r.site_launch_on) return 오늘 < 더하기(r.kickoff_on, 구축대기한도);
     return Boolean(r.ends_on) && 오늘 <= 더하기(r.ends_on, 7);
   };
   const 유료 = [], 학원 = [], 측정 = [];

@@ -16,16 +16,51 @@
  *   node submit-gsc.mjs --all --client ilog   다른 고객사 (기본은 학원)
  *
  * 속성은 도메인 속성(sc-domain:)이다. 고객사 덩어리에 gscProperty 가 있으면 그걸 쓴다.
+ * clients.mjs 에 없는 고객이면 geo.clients.domain 으로 sc-domain: 을 만든다.
  * 고객 Search Console 에 이 프로필 계정 권한이 없으면 검사창이 안 뜬다 — 권한은 사람이 받는다.
  */
 import { chromium } from "playwright";
 import path from "node:path";
+import { readFileSync } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
+import pg from "pg";
 import { CLIENTS, selectClients } from "../academy/clients.mjs";
+import { 도메인정리 } from "../academy/measure-targets.mjs";
 
 const PROFILE = path.join(process.cwd(), ".browser-profile");
+
+/**
+ * clients.mjs 에 덩어리가 없는 고객(등록 화면으로만 들어온 외부 고객)은 geo.clients.domain 으로 — measure-targets 와 같은 대체(Step 28 D19).
+ * DB 는 이때만 연다. 학원·clients.mjs 고객은 예전과 같은 값
+ */
+async function DB고객(slug, id) {
+  for (const l of readFileSync(new URL("../academy/.env.local", import.meta.url), "utf8").split(/\r?\n/)) {
+    const m = /^([A-Z_]+)=(.*)$/.exec(l);
+    if (m && !process.env[m[1]]) process.env[m[1]] = m[2];
+  }
+  const u = new URL(process.env.DATABASE_URL);
+  u.searchParams.delete("sslmode");
+  const c = new pg.Client({ connectionString: u.toString(), ssl: { rejectUnauthorized: process.env.DATABASE_SSL_INSECURE !== "true" } });
+  await c.connect();
+  try {
+    const [r] = (await c.query(`select slug, domain from geo.clients where ${slug ? "slug = $1" : "id = $1"}`, [slug ?? Number(id)])).rows;
+    const domain = 도메인정리(r?.domain);
+    if (!domain) throw new Error(`고객사 없음 또는 도메인 없음: ${slug ?? `CLIENT_ID=${id}`} (clients.mjs·geo.clients 둘 다)`);
+    return { slug: r.slug, domain };
+  } finally { await c.end().catch(() => {}); }
+}
+
 // 한 번에 한 속성만 돈다. 지정이 없으면 학원(목록 첫째) — 예전 동작 그대로
-const CLIENT = process.argv.includes("--client") || process.env.CLIENT_ID ? selectClients()[0] : CLIENTS[0];
+async function 고객고르기() {
+  if (!process.argv.includes("--client") && !process.env.CLIENT_ID) return CLIENTS[0];
+  try { return selectClients()[0]; } catch (e) {
+    const i = process.argv.indexOf("--client");
+    const slug = i > 0 && process.argv[i + 1] ? process.argv[i + 1] : null;
+    if (!slug && !/^\d+$/.test(String(process.env.CLIENT_ID ?? ""))) throw e;
+    return DB고객(slug, process.env.CLIENT_ID);
+  }
+}
+const CLIENT = await 고객고르기();
 const SITE = `https://${CLIENT.domain}`;
 const PROP = CLIENT.gscProperty ?? `sc-domain:${CLIENT.domain}`;
 const ALL = process.argv.includes("--all");

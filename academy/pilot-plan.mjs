@@ -21,6 +21,12 @@ const 날 = (x) => (x == null || x === "" ? null : x instanceof Date ? x.toISOSt
 
 export const 구축있음 = (needs) => needs === "setup" || needs === "build";
 
+/**
+ * 구축·세팅 고객이 사이트 연 날을 안 넣으면 착수 뒤 며칠까지 「구축 대기」로 재는가(Step 28 D22).
+ * 이날(착수+60)부터 측정 대상에서 빼고(measure-targets.mjs) 원장 할 일 pilot-launch-<id> 를 올린다(company.mjs)
+ */
+export const 구축대기한도 = 60;
+
 /** 승인 시각과 잰 날 목록('YYYY-MM-DD')으로 착수일. 승인 KST 날짜 이후 첫 측정일, 없으면 null */
 export function 착수찾기(approvedAt, days) {
   if (!approvedAt) return null;

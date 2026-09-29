@@ -54,10 +54,17 @@ export function 잰날(rows, w) {
   return { 잰: 전부.filter((d) => 잰.has(d)), 빠진: 전부.filter((d) => !잰.has(d)), 전부 };
 }
 
-/** 이름 하나를 글자 그대로 찾는 정규식 — web/lib/answer-pattern.ts 와 같은 규칙(빈칸은 있어도 없어도, & 는 &amp; 도) */
+/**
+ * 이름 하나를 글자 그대로 찾는 정규식 — web/lib/answer-pattern.ts 와 같은 규칙
+ * (빈칸은 있어도 없어도, 붙여 쓴 한글 글자 사이엔 빈칸 하나 허용(Step 28 D20), & 는 &amp; 도)
+ */
 export function 이름정규식(name) {
-  const src = String(name).trim().split(/\s+/)
-    .map((w) => w.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&").replace(/&/g, "(?:&|&amp;)")).join("\\s*");
+  const 한글 = /[가-힣]/;
+  const 낱말 = (w) => [...w].map((c, i, ch) => {
+    const e = c.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&").replace(/&/g, "(?:&|&amp;)");
+    return i > 0 && 한글.test(c) && 한글.test(ch[i - 1]) ? "\\s?" + e : e;
+  }).join("");
+  const src = String(name).trim().split(/\s+/).map(낱말).join("\\s*");
   return new RegExp(src, "i");
 }
 

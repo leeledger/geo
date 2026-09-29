@@ -188,9 +188,10 @@ const ENGINES = {
  * 일감은 그 고객 id 에 붙인다. geo.clients 에 없는 슬러그면 붙일 곳이 없어 기록만 한다 — 학원에 붙이지 않는다(Step 25 D4)
  */
 const 멈춤키 = (slug) => [`measure-conf-${slug}`, `measure-questions-${slug}`];
-const 멈추고알림 = async (t, key, title, detail) => {
-  기록(`${t.slug}: ${title} — 멈춤`);
-  process.exitCode = 1;
+const 멈추고알림 = async (t, key, title, detail, 대기 = false) => {
+  // 질문 승인 전은 고장이 아니라 대기다 — ai-measure.mjs 와 같게 빨간불(exitCode)을 켜지 않는다(Step 28 D21). 일감은 그대로 올린다
+  기록(`${t.slug}: ${title} — ${대기 ? "대기" : "멈춤"}`);
+  if (!대기) process.exitCode = 1;
   if (!t.id) { 기록(`${t.slug}: geo.clients 에 없는 고객이라 일감을 붙일 곳이 없음`); return; }
   await q(
     `insert into geo.agent_tasks (client_id, agent, kind, dedupe_key, title, detail, status, priority, payload)
@@ -218,7 +219,7 @@ const main = async () => {
     // 질문을 지어내지 않는다. 고객이 승인한 질문 패널이 있어야 잰다
     if (!questions.length) {
       await 멈추고알림(t, 멈춤키(t.slug)[1], `AI 화면 측정 승인 질문 없음: ${t.conf.name}`,
-        "고객이 승인한 질문(geo.pilot_questions)이 없어 소비자 화면 측정을 멈췄습니다. 질문 패널을 받아 승인 표시를 하면 다음 실행부터 잽니다.");
+        "고객이 승인한 질문(geo.pilot_questions)이 없어 소비자 화면 측정을 멈췄습니다. 질문 패널을 받아 승인 표시를 하면 다음 실행부터 잽니다.", true);
       continue;
     }
     await q(`update geo.agent_tasks set status='완료', done_at=now(), updated_at=now()

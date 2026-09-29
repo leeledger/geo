@@ -54,12 +54,30 @@ const FIELDS: [string, string][] = [
   ["biz_type", "사업자 유형"],
 ];
 
+/** 등록 폼 검증 실패(createPilot 의 ?err=) → 사람 말 한 줄(Step 28 D23). 모르는 코드는 안 띄운다 */
+const FIELD_LABEL: Record<string, string> = {
+  ...Object.fromEntries(FIELDS.map(([n, l]) => [n, l.replace(/\s*\(.*$/, "")])),
+  paid_on: "입금 확인일", refund_terms_sent_on: "환불 절 서면 전달일",
+};
+function errText(err?: string, f?: string): string | null {
+  if (err === "missing") {
+    const names = String(f ?? "").split(",").map((k) => FIELD_LABEL[k]).filter(Boolean);
+    return names.length ? `등록 안 됨 — 빈 칸이 있습니다: ${names.join(", ")}` : "등록 안 됨 — 빈 칸이 있습니다";
+  }
+  if (err === "terms") return "등록 안 됨 — 답에서 찾을 이름은 두 글자 이상, 40자 이하로 하나는 넣어야 합니다";
+  if (err === "needs") return "등록 안 됨 — 필요한 준비를 목록에서 골라 주세요";
+  if (err === "slug") return "등록 안 됨 — 영문 관리명은 영문 소문자·숫자·- 만, 40자까지 씁니다 (예: miso-dental)";
+  if (err === "internal") return "등록 안 됨 — 그 영문 관리명은 내부 고객(학원 등)이 쓰고 있습니다. 다른 이름을 넣어 주세요";
+  return null;
+}
+
 const day = (x: unknown) => (x instanceof Date ? x.toISOString().slice(0, 10) : String(x ?? "").slice(0, 10));
 
 type Pilot = { id: string; name: string; started_on: unknown; ends_on: unknown; done: number; total: number; status: string };
 
-export default async function Page({ searchParams }: { searchParams: Promise<{ key?: string; c?: string }> }) {
-  const { key, c } = await searchParams;
+export default async function Page({ searchParams }: { searchParams: Promise<{ key?: string; c?: string; err?: string; f?: string }> }) {
+  const { key, c, err, f } = await searchParams;
+  const formErr = errText(err, f);
   // 옛 열쇠 주소는 쿠키로 바꿔 준다 — 서버 동작(저장 버튼)이 쿠키로만 관리자를 가린다
   if (key) redirect("/admin/enter?key=" + encodeURIComponent(key) + "&to=" + encodeURIComponent("/admin/pilots"));
   if (!(await isAdmin(key))) redirect("/admin/login?to=/admin/pilots");
@@ -136,10 +154,11 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ k
           </ul>
         )}
 
-        <details className="adm-more">
+        <details className="adm-more" open={formErr ? true : undefined}>
           <summary>자세히 — 결제 고객 등록</summary>
           <div className="in">
             <p className="sub">입금 확인 후 등록합니다. 등록하면 질문 20개와 착수·기준선·30일 업무가 생깁니다.</p>
+            {formErr && <p className="sub" role="alert" style={{ color: "var(--crit)", wordBreak: "keep-all" }}>{formErr}</p>}
             <form className="pl-form" action={createPilot}>
               {FIELDS.map(([n, l]) => <label key={n}>{l}<input name={n} required /></label>)}
               {/* 구축 없음이면 30일이 이날부터다(신청서 8행) */}

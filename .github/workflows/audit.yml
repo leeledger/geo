@@ -48,6 +48,8 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           GH_TOKEN: ${{ github.token }}
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          CLAUDE_MEASURE_RESERVE: ${{ vars.CLAUDE_MEASURE_RESERVE }}
+          CLAUDE_DAILY_MAX: ${{ vars.CLAUDE_DAILY_MAX }}
           MEASURE_ENGINES: ${{ vars.MEASURE_ENGINES }}
           MEASURE_EVERY_DAYS: ${{ vars.MEASURE_EVERY_DAYS }}
         run: node scripts/audit.mjs ${{ inputs.sandbox_test && '--sandbox-test' || '' }}

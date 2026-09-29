@@ -1,39 +1,31 @@
-# Review Request — Step 27 (운영 위생 D12~D16)
+# Review Request — Step 28 (재점검 잔여 D19~D24)
 Date: 2026-09-30
 Ready for Review: YES
-Status: DONE (D12 는 설정 없음으로 건너뜀 — 아래)
-
-## D12 리드 알림 — 코드 없음
-- health.mjs 의 「메일」은 코드가 아니다. `.github/workflows/watch.yml` 이 health.mjs 종료코드 1 로 실패하면 GitHub 가 저장소 주인에게 보내는 실패 알림이다. 서비스·env 없음(저장소 전체에 nodemailer/resend/SMTP 0건).
-- web Vercel env 이름만 확인(`npx vercel env ls`): ANTHROPIC_API_KEY, LLM_PROXY_TOKEN, OPENROUTER_API_KEY, GROQ_API_KEY, ADMIN_ID, ADMIN_PASSWORD, ADMIN_TOKEN, IP_HASH_SALT, DATABASE_URL. 메일 설정 없음.
-- 그래서 설계서대로 건너뛰고 지금처럼 할 일로만(company.mjs 431·474 `lead-new`). KG-27-1.
+Status: DONE
 
 ## Files Changed
-- academy/scripts/health.mjs:35-36 — llms.txt 검사를 `c.llmsTxt` 인 고객만 (D13)
-- academy/clients.mjs:34-35, 66-67 — 학원·아이로그 `llmsTxt: true` (둘 다 /llms.txt 200 확인, 동작 불변)
-- tools/submit-gsc.mjs:16-19, 24, 27-30 — SITE·PROP 하드코딩 → clients.mjs. `--client`/CLIENT_ID 없으면 CLIENTS[0](학원) = 예전과 같음 (D14)
-- web/lib/pilot-intake.ts (새 파일) — makeQuestions(학원이면 옛 20문항 그대로 / 아니면 업종 무관), auditSources·auditFields(교육청·과정은 학원만), nextAlias(「고객 A/B…」, 빈 글자부터) (D15)
-- web/lib/pilot-actions.ts:9, 16(삭제), 42-44, 50 — 위 함수 사용. alias 는 insert 값에만, on conflict 는 alias 안 건드림 → 기존 고객 불변
-- web/app/admin/pilots/page.tsx:47, 51-52 — 등록 칸 이름 「학원명」→「상호」, 업종 칸 안내(학원 판별 말). 관리 화면만, 공개 문구 아님
-- academy/scripts/company.mjs:183-189 — ensure 에서 geo.client_hours 생성 + RLS (D16)
-- web/db/schema.sql:169-178 · academy/db/schema.sql:166-175 — geo.client_hours 같은 줄
-- web/lib/hours-actions.ts:14 — 주석만(입력 때 DDL 은 company 가 돌기 전 대비로 둠)
+- tools/submit-gsc.mjs:19,24-28,31-63 — clients.mjs 에 없는 `--client`/CLIENT_ID 면 geo.clients.domain 으로 대체(D19). 지정 없음=학원(CLIENTS[0]), DB 는 대체할 때만 연다
+- academy/measure-targets.mjs:15,29 — `도메인정리` export(submit-gsc 재사용), 구축대기한도 import
+- academy/measure-targets.mjs:58,65 — 구축·세팅 + 연 날 없음은 착수+60일(당일)부터 측정 대상에서 뺀다(D22)
+- academy/pilot-plan.mjs:24-29 — `구축대기한도 = 60` 한 곳에서 정의
+- academy/scripts/company.mjs:38,392-409 — 착수+60일 넘은 연 날 없는 구축·세팅 파일럿 → 사람 대기 `pilot-launch-<id>` 「<이름> 사이트 연 날을 넣어 주세요」. 세 목록 다 읽혔을 때만 pilot 신호 읽음
+- web/lib/answer-pattern.ts:8-25 — 붙여 쓴 한글 글자 사이 `\s?`(D20). 낱말 사이 `\s*`·&·40자·10개 그대로
+- academy/pilot-report-core.mjs:57-68 — 보고서 경쟁사 `이름정규식`도 같은 규칙(주석이 「answer-pattern.ts 와 같은 규칙」이라 맞춤)
+- tools/ai-web-measure.mjs:191-194,222 — 승인 질문 없음은 일감만 올리고 exitCode 안 건드림(D21, ai-measure 와 같은 「대기」)
+- web/lib/pilot-actions.ts:29-44 — createPilot 조용한 return → `redirect(/admin/pilots?err=…&f=…)`(D23). slug 는 `^[a-z0-9-]{1,40}$` 아니면 되묻는다. 내부 고객 검사는 트랜잭션 밖
+- web/app/admin/pilots/page.tsx:57-73,78-80,157-161 — err 코드 → 사람 말 한 줄, 오류면 등록 자세히 열림
+- .github/workflows/{audit,company,write,repair,sales}.yml — CLAUDE_MEASURE_RESERVE·CLAUDE_DAILY_MAX vars 줄(D24, optimize.yml 과 같은 줄, 값 불변)
 
-## 확인
-- 순수 함수 시험 13개 통과(scratchpad, node --experimental-strip-types): 학원 20문항이 HEAD 의 makeQuestions 와 deepEqual(수학학원·코딩학원), 치과 20문항에 학원|수업|체험|교육청|배우 없음, 브랜드 3문항 끝, 출처 4/3·칸, 별칭 A → 빈 곳 B → 26개 뒤 AA
-- submit-gsc 고르기 가짜 실행: 기본 → robotncoding.com / sc-domain:robotncoding.com, `--client ilog` → ilog.ai.kr
-- health URL 목록: 두 고객 모두 llms.txt 포함(예전과 같음)
-- node --check health·company·submit-gsc, web tsc 0. DB 쓰기·실측정·배포 안 함
+## 확인 (DB 쓰기·실측정·푸시 없음)
+- 가짜 행·순수 함수 16개 통과: 「미소치과」↔「미소 치과」, 빈칸 둘은 안 걸림, & 규칙·점 escape·i 그대로, 40자 최악 입력 1ms, 41자 null, 경쟁사 정규식 동일 규칙, 착수+59일 잰다/+60일 뺀다/연 날 넣으면 다시 잰다, 학원 항상 잰다
+- 학원 이름 판별 그대로: `측정설정` 결과 answerRe = clients.mjs 원문 `(?<!똑똑한\s?)(로봇\s?(&|&amp;|앤|and)\s?코딩)|robotncoding`, 도메인 = clients.mjs 값. clients.mjs diff 없음
+- node --check 6개 · web `node ./node_modules/typescript/bin/tsc --noEmit` 0
 
 ## Open Questions
-- 학원 판별이 업종 칸 글자(`/학원|교습소|공부방/`)다. 「수학」처럼 과목만 쓰면 일반 문장으로 간다 — 그래서 칸 안내를 바꿨다. 칸을 따로 둘지 Arch 판단
-- 일반 20문항 문구(pilot-intake.ts 27-31)는 제가 지었다. 「오래 운영한 곳」「설명을 잘해주는 곳」 같은 말이 괜찮은지 봐 주세요
-- 「로봇교실」은 학원으로 안 친다(요가교실 같은 오판 방지). 교육청 등록 로봇교실이면 업종에 「로봇학원」을 쓰게 해야 한다
-- 별칭 동시 등록 경쟁(같은 글자)은 막지 않았다 — 관리자 1인
+- D20 을 보고서 경쟁사 정규식(pilot-report-core)에도 적용했다 — 설계서는 answer-pattern 조립만 말했지만 두 곳이 「같은 규칙」이라 한쪽만 바꾸면 주석이 거짓이 된다. 경쟁사 숫자가 띄어쓰기 변형만큼 늘 수 있다(학원은 경쟁사 미설정이라 영향 없음)
+- D23 slug: 예전엔 허용 안 되는 글자를 몰래 뺐다. 이제 거절하고 되묻는다 — 의도대로인지
+- D22 경계: 착수+60일 당일부터 제외(`오늘 < 착수+60`), SQL 도 `>= kickoff_on + 60` 로 같은 날 일감
 
 ## Out of Scope (logged in BUILD-LOG)
-- KG-27-1 리드 알림 메일 설정 없음(원장 몫)
-- KG-27-2 기존 외부 고객 alias 옛 문구 — DB 한 번 수정 필요
-- KG-27-3 write-draft 인격 고정
-- KG-27-4 신청서 「과정·대상」 문구
-- KG-27-5 client_hours RLS 새로 켜짐
+- KG-28-1 이미 저장된 외부 고객 answer_pattern 은 옛 규칙 — 다시 저장 필요
+- KG-28-2 D23 오류 뒤 폼 입력값은 되살리지 않는다

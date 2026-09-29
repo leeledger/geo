@@ -26,15 +26,20 @@ export async function createPilot(form:FormData){await guard();
   const needsBuild=String(form.get("needs_build")??"");
   const competitors=competitorNames(String(form.get("competitors")??""));
   const bizType=String(form.get("biz_type")??"").trim().slice(0,40), refundTermsOn=ymd(form.get("refund_terms_sent_on")), paidOn=ymd(form.get("paid_on"));
-  if(!brand||!domain||!district||!neighborhood||!category||!audience||!payment||!terms||!contactName||!contactEmail||!contactPhone||!receiptType||!pattern)return;
-  if(!NEEDS_BUILD.includes(needsBuild)||!bizType||!refundTermsOn||!paidOn)return;
-  const slug=String(form.get("slug")??"").toLowerCase().replace(/[^a-z0-9-]/g,"").slice(0,40);
-  if(!slug)return;
+  // 검증 실패를 조용히 돌려보내지 않는다(Step 28 D23) — 무엇이 빠졌는지 화면이 사람 말로 한 줄 띄운다(문구는 app/admin/pilots/page.tsx)
+  const fail=(err:string,f=""):never=>redirect(`/admin/pilots?err=${err}${f?`&f=${encodeURIComponent(f)}`:""}`);
+  const empty=Object.entries({name:brand,domain,district,neighborhood,category,audience,contact_name:contactName,contact_email:contactEmail,contact_phone:contactPhone,receipt_type:receiptType,payment_ref:payment,terms_evidence:terms,biz_type:bizType,paid_on:paidOn,refund_terms_sent_on:refundTermsOn}).filter(([,v])=>!v).map(([k])=>k);
+  if(empty.length)fail("missing",empty.join(","));
+  if(!pattern)fail("terms");
+  if(!NEEDS_BUILD.includes(needsBuild))fail("needs");
+  // 영문 관리명은 고쳐 넣지 않고 되묻는다 — 몰래 글자를 빼면 등록한 이름과 다른 slug 가 생긴다
+  const slug=String(form.get("slug")??"").trim().toLowerCase();
+  if(!/^[a-z0-9-]{1,40}$/.test(slug))fail("slug");
+  // 학원·아이로그 같은 내부 고객 slug 로 등록하면 이름 판별이 덮여 「똑똑한 로봇&코딩학원」 제외가 사라진다(Step 25 리뷰). 외부 고객만 새로 만들거나 고친다
+  const same=(await inqPool().query(`select relation from geo.clients where slug=$1`,[slug])).rows[0];
+  if(same&&same.relation!=="외부")fail("internal");
   const db=await inqPool().connect(); let pilotId="";
   try{
-    // 학원·아이로그 같은 내부 고객 slug 로 등록하면 이름 판별이 덮여 「똑똑한 로봇&코딩학원」 제외가 사라진다(Step 25 리뷰). 외부 고객만 새로 만들거나 고친다
-    const same=(await db.query(`select relation from geo.clients where slug=$1`,[slug])).rows[0];
-    if(same&&same.relation!=="외부")return;
     await db.query("begin");
     await db.query(`alter table geo.clients add column if not exists answer_pattern text`);
     await db.query(`alter table geo.clients add column if not exists measure_active boolean not null default false`);

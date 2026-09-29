@@ -1241,3 +1241,14 @@ Known Gaps (26)
 - 2026-09-30 Step 27 Richard PASS · Should Fix 반영(Bob): company.mjs client_hours 두 줄 각각 catch(로그만, 루프 계속) · 일반 문장에 받침 조사 도우미 josa(은/는·이/가·을/를·과/와·으로/로, ㄹ 예외 — 학원 문장은 옛 글자 그대로) · 어색한 두 문장 → 「{대상}이 {업종} 고를 때 뭘 봐야 해?」「{업종} 잘 고른 건지 어떻게 알아?」 · 학원 판별에 교실·과외 추가(Arch). 시험 21개 통과, tsc 0
 - KG-27-6 별칭 동시 등록 경합(같은 「고객 X」) 안 막음 — 관리자 1인(Arch)
 - 2026-09-30: Step 27 Richard PASS + Should Fix 4건 반영(ffeec83) · 치과 20문항 조사·말투 Arch 확인 → 배포. 리드 메일은 메일 설정 없음(KG-27-1)
+
+### Step 28 — 재점검 잔여 (D19~D24) — BUILT · Richard 대기 (2026-09-30, Bob)
+- D19 submit-gsc.mjs: clients.mjs 에 없는 `--client`/CLIENT_ID 면 geo.clients.domain(measure-targets `도메인정리` 재사용, export 로 바꿈)으로 sc-domain:. DB 는 이 경우만 연다 — 지정 없음=학원, clients.mjs 고객은 예전 값 그대로
+- D20 answer-pattern.ts: 붙여 쓴 한글 글자 사이 `\s?`(빈칸 하나). 낱말 사이 `\s*`·& 규칙·40자·10개 상한 그대로. 보고서 경쟁사 `이름정규식`(pilot-report-core)도 「같은 규칙」 주석이라 함께 고침(Arch 확인 요청). clients.mjs·DB answer_pattern 은 안 건드림 — 이미 등록된 고객은 다시 저장해야 새 규칙
+- D21 ai-web-measure.mjs: 승인 질문 없음은 일감은 올리되 exitCode 안 건드림(「대기」 로그). 설정 없음은 그대로 1
+- D22 pilot-plan `구축대기한도=60`. measure-targets: 구축·세팅 + 연 날 없음은 착수+60일(당일 포함)부터 뺀다. company.mjs: 같은 조건 파일럿에 「<이름> 사이트 연 날을 넣어 주세요」 사람 대기(pilot-launch-<id>, priority 12). 세 목록 다 읽었을 때만 pilot 신호 읽음
+- D23 createPilot: 조용한 return 전부 → `/admin/pilots?err=missing|terms|needs|slug|internal(&f=빈 칸 키)`. slug 는 고쳐 넣지 않고 `^[a-z0-9-]{1,40}$` 아니면 되묻는다(예전엔 글자를 몰래 뺐다). 내부 고객 slug 검사는 트랜잭션 밖으로(redirect 가 catch→rollback 에 안 걸리게). 화면은 코드→문구 표(모르는 코드는 안 띄움), 오류 시 등록 자세히 열림
+- D24 audit·company·write·repair·sales(Claude 부르는 단계) 워크플로에 CLAUDE_MEASURE_RESERVE·CLAUDE_DAILY_MAX vars 줄. 값 안 바꿈
+- 확인: 가짜 행·순수 함수 16개 통과(학원 answerRe·도메인 = clients.mjs 원문 그대로, 40자 최악 입력 1ms), node --check 6개, web tsc 0. DB 쓰기·실측정·푸시 안 함
+- KG-28-1 이미 DB 에 저장된 외부 고객 answer_pattern 은 옛 규칙(띄어쓰기 미허용) — 등록 화면에서 다시 저장하거나 DB 갱신 필요(DB 쓰기 금지라 안 함)
+- KG-28-2 D23 오류 뒤 폼 입력값은 되살리지 않는다(브라우저 폼 초기화)
