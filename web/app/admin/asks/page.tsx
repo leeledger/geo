@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 
 import { isAdmin } from "@/lib/admin-auth";
 import { listClients } from "@/lib/ops";
-import { readAskDays, readAsks, readAskGrid, mainMethod, RESULT_TEXT, type AskResult, type AskDay } from "@/lib/asks";
+import { readAskDays, readAsks, readAskGrid, readProbeGrid, mainMethod, RESULT_TEXT, type AskResult, type AskDay } from "@/lib/asks";
 import AdminNav from "../AdminNav";
 
 /**
@@ -70,6 +70,8 @@ const CSS = `
 .ak-grid td.both,.ak-grid td.cited{color:var(--ok)}
 .ak-grid td.named{color:var(--warn)}
 .ak-grid td.none{color:var(--faint)}
+.ak-grid td small{color:var(--ink2);font-size:12px}
+.ak-note{font-size:13px;font-weight:400;color:var(--ink2);margin-left:8px}
 .ak-key{font-size:14px;color:var(--ink2);margin:8px 0 0}
 @media(max-width:640px){
   .ak-list summary{grid-template-columns:44px 1fr;row-gap:4px}
@@ -105,15 +107,17 @@ export default async function AsksPage({
   let days: AskDay[] = [];
   let rows: Awaited<ReturnType<typeof readAsks>> = [];
   let grid: Awaited<ReturnType<typeof readAskGrid>> | null = null;
+  let probe: Awaited<ReturnType<typeof readProbeGrid>> = null;
   let day: string | null = null;
   if (client) {
     try {
       days = await readAskDays(client);
       day = days.find((x) => x.day === wantDay)?.day ?? days[0]?.day ?? null;
       const main = mainMethod(days);
-      [rows, grid] = await Promise.all([
+      [rows, grid, probe] = await Promise.all([
         day ? readAsks(client, day) : Promise.resolve([]),
         main ? readAskGrid(client, main, 14) : Promise.resolve(null),
+        readProbeGrid(client, 14),
       ]);
     } catch (e) {
       console.error("asks", e);
@@ -227,6 +231,36 @@ export default async function AsksPage({
                   {grid.rows.map((r) => (
                     <tr key={r.promptId}>
                       <td>{r.question}</td>
+                      {r.cells.map((c, i) => (
+                        <td key={i} className={c ?? ""} title={c ? RESULT_TEXT[c] : "안 물어봄"}>{c ? MARK[c] : ""}</td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+
+        {probe && probe.rows.length > 0 && (
+          <>
+            <h2>넓혀 본 질문 <small className="ak-note">승인 20문항과 따로 셉니다</small></h2>
+            <p className="sub">
+              잘 나오는 동네 질문을 「송파」「서울」「동네 없이」로 한 칸씩 넓히거나, 검색창에 치는 짧은 말(「송파구 코딩학원 추천」)로 바꿔 물어봅니다.
+              어디서부터 안 나오는지 보려는 것이라 위의 숫자·효과 판정에는 넣지 않습니다.
+            </p>
+            <p className="ak-key">● 우리 링크가 붙음 · ◐ 이름만 나옴 · · 안 나옴 · 빈칸 안 물어봄</p>
+            <div className="ak-grid">
+              <table>
+                <thead>
+                  <tr><th>질문</th><th>모양</th><th>반경</th>{probe.days.map((d) => <th key={d}>{mdShort(d)}</th>)}</tr>
+                </thead>
+                <tbody>
+                  {probe.rows.map((r) => (
+                    <tr key={`${r.promptId}-${r.where}`}>
+                      <td>{r.question}<br /><small>{r.where}</small></td>
+                      <td>{r.form === "keyword" ? "검색어" : "문장"}</td>
+                      <td>{r.radius === "없음" ? "지역 없음" : r.radius}</td>
                       {r.cells.map((c, i) => (
                         <td key={i} className={c ?? ""} title={c ? RESULT_TEXT[c] : "안 물어봄"}>{c ? MARK[c] : ""}</td>
                       ))}

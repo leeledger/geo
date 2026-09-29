@@ -6,6 +6,7 @@
  *
  *   naver-transfer  발행했는데 네이버에 없는 글을 옮긴다 (naver-blog-post.mjs)
  *   gsc-submit      구글 서치콘솔 색인 요청 (submit-gsc.mjs --all, 하루 한도 안에서)
+ *   brave-index-check  개선 루프가 넘긴 글이 Brave 색인에 있나 (brave-index-check.mjs). 없으면 제출 명령을 사람에게
  *
  * 로그인이 풀려 있으면 억지로 하지 않고 「사람 대기 · 로그인 필요」로 올린다.
  * 대시보드에 뜨고, 원장이 node tools/open-session.mjs 로 로그인하면 다음 실행부터 다시 돈다.
@@ -152,6 +153,54 @@ try {
               evidence = left(evidence || E'\n' || $3, 4000) where id=$1`,
       [t.id, r.ok ? "완료" : "로컬 대기", r.ok ? `로컬 에이전트 저장 확인 · 지금 키워드 ${결과}` : `실패 ${끝(r.out, 160)}`]);
     await 활동("deliver", "플레이스 키워드", r.ok, r.ok ? `${p.add ?? ""}${p.remove ? ` (뺌 ${p.remove})` : ""} · ${결과}` : 끝(r.out, 200), t.id);
+  }
+
+  // ── Brave 색인 확인: 개선 루프 자기 점검이 만든 일감(payload {slugs}). Brave 는 curl 을 막아 러너에서 못 본다.
+  // 없는 글은 제출 명령을 남기고 사람에게 넘긴다 — 제출 버튼에 캡차가 있다. 우회하지 않는다
+  // evidence 는 새 줄이 뒤에 붙는다. 넘치면 오래된 앞쪽을 버린다(right)
+  const 날 = () => new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" });
+  // 사람 대기(제출 요청)로 7일 넘은 일감은 다시 본다. 원장이 제출했는지 결과(색인에 들었나)로 알아챈다
+  await q(`update geo.agent_tasks set status='로컬 대기', updated_at=now(),
+            evidence = right(evidence || E'\n' || $1, 4000)
+            where kind='brave-index-check' and status='사람 대기' and updated_at <= now() - interval '7 days'`,
+    [`${날()} 사람 대기 7일 — 다시 확인`]);
+  for (const t of await q(`select id, payload, attempts from geo.agent_tasks where kind='brave-index-check' and status='로컬 대기' order by priority, id`)) {
+    const slugs = (t.payload?.slugs ?? []).filter((s) => /^[a-z0-9-]+$/.test(s));
+    if (!slugs.length) continue;
+    기록(`Brave 색인 확인: ${slugs.length}편`);
+    const r = 돌리기("brave-index-check.mjs", slugs, 10);
+    // 출력 한 줄이 「있음|없음|확인 불가  https://robotncoding.com/blog/<slug>」
+    const 줄 = [...r.out.matchAll(/^(있음|없음|확인 불가)\s+(\S+)/gm)].map((m) => ({ 결과: m[1], url: m[2] }));
+    if (줄.length !== slugs.length) {
+      // 브라우저가 죽는 등 출력이 모자라면 다시 한다. 세 번째면 사람에게 — 실행마다 브라우저를 여는 걸 끝없이 되풀이하지 않는다
+      const 사람 = t.attempts + 1 >= 3;
+      await q(`update geo.agent_tasks set attempts = attempts + 1, updated_at=now(), last_error=$2,
+                status = case when $3 then '사람 대기' else status end, detail = case when $3 then $4 else detail end where id=$1`,
+        [t.id, `Brave 확인 출력이 모자랍니다 (${줄.length}/${slugs.length}): ${끝(r.out, 200)}`, 사람,
+          `Brave 확인이 3번 실패했습니다. 원장 PC 에서 node tools/brave-index-check.mjs ${slugs.join(" ")} 로 직접 확인해 주세요.`]);
+      await 활동("deliver", "Brave 색인 확인 실패", false, 끝(r.out, 200), t.id);
+      continue;
+    }
+    // 캡차·빈 화면은 없음이 아니다. 사람에게 제출을 시키지 않고 로컬 대기로 둔다 — 다음 실행이 다시 본다
+    if (줄.some((x) => x.결과 === "확인 불가")) {
+      await q(`update geo.agent_tasks set updated_at=now(), evidence = right(evidence || E'\n' || $2, 4000) where id=$1`,
+        [t.id, `${날()} Brave 확인 불가 (캡차 또는 빈 화면) ${줄.filter((x) => x.결과 === "확인 불가").length}/${줄.length}편`]);
+      await 활동("deliver", "Brave 색인 확인 불가", false, "캡차 또는 빈 화면 — 다음 실행에 다시", t.id);
+      continue;
+    }
+    const 없음 = 줄.filter((x) => x.결과 === "없음").map((x) => x.url);
+    const 요약 = `${날()} Brave 색인 ${줄.length - 없음.length}/${줄.length}편 있음`;
+    if (없음.length) {
+      await q(`update geo.agent_tasks set status='사람 대기', updated_at=now(), last_error='',
+                detail=$2, evidence = right(evidence || E'\n' || $3, 4000) where id=$1`,
+        [t.id, `Brave 색인에 없는 글 ${없음.length}편을 제출해 주세요. PC 에서 node tools/brave-submit.mjs ${없음.join(" ")} — 캡차는 창에서 직접 풉니다.`,
+          `${요약} · 없음: ${없음.map((u) => u.replace(/^.*\/blog\//, "")).join(", ")}`]);
+    } else {
+      await q(`update geo.agent_tasks set status='완료', done_at=now(), updated_at=now(), last_error='',
+                evidence = right(evidence || E'\n' || $2, 4000) where id=$1`,
+        [t.id, `${요약} · Brave 에 다 있음 — 원인이 색인이 아니다`]);
+    }
+    await 활동("deliver", "Brave 색인 확인", true, `${요약}${없음.length ? ` · 제출 필요 ${없음.length}편` : ""}`, t.id);
   }
 
   // ── 구글 색인 요청: 하루 한도가 있어 --all 이 남은 주소만 조금씩 넣는다

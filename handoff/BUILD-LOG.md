@@ -1110,3 +1110,22 @@ Decisions made (3차):
   ChatGPT·Gemini·퍼플렉시티 측정이 9/24 뒤 0회. 관리자 권한 없이 고칠 수 없어 tools/pc-runner.mjs(시작프로그램 「Cited PC Runner.vbs」)로 대체 — 매시 심장박동, 12:40·19:10 로컬 에이전트,
   10:00 넘어 하루 한 번 화면 측정, 놓치면 그날 따라잡기. 첫 실행 9/29 14:17~14:58: 심장박동 성공, 네이버 이관 1편, 화면 측정 3곳 × 20문항.
   KG-PC-1 옛 작업 스케줄러 셋 끄기는 관리자 권한 — 원장 몫(잠금·중복 건너뛰기가 있어 그대로 둬도 두 번 안 돈다)
+
+### Step 22 — 개선 루프 자기 점검 (넓이 · 정체 · 헛수고) — BUILDING (2026-09-29)
+원장: 「안 나옴이 너무 많고 나온 것도 좁은 질문에만. 스스로 진단·개선하는지 검증하고 없으면 도입」
+- 검증: 루프(daily-agent)는 있으나 자기 점검 없음. 9/22 이후 Claude 일반 질문(q9~q17) 0/63, 4곳 모두 0. 행동 13건 판정 0건(엔진 전환으로 같은 엔진 기준선 없음). 일반 질문 7개에 글 고치기 반복, 받아 본 검색 결과에 우리 도메인 0회. 9/24 Brave 제출 뒤 재확인 없음
+- 결정 D1~D8: DB 숫자만으로 점검 · 곳별로 안 합침 · 후 5건 전부 0 이면 기준선 없이 「효과 없음」 · 검색 결과에 안 뜨는 단계는 content 건너뛰고 Brave 확인 일감(로컬 대기) · 넓힘 탐침(동네→송파→서울→없음, 한 칸씩, 승인 질문과 분리) · 탐침은 Claude 하루 2개
+- 원장 관찰(16:37 스크린샷): 구글 AI 모드 「송파구 코딩학원 추천」 → 로봇&코딩학원 두 번째 카드(첫째 디랩 잠실). 손 확인 1회
+- 결정 D9: 검색어형 탐침(`{반경} 코딩학원 추천` 등 틀 3개, 송파구 씨앗 3개). D10: 구글 AI 모드 로그아웃 화면 측정(검색어형만, 카드 순위 raw.rank)
+- Bob 빌드 (2026-09-29) — BUILT · Richard 대기 (커밋·배포·DB 쓰기 안 함)
+  - 파일: academy/scripts/loop-review.mjs(새) · daily-agent.mjs · ai-measure.mjs · tools/local-agent.mjs · web/lib/ops.ts · web/app/admin/ops/AgentBoard.tsx · agent-board.css
+  - 결정(Bob): problem+consider 를 「일반 질문」 한 묶음으로 센다(설계서 숫자 63·7건이 그 묶음) · 발견성 일감 dedupe_key `brave-index-general`, agent deliver, payload.sticky=true(회사 루프가 신호 없는 일감을 닫으므로)
+    · 넓힘은 출발 질문 Claude 7일 n≥2 일 때만(1/1 로 안 넓힘) · 겹침()을 loop-review 로 옮기고 daily-agent 가 가져다 씀
+    · brave-submit.mjs 는 slug 가 아니라 전체 주소를 받는다 → 사람 대기 detail 에 `node tools/brave-submit.mjs https://robotncoding.com/blog/<slug> …`
+  - D10 구글 AI 모드: 짓지 않음. 로그아웃 Playwright 로 `search?udm=50&q=` 직접 → /sorry 캡차. /aimode 에서 입력하면 캡차는 없지만 답이 2분 넘게 「…」 에서 안 나옴(화면 안·밖 창 둘 다). 우회 안 함 → KG-22-1
+  - Known Gaps: KG-22-1 구글 AI 모드 자동 측정 불가(위) · KG-22-2 brave-index-check 「사람 대기」 일감은 제출 뒤 다시 확인하는 길이 없음(done_at 이 없어 7일 재생성도 안 됨)
+    · KG-22-3 stalled(effective_on ≤ 오늘-14)는 오늘 0건 — q9 는 9/18(11일 전). 설계서 문제 2 는 D3 가 대신 잡는다
+  - Arch 결정 반영: stalled 기준 오늘-10(판정 창 +7일) · KG-22-2 해결 — local-agent 가 7일 넘은 brave-index-check 「사람 대기」를 「로컬 대기」로 되돌려 다시 확인. KG-22-3 닫힘. KG-22-1 유지
+  - 2차(Richard 수정 필요 → Arch): 탐침 측정은 academy.ai_probe_measurements 로 따로 넣는다(ai_measurements 에 p* 없음, 영업 숫자 보호). /admin/asks 에 「넓혀 본 질문」 격자(readProbeGrid)를 붙였다.
+    stalled 는 오늘-14 기준이고, 근거는 엔진별 전/후 건수다. Brave 캡차·빈 화면은 「확인 불가」로 적고 로컬 대기에 둔다. 출력 모자람이 3번이면 사람 대기. narrow·repeat 표본은 10건 이상, evidence 는 right(). REVIEW-FEEDBACK Should Fix 는 다 반영했다
+- KG-22-4 Brave 「확인 불가」 길에 상한 없음 — 캡차가 계속되면 local-agent 가 돌 때마다 브라우저를 연다(사람에게 안 넘어감). Richard 2차, 막지 않음

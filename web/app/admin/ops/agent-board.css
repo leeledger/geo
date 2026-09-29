@@ -17,6 +17,10 @@
 .staff-role{color:var(--mut);font-size:12px;margin:15px 0 20px}
 .staff-finding{min-height:97px}.staff-finding h4{font-size:16px;line-height:1.6;margin:0 0 7px;letter-spacing:-.025em}
 .staff-finding p{color:var(--ink2);font-size:12.5px;line-height:1.8;margin:0;overflow-wrap:anywhere}
+.staff-selfcheck{margin:16px 0 0;border:1px solid #4a3a2a;border-radius:10px;padding:12px 15px;background:#1a1510}
+.staff-selfcheck span{color:#FFC3A8;font-size:11px;font-weight:700}.staff-selfcheck ul{margin:6px 0 0;padding-left:16px}
+.staff-selfcheck li{font-size:12.5px;line-height:1.7;margin-top:6px}.staff-selfcheck li b{font-weight:700;color:var(--ink)}
+.staff-selfcheck li p{margin:2px 0 0;font-size:11.5px;color:var(--ink2);overflow-wrap:anywhere}
 .staff-action{margin:19px 0;background:#101820;border:1px solid #26323e;border-radius:10px;padding:13px 15px;flex:1}
 .staff-action span{color:#8FDED2;font-size:11px;font-weight:700}.staff-action p{font-size:13px;line-height:1.8;color:var(--ink);margin:5px 0 0}
 .staff-evidence{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:0 0 16px}.staff-evidence span{display:block;font-size:10.5px;color:var(--mut);margin-bottom:7px;line-height:1.6}

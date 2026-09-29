@@ -130,6 +130,11 @@ export default function AgentBoard({ data: d, clientName }: { data: Ops; clientN
             <header><span className={`staff-avatar avatar-${a.id}`} aria-hidden="true">{a.initials}</span><div><h3>{a.name}</h3><span className="staff-mode">{a.mode}</span></div><span className={`staff-status ${a.status}`}>{LABEL[a.status]}</span></header>
             <p className="staff-role">{a.role}</p>
             <div className="staff-finding"><h4>{a.headline}</h4><p>{a.reason}</p></div>
+            {a.id === "improve" && d.ok && d.agentLoop.selfcheck.length > 0 && (
+              <div className="staff-selfcheck"><span>루프가 스스로 찾은 문제</span>
+                <ul>{d.agentLoop.selfcheck.map((f, i) => <li key={i}><b>{f.title}</b>{f.evidence && <p>{f.evidence}</p>}</li>)}</ul>
+              </div>
+            )}
             <div className="staff-action"><span>다음 행동</span><p>{a.next}</p></div>
             {a.queue && <div className="staff-queue"><span>자동 대기 <b>{a.queue.wait + a.queue.run}</b></span><span>관찰 <b>{a.queue.watch}</b></span><span>원장님 <b>{a.queue.human}</b></span><span>PC <b>{a.queue.local}</b></span></div>}
             <div className="staff-evidence"><div><span>{a.lastLabel}</span><time>{d.ok ? stamp(a.last) : "확인 불가"}</time></div><div><span>{a.metricLabel}</span><strong>{a.metric}</strong></div></div>

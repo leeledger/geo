@@ -14,19 +14,22 @@
  *
  *   node scripts/daily-agent.mjs          하루 한 번
  *   node scripts/daily-agent.mjs --dry    판단만 찍고 DB·초안·색인 알림은 건드리지 않는다
+ *   node scripts/daily-agent.mjs --review 자기 점검(loop-review.mjs)만 찍고 끝낸다. DB 안 씀
  *   node scripts/daily-agent.mjs --complete "한 일" "근거"   사람이 오늘 행동을 끝냈을 때
  */
 import fs from "node:fs";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { Pool } from "pg";
+import { 자기점검, 점검요약, 겹침 } from "./loop-review.mjs";
 
 for (const l of fs.readFileSync(new URL("../.env.local", import.meta.url), "utf8").split(/\r?\n/)) {
   const m = /^([A-Z_]+)=(.*)$/.exec(l);
   if (m && !process.env[m[1]]) process.env[m[1]] = m[2];
 }
 
-const DRY = process.argv.includes("--dry");
+const REVIEW = process.argv.includes("--review");
+const DRY = process.argv.includes("--dry") || REVIEW;
 const SLUG = "robotncoding";
 const KST = (d = new Date()) => new Date(d).toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" });
 const 오늘 = KST();
@@ -52,21 +55,6 @@ const 실행 = (args) => {
   } catch (e) {
     return { ok: false, code: e.status ?? 1, out: `${e.stdout ?? ""}${e.stderr ?? ""}${e.message}` };
   }
-};
-
-const 두글자 = (s) => {
-  const t = String(s).replace(/[^가-힣a-zA-Z0-9]/g, "").toLowerCase();
-  const set = new Set();
-  for (let i = 0; i < t.length - 1; i++) set.add(t.slice(i, i + 2));
-  return set;
-};
-/** 질문의 두 글자 묶음이 제목에 얼마나 들어 있나. 0~1 */
-const 겹침 = (question, title) => {
-  const a = 두글자(question), b = 두글자(title);
-  if (!a.size) return 0;
-  let n = 0;
-  for (const x of a) if (b.has(x)) n++;
-  return n / a.size;
 };
 
 const main = async () => {
@@ -124,6 +112,23 @@ const main = async () => {
                                 coalesce(review_notes,'{}'::jsonb) ? '비공개이유' as archived
                            from academy.posts where client_id=$1`, [c.id]);
   const [todayRun] = await q(`select status, action_kind from geo.agent_runs where client_id=$1 and run_day=$2::date and trigger='daily'`, [c.id, 오늘]);
+  // 자기 점검은 화면 측정(ChatGPT·Gemini·Perplexity)까지 본다. 판정용 rows 와 따로 둔다 — 판정에 화면 측정이 섞이면 안 된다
+  const [탐침표] = await q(`select to_regclass('academy.ai_probe_questions')::text as t, to_regclass('academy.ai_probe_measurements')::text as m`);
+  // 탐침 측정은 따로 표에 있다. 점검(widen)만 읽는다 — 승인 질문 숫자와 섞지 않는다
+  const 점검rows = await q(
+    `select prompt_id, measured_on::text as day, engine, collection_method, mentioned, cited, citations, coalesce(raw->>'answer','') answer
+       from academy.ai_measurements
+      where client_id=$1 and (collection_method like 'api-%' or collection_method like 'claude-code-headless-%' or collection_method like '%-web-logged-out')
+        and measured_on >= $2::date` +
+    (탐침표.m ? `
+     union all
+     select prompt_id, measured_on::text, engine, collection_method, mentioned, cited, citations, coalesce(raw->>'answer','')
+       from academy.ai_probe_measurements where client_id=$1 and measured_on >= $2::date` : ""),
+    [c.id, 날더하기(오늘, -20)]);
+  const probes = 탐침표.t
+    ? await q(`select prompt_id, source_prompt, radius, text, active, form, created_on::text as created_on
+                 from academy.ai_probe_questions where client_id=$1 order by id`, [c.id])
+    : [];
 
   const stageOf = Object.fromEntries(questions.map((x) => [x.prompt_id, x.stage]));
   // 브랜드 질문은 질문에 이름이 들어 있어 답이 따라 말한다. 인용이나 실제 위치(석촌)가 나와야 적중이다
@@ -199,8 +204,20 @@ const main = async () => {
     let note = 고른
       ? `${고른.e} 전 ${전.filter(적중).length}/${전.length}(${전율}%) → 후 ${후.filter(적중).length}/${후.length}(${후율}%)`
       : `같은 엔진으로 전후 5건씩 모인 게 없음 (전 ${전전부.length}건 · 후 ${후전부.length}건, 엔진이 다르면 안 섞음)`;
+    /**
+     * 기준선이 없어도 「효과 없음」은 낼 수 있다. 후가 전부 0 이면 오른 게 없다.
+     * 「효과 있음」은 영업 숫자로 가니 같은 엔진 전후가 있어야 하지만, 이쪽은 부풀릴 위험이 없다.
+     * 이게 없어서 엔진이 바뀐 9/22 뒤로 판정이 하나도 안 나왔고 사다리가 멈췄다
+     */
+    const 후만 = [...new Set(후전부.map((x) => x.engine))]
+      .map((e) => ({ e, 후: 후전부.filter((x) => x.engine === e) }))
+      .filter((x) => x.후.length >= 5)
+      .sort((a, b) => b.후.length - a.후.length)[0];
     if (고른) {
       verdict = 후율 - 전율 >= 20 && 후.filter(적중).length >= 2 ? "효과 있음" : "효과 없음";
+    } else if (후만 && !후전부.some(적중)) {
+      verdict = "효과 없음";
+      note = `${후만.e} 전 비교 없음 — 후 0/${후만.후.length}`;
     } else if (r.effective_on <= 날더하기(오늘, -35)) {
       verdict = "표본 부족";
     }
@@ -226,12 +243,30 @@ const main = async () => {
     return m;
   }, {})).map(([e, [h, n]]) => `${e} ${h}/${n}`).join(" · ") || "오늘 자동 측정 없음";
 
-  const facts = { day: 오늘, engines: 엔진별, week: 전체, questions: 표.map(({ prompt_id, n, hit }) => ({ prompt_id, n, hit })), judged: 기록 };
+  // ── 자기 점검 (loop-review.mjs). 판정 뒤에 돈다 — 방금 닫힌 행동은 「멈춤」으로 안 센다
+  const 점검 = 자기점검({
+    questions, rows: 점검rows, 판정rows: rows, runs, posts, today: 오늘, domain: c.domain, probes, 적중,
+    // 검색어 씨앗(source_prompt 없음)은 하루 한도에 안 센다
+    새탐침한도: Math.max(0, 2 - probes.filter((p) => p.created_on === 오늘 && p.source_prompt).length),
+  });
+  // 발견성 일감: 원장 PC 가 Brave 색인을 본다. 열려 있거나 7일 안에 끝낸 일감은 다시 만들지 않는다
+  const 일감들 = [];
+  for (const d of 점검.discover.filter((x) => x.slugs.length)) {
+    const key = `brave-index-${d.group}`;
+    const [t] = await q(`select status, done_at > now() - interval '7 days' as recent from geo.agent_tasks where client_id=$1 and dedupe_key=$2`, [c.id, key]);
+    if (t && !["완료", "닫힘"].includes(t.status)) d.finding.action += ` 이미 일감이 있습니다(${t.status}).`;
+    else if (t?.recent) d.finding.action += " 7일 안에 확인했으니 다시 만들지 않습니다.";
+    else 일감들.push({ key, ...d });
+  }
+  const 점검줄 = 점검요약(점검.findings);
+
+  const facts = { day: 오늘, engines: 엔진별, week: 전체, questions: 표.map(({ prompt_id, n, hit }) => ({ prompt_id, n, hit })), judged: 기록, selfcheck: 점검.findings };
   const 저장 = async (row) => {
+    row = { ...row, diagnosis: 점검줄 ? `${점검줄}\n${row.diagnosis}` : row.diagnosis };
     console.log(`\n진단: ${row.diagnosis}\n행동: ${row.action}\n상태: ${row.status}${row.evidence ? `\n근거: ${row.evidence}` : ""}`);
     if (process.env.GITHUB_STEP_SUMMARY) {
       fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,
-        `### 개선 루프 ${오늘}\n- 상태: ${row.status}\n- 진단: ${row.diagnosis}\n- 행동: ${row.action}\n- 근거: ${row.evidence || "—"}\n` +
+        `### 개선 루프 ${오늘}\n- 상태: ${row.status}\n- 진단: ${row.diagnosis.replace(/\n/g, " · ")}\n- 행동: ${row.action}\n- 근거: ${row.evidence || "—"}\n` +
         (기록.length ? `- 판정·후속: ${기록.join(" / ")}\n` : ""));
     }
     if (DRY) return;
@@ -251,9 +286,48 @@ const main = async () => {
   console.log(`${c.name} · ${오늘}\n  ${전체}\n  오늘: ${엔진별}`);
   for (const s of 기록) console.log(`  판정·후속: ${s}`);
 
+  console.log(`\n자기 점검 ${점검.findings.length}건${점검.skipContent.size ? ` · 글 고치기 건너뛰는 단계: ${[...점검.skipContent].join(", ")}` : ""}`);
+  for (const f of 점검.findings) console.log(`  [${f.code}] ${f.title}\n      근거: ${f.evidence}\n      할 일: ${f.action}`);
+  if (점검줄) console.log(`  → ${점검줄}`);
+  for (const t of 일감들) console.log(`  ${DRY ? "(dry) " : ""}발견성 일감 ${t.key}: ${t.slugs.join(", ")}`);
+  for (const p of 점검.probes) console.log(`  ${DRY ? "(dry) " : ""}탐침 ${p.form} ${p.seed ? "씨앗" : `${p.source_prompt} →`} ${p.radius}「${p.text}」`);
+  if (REVIEW) return;
+
+  if (!DRY) {
+    for (const t of 일감들) {
+      // sticky: 회사 루프(company.mjs)는 자기 신호에 없는 일감을 닫는다. 이 일감은 개선 루프가 만든다
+      await q(
+        `insert into geo.agent_tasks (client_id, agent, kind, dedupe_key, title, detail, status, priority, payload)
+         values ($1, 'deliver', 'brave-index-check', $2, $3, $4, '로컬 대기', 20, $5::jsonb)
+         on conflict (client_id, dedupe_key) do update set status='로컬 대기', title=excluded.title, detail=excluded.detail,
+           payload=excluded.payload, done_at=null, attempts=0, last_error='', updated_at=now()
+         where geo.agent_tasks.status in ('완료','닫힘')
+           and (geo.agent_tasks.done_at is null or geo.agent_tasks.done_at <= now() - interval '7 days')`,
+        [c.id, t.key, `Brave 색인 확인: 글 ${t.slugs.length}편`,
+          `${t.finding.evidence}. 원장 PC 의 로컬 에이전트가 이 글들이 Brave 색인에 있는지 봅니다. 없는 글이 있으면 제출할 명령을 남깁니다.`,
+          JSON.stringify({ sticky: true, group: t.group, slugs: t.slugs })]);
+    }
+    if (점검.probes.length) {
+      await q(`create table if not exists academy.ai_probe_questions (id serial primary key, client_id int not null, prompt_id text not null,
+                 source_prompt text, radius text, text text not null, created_on date not null default current_date,
+                 active bool not null default true, form text not null default 'sentence', unique (client_id, prompt_id))`);
+      const [m] = await q(`select coalesce(max(substring(prompt_id from 2)::int), 0) as n from academy.ai_probe_questions
+                            where client_id=$1 and prompt_id ~ '^p[0-9]+$'`, [c.id]);
+      let n = m.n;
+      for (const p of 점검.probes) {
+        await q(`insert into academy.ai_probe_questions (client_id, prompt_id, source_prompt, radius, text, form, created_on)
+                 values ($1,$2,$3,$4,$5,$6,$7::date) on conflict (client_id, prompt_id) do nothing`,
+          [c.id, `p${++n}`, p.source_prompt, p.radius, p.text, p.form, 오늘]);
+      }
+    }
+  }
+
   // 같은 날 두 번 돌면 초안을 두 번 쓴다. 이미 행동한 날은 판정만 하고 끝낸다
   if (todayRun?.status === "완료" || (todayRun?.action_kind && todayRun.status !== "실패")) {
     console.log(`\n오늘(${오늘}) 행동은 이미 기록돼 있습니다 — ${todayRun.action_kind ?? "수동 개선"} · ${todayRun.status}`);
+    // 점검은 행동과 별개다. 오늘 행에 합친다
+    if (!DRY) await q(`update geo.agent_runs set facts = facts || $3::jsonb where client_id=$1 and run_day=$2::date and trigger='daily'`,
+      [c.id, 오늘, JSON.stringify({ selfcheck: 점검.findings })]);
     return;
   }
 
@@ -294,6 +368,8 @@ const main = async () => {
     for (const kind of LADDER[x.stage] ?? LADDER.problem) {
       const v = t.get(kind);
       if (v === "효과 없음" || v === "표본 부족" || v === "통과") continue;
+      // 검색 결과에 안 뜨는 단계는 글을 고쳐도 못 읽는다(자기 점검 repeat). 다음 칸으로
+      if (kind === "content" && 점검.skipContent.has(x.stage)) continue;
 
       if (kind === "entity") {
         const home = await 홈확인();

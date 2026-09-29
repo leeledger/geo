@@ -145,6 +145,43 @@ export async function readAsks(client: Client, day: string, answerMax = 1500, me
   });
 }
 
+export type ProbeGrid = {
+  days: string[];
+  rows: { promptId: string; question: string; form: "sentence" | "keyword"; radius: string; where: string; cells: (AskResult | null)[] }[];
+};
+
+/**
+ * 넓혀 본 질문(탐침) — 개선 루프가 동네 질문을 「송파」「서울」「동네 없이」로 넓히거나 검색어형(「송파구 코딩학원 추천」)으로 만든 것.
+ * 따로 표(academy.ai_probe_questions · ai_probe_measurements)라 승인 20문항 숫자와 안 섞인다.
+ * 한 줄 = 탐침 하나 × 곳 하나. 아직 안 잰 탐침도 보인다. 표가 없으면 null
+ */
+export async function readProbeGrid(client: Client, days = 14): Promise<ProbeGrid | null> {
+  const t = await pool().query(`select to_regclass('academy.ai_probe_questions')::text as q, to_regclass('academy.ai_probe_measurements')::text as m`);
+  if (!t.rows[0]?.q) return null;
+  const probes = await pool().query(
+    `select prompt_id, text, coalesce(form,'sentence') as form, coalesce(radius,'') as radius
+       from academy.ai_probe_questions where client_id = $1 and active order by id`, [client.id]);
+  const r = t.rows[0].m ? await pool().query(
+    `select measured_on::text as day, prompt_id, collection_method as method, max(engine) as engine,
+            bool_or(mentioned) as m, bool_or(cited) as c
+       from academy.ai_probe_measurements
+      where client_id = $1 and measured_on > (now() at time zone 'Asia/Seoul')::date - $2::int
+      group by 1, 2, 3`, [client.id, days]) : { rows: [] as { day: string; prompt_id: string; method: string; engine: string; m: boolean; c: boolean }[] };
+  const ds = [...new Set(r.rows.map((x) => x.day as string))].sort();
+  const rows: ProbeGrid["rows"] = [];
+  for (const p of probes.rows) {
+    const mine = r.rows.filter((x) => x.prompt_id === p.prompt_id);
+    const methods = [...new Set(mine.map((x) => x.method as string))];
+    const base = { promptId: p.prompt_id, question: p.text, form: (p.form === "keyword" ? "keyword" : "sentence") as "sentence" | "keyword", radius: p.radius };
+    if (!methods.length) { rows.push({ ...base, where: "아직 안 잼", cells: ds.map(() => null) }); continue; }
+    for (const m of methods) {
+      const cells = new Map(mine.filter((x) => x.method === m).map((x) => [x.day as string, resultOf(!!x.m, !!x.c)]));
+      rows.push({ ...base, where: whereOf(mine.find((x) => x.method === m)?.engine ?? "", m).where, cells: ds.map((d) => cells.get(d) ?? null) });
+    }
+  }
+  return { days: ds, rows };
+}
+
 /** 한 곳에서 질문별 최근 며칠 — 같은 질문이 날마다 어떻게 나왔나. 곳을 섞지 않는다 */
 export async function readAskGrid(client: Client, method: string, days = 14): Promise<AskGrid> {
   const r = await pool().query(

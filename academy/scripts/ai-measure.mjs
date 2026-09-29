@@ -34,6 +34,9 @@ const ONLY = arg("--engine");
 const LIMIT = Number(arg("--limit")) || 0;
 const 오늘 = new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" });
 const 쉼 = (ms) => new Promise((r) => setTimeout(r, ms));
+const 시작 = Date.now();
+/** 넓힘 탐침(academy.ai_probe_questions)은 하루 이만큼만. 승인 20문항을 다 잰 뒤에만 잰다 */
+const 탐침수 = Number(process.env.MEASURE_PROBES_PER_DAY ?? 2) || 0;
 
 const 도메인 = (s) => {
   try { return new URL(s).hostname.replace(/^www\./, "").toLowerCase(); }
@@ -244,6 +247,28 @@ const main = async () => {
     imported_at timestamptz not null default now(),
     unique (client_id, measured_on, collection_method, engine, prompt_id, attempt))`);
 
+  /**
+   * 한 문항 결과를 넣는다. 탐침(p*)은 academy.ai_probe_measurements 로 간다(x.form 이 있으면 탐침).
+   * ai_measurements 를 날·곳으로 묶어 세는 곳이 케이스 리포트·현황판 등 여럿이다 — 탐침이 섞이면 영업 숫자가 바뀐다(Richard 22)
+   */
+  const 적재 = async (e, x, r) => {
+    const mentioned = 이름.test(r.answer);
+    const cited = r.citations.some((c) => c.domain === client.domain || c.domain.endsWith(`.${client.domain}`));
+    const 탐침 = Boolean(x.form);
+    await q(
+      `insert into ${탐침 ? "academy.ai_probe_measurements" : "academy.ai_measurements"}
+         (client_id, measured_on, collection_method, engine, model, prompt_id, stage, prompt_text,
+          attempt, mentioned, cited, citations, note, raw${탐침 ? ", form, radius" : ""})
+       values ($1,$2,$3,$4,$5,$6,$7,$8,1,$9,$10,$11::jsonb,$12,$13::jsonb${탐침 ? ",$14,$15" : ""})
+       on conflict (client_id, measured_on, collection_method, engine, prompt_id, attempt) do nothing`,
+      [client.id, 오늘, e.method, e.engine, e.model, x.prompt_id, x.stage, x.text, mentioned, cited,
+        JSON.stringify(r.citations), "자동 API 측정 · 소비자 화면 아님",
+        JSON.stringify({ answer: r.answer, queries: r.queries ?? [], answer_urls: r.answerUrls ?? [] }),
+        ...(탐침 ? [x.form, x.radius] : [])],
+    );
+    return { mentioned, cited };
+  };
+
   let 성공엔진 = 0;
   let 시도엔진 = 0;
   const 요약 = [];
@@ -323,18 +348,7 @@ const main = async () => {
         await 쉼(e.gap);
         continue;
       }
-      const mentioned = 이름.test(r.answer);
-      const cited = r.citations.some((c) => c.domain === client.domain || c.domain.endsWith(`.${client.domain}`));
-      await q(
-        `insert into academy.ai_measurements
-           (client_id, measured_on, collection_method, engine, model, prompt_id, stage, prompt_text,
-            attempt, mentioned, cited, citations, note, raw)
-         values ($1,$2,$3,$4,$5,$6,$7,$8,1,$9,$10,$11::jsonb,$12,$13::jsonb)
-         on conflict (client_id, measured_on, collection_method, engine, prompt_id, attempt) do nothing`,
-        [client.id, 오늘, e.method, e.engine, e.model, x.prompt_id, x.stage, x.text, mentioned, cited,
-          JSON.stringify(r.citations), "자동 API 측정 · 소비자 화면 아님",
-          JSON.stringify({ answer: r.answer, queries: r.queries ?? [], answer_urls: r.answerUrls ?? [] })],
-      );
+      const { mentioned, cited } = await 적재(e, x, r);
       ok++;
       if (mentioned || cited) hit++;
       console.log(`  ${cited ? "◎" : mentioned ? "○" : "·"} ${e.engine} ${x.prompt_id} 출처 ${r.citations.length}`);
@@ -343,6 +357,57 @@ const main = async () => {
     if (ok > 0 || (todo.length === 0 && done.size > 0)) 성공엔진++;
     요약.push(`${e.engine}: 오늘 ${done.size + ok}/${questions.length} 측정 · 이번 실행 언급·인용 ${hit}/${ok}` +
       (fail ? ` · 실패 ${fail} (${마지막오류.slice(0, 120)})` : ""));
+
+    /**
+     * 넓힘 탐침 — daily-agent 자기 점검이 만든 「송파」「서울」「동네 없이」·검색어형 질문. 따로 표(ai_probe_measurements)에 넣는다.
+     * Claude(구독)로만, 승인 20문항을 다 잰 날에만 잰다. 기준선이 먼저다.
+     * optimize.yml 제한이 50분이라 35분이 지났으면 멈춘다 — 뒤의 개선 루프가 잘리면 안 된다
+     */
+    if (e.engine === "claude-code-web" && 탐침수 > 0 && !LIMIT && done.size + ok === questions.length) {
+      const [표] = await q(`select to_regclass('academy.ai_probe_questions')::text as t`);
+      if (!표.t) continue;
+      await q(`create table if not exists academy.ai_probe_measurements (
+        id bigserial primary key, client_id int not null default 1, measured_on date not null,
+        collection_method text not null, engine text not null, model text, prompt_id text not null,
+        stage text, prompt_text text not null, attempt int not null default 1,
+        mentioned boolean not null default false, cited boolean not null default false,
+        citations jsonb not null default '[]'::jsonb, note text, raw jsonb not null,
+        form text not null default 'sentence', radius text,
+        imported_at timestamptz not null default now(),
+        unique (client_id, measured_on, collection_method, engine, prompt_id, attempt))`);
+      // 가장 오래 안 잰 탐침부터. 오늘 잰 것은 빼고, 오늘 이미 잰 만큼은 한도에서 뺀다
+      const 탐침 = await q(
+        `select p.prompt_id, 'probe' as stage, p.text, p.form, p.radius, m.last_day
+           from academy.ai_probe_questions p
+           left join (select prompt_id, max(measured_on) as last_day from academy.ai_probe_measurements
+                       where client_id=$1 and collection_method=$2 group by prompt_id) m
+             on m.prompt_id = p.prompt_id
+          where p.client_id=$1 and p.active and (m.last_day is null or m.last_day < $3::date)
+          order by m.last_day nulls first, p.id
+          limit greatest(0, $4 - (select count(*) from academy.ai_probe_measurements
+                                   where client_id=$1 and collection_method=$2 and measured_on=$3::date))`,
+        [client.id, e.method, 오늘, 탐침수]);
+      let pOk = 0, pHit = 0;
+      for (const x of 탐침) {
+        // 한 문항이 3분까지 걸린다. 문항마다 본다 — 묶음 앞에서 한 번만 보면 35분에 시작해 42분까지 간다
+        if (Date.now() - 시작 > 35 * 60 * 1000) {
+          요약.push(`${e.engine} 탐침: 시작 후 35분이 지나 멈춤`);
+          break;
+        }
+        const r = await e.ask(e, x.text).catch((err) => ({ status: 0, error: err.message }));
+        if (r.error) {
+          console.log(`  ✗ ${e.engine} 탐침 ${x.prompt_id} ${r.status} ${r.error.replace(/\s+/g, " ").slice(0, 160)}`);
+          if ([400, 401, 402, 403, 404, 413, 429, 500, 503].includes(r.status)) break;
+          continue;
+        }
+        const { mentioned, cited } = await 적재(e, x, r);
+        pOk++;
+        if (mentioned || cited) pHit++;
+        console.log(`  ${cited ? "◎" : mentioned ? "○" : "·"} ${e.engine} 탐침 ${x.prompt_id} 출처 ${r.citations.length}`);
+        await 쉼(e.gap);
+      }
+      if (탐침.length) 요약.push(`${e.engine} 탐침: ${pOk}/${탐침.length} 측정 · 언급·인용 ${pHit}/${pOk}`);
+    }
   }
 
   // 크레딧이 없으면 웹 검색을 쓰는 측정이 통째로 막힌다(무료 모델도 검색은 유료다).

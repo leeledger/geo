@@ -69,6 +69,8 @@ export type Ops = {
     /** 그날 엔진별 자동 측정 적중 (예: "gemini 2/20 · groq-compound 0/20") */
     engines: string;
     history: { day: string; status: string; kind: string | null; verdict: string; note: string }[];
+    /** 루프가 스스로 찾은 문제 (daily-agent 자기 점검 · facts.selfcheck). DB 숫자로만 쓴 문장이다 */
+    selfcheck: { code: string; title: string; evidence: string }[];
   };
   /**
    * 에이전트 회사(academy/scripts/company.mjs)가 실제로 집어 간 일감과 한 일.
@@ -221,7 +223,7 @@ export async function readOps(client?: Client): Promise<Ops> {
     place: [],
     ai: { day: null, engine: null, method: null, prompts: 0, cited: 0, mentioned: 0, rounds: 0, comparable: false },
     sales: { scans30d: 0, leads30d: 0, newLeads: 0, unresolvedInquiries: 0, scanToLeadPct: 0 },
-    agentLoop: { day: null, status: "기록 없음", diagnosis: "실행 기록 없음", action: "오늘의 개선 루프를 실행합니다.", evidence: "", startedAt: null, completedAt: null, engines: "", history: [] },
+    agentLoop: { day: null, status: "기록 없음", diagnosis: "실행 기록 없음", action: "오늘의 개선 루프를 실행합니다.", evidence: "", startedAt: null, completedAt: null, engines: "", history: [], selfcheck: [] },
     company: { ok: false, tasks: [], activity: [] },
     recent: [],
     lastAt: { content: null, deliver: null, crawler: null, measure: null, next: null },
@@ -318,6 +320,7 @@ export async function readOps(client?: Client): Promise<Ops> {
       const runs = await q(`select run_day::text as run_day, status, diagnosis, action, evidence,
                started_at::text as started, completed_at::text as completed,
                coalesce(facts->>'engines','') as engines,
+               coalesce(facts->'selfcheck','[]'::jsonb) as selfcheck,
                to_jsonb(r) ->> 'action_kind' as kind,
                coalesce(to_jsonb(r) ->> 'verdict', '판정 전') as verdict,
                coalesce(to_jsonb(r) ->> 'verdict_note', '') as note
@@ -327,6 +330,9 @@ export async function readOps(client?: Client): Promise<Ops> {
         day: r.run_day, status: r.status, diagnosis: r.diagnosis, action: r.action, evidence: r.evidence,
         startedAt: r.started, completedAt: r.completed, engines: r.engines,
         history: runs.map((x) => ({ day: x.run_day, status: x.status, kind: x.kind, verdict: x.verdict, note: x.note })),
+        selfcheck: (Array.isArray(r.selfcheck) ? r.selfcheck : [])
+          .filter((f: { title?: unknown }) => typeof f?.title === "string")
+          .map((f: { code?: string; title: string; evidence?: string }) => ({ code: f.code ?? "", title: f.title, evidence: f.evidence ?? "" })),
       };
     } catch (e) { console.error("agent_runs 읽기 실패", e); }
 
