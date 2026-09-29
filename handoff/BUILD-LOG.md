@@ -1162,3 +1162,7 @@ Known Gaps (23·24)
 - KG-23-4 web/public/case/academy.html 은 case-report 새 절(방법·7일 비율)을 반영해 다시 굽지 않았다 — 공개본 생성은 원장 결정
 - KG-23-5 main 의 research/paid-pilot-order-form.md 환불 줄은 「전액 환불」, 브랜치는 「모두 돌려드립니다」 — 병합하면 맞춰짐
 - Arch 반영(리뷰 전): main be97bd1 측정 몫 기본 22(탐침 2 포함, 상한 40 그대로, 나머지 일 몫 18) · step24-copy 77fcbe6 28%·「다섯에 하나」 공개 문구 삭제. 나머지 판단(P_HAT 삭제·12×15 정정·60 합계·환불 문구·기준선 7일) 승인
+- Step 24 리뷰 반영 de2129c(step24-copy, main 위로 rebase): 약 4분의 1 삭제 · 흔들리는 범위 → 7일 n번 중 k번 · 측정 카드 방문 기록 삭제(신청서에 없음) · case-report 순위에 측정일·엔진
+- KG-24-1 web/public/case/academy.html 은 순위 측정일 붙은 판으로 아직 안 구움(공개본은 일차 표기)
+- KG-24-2 Step 23 Should Fix 미처리: hours-actions 날짜 실제성 검사·잘못된 입력 무표시 / ai-web-measure 없는 슬러그 일감이 학원(1) 칸에 붙음
+- 2026-09-29 밤: Step 23 PASS → 배포(d6ec9e4, 운영 Ready). Step 24 3차 PASS(ec48de8) → 브랜치 step24-copy 미리보기 https://geo-9wp3yboyq-codeis-projects-4c570294.vercel.app — **원장 승인 뒤 main 병합**. 병합 전 공개 케이스 리포트 재생성(KG-24-1)

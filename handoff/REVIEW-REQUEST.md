@@ -152,3 +152,16 @@ Ready for Review: YES
 - **step24-copy `77fcbe6`** — 28%·「다섯에 하나」(와 같은 근거인 llms.txt 「다섯 중 넷」)를 공개 문구에서 삭제. page.tsx 28% 카드(lp-stats 에 7/34 카드 하나만 남음), guides.ts 본문 2곳 + 사실 카드 3장, services.ts 본문 2곳, public/llms.txt 2줄. 문장은 숫자 없이 「물을 때마다 달라집니다」, 「출처에는 홈페이지 말고도 비교 기사·목록·커뮤니티 글이 섞여 있습니다」로 이었다. 숫자는 주석(page.tsx:32, guides.ts:17)에 내린 이유와 함께만 남음. tsc exit 0, grep `28%|다섯에 하나|다섯 중 넷|3문항` → 주석 2줄뿐
 - 승인됨(변경 없음): P_HAT 위젯 삭제 · 가이드 12×15 정정 · 60질의 모든 고객 합계 · 「390,000원 모두 돌려드립니다」 · 기준선 = 착수 뒤 첫 7일
 - 위 Step 24 대조표·D10 근거표의 28%·「다섯에 하나」 줄은 「남김」에서 「삭제」로 바뀐 것으로 읽어 주세요
+
+---
+
+## Step 24 리뷰 반영 (REVIEW-FEEDBACK 2026-09-29)
+
+- 브랜치를 main 위로 rebase 함(충돌 없음). 이제 step24-copy = be97bd1(몫 22) · d6ec9e4 위 `bee561d` → `ed691f8` → **`de2129c`**. claude-code.mjs 기본값 22 확인
+- **Must Fix 1** web/lib/guides.ts:91 「약 4분의 1」 → 「AI 답은 물을 때마다 달라지기 때문에, 횟수가 빠진 한 번의 값은 근거가 되지 않습니다.」 다시 grep `4분의|다섯에|28%|%가 바뀌|다섯 중|흔들리는|3문항` (web/app·lib·public, admin 제외) → 주석 2줄(page.tsx:32, guides.ts:17 — 내린 이유)만 남음
+- **Must Fix 2** web/lib/services.ts 측정 gives 「질문별 노출률과 흔들리는 범위」 → 「질문·AI별 최근 7일 n번 중 k번」. 신청서 「제공」 아래에 같은 표현 한 줄 추가(「보고서의 비율은 질문·AI별 최근 7일 n번 중 k번으로 적습니다…」)
+- **Should Fix** guides.ts:92 「계약서에 적고」 → 「어떤 방법으로 묻는지 시작 전에 적고」(page.tsx FAQ 와 같은 말)
+- **Arch 결정 — 방문 기록**: 신청서에 크롤러 방문 기록이 없다 → 측정 카드 gives 「AI 방문 기록」 줄과 does 「AI가 실제로 읽었는지 확인합니다」(같은 약속) 삭제. 신청서에 「AI 크롤러 방문 기록(고객 서버 장치)은 파일럿에 들지 않습니다」 한 줄. 기술 세팅·구축 카드(파일럿 뒤 선택)의 방문 기록 장치는 그대로
+- **Arch 결정 — 케이스 리포트 1위**: academy/scripts/case-report.mjs 검색 노출 표의 순위 칸에 측정일·엔진을 붙임(serp 쿼리에 day 추가). 공개본은 날짜 규칙(달력 날짜 → 일차)대로 「25일차 측정 · 네이버 웹문서」, `--private` 는 「09. 29. 측정 · 네이버 웹문서」(표준출력으로 확인). web/public/case/academy.html 은 다시 굽지 않음 → KG-24-1
+- tsc(web/, 브랜치) exit 0
+- 안 한 것: Step 23 Should Fix(hours-actions 날짜 검증·ai-web-measure 없는 슬러그 칸)는 이번 지시 범위 밖이라 BUILD-LOG 에만
