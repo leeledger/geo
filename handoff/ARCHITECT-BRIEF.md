@@ -71,3 +71,21 @@
 - **D26 구축·세팅 환불.** 착수 전 전액 · 시안(세팅은 작업 보고) 보여 준 뒤 50% · 사이트 공개(세팅 완료) 뒤 환불 없음. research/paid-pilot-order-form.md 의 「계약서에 따로」를 이 글자로. 신청서와 web 문구 대조 규칙 유지. 랜딩 공개 문구는 안 바꾼다.
 - **D27 리드 메일.** Resend HTTP API. /api/lead 저장 뒤 `RESEND_API_KEY`·`LEAD_ALERT_TO` 가 있으면 한 통(제목 「새 상담 신청」, 본문: 이름 첫 글자+**, 연락처 끝 4자리만, 관리 화면 링크). 없으면 조용히 건너뜀. 실패해도 저장은 성공. 키는 원장이 만든다 — 코드만.
 - **D28 PC.** 코드 없음. SOP 에 「파일럿 기간 PC 매일 10시 전후 켜 둠」 한 줄.
+
+## Step 29 — 고객사 사이트 사람 방문 추이 (원장 2026-09-30)
+
+원장: 「고객사 랜딩에 방문수 추이를 모니터링할 수 있게. 지금은 로봇앤코딩과 아이로그」.
+지금 두 사이트 proxy.ts 는 **봇만** 보낸다(학원: academy/proxy.ts → 자기 /api/crawl → DB, 아이로그: C:\dev\자동피드백생성기\proxy.ts → 사이티드 web /api/crawl, x-cited-client·x-cited-key). 사람 방문은 아무도 안 센다.
+
+- **D29 표** `geo.site_visits(id bigserial, client_id int, at timestamptz default now(), day date(KST), path text, ref_host text, ref_kind text check in (ai, search, sns, direct, other), visitor text, device text)` + RLS, 인덱스(client_id, day). 양쪽 schema.sql.
+  - **IP 를 저장하지 않는다.** visitor = sha256(ip + ua + KST 날짜 + 비밀 소금) 앞 16자 — 같은 날 같은 사람만 묶이고 다음 날은 못 잇는다(쿠키 없음 → 동의 배너 불필요). 소금은 env `VISIT_SALT`(없으면 기록 안 함).
+  - ref_kind: ai = chatgpt.com·chat.openai.com·perplexity.ai·gemini.google.com·claude.ai·copilot.microsoft.com 등 / search = google·naver·daum·bing·yahoo·duckduckgo / sns = instagram·facebook·kakao·youtube·x·t.co·blog.naver 는 search 가 아니라 sns? → **blog.naver.com·cafe.naver.com 은 sns**, search.naver.com 은 search / 같은 도메인 이동은 기록하되 ref_kind 는 direct 가 아니라 `internal` 로(체크에 추가) / 없으면 direct. utm_source 가 있으면 그것을 우선(chatgpt.com 은 링크에 utm_source=chatgpt.com 을 붙인다).
+- **D30 무엇을 셀지** — 사람의 **문서 요청만**: GET, `sec-fetch-dest: document`(없으면 Accept 에 text/html), `next-router-prefetch`·`purpose: prefetch`·RSC 요청 제외, /_next·/api·/admin·정적 파일 제외, identify() 가 봇이거나 UA 에 bot|crawl|spider|headless|preview|monitor 면 제외. 응답을 붙잡지 않는다(waitUntil — 기존 봇 기록과 같은 방식).
+- **D31 받는 곳** — 사이티드 web `/api/visit`(x-cited-client·x-cited-key, /api/crawl 과 같은 인증·clientForKey). 학원도 같은 곳으로 보낸다(학원 client 에 crawl_key 가 없으면 학원은 자기 /api/visit 를 두어 DB 로 — 둘 중 코드를 보고 단순한 쪽, REVIEW-REQUEST 에 이유). 본문 크기 상한, path·ref 길이 상한, 초당 폭주 대비(같은 visitor·path 1분 안 중복은 무시).
+- **D32 화면** — `/admin/ops` 고객 탭(로봇&코딩학원·아이로그)에 「사람 방문」 카드:
+  - 최근 30일 날짜별 방문자(visitor 중복 제거)·페이지뷰 선 그래프(기존 현황판 차트 모양·색을 따르고 새 라이브러리 금지), 지난 7일 vs 그 전 7일.
+  - 유입 경로 막대: AI · 검색 · SNS · 바로 · 기타 (내부 이동은 빼고), **AI 유입은 곳별(ChatGPT·Perplexity·Gemini·Claude…) 숫자**를 따로 — 매출 고리의 새 근거다.
+  - 많이 본 페이지 5개.
+  - 기록 시작일을 적는다(「9/30 부터 셈 — 그 전은 없음」). 0 이면 0 이라고. 지어낸 추정치 금지.
+- **D33 배포** — 학원은 `academy/` 에서 `npx vercel --prod --yes`(git push 로 배포 안 됨 — CLAUDE.md). 아이로그는 C:\dev\자동피드백생성기 에서 같은 명령(메모리 ilog-source-repo). 두 곳에 env `VISIT_SALT` 가 필요하면 Arch 가 넣는다 — 코드에서는 없으면 조용히 건너뜀. 사이티드 web 은 git push.
+- 확인: 가짜 요청으로 분류 함수(ref_kind·사람/봇·문서 요청) 단위 시험, tsc(세 저장소 각각), 학원·아이로그 기존 봇 기록 경로가 그대로인지. 실제 운영 DB 쓰기·배포 금지.
