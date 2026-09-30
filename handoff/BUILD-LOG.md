@@ -1261,3 +1261,17 @@ Known Gaps (26)
 - 확인: 시험 31개 통과(D25 8 · D27 4 추가), web tsc 0, node --check. DB 쓰기·실측정·메일 발송 없음
 - KG-28-3 Resend 키·받는 주소는 원장 몫(Vercel env 는 파일로 넣고 env pull 로 길이 확인 — CLAUDE.md 함정). 받는 주소가 Resend 계정 주인이 아니면 도메인 인증이 필요하다
 - 2026-09-30: Step 28 Richard PASS + Should Fix 4건 Arch 직접(측정 몫 ≤ 하루 상한 · 신청서 내부 메모 제거 · 메일은 after() 로 응답 뒤 · 짧은 번호 문구) → 배포. RESEND_API_KEY 운영 env 넣음(36자 확인, API 200). LEAD_ALERT_TO 는 원장 주소 대기
+
+### Step 29 — 고객사 사이트 사람 방문 추이 (D29~D33) — BUILT · Richard 대기 (2026-09-30, Bob)
+- 커밋: AGO&GEO e8873b0 · 자동피드백생성기 d30c9c0. 푸시·배포·DB 쓰기 안 함
+- D29 geo.site_visits (ref_kind 에 internal 포함) + 인덱스(client_id, day) + RLS. web/db·academy/db schema.sql 양쪽. 받는 두 라우트가 인스턴스마다 한 번 if not exists 로 만든다 — 배포 직후 첫 방문부터 받아야 「그날부터 셈」이 맞다. company.mjs 에는 안 넣음(화면은 표가 없으면 「기록 없음」, 42P01)
+- 분류는 순수 파일 하나(lib/visit.ts)를 세 저장소에 같은 글자로 둔다: academy/lib/visit.ts · web/lib/visit.ts · 자동피드백생성기/lib/cited-visit.ts. test-visit.mjs 가 사본·DDL·insert 를 대조
+- visitor = sha256(ip|ua|KST날짜|VISIT_SALT) 앞 16자, **보내는 쪽(proxy)에서** 만든다 — IP 는 고객사 서버 밖으로 안 나간다. 소금 없으면 아무것도 안 보냄
+- D31 결정: 학원은 **자기 /api/visit → DB 직접**(/api/crawl 과 같은 x-crawl-key). 이유: 학원 geo.clients 에 crawl_key 를 새로 넣고 학원 서버에 또 둬야 사이티드로 보낼 수 있다 — DB 쓰기 금지이기도 하고, 기존 봇 기록과 같은 모양이 더 단순. client_id 1 고정(clients.mjs)
+- 설계 밖 결정(Arch 확인 요청): 아이로그는 **공개 랜딩만** 센다(sitemap.ts 쪽: / · /features · /guide · /terms · /privacy). 대시보드·출결 키패드·학부모 페이지는 로그인한 학원 사람들이 하루 수십 번 열어 랜딩 추이를 덮는다
+- 설계 밖 작은 것: BOTLIKE 에 lighthouse·screenshot·scrap(카톡 미리보기)·externalhit·slurp 추가, prerender 도 제외, 경로의 물음표 뒤는 버림(이름·전화가 딸려 올 수 있다)
+- D32 /admin/ops 「사람 방문 — 고객명」 카드: 어제까지 7일 방문자·페이지뷰 vs 그 전 7일(기록 14일 안 차면 「아직 비교 전」, 7일 안 차면 「기록 n일치」), 오늘 지금까지, 30일 선그래프(CoverageChart 재사용 — unit·aria 만 인자로, 색 #1F9E90·#7C8AF2), 들어온 곳 막대 5칸(내부 이동 뺌), AI 곳별, 많이 본 페이지 5. 「M/D 부터 셈 — 그 전은 없음」
+- 확인: test-visit 72 통과 0 실패, tsc 0 (academy · web · 자동피드백생성기), 아이로그 eslint 0
+- KG-29-1 페이지뷰는 **문서 요청만**이라 사이트 안 링크 이동(Next 클라이언트 이동 = RSC)은 대부분 안 잡힌다. 설계(D30)대로 — 화면에 그렇게 적었다. 실제 쪽 수가 필요하면 브라우저 쪽 비컨이 따로 든다
+- KG-29-2 학원 CRAWL_KEY 가 비어 있으면 학원 /api/visit 는 누구나 넣을 수 있다(/api/crawl 과 같은 약점). cleanVisit 이 모양·길이는 막는다
+- KG-29-3 화면은 실제 브라우저로 안 봤다(운영 DB 에 표가 없어 빈 상태만 나온다). 배포 뒤 첫 기록이 쌓이면 390px·데스크톱 눈으로 확인

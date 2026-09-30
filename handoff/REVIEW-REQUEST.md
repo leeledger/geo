@@ -1,54 +1,67 @@
-# Review Request — Step 28 (재점검 잔여 D19~D24 + 원장 결정 D25~D28)
+# Review Request — Step 29 (고객사 사이트 사람 방문 추이 D29~D33)
 Date: 2026-09-30
 Ready for Review: YES
-Status: DONE
+Status: DONE_WITH_CONCERNS — 코드·시험·tsc 는 통과. 화면은 실제 브라우저로 못 봤다(운영 DB 에 표가 없어 빈 상태만 나온다 · 배포 금지)
+
+## 커밋 (푸시·배포·운영 DB 쓰기 없음)
+- AGO&GEO `e8873b0` — Step 29 — 고객사 사이트 사람 방문 추이 (13 파일) + 이 문서·BUILD-LOG 는 뒤 커밋
+- 자동피드백생성기 `d30c9c0` — 사람 방문을 사이티드로 보낸다 (2 파일)
 
 ## Files Changed
-- tools/submit-gsc.mjs:19,24-28,31-63 — clients.mjs 에 없는 `--client`/CLIENT_ID 면 geo.clients.domain 으로 대체(D19). 지정 없음=학원(CLIENTS[0]), DB 는 대체할 때만 연다
-- academy/measure-targets.mjs:15,29 — `도메인정리` export(submit-gsc 재사용), 구축대기한도 import
-- academy/measure-targets.mjs:58,65 — 구축·세팅 + 연 날 없음은 착수+60일(당일)부터 측정 대상에서 뺀다(D22)
-- academy/pilot-plan.mjs:24-29 — `구축대기한도 = 60` 한 곳에서 정의
-- academy/scripts/company.mjs:38,392-409 — 착수+60일 넘은 연 날 없는 구축·세팅 파일럿 → 사람 대기 `pilot-launch-<id>` 「<이름> 사이트 연 날을 넣어 주세요」. 세 목록 다 읽혔을 때만 pilot 신호 읽음
-- web/lib/answer-pattern.ts:8-25 — 붙여 쓴 한글 글자 사이 `\s?`(D20). 낱말 사이 `\s*`·&·40자·10개 그대로
-- academy/pilot-report-core.mjs:57-68 — 보고서 경쟁사 `이름정규식`도 같은 규칙(주석이 「answer-pattern.ts 와 같은 규칙」이라 맞춤)
-- tools/ai-web-measure.mjs:191-194,222 — 승인 질문 없음은 일감만 올리고 exitCode 안 건드림(D21, ai-measure 와 같은 「대기」)
-- web/lib/pilot-actions.ts:29-44 — createPilot 조용한 return → `redirect(/admin/pilots?err=…&f=…)`(D23). slug 는 `^[a-z0-9-]{1,40}$` 아니면 되묻는다. 내부 고객 검사는 트랜잭션 밖
-- web/app/admin/pilots/page.tsx:57-73,78-80,157-161 — err 코드 → 사람 말 한 줄, 오류면 등록 자세히 열림
-- .github/workflows/{audit,company,write,repair,sales}.yml — CLAUDE_MEASURE_RESERVE·CLAUDE_DAILY_MAX vars 줄(D24, optimize.yml 과 같은 줄, 값 불변)
+공통 분류 (세 저장소 같은 글자 — test-visit.mjs 가 대조)
+- academy/lib/visit.ts:1-151 — classifyRef(utm 우선 · AI→SNS→검색 순, blog/cafe.naver 는 SNS, 같은 도메인은 internal) · isHumanDocument(D30) · deviceOf · kstDay · readVisit(보내는 쪽: 해시·경로만, IP 안 보냄, 물음표 뒤 버림) · cleanVisit(받는 쪽: 모양·길이·글자)
+- web/lib/visit.ts — 위와 같은 파일
+- C:\dev\자동피드백생성기\lib\cited-visit.ts — 위와 같은 파일
 
-## 확인 (DB 쓰기·실측정·푸시 없음)
-- 가짜 행·순수 함수 16개 통과: 「미소치과」↔「미소 치과」, 빈칸 둘은 안 걸림, & 규칙·점 escape·i 그대로, 40자 최악 입력 1ms, 41자 null, 경쟁사 정규식 동일 규칙, 착수+59일 잰다/+60일 뺀다/연 날 넣으면 다시 잰다, 학원 항상 잰다
-- 학원 이름 판별 그대로: `측정설정` 결과 answerRe = clients.mjs 원문 `(?<!똑똑한\s?)(로봇\s?(&|&amp;|앤|and)\s?코딩)|robotncoding`, 도메인 = clients.mjs 값. clients.mjs diff 없음
-- node --check 6개 · web `node ./node_modules/typescript/bin/tsc --noEmit` 0
+학원 (academy/)
+- academy/proxy.ts:15 — matcher 에서 api/visit 제외 / :20-24 봇이 아니면 waitUntil(sendVisit) / :45-58 sendVisit. **봇 분기(:26-42)는 한 글자도 안 바뀜**
+- academy/app/api/visit/route.ts:1-70 — x-crawl-key 확인 · 2KB 상한 · cleanVisit · 표 한 번 준비 · 1분 중복 무시 insert. client_id 1 고정
+- academy/db/schema.sql:176-191 — geo.site_visits + 인덱스 + RLS
+- academy/scripts/test-visit.mjs:1-192 — 단위 시험(아래)
+
+사이티드 (web/)
+- web/app/api/visit/route.ts:1-49 — /api/crawl 과 같은 clientForKey 인증 · 2KB · cleanVisit · saveVisit
+- web/lib/visits.ts:17-48 — VISITS_DDL · 1분 중복 무시 INSERT · saveVisit(인스턴스마다 표 한 번 준비)
+- web/lib/visits.ts:69-130 — readVisits: 기록 시작일, 30일(시작 전은 안 그림), 어제까지 7일 vs 그 전 7일(기록 안 찬 칸은 null), 들어온 곳 5칸(internal 뺌), AI 곳별, 많이 본 5. 표 없으면(42P01) 빈 상태
+- web/app/admin/ops/Visits.tsx:1-129 — 「사람 방문 — 고객명」 카드
+- web/app/admin/ops/CoverageChart.tsx — 계열별 unit·aria `what`·`table` 인자만 추가(기본값 = 예전 동작)
+- web/app/admin/ops/Growth.tsx:76 — Word 를 export (Visits 가 같은 변화 단어를 쓴다)
+- web/app/admin/ops/page.tsx:9,17,154-158,191 — readVisits 병렬로 읽고 Growth 아래에 카드
+- web/db/schema.sql:179-194 — geo.site_visits + 인덱스 + RLS
+
+아이로그 (C:\dev\자동피드백생성기)
+- proxy.ts:50-51 — 봇이 아니고 공개 랜딩이면 waitUntil(sendVisit) / :56-60 LANDING / :63-75 sendVisit → https://geo-rose-nine.vercel.app/api/visit (x-cited-client: ilog · CITED_CRAWL_KEY). 봇 분기 그대로
+
+## 결정 (BUILD-LOG 에도)
+- **D31 학원은 자기 /api/visit → DB 직접.** 사이티드로 보내려면 학원 geo.clients 에 crawl_key 를 새로 넣고(DB 쓰기) 학원 서버에도 둬야 한다. 학원 /api/crawl 과 같은 모양이라 더 단순
+- **visitor 해시는 보내는 쪽(proxy)에서.** IP 가 고객사 서버 밖으로 안 나간다. 그래서 VISIT_SALT 는 학원·아이로그 두 곳에만 필요, 사이티드 web 에는 필요 없다
+- **표는 받는 라우트가 if not exists 로 준비**(인스턴스마다 한 번). company.mjs 가 돌기 전에 배포되면 첫날 기록이 날아가서
+- **(설계 밖, Arch 확인)** 아이로그는 공개 랜딩(/ · /features · /guide · /terms · /privacy — sitemap.ts 목록)만 센다. 대시보드·출결 키패드는 학원 사람들이 하루 수십 번 연다
+- 페이지뷰는 문서 요청만(D30) — 사이트 안 링크 이동(Next RSC)은 대부분 안 잡힌다. 카드 설명에 그대로 적었다
+
+## 시험 출력
+```
+$ node --experimental-strip-types academy/scripts/test-visit.mjs
+72 통과 · 0 실패
+  (들어온 곳 32 · 문서 요청 24 · 기기 · KST 경계 · readVisit 5 · cleanVisit 3 · 사본 2(web·아이로그) · DDL/인덱스/RLS/insert 대조 4)
+$ academy: node ./node_modules/typescript/bin/tsc --noEmit            → exit 0
+$ web:     node ./node_modules/typescript/bin/tsc --noEmit            → exit 0
+$ 자동피드백생성기: node ./node_modules/typescript/bin/tsc --noEmit -p tsconfig.json → exit 0
+$ 자동피드백생성기: eslint proxy.ts lib/cited-visit.ts                 → 0
+```
+
+## 배포 때 (Arch)
+- env `VISIT_SALT` — 학원 Vercel(academy) · 아이로그 Vercel 각각. 아무 긴 임의 문자열, 두 곳 달라도 된다. **파일로 넣고 env pull 로 길이 확인**(CLAUDE.md BOM 함정). 없으면 사람 기록만 조용히 꺼져 있다
+- 기존 env 그대로 씀: 학원 `CRAWL_KEY` · 아이로그 `CITED_CRAWL_KEY` · web `DATABASE_URL`
+- 순서: web(git push, /api/visit 먼저 살아야 함) → 학원 `academy/` 에서 `npx vercel --prod --yes` → 아이로그 `C:\dev\자동피드백생성기` 에서 `npx vercel --prod --yes`
+- 확인: 각 사이트를 브라우저로 한 번 열고 `/admin/ops?c=robotncoding` · `?c=ilog` 카드에 「9/30 부터 셈」과 오늘 1명이 뜨는지. 봇 기록은 크롤러 표가 계속 느는지
 
 ## Open Questions
-- D20 을 보고서 경쟁사 정규식(pilot-report-core)에도 적용했다 — 설계서는 answer-pattern 조립만 말했지만 두 곳이 「같은 규칙」이라 한쪽만 바꾸면 주석이 거짓이 된다. 경쟁사 숫자가 띄어쓰기 변형만큼 늘 수 있다(학원은 경쟁사 미설정이라 영향 없음)
-- D23 slug: 예전엔 허용 안 되는 글자를 몰래 뺐다. 이제 거절하고 되묻는다 — 의도대로인지
-- D22 경계: 착수+60일 당일부터 제외(`오늘 < 착수+60`), SQL 도 `>= kickoff_on + 60` 로 같은 날 일감
+- 아이로그 랜딩만 세는 것(설계 밖) 괜찮은가
+- utm 이 referer 보다 먼저라서 utm_source=chatgpt.com 인데 referer 가 구글이면 AI 로 센다(설계서 문구대로). 반대로 utm 이 엉뚱한 값(newsletter)이면 other
+- CoverageChart 를 넓힌 방식(값 칸 이름이 여전히 `pages`) — 이름 바꾸는 게 낫다면 Coverage 쪽까지 손대야 해서 안 했다
 
-## D25~D28 (원장 결정 추가, Arch 2026-09-30) — DONE
-
-### Files Changed
-- academy/measure-targets.mjs:83-104 — `유료측정일(q, 오늘)`(DB 전체로 「유료 파일럿이 오늘 측정 대상」, 칸 준비 없음, 못 읽으면 false) · `측정상한(유료, env)` 40/22/60 ↔ 유료 날 60/42/120, env 숫자 먼저·"" 는 없음(D25)
-- academy/scripts/claude-code.mjs:23-24,39,84-88 — 하루 상한·측정 몫을 위 둘로 고른다. 모든 워크플로(repair·sales·write·audit·company·optimize)의 Claude 호출이 여기를 지나 합계가 한 규칙. 안 쓰이게 된 `정수` 도우미 지움
-- academy/scripts/ai-measure.mjs:22,231-232 — 측정 몫(탐침·고객 나눔)도 같은 함수
-- tools/ai-web-measure.mjs:32,230-232 — 화면 하루 상한을 main 안에서 같은 함수로(맨 위 상수 지움)
-- research/paid-pilot-order-form.md:51-57 — 「계약서에 따로」 → 구축·세팅 환불 세 줄(D26). 30일 파일럿 환불 절·web/lib/services.ts 글자 그대로. 「착수는…」 → 「30일 파일럿의 착수는…」
-- web/app/admin/pilots/[id]/page.tsx:198 — 관리 화면 「계약서 기준」을 같은 기준 글자로(랜딩 아님)
-- web/lib/lead-alert.ts (새) · web/app/api/lead/route.ts:3,63-64 — 저장 성공 뒤 Resend 한 통(D27). 키·받는 주소 둘 다 있을 때만, 5초 제한, 던지지 않음. 본문은 이름 첫 글자+** · 전화 끝 4자리 · `<origin>/admin`
-- research/pilot-measurement-sop.md:33 — 파일럿 기간 PC 매일 10시 전후 켜 둠(D28)
-
-### 확인
-- 시험 31개 통과(D25: 두 날 값·빈 vars·env 우선·측정 아닌 몫 18 유지·유료/0원/DB 실패 · D27: 가림·빈 값·키 없음 안 보냄·실패 안 던짐) · web tsc 0 · node --check
-- 학원만 있는 날은 40/22/60 — 지금과 같다. `gh variable list` 에 CLAUDE_*·WEB_MEASURE_* 없음, academy/.env.local 에도 없음 → 기본값이 돈다
-
-### Open Questions
-- D25: env(GitHub vars)를 넣으면 두 배 규칙보다 먼저다(지시대로). 나중에 vars 를 40 으로 넣으면 유료 날에도 40 — 원장이 알아야 한다
-- D25: claude-code.mjs 가 호출마다 고객 목록 select 한 번을 더 한다(하루 수십 번). 캐시는 안 했다 — 날이 바뀌거나 파일럿이 새로 들어오는 경우를 단순하게 맞추려고
-- D26: 구축 쪽은 「구축·세팅 작업 착수 전」으로 적어 30일 파일럿 착수(질문 승인 뒤 첫 측정)와 갈랐다. 원장 말 「착수 전」의 뜻이 맞는지
-- D27: 보내는 주소가 onboarding@resend.dev 로 고정 — Resend 계정 주인 주소로만 간다. LEAD_ALERT_TO 가 다른 주소면 도메인 인증 + from 변경이 필요(KG-28-3)
-
-## Out of Scope (logged in BUILD-LOG)
-- KG-28-1 이미 저장된 외부 고객 answer_pattern 은 옛 규칙 — 다시 저장 필요
-- KG-28-2 D23 오류 뒤 폼 입력값은 되살리지 않는다
-- KG-28-3 Resend 키·받는 주소 원장 몫(env 는 파일로 넣고 길이 확인)
+## Out of Scope (BUILD-LOG KG-29-1~3)
+- 사이트 안 이동 페이지뷰(브라우저 비컨이 필요)
+- 학원 CRAWL_KEY 비었을 때 /api/visit 무인증(/api/crawl 과 같은 약점)
+- 화면 눈 확인(배포 뒤)
