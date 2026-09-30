@@ -6,7 +6,8 @@
  *
  * 질문은 지어내지 않았다. 재료는 셋뿐이다.
  *   consider  회사 루프 who-wins 가 만든 「겨냥 초안」 일감 7건의 질문 원문 (geo.agent_tasks kind=question-draft, client 2 — 2026-09-30 DB 에서 읽음)
- *   problem   아이로그 가이드 5편의 제목 (C:\dev\자동피드백생성기 lib/guides.ts — 이 질문에 답하는 페이지가 이미 있다)
+ *   problem   아이로그 가이드(C:\dev\자동피드백생성기 lib/guides.ts) 주제 — 가이드 제목 그대로가 아니라 채팅창 말투로 고침(Arch 2026-09-30).
+ *             영어 내신 출제는 주제 밖이라 빼고 요금 질문으로 바꿈(요금 답은 guides.ts·marketing-facts.ts 에 있다)
  *   keyword   검색어형(Step 22 틀처럼 사람이 치는 말) — clients.mjs 아이로그 검색어와 guides.ts 의 query 칸
  *   brand     이름 질문 3개 — 학원 패널의 이름 질문 꼴(「어떤 곳이야?」「이 사이트 무슨 …」)과 guides.ts FAQ 원문
  * 기능은 guides.ts·marketing-facts.ts 에 적힌 것(출결 키패드·알림톡·문자·수업 리포트·영어 예상 문제)만 질문에 들어간다.
@@ -32,11 +33,11 @@ export const 패널 = [
   ["consider", "학원 수업 리포트 보내는 앱 어떤 게 좋아요?", "겨냥 초안 일감 #33"],
   ["consider", "학원관리프로그램 추천 좀 해주세요", "겨냥 초안 일감 #417"],
   ["consider", "학원 출결 관리 앱 뭐가 있어요?", "겨냥 초안 일감 #757"],
-  ["problem", "학원 관리 프로그램, 무엇을 보고 골라야 하나요?", "guides.ts how-to-choose-academy-management-program 제목"],
-  ["problem", "무료 학원 관리 프로그램, 어디까지 무료인가요?", "guides.ts free-academy-management-program 제목"],
-  ["problem", "학원 출결을 학부모 카카오톡으로 자동으로 알리려면 무엇이 필요한가요?", "guides.ts academy-attendance-kakao-notification 제목"],
-  ["problem", "학원 수업 리포트, AI가 대신 쓰면 선생님은 무엇을 하나요?", "guides.ts ai-class-report 제목"],
-  ["problem", "학교별 기출로 영어 내신 예상 문제를 만들 수 있나요?", "guides.ts english-exam-generator 제목"],
+  ["problem", "학원 관리 프로그램 고를 때 뭘 봐야 해?", "guides.ts 주제 · 채팅 말투로 고침(Arch) — how-to-choose-academy-management-program"],
+  ["problem", "무료 학원 관리 프로그램은 어디까지 공짜야?", "guides.ts 주제 · 채팅 말투로 고침(Arch) — free-academy-management-program"],
+  ["problem", "학원 출결을 학부모한테 카톡으로 자동으로 보내려면 어떻게 해?", "guides.ts 주제 · 채팅 말투로 고침(Arch) — academy-attendance-kakao-notification"],
+  ["problem", "학원 수업 리포트를 AI가 써 주는 프로그램 있어?", "guides.ts 주제 · 채팅 말투로 고침(Arch) — ai-class-report"],
+  ["problem", "학원 관리 프로그램 한 달에 보통 얼마야?", "guides.ts 주제 · 채팅 말투로 고침(Arch) — 요금(영어 내신 출제는 주제 밖이라 뺌)"],
   ["keyword", "학원 관리 프로그램 추천", "guides.ts query · 설계서 예시"],
   ["keyword", "무료 학원 관리 프로그램", "guides.ts query · clients.mjs c3"],
   ["keyword", "학원 출결 관리 앱", "clients.mjs c4"],

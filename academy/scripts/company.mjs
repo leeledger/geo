@@ -31,6 +31,7 @@ import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { Pool } from "pg";
 import { CLIENTS as CLIENT_CONF, 세션글제목 } from "../clients.mjs";
+import { 같은질문일감, 세션글키 } from "./session-task.mjs";
 import { 오픈라우터, 재시도, 모델들, 공급자들 } from "./writer-common.mjs";
 import { 프로필 } from "./profile.mjs";
 import { PM보고 } from "./pm-report.mjs";
@@ -657,11 +658,15 @@ const EXEC = {
       } else {
         // 글 쓰는 길이 세션인 고객은 처음부터 세션 글 일감(세션 대기)으로 — 관찰로 묵히지 않는다(Step 30 D37)
         const 세션 = c.conf?.loop?.draft === "session";
-        await 일감({ client_id: c.id, agent: "content", kind: "question-draft", key: `qdraft-${h}`, priority: 35,
-          title: 세션 ? 세션글제목(c.name, it.question || it.query) : `겨냥 초안: 「${it.question || it.query}」`,
+        // 세션 고객은 같은 질문이면 한 일감 — 개선 루프(daily-agent)와 같은 규칙: 질문 글자로 있는 일감 키, 없으면 세션글키(질문)
+        const 질문 = it.question || it.query;
+        const 키 = 세션 ? ((await 같은질문일감(q, c.id, 질문))?.dedupe_key ?? 세션글키(질문)) : `qdraft-${h}`;
+        await 일감({ client_id: c.id, agent: "content", kind: "question-draft", key: 키, priority: 35,
+          title: 세션 ? 세션글제목(c.name, 질문) : `겨냥 초안: 「${질문}」`,
           detail: `${it.reason ?? ""}\n이기는 곳: ${(it.targets ?? []).join(", ")}`,
-          ...(세션 ? { status: "세션 대기" } : {}),
-          payload: { sticky: true, question: it.question || it.query, stage: "local", sources: it.targets ?? [] } });
+          // 끝낸 세션 글을 24시간 뒤 다시 열면 7일 판정 창이 끝나기 전에 같은 글을 또 쓰라는 일감이 선다 — 30일 쉰다
+          ...(세션 ? { status: "세션 대기", cooldownH: 24 * 30 } : {}),
+          payload: { sticky: true, question: 질문, stage: "local", sources: it.targets ?? [] } });
       }
       made.push(`${it.query}→${it.action}`);
     }

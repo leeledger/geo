@@ -23,12 +23,12 @@
  * 이름 질문 적중 말, 홈 JSON-LD 검사, 글 쓰는 길(학원은 write-draft, 아이로그는 Claude 세션 일감), 넓힘 탐침 여부.
  */
 import fs from "node:fs";
-import crypto from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { Pool } from "pg";
 import { 자기점검, 점검요약, 겹침 } from "./loop-review.mjs";
-import { CLIENTS, 세션글제목 } from "../clients.mjs";
+import { CLIENTS } from "../clients.mjs";
+import { 세션일감열기, 세션완료찾기, 세션일감닫기, 세션끝냄 } from "./session-task.mjs";
 
 for (const l of fs.readFileSync(new URL("../.env.local", import.meta.url), "utf8").split(/\r?\n/)) {
   const m = /^([A-Z_]+)=(.*)$/.exec(l);
@@ -61,8 +61,6 @@ const LADDER = {
 };
 const DISCOVER_GROUP = { brand: "brand", local: "local", problem: "general", consider: "general", keyword: "general" };
 const STAGE_ORDER = { local: 0, brand: 1, problem: 2, consider: 3, keyword: 4 };
-/** 질문 글자 비교 — 띄어쓰기·문장부호를 뺀다 (loop-review 같은글과 같은 셈) */
-const 글자만 = (s) => String(s ?? "").replace(/[^가-힣a-zA-Z0-9]/g, "");
 
 /** 노드 스크립트를 셸 없이 부른다. Git Bash 경로 변환·& 문제를 피한다 */
 const 실행 = (args) => {
@@ -80,37 +78,6 @@ const 준비 = async () => {
     "verdict text not null default '판정 전'", "verdict_note text not null default ''",
     "effective_on date", "judged_at timestamptz",
   ]) await q(`alter table geo.agent_runs add column if not exists ${col}`);
-};
-
-/**
- * 세션 글 일감. 같은 질문의 question-draft 일감(회사 루프 who-wins 가 만든 「겨냥 초안」)이 있으면 그것을 다시 열어 쓴다 — 두 개로 쌓지 않는다.
- * 상태는 「세션 대기」 — 원장 할 일(사람 대기)에 넣지 않는다(Arch, 현황판 할 일은 원장 몫만). 현황판에는 할 일 상자 밖 「세션에서 할 일 n건」 한 줄.
- * 끝내는 것은 Claude 세션이다 — `daily-agent.mjs --session-done <일감번호>`
- */
-const 세션일감 = async (c, 설정, x, 경쟁) => {
-  const title = 세션글제목(c.name, x.text);
-  const detail = `개선 루프: ${x.prompt_id} 최근 7일 적중 ${x.hit}/${x.n}. ${설정.draftWhere} 에 이 질문에 답하는 가이드를 씁니다.\n이기는 곳: ${경쟁.join(", ")}`;
-  const [있음] = await q(
-    `select id, status from geo.agent_tasks where client_id=$1 and kind='question-draft'
-        and regexp_replace(payload->>'question', '[^가-힣a-zA-Z0-9]', '', 'g') = $2 order by id limit 1`, [c.id, 글자만(x.text)]);
-  if (DRY) return { id: 있음?.id ?? null, 말: 있음 ? `(dry) 일감 #${있음.id}(${있음.status}) 다시 엶` : "(dry) 새 세션 일감" };
-  const 표시 = JSON.stringify({ sticky: true, session: true, prompt_id: x.prompt_id });
-  if (있음) {
-    await q(`update geo.agent_tasks set status='세션 대기', title=$2, done_at=null, updated_at=now(), last_error=$3,
-               payload = payload || $4::jsonb, evidence = left(evidence || $5, 4000) where id=$1`,
-      [있음.id, title, `Claude 세션에서 ${설정.draftWhere} 에 씁니다`, 표시, `\n${오늘} 개선 루프가 ${x.prompt_id} 로 다시 엶`]);
-    return { id: 있음.id, 말: `일감 #${있음.id} 다시 엶` };
-  }
-  const key = `qdraft-${crypto.createHash("sha1").update(x.text).digest("hex").slice(0, 10)}`;
-  const [새] = await q(
-    `insert into geo.agent_tasks (client_id, agent, kind, dedupe_key, title, detail, status, priority, last_error, payload)
-     values ($1, 'content', 'question-draft', $2, $3, $4, '세션 대기', 35, $5, $6::jsonb)
-     on conflict (client_id, dedupe_key) do update set status='세션 대기', title=excluded.title, detail=excluded.detail,
-       last_error=excluded.last_error, payload = geo.agent_tasks.payload || excluded.payload, done_at=null, updated_at=now()
-     returning id`,
-    [c.id, key, title, detail, `Claude 세션에서 ${설정.draftWhere} 에 씁니다`,
-      JSON.stringify({ sticky: true, session: true, prompt_id: x.prompt_id, question: x.text, stage: x.stage, sources: 경쟁 })]);
-  return { id: 새.id, 말: `일감 #${새.id} 새로 만듦` };
 };
 
 /** 한 고객의 하루. 설정은 clients.mjs 의 loop 덩어리 */
@@ -215,11 +182,7 @@ const 돌기 = async (c, 설정) => {
     // 세션 글 일감(글 쓰는 길이 세션인 고객)을 끝냈으면 알아챈다 — 같은 질문의 question-draft 일감이 완료면 그날부터 효과를 잰다
     if (r.action_kind === "content" && r.status === "세션 대기" && !r.target_slug && 설정.draft === "session") {
       const 글 = questions.find((x) => x.prompt_id === r.target_prompt)?.text;
-      const [t] = 글 ? await q(
-        `select id, done_at from geo.agent_tasks where client_id=$1 and kind='question-draft' and status='완료'
-            and regexp_replace(payload->>'question', '[^가-힣a-zA-Z0-9]', '', 'g') = $2
-            and (done_at at time zone 'Asia/Seoul')::date >= $3::date order by done_at desc limit 1`,
-        [c.id, 글자만(글), r.run_day]) : [];
+      const t = 글 ? await 세션완료찾기(q, c.id, 글, r.run_day) : undefined;
       if (t) {
         const 끝낸날 = KST(t.done_at ?? new Date());
         기록.push(`${r.target_prompt} 세션 글 일감 #${t.id} 완료(${끝낸날}) → 판정 창을 엽니다`);
@@ -246,6 +209,12 @@ const 돌기 = async (c, 설정) => {
     if ((r.status === "사람 대기" || r.status === "세션 대기") && r.run_day <= 날더하기(오늘, -14)) {
       기록.push(`${r.target_prompt} ${r.action_kind} 14일 미처리 → 닫음`);
       if (!DRY) await q(`update geo.agent_runs set verdict='미처리', verdict_note='14일 동안 사람 작업이 없었음', judged_at=now() where id=$1`, [r.id]);
+      // 세션 글이면 짝 일감도 닫는다 — 안 닫으면 sticky 라 「세션에서 할 일」에 죽은 일감이 쌓인다
+      if (r.status === "세션 대기") {
+        const 글 = questions.find((x) => x.prompt_id === r.target_prompt)?.text;
+        const 닫음 = 글 ? await 세션일감닫기(q, { clientId: c.id, 질문: 글, 오늘, DRY }) : [];
+        if (닫음.length) 기록.push(`${r.target_prompt} 세션 글 일감 #${닫음.join(", #")} 닫음`);
+      }
       r.verdict = "미처리";
       continue;
     }
@@ -500,7 +469,7 @@ const 돌기 = async (c, 설정) => {
             막힘 ??= `${x.prompt_id} 은 새 글이 필요한데 ${대기세션.target_prompt} 세션 글 일감이 끝나기를 기다리고 있어 새로 넘기지 않았습니다`;
             continue 질문;
           }
-          const 일감 = await 세션일감(c, 설정, x, 경쟁);
+          const 일감 = await 세션일감열기(q, { c, 설정, x, 경쟁, 오늘, DRY });
           await 저장({
             status: "세션 대기", diagnosis: 진단, target_prompt: x.prompt_id, action_kind: "content", target_slug: null,
             action: `${c.name} 글은 이 저장소에서 쓰지 않습니다. Claude 세션에서 「${x.text}」에 답하는 가이드 초안을 ${설정.draftWhere} 에 씁니다${일감.id ? ` (일감 #${일감.id})` : ""}. 세션이 --session-done 으로 닫으면 다음 날 루프가 효과 측정을 시작합니다.`,
@@ -587,14 +556,12 @@ const main = async () => {
   if (process.argv.includes("--session-done")) {
     // 세션이 글을 쓰고 배포까지 끝냈을 때. 근거 없는 완료는 감사(R3)가 잡으니 근거를 받는다
     const k = process.argv.indexOf("--session-done");
-    const id = Number(process.argv[k + 1]);
-    const 근거 = String(process.argv[k + 2] ?? "").trim();
-    if (!Number.isInteger(id) || !근거) throw new Error(`--session-done <일감번호> "근거(쓴 파일·배포)" 로 부르세요`);
-    const 시각 = new Date().toLocaleString("sv-SE", { timeZone: "Asia/Seoul" }).slice(0, 16);
-    const hit = await q(`update geo.agent_tasks set status='완료', done_at=now(), updated_at=now(), evidence = left(evidence || $2, 4000)
-                          where id=$1 and kind='question-draft' and status='세션 대기' returning id`, [id, `\n${시각} 세션이 끝냄 · ${근거}`]);
-    console.log(hit.length ? `세션 글 일감 #${id} 완료 · 다음 날 개선 루프가 효과 측정을 시작합니다` : `세션 대기인 글 일감 #${id} 이 없습니다`);
-    if (!hit.length) process.exitCode = 1;
+    const r = await 세션끝냄(q, {
+      id: Number(process.argv[k + 1]), 근거: process.argv[k + 2], DRY,
+      시각: new Date().toLocaleString("sv-SE", { timeZone: "Asia/Seoul" }).slice(0, 16),
+    });
+    console.log(r.말);
+    if (!r.ok) process.exitCode = 1;
     return;
   }
   const i = process.argv.indexOf("--client");

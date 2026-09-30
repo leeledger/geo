@@ -88,3 +88,13 @@ Status: DONE_WITH_CONCERNS — 시험 18 통과 · tsc 0(web·academy) · 학원
 - 「세션 대기」 새 상태: daily-agent 세션일감·개선 루프 행·판정·14일 닫기 · `--session-done <id> "근거"`(근거 없으면 거부) · company.mjs 세션글열기·who-wins·question-draft 실행 · pm-report 고객 줄 「세션 몫 n건」 · web Todo.tsx 상자 밖 한 줄(+page.tsx .td-session) · ops.ts 정렬 · AgentBoard 세션 칸·개선 카드 문구 · todo-text 세션 분기 삭제
 - 확인: 시험 23 통과(측정 예산 5개 추가) · tsc 0 두 곳 · 학원 daily-agent --dry 변경 전과 동일 · pm-report --dry 학원 줄 동일 · seed dry 동일 · 운영 DB 읽기로 오늘 `고객측정일` false → 40·22·60
 - 원장 할 일 수(pm-report·Todo)는 이제 세션 일감을 안 센다 — KG-30-4 닫힘. KG-30-3 닫힘
+
+## Richard 30 Should Fix + Arch 반영 (2026-09-30)
+- academy/scripts/session-task.mjs (새) — 「세션 대기」 생애주기 한 곳: 같은질문일감 · 세션글키(질문 글자 sha1) · 세션일감열기 · 세션완료찾기 · 세션일감닫기 · 세션끝냄(근거 없으면 거부, DRY 면 안 씀). daily-agent 는 이것을 부른다
+- academy/scripts/daily-agent.mjs — 세션일감 본문을 session-task 로 옮김 · 14일 닫기 때 짝 일감 닫힘 · `--session-done` 은 DRY 면 찍기만
+- academy/scripts/company.mjs — who-wins 세션 가지: 키 = 같은 질문 일감 키 ?? 세션글키(질문), cooldownH 24*30
+- academy/clients.mjs — 이름 말 `(?<!(?:\(주\)|㈜|주식회사)\s?)아이로그|ilog\.ai\.kr`
+- academy/scripts/seed-ilog-panel.mjs — q8~q12 채팅 말투(Arch). 새 q8 「학원 관리 프로그램 고를 때 뭘 봐야 해?」 q9 「무료 학원 관리 프로그램은 어디까지 공짜야?」 q10 「학원 출결을 학부모한테 카톡으로 자동으로 보내려면 어떻게 해?」 q11 「학원 수업 리포트를 AI가 써 주는 프로그램 있어?」 q12 「학원 관리 프로그램 한 달에 보통 얼마야?」
+- academy/scripts/test-ilog-loop.mjs — ㈜·주식회사 오탐 2줄 · 생애주기 10개(열기·같은 질문 재사용·dry·키·끝냄 거부/dry/판정 찾기·14일 닫기)
+- 확인: 시험 33 통과 · tsc 0 두 곳 · 학원 daily-agent --dry 변경 전과 동일 · pm-report --dry 학원 줄 동일 · `--dry --session-done 28 시험` → 「(dry) … 쓰지 않음」 · seed dry 는 이름 말·q8~q12 만 바뀜
+- Richard 참고(ai-measure 나눔 머리)는 코드 안 바꿈 — seed --apply 뒤 학원 출력 비교 때 「로봇&코딩학원 · 」 머리가 붙는 것은 정상

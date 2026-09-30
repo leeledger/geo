@@ -78,10 +78,10 @@ export const CLIENTS = [
     brandRe: /ilog\.ai\.kr/i,
     /**
      * AI 답은 이름도 센다(Step 30 D34). 「학원 관리 프로그램」 질문의 답에서 아이로그는 우리다.
-     * 동명 SI 회사는 「(주)아이로그」로 불리니 그 꼴은 뺀다. 「ilog」 단독은 안 센다 — 영어 답의 IBM ILOG 와 겹친다.
+     * 동명 SI 회사는 「(주)아이로그」「㈜아이로그」「주식회사 아이로그」로 불리니 그 꼴은 뺀다. 「ilog」 단독은 안 센다 — 영어 답의 IBM ILOG 와 겹친다.
      * DB(geo.clients.answer_pattern)에는 academy/scripts/seed-ilog-panel.mjs 가 이 원문을 넣는다
      */
-    answerRe: /(?<!\(주\)\s?)아이로그|ilog\.ai\.kr/i,
+    answerRe: /(?<!(?:\(주\)|㈜|주식회사)\s?)아이로그|ilog\.ai\.kr/i,
     // 사이트 저장소가 밖에 있다. 키 파일은 전달 파일(deliverables/ilog/public)로 넘긴다
     indexnowKey: "7c1e9a4b2f6d8053a1c4e7b9d2f05a68",
     // deliverables/ilog/public/llms.txt 로 넘겼고 열린다(2026-09-30 확인 200)
@@ -148,7 +148,6 @@ export const bySlug = (slug) => CLIENTS.find((x) => x.slug === slug);
 
 /** 글 쓰는 길이 세션인 고객(loop.draft = "session")의 글 일감 제목. 개선 루프와 회사 루프가 같은 제목을 쓴다 */
 export const 세션글제목 = (name, question) => `세션에서 ${name} 가이드 초안: 「${question}」`;
-
 /*
  * AI 답변 측정 설정(이름 판별 answerRe)은 geo.clients.answer_pattern 이 먼저다(Step 25).
  * 여기 answerRe 는 DB 칸이 비었을 때 쓰는 대체값이고, 비어 있는 DB 칸을 처음 채우는 원문이기도 하다.
