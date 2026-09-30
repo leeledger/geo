@@ -30,7 +30,7 @@ import crypto from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { Pool } from "pg";
-import { CLIENTS as CLIENT_CONF } from "../clients.mjs";
+import { CLIENTS as CLIENT_CONF, 세션글제목 } from "../clients.mjs";
 import { 오픈라우터, 재시도, 모델들, 공급자들 } from "./writer-common.mjs";
 import { 프로필 } from "./profile.mjs";
 import { PM보고 } from "./pm-report.mjs";
@@ -424,6 +424,24 @@ const 파일럿업무 = async (읽음) => {
 };
 
 // ─────────────────────────────────────────── 2. 계획
+/**
+ * 글 쓰는 길이 세션인 고객(clients.mjs loop.draft = "session", 아이로그)의 「겨냥 초안」 일감을 원장 할 일(사람 대기)로 올린다(Step 30 D37).
+ * 9/24 부터 「관찰」로 한 달씩 미뤄 아무도 안 봤다. 글은 Claude 세션이 쓴다 — 여기서는 상태·제목만 고친다
+ */
+const 세션글열기 = async (clients) => {
+  for (const c of clients.filter((x) => x.conf?.loop?.draft === "session")) {
+    const 멈춤 = await q(`select id, payload->>'question' as question from geo.agent_tasks
+                          where client_id=$1 and kind='question-draft' and status='관찰' and payload ? 'question'`, [c.id]);
+    for (const t of 멈춤) {
+      await q(`update geo.agent_tasks set status='사람 대기', title=$2, last_error=$3, updated_at=now(),
+                 evidence = left(evidence || $4, 4000) where id=$1 and status='관찰'`,
+        [t.id, 세션글제목(c.name, t.question), 세션글할일(c), `\n${오늘()} 세션 글 일감으로 올림`]);
+    }
+    if (멈춤.length) console.log(`  세션 글 일감: ${c.name} ${멈춤.length}건 관찰 → 사람 대기`);
+  }
+};
+const 세션글할일 = (c) => `Claude 세션에서 ${c.conf.loop.draftWhere} 에 씁니다`;
+
 const 계획 = async (clients, { latest: latestRuns, ok: ghOk }) => {
   const bySlug = Object.fromEntries(clients.map((c) => [c.slug, c]));
   // 신호원을 못 읽었는데 「신호가 사라졌다」고 닫으면 다음 시간에 대기로 다시 열려 쿨다운을 건너뛴다.
@@ -518,6 +536,7 @@ const 계획 = async (clients, { latest: latestRuns, ok: ghOk }) => {
 
   await PC살핌();
   await 파일럿업무(읽음);
+  await 세션글열기(clients);
 
   // 신호가 사라진 일감은 닫는다. 발행 후 알리기처럼 신호 없이 만든 일감(sticky)은 손대지 않는다
   const open = await q(`select id, client_id, dedupe_key, title from geo.agent_tasks
@@ -635,8 +654,12 @@ const EXEC = {
           title: `등재 필요: 「${it.query}」`, detail: `${it.reason ?? ""}\n이기는 곳: ${(it.targets ?? []).join(", ")}. 등록·수정은 업체 로그인이 필요합니다.`,
           payload: { sticky: true, query: it.query, targets: it.targets ?? [] } });
       } else {
+        // 글 쓰는 길이 세션인 고객은 처음부터 세션 글 일감(사람 대기)으로 — 관찰로 묵히지 않는다(Step 30 D37)
+        const 세션 = c.conf?.loop?.draft === "session";
         await 일감({ client_id: c.id, agent: "content", kind: "question-draft", key: `qdraft-${h}`, priority: 35,
-          title: `겨냥 초안: 「${it.question || it.query}」`, detail: `${it.reason ?? ""}\n이기는 곳: ${(it.targets ?? []).join(", ")}`,
+          title: 세션 ? 세션글제목(c.name, it.question || it.query) : `겨냥 초안: 「${it.question || it.query}」`,
+          detail: `${it.reason ?? ""}\n이기는 곳: ${(it.targets ?? []).join(", ")}`,
+          ...(세션 ? { status: "사람 대기" } : {}),
           payload: { sticky: true, question: it.question || it.query, stage: "local", sources: it.targets ?? [] } });
       }
       made.push(`${it.query}→${it.action}`);
@@ -684,6 +707,10 @@ const EXEC = {
     // 원장이 현황판에서 할 수 있는 게 없다 — 사람 대기로 올리면 「오늘 하실 일」만 채운다(2026-09-24 원장: 알아서 처리하라).
     // 관찰로 두고 한 달 뒤 다시 본다. 아직 이 주제를 집어 가는 자동 경로는 없다 — Claude 세션에서 고객사 저장소로 옮긴다(Known Gap KG-S16-1)
     if (!c.conf?.publishes || c.id !== 1) {
+      // 글 쓰는 길이 세션인 고객(아이로그)은 원장 할 일에 올린다 — Claude 세션이 그 저장소에 쓴다(Step 30 D37, 9/24 결정을 바꿈)
+      if (c.conf?.loop?.draft === "session") {
+        return { status: "사람 대기", evidence: `${오늘()} 세션 글 일감으로 넘김`, error: 세션글할일(c) };
+      }
       return { status: "관찰", nextTry: 뒤(24 * 30), evidence: `${오늘()} ${c.name} 저장소에서 쓸 주제 — 원장 할 일에서 뺌` };
     }
     const [d] = await q(`select count(*)::int n from academy.posts where client_id=$1 and not published and ${내린글아님}`, [c.id]);

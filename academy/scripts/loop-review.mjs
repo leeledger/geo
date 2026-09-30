@@ -37,8 +37,8 @@ export const 겹침 = (question, title) => {
   return n / a.size;
 };
 
-/** 학부모가 보기엔 problem·consider 가 같은 「일반 질문」이다. 글 처방도 같아서 한 묶음으로 센다 */
-const 묶음 = { local: "local", brand: "brand", problem: "general", consider: "general" };
+/** 학부모가 보기엔 problem·consider 가 같은 「일반 질문」이다. 글 처방도 같아서 한 묶음으로 센다. 검색어형(keyword, 아이로그 패널)도 이름·지역이 없는 말이라 같이 센다 */
+const 묶음 = { local: "local", brand: "brand", problem: "general", consider: "general", keyword: "general" };
 const 묶음이름 = { local: "동네 질문", brand: "이름 질문", general: "일반 질문" };
 const 곳이름 = {
   "claude-code-headless-websearch": "Claude",
@@ -112,9 +112,10 @@ const 우리주소 = (domain) => (r) => (r.citations ?? []).some((s) => s?.domai
  * @param probes    academy.ai_probe_questions [{prompt_id, source_prompt, radius, text, active, form}] — 표가 없으면 []
  * @param 적중      daily-agent 의 적중 판정 (brand 는 인용 또는 「석촌」)
  * @param 새탐침한도 오늘 더 넓혀도 되는 탐침 수 (검색어 씨앗은 안 센다)
+ * @param 탐침      넓힘 탐침(widen)을 도는가. 반경 사다리·씨앗이 송파 말이라 학원만 true (clients.mjs loop.probes)
  * @returns probes  [{source_prompt, radius, text, form, seed?}] — 씨앗은 source_prompt 가 null
  */
-export function 자기점검({ questions, rows, 판정rows = rows, runs, posts, today, domain, probes = [], 적중, 새탐침한도 = 2 }) {
+export function 자기점검({ questions, rows, 판정rows = rows, runs, posts, today, domain, probes = [], 적중, 새탐침한도 = 2, 탐침 = true }) {
   const findings = [];
   const skipContent = new Set();
   const stageOf = Object.fromEntries(questions.map((x) => [x.prompt_id, x.stage]));
@@ -177,7 +178,7 @@ export function 자기점검({ questions, rows, 판정rows = rows, runs, posts, 
     const 뜬횟수 = 측정.filter(우리주소(domain)).length;
     // 잰 게 없으면 「0번」은 근거가 아니다
     if (측정.length < 10 || 뜬횟수 > 0) continue;
-    for (const [s, gg] of Object.entries(묶음)) if (gg === g) skipContent.add(s);
+    for (const [s, gg] of Object.entries(묶음)) if (gg === g && questions.some((x) => x.stage === s)) skipContent.add(s);
     const 질문들 = [...new Set(처방.map((r) => r.target_prompt))];
     findings.push({
       code: "repeat",
@@ -202,6 +203,8 @@ export function 자기점검({ questions, rows, 판정rows = rows, runs, posts, 
     findings.push(finding);
     발견성.push({ group: g, slugs, finding });
   }
+
+  if (!탐침) return { findings, skipContent, probes: [], discover: 발견성 };
 
   // ── widen: 맞는 질문을 한 칸 넓힌다. 탐침 결과는 반경을 재는 것뿐, 판정에 안 쓴다
   // 모양이 둘이다 — 문장(승인 동네 질문에서 출발)과 검색어(송파구 씨앗 3개에서 출발). 모양·곳끼리 합치지 않는다

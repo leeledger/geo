@@ -1280,3 +1280,13 @@ Known Gaps (26)
 - 2026-09-30: Step 29 Richard PASS + Should Fix(c31fb9a · ilog 069eb40). Arch: 아이로그 로그인 쿠키 있으면 안 셈. VISIT_SALT 학원·아이로그 production 48자 확인, 학원 CRAWL_KEY 있음 → 배포
 - 2026-09-30 13시: Step 29 배포 — 사이티드(8d69b2e push), 학원(npx vercel --prod), 아이로그(npx vercel --prod, 069eb40 — 그 저장소 origin 보다 12 앞섬, 푸시 안 함). 실제 방문 시험: 학원 client 1·아이로그 client 2 기록 확인, IP 없음. 시험 2행(ref cited-test)은 지움. 기록 시작 2026-09-30
 - 2026-09-30: 리드 알림 LEAD_ALERT_TO(원장 Resend 가입 주소) 운영 env 17자 확인 · 시험 메일 Resend 접수(id 01a0f083…) · env 반영 위해 재배포
+
+### Step 30 — 아이로그를 학원과 같은 수준으로 (D34~D37) — BUILT · Richard 대기 (2026-09-30, Bob)
+- 상태: DONE_WITH_CONCERNS — 시험 18 통과 · tsc 0(web·academy) · 학원 dry 출력 동일. 아이로그 content(세션 일감) 경로는 승인 질문·측정이 없어 dry 로 끝까지 못 탔다(DB 쓰기 금지)
+- 파일: academy/clients.mjs(loop 설정·answerRe·세션글제목) · scripts/daily-agent.mjs(고객별) · loop-review.mjs(탐침 끄기·keyword 묶음) · company.mjs(D37) · pm-report.mjs(고객별 줄) · web/lib/todo-text.ts · web/lib/pm-report.ts · web/app/admin/ops/PmReport.tsx · 새 scripts/seed-ilog-panel.mjs · 새 scripts/test-ilog-loop.mjs
+- 결정(Bob): 패널 consider 7(겨냥 초안 일감 원문 — DB 에는 관찰 6 + 완료 1(#29, 원장 완료 표시)) · problem 5(guides.ts 제목) · keyword 5 · brand 3 · 이름 말 `(?<!\(주\)\s?)아이로그|ilog\.ai\.kr`(ilog 단독 안 셈 — IBM ILOG) · 아이로그 이름 질문 적중 = 인용 또는 출결|알림톡|수업 피드백 · 홈 검사 SoftwareApplication+ilog.ai.kr · 파일럿 업무·정합성 표는 안 넣음(교육청·플레이스는 소프트웨어에 안 맞음) · measure_active=true · 학원 밖 고객 「측정 없음」은 기록만 하고 종료코드 0(예산 밀림일 수 있음) · 세션 글은 한 번에 하나 · 일감을 「했어요」로 닫으면 다음 날 판정 창을 연다(done_at 이 run_day 이후일 때만)
+- KG-30-1 loop 설정이 없는 외부 고객은 개선 루프를 건너뛴다(로그에 적음). 결제 고객이 오면 clients.mjs 덩어리가 필요
+- KG-30-2 아이로그 content 칸은 이미 있는 가이드(lib/guides.ts)와 겹치는지 안 본다(academy.posts 만 본다) — 세션이 보고 판단
+- KG-30-3 측정 예산: 유료 없는 날 Claude 측정 몫 22 에 학원 20 → 아이로그 20개는 대부분 「예산 부족」 일감으로 밀린다. 상한은 원장 결정
+- KG-30-4 pm-report 「원장 할 일」 수는 전 고객 합이다. D37 이 돌면 아이로그 세션 글 6건이 더해진다
+- KG-30-5 아이로그 케이스 리포트(case-report)는 학원 그대로 — 설계서대로 KG

@@ -200,8 +200,55 @@ export async function 보고짓기(q, now = new Date()) {
       : `어제 9시부터 일 ${총}건을 했고 실패는 없습니다.`;
 
   const AI답변 = await AI답변읽기(q, now).catch((e) => { console.log(`  ⚠ AI 답변 측정을 못 읽음 ${e.message}`); return []; });
+  const 고객별 = await 고객줄읽기(q, now).catch((e) => { console.log(`  ⚠ 고객별 줄을 못 읽음 ${e.message}`); return []; });
 
-  return { day: 오늘, status, body: { status, conclusion, 직원, 확인필요, 원장할일, 산출물, 다음, AI답변, 기간: { 시작: 시작.toISOString(), 끝: now.toISOString() } } };
+  return { day: 오늘, status, body: { status, conclusion, 직원, 확인필요, 원장할일, 산출물, 다음, AI답변, 고객별, 기간: { 시작: 시작.toISOString(), 끝: now.toISOString() } } };
+}
+
+/**
+ * 학원 밖 고객 한 줄씩(Step 30 D36). 위의 학원 숫자(AI답변·산출물)는 건드리지 않는다.
+ *   AI 답변  곳(collection_method)마다 가장 최근 측정일 하루치 「n번 중 k번 이름 나옴」. 3일 넘게 안 잰 곳은 뺀다(AI답변읽기와 같은 셈)
+ *   방문     어제까지 7일 방문자(geo.site_visits, Step 29). 표가 없으면 「방문 기록 없음」
+ *   일감     완료·닫힘이 아닌 것과 그중 사람 대기
+ */
+const 더하기일 = (day, n) => new Date(Date.parse(`${day}T00:00:00Z`) + n * 86400000).toISOString().slice(0, 10);
+async function 고객줄읽기(q, now = new Date()) {
+  const 오늘 = kst(now).toISOString().slice(0, 10);
+  const 고객들 = await q(`select id, slug, name from geo.clients where slug <> 'robotncoding' order by id`);
+  const [표] = await q(`select to_regclass('geo.site_visits')::text as t`);
+  const out = [];
+  for (const c of 고객들) {
+    const 측정 = (await q(
+      `with d as (select collection_method m, max(measured_on) as day from academy.ai_measurements
+                   where client_id = $1 and measured_on > now() - interval '30 days' group by 1)
+       select d.m, a.engine, d.day::text as day, count(*)::int n, count(*) filter (where a.mentioned)::int k
+         from d join academy.ai_measurements a on a.client_id = $1 and a.collection_method = d.m and a.measured_on = d.day and a.attempt = 1
+        group by 1, 2, 3 order by 1, 2`, [c.id]))
+      .filter((r) => now.getTime() - Date.parse(`${r.day}T00:00:00+09:00`) <= 3 * 86400000);
+    let AI;
+    if (측정.length) {
+      AI = `AI 답변 ${측정.map((r) => `${엔진이름[r.engine] ?? r.engine} ${r.n}번 중 ${r.k}번 이름 나옴(${월일(`${r.day}T00:00:00+09:00`)})`).join(" · ")}`;
+    } else {
+      const [승인] = await q(`select count(*) filter (where pq.approved)::int n from geo.pilot_questions pq
+                               join geo.pilots p on p.id = pq.pilot_id where p.client_id = $1`, [c.id]);
+      AI = 승인.n ? "AI 답변 최근 3일 측정 없음" : "AI 답변 측정 없음 — 승인된 질문 0개";
+    }
+    // 기록을 시작하기 전 날은 0 이 아니라 모르는 날이다 — 시작일이 창 안이면 그날부터라고 적는다
+    const [v] = 표?.t
+      ? await q(`select min(day)::text as since, count(distinct visitor) filter (where day between $2::date - 7 and $2::date - 1)::int n
+                   from geo.site_visits where client_id = $1`, [c.id, 오늘])
+      : [null];
+    const 방문 = !v?.since ? "방문 기록 없음"
+      : v.since >= 오늘 ? `방문 기록 ${월일(`${v.since}T00:00:00+09:00`)} 시작 — 어제까지 숫자 없음`
+      : `방문자 ${v.n}명(${v.since > 더하기일(오늘, -7) ? `기록 시작 ${월일(`${v.since}T00:00:00+09:00`)}부터` : "7일"} 어제까지)`;
+    const [일] = await q(`select count(*)::int n, count(*) filter (where status = '사람 대기')::int h
+                          from geo.agent_tasks where client_id = $1 and status not in ('완료', '닫힘')`, [c.id]);
+    out.push({
+      slug: c.slug, name: c.name,
+      줄: [AI, 방문, `열린 일감 ${일.n}건${일.h ? `(원장 몫 ${일.h}건)` : ""}`].join(" · "),
+    });
+  }
+  return out;
 }
 
 /**
@@ -289,6 +336,7 @@ if (직접) {
       console.log(`직원\n${b.직원.map((s) => `  ${s.이름.padEnd(4, "　")} ${s.한일} | ${s.지금}`).join("\n")}\n`);
       console.log(`원장 할 일 ${b.원장할일}건 · 산출물 ${b.산출물.join(" · ")}`);
       for (const a of b.AI답변 ?? []) console.log(`  AI ${a.엔진} ${a.day} 이름 ${a.이름}/${a.n} · 인용 ${a.인용}/${a.n}${a.비교 ? ` (${a.비교.day} 같은 ${a.비교.공통}문항 ${a.비교.전이름}→${a.비교.지금이름}, ${a.비교.말})` : ""}`);
+      for (const c of b.고객별 ?? []) console.log(`  ${c.name}: ${c.줄}`);
       console.log(`다음\n${b.다음.map((s) => `  · ${s}`).join("\n")}`);
       console.log(`\nbody = ${JSON.stringify(b)}`);
     }

@@ -25,6 +25,8 @@ export type PmBody = {
     엔진: string; day: string; n: number; 이름: number; 인용: number; 전체?: boolean; 링크없음?: boolean;
     비교: { day: string; 공통: number; 전이름: number; 지금이름: number; 전인용: number; 지금인용: number; 말: string } | null;
   }[];
+  /** 학원 밖 고객 한 줄씩 — 2026-09-30(Step 30) 부터. 옛 보고에는 없다 */
+  고객별?: { slug: string; name: string; 줄: string }[];
 };
 
 export type PmReport =

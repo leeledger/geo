@@ -34,6 +34,23 @@ export const CLIENTS = [
     // health.mjs 가 /llms.txt 가 열리는지 본다. 안 둔 고객은 빼 둔다
     llmsTxt: true,
     publishes: true,
+    // 개선 루프(daily-agent.mjs) 설정 — Step 30 전까지 코드에 박혀 있던 값 그대로
+    loop: {
+      // 이름 질문은 질문에 이름이 들어 있어 답이 따라 말한다. 인용이나 이 말이 나와야 적중
+      brandHit: /석촌/,
+      // 홈 JSON-LD 가 전부 맞아야 entity 칸 통과
+      homeLd: [/"address"/, /석촌|송파/],
+      homeLdMissing: "홈 JSON-LD 에 address 또는 석촌·송파 없음",
+      homeLdFix: "academy/app/page.tsx 의 JSON-LD 에 주소·지역을 넣고 배포합니다.",
+      // 글은 write-draft 가 academy.posts 에 초안으로 쓴다
+      draft: "write-draft",
+      // 반경 넓힘 탐침(loop-review widen)은 송파 동네 말로만 짜여 있다
+      probes: true,
+      offsite: [
+        "사이트 글과 검색 색인으로도 안 움직였습니다. 네이버 플레이스·Google Business Profile처럼 학원이 직접 관리할 수 있는 외부 정보의 사실 일치와 최신성을 확인합니다.",
+        "사이트 글로는 안 움직였고, 답에 출처가 안 잡혀 등록할 곳을 고르지 못했습니다. 네이버 플레이스·지역 카페 노출을 먼저 확인합니다.",
+      ],
+    },
     queries: [
       { id: "idx", q: "site:robotncoding.com", kind: "색인" },
       { id: "c1", q: "송파구 코딩학원", kind: "경쟁" },
@@ -59,13 +76,36 @@ export const CLIENTS = [
      * 글자로 세면 남의 노출을 우리 노출로 센다. 도메인으로만 센다.
      */
     brandRe: /ilog\.ai\.kr/i,
-    // AI 답도 같은 이유로 도메인으로만 센다
-    answerRe: /ilog\.ai\.kr/i,
+    /**
+     * AI 답은 이름도 센다(Step 30 D34). 「학원 관리 프로그램」 질문의 답에서 아이로그는 우리다.
+     * 동명 SI 회사는 「(주)아이로그」로 불리니 그 꼴은 뺀다. 「ilog」 단독은 안 센다 — 영어 답의 IBM ILOG 와 겹친다.
+     * DB(geo.clients.answer_pattern)에는 academy/scripts/seed-ilog-panel.mjs 가 이 원문을 넣는다
+     */
+    answerRe: /(?<!\(주\)\s?)아이로그|ilog\.ai\.kr/i,
     // 사이트 저장소가 밖에 있다. 키 파일은 전달 파일(deliverables/ilog/public)로 넘긴다
     indexnowKey: "7c1e9a4b2f6d8053a1c4e7b9d2f05a68",
     // deliverables/ilog/public/llms.txt 로 넘겼고 열린다(2026-09-30 확인 200)
     llmsTxt: true,
     publishes: false,
+    loop: {
+      /**
+       * 이름 질문(「아이로그 …」)은 답이 이름을 따라 말한다. 우리 제품을 실제로 아는 답인지는 기능 말로 가린다 —
+       * 출결·알림톡·수업 피드백은 lib/guides.ts 에 적힌 아이로그 기능이다. 동명 SI 회사·미용실 답에는 안 나온다
+       */
+      brandHit: /출결|알림톡|수업\s?피드백/,
+      // 홈 JSON-LD 는 SoftwareApplication(components/seo/JsonLd.tsx, 2026-09-30 운영 주소에서 확인)
+      homeLd: [/"SoftwareApplication"/, /ilog\.ai\.kr/],
+      homeLdMissing: "홈 JSON-LD 에 SoftwareApplication 또는 ilog.ai.kr 없음",
+      homeLdFix: "아이로그 저장소(C:\\dev\\자동피드백생성기) components/seo/JsonLd.tsx 의 SoftwareApplication 을 넣고 npx vercel --prod 로 배포합니다.",
+      // 글은 DB 가 아니라 코드다. 자동 경로가 없어 Claude 세션이 이 파일에 쓴다
+      draft: "session",
+      draftWhere: "C:\\dev\\자동피드백생성기 lib/guides.ts",
+      probes: false,
+      offsite: [
+        "사이트 글과 검색 색인으로도 안 움직였습니다. 아이로그가 직접 고칠 수 있는 바깥 정보(앱·서비스 소개가 올라간 곳)의 사실 일치와 최신성을 확인합니다.",
+        "사이트 글로는 안 움직였고, 답에 출처가 안 잡혀 확인할 곳을 고르지 못했습니다.",
+      ],
+    },
     queries: [
       { id: "idx", q: "site:ilog.ai.kr", kind: "색인" },
       // 학원 원장이 프로그램을 고를 때 치는 말. 09.11 AI 기준선 질문과 같은 축이다
@@ -105,6 +145,9 @@ export function selectClients(argv = process.argv) {
 }
 
 export const bySlug = (slug) => CLIENTS.find((x) => x.slug === slug);
+
+/** 글 쓰는 길이 세션인 고객(loop.draft = "session")의 글 일감 제목. 개선 루프와 회사 루프가 같은 제목을 쓴다 */
+export const 세션글제목 = (name, question) => `세션에서 ${name} 가이드 초안: 「${question}」`;
 
 /*
  * AI 답변 측정 설정(이름 판별 answerRe)은 geo.clients.answer_pattern 이 먼저다(Step 25).

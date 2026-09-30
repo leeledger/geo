@@ -15,13 +15,19 @@
  *   node scripts/daily-agent.mjs          하루 한 번
  *   node scripts/daily-agent.mjs --dry    판단만 찍고 DB·초안·색인 알림은 건드리지 않는다
  *   node scripts/daily-agent.mjs --review 자기 점검(loop-review.mjs)만 찍고 끝낸다. DB 안 씀
- *   node scripts/daily-agent.mjs --complete "한 일" "근거"   사람이 오늘 행동을 끝냈을 때
+ *   node scripts/daily-agent.mjs --complete "한 일" "근거"   사람이 오늘 행동을 끝냈을 때 (--id 행번호 · --client 슬러그)
+ *   node scripts/daily-agent.mjs --client ilog --dry         한 고객만
+ *
+ * 고객(Step 30): 학원과, 승인 질문이 있는 고객을 차례로 돈다. 사다리는 같고 고객마다 다른 것은 clients.mjs 의 loop 덩어리다 —
+ * 이름 질문 적중 말, 홈 JSON-LD 검사, 글 쓰는 길(학원은 write-draft, 아이로그는 Claude 세션 일감), 넓힘 탐침 여부.
  */
 import fs from "node:fs";
+import crypto from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { Pool } from "pg";
 import { 자기점검, 점검요약, 겹침 } from "./loop-review.mjs";
+import { CLIENTS, 세션글제목 } from "../clients.mjs";
 
 for (const l of fs.readFileSync(new URL("../.env.local", import.meta.url), "utf8").split(/\r?\n/)) {
   const m = /^([A-Z_]+)=(.*)$/.exec(l);
@@ -30,7 +36,7 @@ for (const l of fs.readFileSync(new URL("../.env.local", import.meta.url), "utf8
 
 const REVIEW = process.argv.includes("--review");
 const DRY = process.argv.includes("--dry") || REVIEW;
-const SLUG = "robotncoding";
+const HOUSE = "robotncoding";
 const KST = (d = new Date()) => new Date(d).toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" });
 const 오늘 = KST();
 const 날더하기 = (day, n) => {
@@ -50,9 +56,12 @@ const LADDER = {
   local: ["content", "discover", "offsite"],
   problem: ["content", "discover", "offsite"],
   consider: ["content", "discover", "offsite"],
+  keyword: ["content", "discover", "offsite"],
 };
-const DISCOVER_GROUP = { brand: "brand", local: "local", problem: "general", consider: "general" };
-const STAGE_ORDER = { local: 0, brand: 1, problem: 2, consider: 3 };
+const DISCOVER_GROUP = { brand: "brand", local: "local", problem: "general", consider: "general", keyword: "general" };
+const STAGE_ORDER = { local: 0, brand: 1, problem: 2, consider: 3, keyword: 4 };
+/** 질문 글자 비교 — 띄어쓰기·문장부호를 뺀다 (loop-review 같은글과 같은 셈) */
+const 글자만 = (s) => String(s ?? "").replace(/[^가-힣a-zA-Z0-9]/g, "");
 
 /** 노드 스크립트를 셸 없이 부른다. Git Bash 경로 변환·& 문제를 피한다 */
 const 실행 = (args) => {
@@ -63,17 +72,48 @@ const 실행 = (args) => {
   }
 };
 
-const main = async () => {
-  const [c] = await q(`select id, name, domain from geo.clients where slug=$1`, [SLUG]);
-  if (!c) throw new Error(`${SLUG} 없음`);
-
+const 준비 = async () => {
   await q(`create table if not exists geo.agent_runs(id bigserial primary key,client_id int not null references geo.clients(id),run_day date not null default current_date,trigger text not null default 'daily',status text not null default '행동 대기',facts jsonb not null default '{}'::jsonb,diagnosis text not null,action text not null,evidence text not null default '',started_at timestamptz not null default now(),completed_at timestamptz,unique(client_id,run_day,trigger))`);
   for (const col of [
     "target_prompt text", "action_kind text", "target_slug text",
     "verdict text not null default '판정 전'", "verdict_note text not null default ''",
     "effective_on date", "judged_at timestamptz",
   ]) await q(`alter table geo.agent_runs add column if not exists ${col}`);
+};
 
+/**
+ * 세션 글 일감. 같은 질문의 question-draft 일감(회사 루프 who-wins 가 만든 「겨냥 초안」)이 있으면 그것을 다시 열어 쓴다 — 두 개로 쌓지 않는다.
+ * 원장 현황판 「오늘 하실 일」에 뜬다(사람 대기). 끝내는 것은 Claude 세션이다
+ */
+const 세션일감 = async (c, 설정, x, 경쟁) => {
+  const title = 세션글제목(c.name, x.text);
+  const detail = `개선 루프: ${x.prompt_id} 최근 7일 적중 ${x.hit}/${x.n}. ${설정.draftWhere} 에 이 질문에 답하는 가이드를 씁니다.\n이기는 곳: ${경쟁.join(", ")}`;
+  const [있음] = await q(
+    `select id, status from geo.agent_tasks where client_id=$1 and kind='question-draft'
+        and regexp_replace(payload->>'question', '[^가-힣a-zA-Z0-9]', '', 'g') = $2 order by id limit 1`, [c.id, 글자만(x.text)]);
+  if (DRY) return { id: 있음?.id ?? null, 말: 있음 ? `(dry) 일감 #${있음.id}(${있음.status}) 다시 엶` : "(dry) 새 세션 일감" };
+  const 표시 = JSON.stringify({ sticky: true, session: true, prompt_id: x.prompt_id });
+  if (있음) {
+    await q(`update geo.agent_tasks set status='사람 대기', title=$2, done_at=null, updated_at=now(), last_error=$3,
+               payload = payload || $4::jsonb, evidence = left(evidence || $5, 4000) where id=$1`,
+      [있음.id, title, `Claude 세션에서 ${설정.draftWhere} 에 씁니다`, 표시, `\n${오늘} 개선 루프가 ${x.prompt_id} 로 다시 엶`]);
+    return { id: 있음.id, 말: `일감 #${있음.id} 다시 엶` };
+  }
+  const key = `qdraft-${crypto.createHash("sha1").update(x.text).digest("hex").slice(0, 10)}`;
+  const [새] = await q(
+    `insert into geo.agent_tasks (client_id, agent, kind, dedupe_key, title, detail, status, priority, last_error, payload)
+     values ($1, 'content', 'question-draft', $2, $3, $4, '사람 대기', 35, $5, $6::jsonb)
+     on conflict (client_id, dedupe_key) do update set status='사람 대기', title=excluded.title, detail=excluded.detail,
+       last_error=excluded.last_error, payload = geo.agent_tasks.payload || excluded.payload, done_at=null, updated_at=now()
+     returning id`,
+    [c.id, key, title, detail, `Claude 세션에서 ${설정.draftWhere} 에 씁니다`,
+      JSON.stringify({ sticky: true, session: true, prompt_id: x.prompt_id, question: x.text, stage: x.stage, sources: 경쟁 })]);
+  return { id: 새.id, 말: `일감 #${새.id} 새로 만듦` };
+};
+
+/** 한 고객의 하루. 설정은 clients.mjs 의 loop 덩어리 */
+const 돌기 = async (c, 설정) => {
+  const SLUG = c.slug;
   if (process.argv.includes("--complete")) {
     const i = process.argv.indexOf("--complete");
     const [done = "", evidence = ""] = [process.argv[i + 1], process.argv[i + 2]];
@@ -94,11 +134,11 @@ const main = async () => {
     const res = 실행(["scripts/indexnow.mjs", "--client", SLUG, path]);
     return { ok: res.ok && /접수됨/.test(res.out), out: res.out };
   };
-  /** 홈 JSON-LD 에 주소가 있나. 못 가져왔으면 fetched=false — 사람 일로 적지 않는다 */
+  /** 홈 JSON-LD 가 고객 설정(loop.homeLd — 학원은 주소·석촌|송파)을 다 채우나. 못 가져왔으면 fetched=false — 사람 일로 적지 않는다 */
   const 홈확인 = async () => {
     const html = await fetch(`https://${c.domain}/`).then((r) => (r.ok ? r.text() : "")).catch(() => "");
     const ld = [...html.matchAll(/<script[^>]*application\/ld\+json[^>]*>([\s\S]*?)<\/script>/g)].map((m) => m[1]).join("\n");
-    return { fetched: Boolean(html), ok: /"address"/.test(ld) && /석촌|송파/.test(ld) };
+    return { fetched: Boolean(html), ok: 설정.homeLd.every((re) => re.test(ld)) };
   };
 
   // ── 재료
@@ -137,8 +177,8 @@ const main = async () => {
     : [];
 
   const stageOf = Object.fromEntries(questions.map((x) => [x.prompt_id, x.stage]));
-  // 브랜드 질문은 질문에 이름이 들어 있어 답이 따라 말한다. 인용이나 실제 위치(석촌)가 나와야 적중이다
-  const 적중 = (r) => r.cited || (stageOf[r.prompt_id] === "brand" ? /석촌/.test(r.answer) : r.mentioned);
+  // 브랜드 질문은 질문에 이름이 들어 있어 답이 따라 말한다. 인용이나 고객 설정 말(학원은 실제 위치 석촌)이 나와야 적중이다
+  const 적중 = (r) => r.cited || (stageOf[r.prompt_id] === "brand" ? 설정.brandHit.test(r.answer) : r.mentioned);
   const 창 = (pid, from, to) => rows.filter((r) => r.prompt_id === pid && r.day >= from && (!to || r.day < to));
   const 기록 = [];
 
@@ -169,6 +209,24 @@ const main = async () => {
         r.verdict = "미처리";
       }
       continue;
+    }
+    // 세션 글 일감(글 쓰는 길이 세션인 고객)을 끝냈으면 알아챈다 — 같은 질문의 question-draft 일감이 완료면 그날부터 효과를 잰다
+    if (r.action_kind === "content" && r.status === "사람 대기" && !r.target_slug && 설정.draft === "session") {
+      const 글 = questions.find((x) => x.prompt_id === r.target_prompt)?.text;
+      const [t] = 글 ? await q(
+        `select id, done_at from geo.agent_tasks where client_id=$1 and kind='question-draft' and status='완료'
+            and regexp_replace(payload->>'question', '[^가-힣a-zA-Z0-9]', '', 'g') = $2
+            and (done_at at time zone 'Asia/Seoul')::date >= $3::date order by done_at desc limit 1`,
+        [c.id, 글자만(글), r.run_day]) : [];
+      if (t) {
+        const 끝낸날 = KST(t.done_at ?? new Date());
+        기록.push(`${r.target_prompt} 세션 글 일감 #${t.id} 완료(${끝낸날}) → 판정 창을 엽니다`);
+        if (!DRY) await q(`update geo.agent_runs set status='완료', completed_at=now(), effective_on=$2::date, evidence = evidence || $3 where id=$1`,
+          [r.id, 끝낸날, `\n${오늘} 일감 #${t.id} 완료 확인`]);
+        r.status = "완료";
+        r.effective_on = 끝낸날;
+        continue;
+      }
     }
     // 사람이 JSON-LD 를 고쳤으면 알아챈다
     if (r.action_kind === "entity" && r.status === "사람 대기") {
@@ -251,7 +309,7 @@ const main = async () => {
 
   // ── 자기 점검 (loop-review.mjs). 판정 뒤에 돈다 — 방금 닫힌 행동은 「멈춤」으로 안 센다
   const 점검 = 자기점검({
-    questions, rows: 점검rows, 판정rows: rows, runs, posts, today: 오늘, domain: c.domain, probes, 적중,
+    questions, rows: 점검rows, 판정rows: rows, runs, posts, today: 오늘, domain: c.domain, probes, 적중, 탐침: 설정.probes,
     // 검색어 씨앗(source_prompt 없음)은 하루 한도에 안 센다
     새탐침한도: Math.max(0, 2 - probes.filter((p) => p.created_on === 오늘 && p.source_prompt).length),
   });
@@ -339,7 +397,9 @@ const main = async () => {
 
   if (!측정됨.length) {
     await 저장({ status: "실패", diagnosis: "최근 7일 자동 AI 측정이 없습니다", action: "ai-measure.mjs 로그에서 키·모델·한도 오류를 확인합니다.", evidence: 엔진별 });
-    process.exitCode = 1;
+    // 학원 밖 고객은 막 승인됐거나 하루 측정 예산에 밀려 못 잰 날일 수 있다 — 예산 부족은 측정기가 따로 일감으로 올린다.
+    // 그 때문에 작업 전체를 빨갛게 하지 않는다. 기록(실패)은 남긴다
+    if (c.slug === HOUSE) process.exitCode = 1;
     return;
   }
 
@@ -352,15 +412,21 @@ const main = async () => {
   const 다른초안 = posts.find((p) => !p.published && !p.archived && p.slug);
   const 대기초안 = runs.find((r) => r.verdict === "판정 전" && r.action_kind === "content" && r.status === "사람 대기" && r.target_slug)
     ?? (다른초안 ? { target_slug: 다른초안.slug } : null);
+  // 글 쓰는 길이 세션인 고객 — 넘긴 세션 글이 안 끝났으면 새로 넘기지 않는다
+  const 대기세션 = 설정.draft === "session"
+    ? runs.find((r) => r.verdict === "판정 전" && r.action_kind === "content" && r.status === "사람 대기" && !r.target_slug) ?? null
+    : null;
+  const 대기일 = 대기초안 ? `/blog/${대기초안.target_slug} 초안을 사실 확인 후 발행합니다.`
+    : 대기세션 ? `${대기세션.target_prompt} 세션 글 일감을 끝내고 완료로 닫습니다.` : null;
   const 후보 = 표
     .filter((x) => x.n > 0 && x.rate < 50 && !열림.has(x.prompt_id) && !버린질문.has(x.prompt_id))
     .sort((a, b) => (STAGE_ORDER[a.stage] ?? 9) - (STAGE_ORDER[b.stage] ?? 9) || a.rate - b.rate);
 
   if (!후보.length) {
     const why = 표.some((x) => x.n > 0 && x.rate < 50)
-      ? `적중률 50% 미만 질문은 모두 행동이 진행 중입니다${대기초안 ? ` — 초안 ${대기초안.target_slug} 발행 전 사실 확인 대기` : ""}`
+      ? `적중률 50% 미만 질문은 모두 행동이 진행 중입니다${대기초안 ? ` — 초안 ${대기초안.target_slug} 발행 전 사실 확인 대기` : 대기세션 ? ` — ${대기세션.target_prompt} 세션 글 대기` : ""}`
       : "측정된 질문이 모두 적중률 50% 이상입니다";
-    await 저장({ status: 대기초안 ? "사람 대기" : "완료", diagnosis: `${전체}. ${why}`, action: 대기초안 ? `/blog/${대기초안.target_slug} 초안을 사실 확인 후 발행합니다.` : "측정만 이어 갑니다.", evidence: 엔진별 });
+    await 저장({ status: 대기일 ? "사람 대기" : "완료", diagnosis: `${전체}. ${why}`, action: 대기일 ?? "측정만 이어 갑니다.", evidence: 엔진별 });
     return;
   }
 
@@ -389,8 +455,8 @@ const main = async () => {
         }
         await 저장({
           status: "사람 대기", diagnosis: 진단, target_prompt: x.prompt_id, action_kind: "entity",
-          action: `홈(https://${c.domain}/) 구조화 데이터에 주소가 없습니다. academy/app/page.tsx 의 JSON-LD 에 주소·지역을 넣고 배포합니다.`,
-          evidence: "홈 JSON-LD 에 address 또는 석촌·송파 없음",
+          action: `홈(https://${c.domain}/) 구조화 데이터에 ${c.slug === HOUSE ? "주소가 없습니다" : "빠진 것이 있습니다"}. ${설정.homeLdFix}`,
+          evidence: 설정.homeLdMissing,
         });
         return;
       }
@@ -424,6 +490,21 @@ const main = async () => {
           .map((s) => s.domain).filter((d) => d && d !== c.domain)
           .reduce((m, d) => ((m[d] = (m[d] ?? 0) + 1), m), {}))
           .sort((a, b) => b[1] - a[1]).slice(0, 5).map(([d]) => d);
+        if (설정.draft === "session") {
+          // 글이 DB 가 아니라 고객 저장소 코드다(아이로그 lib/guides.ts). write-draft 를 부르면 학원 블로그에 남의 글이 들어간다.
+          // 사람 대기 일감으로 세션에 넘긴다. 한 번에 하나 — 열린 세션 글이 있으면 새로 쌓지 않는다
+          if (대기세션) {
+            막힘 ??= `${x.prompt_id} 은 새 글이 필요한데 ${대기세션.target_prompt} 세션 글 일감이 끝나기를 기다리고 있어 새로 넘기지 않았습니다`;
+            continue 질문;
+          }
+          const 일감 = await 세션일감(c, 설정, x, 경쟁);
+          await 저장({
+            status: "사람 대기", diagnosis: 진단, target_prompt: x.prompt_id, action_kind: "content", target_slug: null,
+            action: `${c.name} 글은 이 저장소에서 쓰지 않습니다. Claude 세션에서 「${x.text}」에 답하는 가이드 초안을 ${설정.draftWhere} 에 씁니다${일감.id ? ` (일감 #${일감.id})` : ""}. 일감을 완료로 닫으면 다음 날 루프가 효과 측정을 시작합니다.`,
+            evidence: `대신 인용된 곳: ${경쟁.join(", ") || "없음"} · ${일감.말}`,
+          });
+          return;
+        }
         if (DRY) {
           console.log(`\n(dry) ${x.prompt_id} 초안을 쓸 차례 — 대신 인용된 곳: ${경쟁.join(", ") || "없음"}`);
           return;
@@ -479,9 +560,7 @@ const main = async () => {
           .sort((a, b) => b[1] - a[1]).slice(0, 5);
         await 저장({
           status: "사람 대기", diagnosis: 진단, target_prompt: x.prompt_id, action_kind: "offsite",
-          action: 출처.length
-            ? "사이트 글과 검색 색인으로도 안 움직였습니다. 네이버 플레이스·Google Business Profile처럼 학원이 직접 관리할 수 있는 외부 정보의 사실 일치와 최신성을 확인합니다."
-            : "사이트 글로는 안 움직였고, 답에 출처가 안 잡혀 등록할 곳을 고르지 못했습니다. 네이버 플레이스·지역 카페 노출을 먼저 확인합니다.",
+          action: 출처.length ? 설정.offsite[0] : 설정.offsite[1],
           evidence: (출처.length ? `AI 답변의 참고 출처(등록 대상 아님): ${출처.map(([d, n]) => `${d} ${n}회`).join(", ")}` : "출처 없음"),
         });
         return;
@@ -491,9 +570,40 @@ const main = async () => {
 
   await 저장({
     status: "사람 대기", diagnosis: `${전체}. ${막힘 ?? "후보 질문의 자동 행동이 모두 소진됐습니다"}`,
-    action: 대기초안 ? `/blog/${대기초안.target_slug} 초안을 사실 확인 후 발행합니다.` : "사다리를 다 쓴 질문은 사람이 원인을 새로 정합니다.",
+    action: 대기일 ?? "사다리를 다 쓴 질문은 사람이 원인을 새로 정합니다.",
     evidence: 엔진별,
   });
+};
+
+/**
+ * 누구를 도나. --client 가 있으면 그 고객 하나, --complete 는 (--client 없으면) 학원 하나.
+ * 없으면 학원 먼저, 그다음 승인 질문이 있는 고객을 번호 순으로. 학원만 있을 때 출력·기록은 Step 30 전과 같다
+ */
+const main = async () => {
+  await 준비();
+  const i = process.argv.indexOf("--client");
+  const 지정 = i > 0 ? process.argv[i + 1] : null;
+  const 대상 = 지정 || process.argv.includes("--complete")
+    ? await q(`select id, slug, name, domain from geo.clients where slug=$1`, [지정 ?? HOUSE])
+    : await q(`select c.id, c.slug, c.name, c.domain from geo.clients c
+                where c.slug=$1 or exists (select 1 from geo.pilot_questions pq join geo.pilots p on p.id=pq.pilot_id
+                                            where p.client_id=c.id and pq.approved)
+                order by c.slug <> $1, c.id`, [HOUSE]);
+  if (!대상.length) throw new Error(`${지정 ?? HOUSE} 없음`);
+  for (const [n, c] of 대상.entries()) {
+    if (n) console.log(`\n────────────────`);
+    const 설정 = CLIENTS.find((x) => x.slug === c.slug)?.loop;
+    if (!설정) {
+      // 사다리의 고객별 칸(이름 질문 적중 말·홈 검사·글 쓰는 길)을 지어낼 수 없다. 조용히 빼지 않고 적는다
+      console.log(`${c.name}: academy/clients.mjs 에 loop 설정이 없어 개선 루프를 건너뜁니다`);
+      continue;
+    }
+    // 한 고객이 실패해도 다음 고객은 돈다
+    await 돌기(c, 설정).catch((e) => {
+      console.log("실패:", e.message);
+      process.exitCode = 1;
+    });
+  }
 };
 
 main()

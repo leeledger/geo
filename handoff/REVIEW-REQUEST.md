@@ -1,75 +1,83 @@
-# Review Request — Step 29 (고객사 사이트 사람 방문 추이 D29~D33)
+# Review Request — Step 30 (아이로그를 학원과 같은 수준으로 D34~D37)
 Date: 2026-09-30
 Ready for Review: YES
-Status: DONE_WITH_CONCERNS — 코드·시험·tsc 는 통과. 화면은 실제 브라우저로 못 봤다(운영 DB 에 표가 없어 빈 상태만 나온다 · 배포 금지)
-
-## 커밋 (푸시·배포·운영 DB 쓰기 없음)
-- AGO&GEO `e8873b0` — Step 29 — 고객사 사이트 사람 방문 추이 (13 파일) + 이 문서·BUILD-LOG 는 뒤 커밋
-- 자동피드백생성기 `d30c9c0` — 사람 방문을 사이티드로 보낸다 (2 파일)
-
-## 리뷰 반영 (Richard 29 Should Fix + Arch) — 커밋은 아래 BUILD-LOG 끝 줄
-- academy/app/api/visit/route.ts — CRAWL_KEY 없거나 다르면 401(fail closed) · DDL 은 to_regclass 로 표 없을 때만, insert 와 다른 try
-- web/lib/visits.ts saveVisit — 같은 준비 규칙
-- lib/visit.ts 세 사본 — SNS utm 접두어만
-- 자동피드백생성기 lib/cited-landing.ts(새) · proxy.ts — 공개 랜딩 + 세션 쿠키 없음일 때만
-- 시험 94 통과 0 실패 · tsc 0 (세 곳) · 아이로그 eslint 0
-- 배포 추가 조건: 학원 Vercel 에 CRAWL_KEY 가 있어야 한다(없으면 사람 기록 401)
+Status: DONE_WITH_CONCERNS — 시험 18 통과 · tsc 0(web·academy) · 학원 dry 출력 동일. 아이로그 content 칸(세션 일감) 경로는 승인 질문·측정이 없어 dry 로 끝까지 못 탔다(DB 쓰기 금지 — 가짜 행 시험과 코드로만 확인)
 
 ## Files Changed
-공통 분류 (세 저장소 같은 글자 — test-visit.mjs 가 대조)
-- academy/lib/visit.ts:1-151 — classifyRef(utm 우선 · AI→SNS→검색 순, blog/cafe.naver 는 SNS, 같은 도메인은 internal) · isHumanDocument(D30) · deviceOf · kstDay · readVisit(보내는 쪽: 해시·경로만, IP 안 보냄, 물음표 뒤 버림) · cleanVisit(받는 쪽: 모양·길이·글자)
-- web/lib/visit.ts — 위와 같은 파일
-- C:\dev\자동피드백생성기\lib\cited-visit.ts — 위와 같은 파일
+- academy/clients.mjs:37-53 — 학원 `loop` 설정. Step 30 전 daily-agent 에 박혀 있던 값 그대로(석촌 · address+석촌|송파 · write-draft · 탐침 켬 · offsite 문장 두 개 원문)
+- academy/clients.mjs:79-84 — 아이로그 answerRe 를 `(?<!\(주\)\s?)아이로그|ilog\.ai\.kr` 로(D34). seed 가 이 원문을 DB 에 넣는다 — 한 곳
+- academy/clients.mjs:90-108 — 아이로그 `loop` 설정(이름 질문 적중 출결|알림톡|수업 피드백 · 홈 SoftwareApplication+ilog.ai.kr · draft=session · 탐침 끔)
+- academy/clients.mjs:149-151 — `세션글제목()` — daily-agent 와 company 가 같은 제목
+- academy/scripts/daily-agent.mjs:18-22,39,59-64 — 머리말 · HOUSE · keyword 단계(LADDER·DISCOVER_GROUP general·STAGE_ORDER 4)
+- academy/scripts/daily-agent.mjs:75-116 — 준비(DDL) 분리 · `세션일감()`: 같은 질문의 question-draft 일감이 있으면 다시 열고(사람 대기) 없으면 새로. dry 는 읽기만
+- academy/scripts/daily-agent.mjs:137-141,180 — 홈 JSON-LD 검사·이름 질문 적중을 고객 설정으로(D35)
+- academy/scripts/daily-agent.mjs:213-230 — 판정: 세션 글 일감이 run_day 이후 완료면 그날부터 판정 창을 연다
+- academy/scripts/daily-agent.mjs:312 — 자기 점검에 `탐침: 설정.probes`
+- academy/scripts/daily-agent.mjs:400-402 — 학원 밖 고객 「측정 없음」은 실패로 적되 종료코드 1 을 안 낸다
+- academy/scripts/daily-agent.mjs:415-420,427-429,458-459,573 — 대기세션·대기일(학원이면 대기초안 문장 그대로)
+- academy/scripts/daily-agent.mjs:493-507 — content 칸: draft=session 이면 write-draft 를 안 부르고 세션 일감 + 사람 대기 행(한 번에 하나)
+- academy/scripts/daily-agent.mjs:563 — offsite 문장을 고객 설정에서
+- academy/scripts/daily-agent.mjs:578-608 — main: --client 하나 · --complete 는 학원(또는 --client) · 기본은 학원 먼저 + 승인 질문 있는 고객. loop 설정 없는 고객은 적고 건너뜀. 고객별 실패 격리
+- academy/scripts/loop-review.mjs:40-41,115,118,181,207-208 — keyword → 일반 질문 묶음 · `탐침` 인자(false 면 widen·씨앗 없음) · skipContent 는 있는 단계만(학원 출력 불변을 위해)
+- academy/scripts/company.mjs:33,427-444,539 — D37 `세션글열기()`: 세션 고객의 관찰 question-draft 를 사람 대기 + 세션 제목으로(매시, 관찰인 것만)
+- academy/scripts/company.mjs:657-662 — who-wins 가 세션 고객 일감을 처음부터 세션 제목·사람 대기로
+- academy/scripts/company.mjs:710-713 — question-draft 실행: 세션 고객은 관찰(30일) 대신 사람 대기
+- academy/scripts/pm-report.mjs:203-251,339 — D36 `고객줄읽기()`: 학원 밖 고객 한 줄(곳별 「n번 중 k번 이름 나옴」 · 방문자(기록 시작 전은 0 이라 안 씀) · 열린 일감/원장 몫). 학원 숫자·문장 불변
+- web/lib/pm-report.ts:28-29 · web/app/admin/ops/PmReport.tsx:91 — 고객별 줄 타입·표시
+- web/lib/todo-text.ts:197-206 — 「세션에서 …」 question-draft 를 원장 할 일 문장으로. 버튼은 「했어요」(닫으면 루프가 판정 창을 연다)
+- academy/scripts/seed-ilog-panel.mjs (새) — 0원 리허설 파일럿 + 질문 20개 approved=false + answer_pattern + measure_active. 기본 dry, `--apply` 는 Arch
+- academy/scripts/test-ilog-loop.mjs (새) — 18개: 패널 모양·출처, 이름 말 오탐((주)아이로그·IBM ILOG·ilog.co.kr), 학원 설정 원값, 홈 검사 교차, 탐침 끄기, keyword 묶음, 제목
 
-학원 (academy/)
-- academy/proxy.ts:15 — matcher 에서 api/visit 제외 / :20-24 봇이 아니면 waitUntil(sendVisit) / :45-58 sendVisit. **봇 분기(:26-42)는 한 글자도 안 바뀜**
-- academy/app/api/visit/route.ts:1-70 — x-crawl-key 확인 · 2KB 상한 · cleanVisit · 표 한 번 준비 · 1분 중복 무시 insert. client_id 1 고정
-- academy/db/schema.sql:176-191 — geo.site_visits + 인덱스 + RLS
-- academy/scripts/test-visit.mjs:1-192 — 단위 시험(아래)
+## 확인한 것
+- `node academy/scripts/test-ilog-loop.mjs` → 18 통과 · 0 실패
+- `node ./node_modules/typescript/bin/tsc --noEmit` → web 0 · academy 0
+- 학원 불변: 변경 전 `daily-agent.mjs --dry` 출력을 떠 두고 변경 후와 diff → **동일**(처음엔 「건너뛰는 단계」에 keyword 가 붙어 한 줄 달랐다 → skipContent 를 있는 단계만으로 고쳐 동일). `--dry --review` 종료 0
+- pm-report `--dry`: 변경 전후 `body` 에서 기간·고객별을 빼고 비교 → **같음**. 출력은 한 줄만 늘었다: `아이로그: AI 답변 측정 없음 — 승인된 질문 0개 · 방문 기록 없음 · 열린 일감 7건`
+- `daily-agent.mjs --dry --client ilog`: 측정 0건이라 「최근 7일 자동 AI 측정이 없습니다 · 실패」 기록 줄까지(종료 0). 기본 실행(고객 지정 없음)에서는 승인 질문이 없어 아이로그를 돌지 않는다
+- 7건: DB 를 읽어 보니 question-draft(client 2) 는 관찰 6(#28·30·32·33·417·757) + 완료 1(#29 「원장이 완료 표시」). D37 은 관찰 6건을 올린다. #29 질문도 패널 q2 에 넣었다
 
-사이티드 (web/)
-- web/app/api/visit/route.ts:1-49 — /api/crawl 과 같은 clientForKey 인증 · 2KB · cleanVisit · saveVisit
-- web/lib/visits.ts:17-48 — VISITS_DDL · 1분 중복 무시 INSERT · saveVisit(인스턴스마다 표 한 번 준비)
-- web/lib/visits.ts:69-130 — readVisits: 기록 시작일, 30일(시작 전은 안 그림), 어제까지 7일 vs 그 전 7일(기록 안 찬 칸은 null), 들어온 곳 5칸(internal 뺌), AI 곳별, 많이 본 5. 표 없으면(42P01) 빈 상태
-- web/app/admin/ops/Visits.tsx:1-129 — 「사람 방문 — 고객명」 카드
-- web/app/admin/ops/CoverageChart.tsx — 계열별 unit·aria `what`·`table` 인자만 추가(기본값 = 예전 동작)
-- web/app/admin/ops/Growth.tsx:76 — Word 를 export (Visits 가 같은 변화 단어를 쓴다)
-- web/app/admin/ops/page.tsx:9,17,154-158,191 — readVisits 병렬로 읽고 Growth 아래에 카드
-- web/db/schema.sql:179-194 — geo.site_visits + 인덱스 + RLS
-
-아이로그 (C:\dev\자동피드백생성기)
-- proxy.ts:50-51 — 봇이 아니고 공개 랜딩이면 waitUntil(sendVisit) / :56-60 LANDING / :63-75 sendVisit → https://geo-rose-nine.vercel.app/api/visit (x-cited-client: ilog · CITED_CRAWL_KEY). 봇 분기 그대로
-
-## 결정 (BUILD-LOG 에도)
-- **D31 학원은 자기 /api/visit → DB 직접.** 사이티드로 보내려면 학원 geo.clients 에 crawl_key 를 새로 넣고(DB 쓰기) 학원 서버에도 둬야 한다. 학원 /api/crawl 과 같은 모양이라 더 단순
-- **visitor 해시는 보내는 쪽(proxy)에서.** IP 가 고객사 서버 밖으로 안 나간다. 그래서 VISIT_SALT 는 학원·아이로그 두 곳에만 필요, 사이티드 web 에는 필요 없다
-- **표는 받는 라우트가 if not exists 로 준비**(인스턴스마다 한 번). company.mjs 가 돌기 전에 배포되면 첫날 기록이 날아가서
-- **(설계 밖, Arch 확인)** 아이로그는 공개 랜딩(/ · /features · /guide · /terms · /privacy — sitemap.ts 목록)만 센다. 대시보드·출결 키패드는 학원 사람들이 하루 수십 번 연다
-- 페이지뷰는 문서 요청만(D30) — 사이트 안 링크 이동(Next RSC)은 대부분 안 잡힌다. 카드 설명에 그대로 적었다
-
-## 시험 출력
+## seed --dry 출력 원문 (Arch·원장 검토용)
 ```
-$ node --experimental-strip-types academy/scripts/test-visit.mjs
-72 통과 · 0 실패
-  (들어온 곳 32 · 문서 요청 24 · 기기 · KST 경계 · readVisit 5 · cleanVisit 3 · 사본 2(web·아이로그) · DDL/인덱스/RLS/insert 대조 4)
-$ academy: node ./node_modules/typescript/bin/tsc --noEmit            → exit 0
-$ web:     node ./node_modules/typescript/bin/tsc --noEmit            → exit 0
-$ 자동피드백생성기: node ./node_modules/typescript/bin/tsc --noEmit -p tsconfig.json → exit 0
-$ 자동피드백생성기: eslint proxy.ts lib/cited-visit.ts                 → 0
+아이로그 (client 2) · dry — DB 안 씀
+  파일럿: 새로 — 0원 리허설, 오늘부터 30일
+  이름 판별: ilog\.ai\.kr → (?<!\(주\)\s?)아이로그|ilog\.ai\.kr
+  측정 대상 고정(measure_active): false → true  (리허설 30+7일이 지나도 계속 잰다)
+  질문 20개 (approved=false · 원장이 /admin/pilots 에서 승인)
+  q1  consider 학원 관리 프로그램 뭐가 좋은가요?   ← 겨냥 초안 일감 #28
+  q2  consider 학원 관리 프로그램 추천 순위나 후기 알려줘   ← 겨냥 초안 일감 #29
+  q3  consider 무료로 쓸 수 있는 학원 관리 프로그램 있나요?   ← 겨냥 초안 일감 #30
+  q4  consider 학원에서 카톡 알림 보내는 프로그램 뭐 써요?   ← 겨냥 초안 일감 #32
+  q5  consider 학원 수업 리포트 보내는 앱 어떤 게 좋아요?   ← 겨냥 초안 일감 #33
+  q6  consider 학원관리프로그램 추천 좀 해주세요   ← 겨냥 초안 일감 #417
+  q7  consider 학원 출결 관리 앱 뭐가 있어요?   ← 겨냥 초안 일감 #757
+  q8  problem  학원 관리 프로그램, 무엇을 보고 골라야 하나요?   ← guides.ts how-to-choose-academy-management-program 제목
+  q9  problem  무료 학원 관리 프로그램, 어디까지 무료인가요?   ← guides.ts free-academy-management-program 제목
+  q10 problem  학원 출결을 학부모 카카오톡으로 자동으로 알리려면 무엇이 필요한가요?   ← guides.ts academy-attendance-kakao-notification 제목
+  q11 problem  학원 수업 리포트, AI가 대신 쓰면 선생님은 무엇을 하나요?   ← guides.ts ai-class-report 제목
+  q12 problem  학교별 기출로 영어 내신 예상 문제를 만들 수 있나요?   ← guides.ts english-exam-generator 제목
+  q13 keyword  학원 관리 프로그램 추천   ← guides.ts query · 설계서 예시
+  q14 keyword  무료 학원 관리 프로그램   ← guides.ts query · clients.mjs c3
+  q15 keyword  학원 출결 관리 앱   ← clients.mjs c4
+  q16 keyword  학원 카톡 알림 프로그램   ← clients.mjs c5
+  q17 keyword  학원 수업 리포트 앱   ← guides.ts query · clients.mjs c6
+  q18 brand    아이로그 학원 관리 프로그램 어떤 거야?   ← 이름 질문 — 학원 패널 「어떤 곳이야?」 꼴
+  q19 brand    ilog.ai.kr 이 사이트 뭐 하는 곳이야?   ← 이름 질문 — 학원 패널 「robotncoding.com 이 사이트 무슨 학원이야?」 꼴
+  q20 brand    아이로그는 정말 무료인가요?   ← guides.ts how-to-choose FAQ 원문
+  단계: consider 7 · problem 5 · keyword 5 · brand 3
 ```
-
-## 배포 때 (Arch)
-- env `VISIT_SALT` — 학원 Vercel(academy) · 아이로그 Vercel 각각. 아무 긴 임의 문자열, 두 곳 달라도 된다. **파일로 넣고 env pull 로 길이 확인**(CLAUDE.md BOM 함정). 없으면 사람 기록만 조용히 꺼져 있다
-- 기존 env 그대로 씀: 학원 `CRAWL_KEY` · 아이로그 `CITED_CRAWL_KEY` · web `DATABASE_URL`
-- 순서: web(git push, /api/visit 먼저 살아야 함) → 학원 `academy/` 에서 `npx vercel --prod --yes` → 아이로그 `C:\dev\자동피드백생성기` 에서 `npx vercel --prod --yes`
-- 확인: 각 사이트를 브라우저로 한 번 열고 `/admin/ops?c=robotncoding` · `?c=ilog` 카드에 「9/30 부터 셈」과 오늘 1명이 뜨는지. 봇 기록은 크롤러 표가 계속 느는지
 
 ## Open Questions
-- 아이로그 랜딩만 세는 것(설계 밖) 괜찮은가
-- utm 이 referer 보다 먼저라서 utm_source=chatgpt.com 인데 referer 가 구글이면 AI 로 센다(설계서 문구대로). 반대로 utm 이 엉뚱한 값(newsletter)이면 other
-- CoverageChart 를 넓힌 방식(값 칸 이름이 여전히 `pages`) — 이름 바꾸는 게 낫다면 Coverage 쪽까지 손대야 해서 안 했다
+- 이름 말: 「아이로그」를 세고 「(주)아이로그」만 뺐다. 설계서의 `i-log` 는 아이로그 코드·가이드 어디에도 없는 표기라 넣지 않았다. `ilog` 단독은 IBM ILOG 와 겹쳐 안 셌다. 이대로 좋은지
+- 아이로그 이름 질문 적중 말(출결|알림톡|수업 피드백)은 학원의 「석촌」과 같은 역할로 Bob 이 골랐다. 답이 이름을 따라 말하는 것과 제품을 아는 것을 가르는 말로 적당한지
+- q19 는 질문에 도메인이 들어 있어 「이름 나옴」은 늘 참이다(학원 q 의 robotncoding.com 질문과 같다). 판정은 위 적중 말로만 한다
+- 파일럿 업무 19개·정합성 20칸은 안 넣었다(교육청 공개정보·네이버 플레이스가 소프트웨어에 안 맞는다). 리허설은 회사 루프가 업무 일감을 안 올리니 영향은 /admin/pilots 화면이 비는 것뿐
+- measure_active=true 로 고정한다 — 리허설 30+7일 뒤에도 잰다. 측정 예산은 KG-30-3
+- D37 이 돌면 pm-report 「원장 할 일」(전 고객 합)이 6 늘어난다(KG-30-4). 학원 줄 숫자 계산식은 안 바꿨다
+- 세션 일감을 원장이 「했어요」로 닫으면 who-wins 가 다음 주 같은 검색어로 지면 24시간 쿨다운 뒤 다시 연다(기존 일감() 동작 그대로)
 
-## Out of Scope (BUILD-LOG KG-29-1~3)
-- 사이트 안 이동 페이지뷰(브라우저 비컨이 필요)
-- 학원 CRAWL_KEY 비었을 때 /api/visit 무인증(/api/crawl 과 같은 약점)
-- 화면 눈 확인(배포 뒤)
+## Out of Scope (logged in BUILD-LOG)
+- KG-30-1 loop 설정 없는 외부 고객은 개선 루프를 건너뜀
+- KG-30-2 아이로그 content 칸이 이미 있는 가이드(lib/guides.ts)와의 겹침을 안 봄
+- KG-30-3 측정 예산(유료 없는 날 22 — 학원 20 뒤 아이로그 20은 밀림)
+- KG-30-4 pm-report 원장 할 일 수는 전 고객 합
+- KG-30-5 아이로그 case-report
