@@ -117,6 +117,13 @@ export const 변형후보 = (questions, 변형) => {
   return 기능들.flatMap(({ 기능, from }) => 변형.forms.map((f) => ({ source_prompt: from, text: f.replace("{기능}", 기능) })));
 };
 
+/** 띄어쓰기·문장부호와 끝의 꼬리말(추천·좀·해줘·해주세요·알려줘·부탁해)을 뺀 글자 — 변형이 승인 질문과 사실상 같은지 볼 때 */
+export const 꼬리뺀 = (s) => {
+  let t = String(s ?? "").replace(/[^가-힣a-zA-Z0-9]/g, "");
+  for (let prev = ""; prev !== t;) { prev = t; t = t.replace(/(추천|좀|해줘|해주세요|알려줘|부탁해)$/, ""); }
+  return t;
+};
+
 const 같은글 = (a, b) => String(a).replace(/[^가-힣a-zA-Z0-9]/g, "") === String(b).replace(/[^가-힣a-zA-Z0-9]/g, "");
 const 우리주소 = (domain) => (r) => (r.citations ?? []).some((s) => s?.domain === domain || String(s?.domain ?? "").endsWith(`.${domain}`));
 
@@ -131,11 +138,12 @@ const 우리주소 = (domain) => (r) => (r.citations ?? []).some((s) => s?.domai
  * @param 새탐침한도 오늘 더 넓혀도 되는 탐침 수 (검색어 씨앗은 안 센다)
  * @param 탐침      true 넓힘 탐침(widen, 반경 사다리·씨앗이 송파 말이라 학원만) · "variants" 검색어 변형(D43) · false 끔 (clients.mjs loop.probes)
  * @param 변형      탐침 "variants" 의 틀 (clients.mjs loop.probeVariants)
+ * @param 확장들    확장 질문 글(pilot_questions stage extend) — 변형이 이것과 같으면 안 만든다
  * @returns probes  [{source_prompt, radius, text, form, seed?}] — 씨앗은 source_prompt 가 null
  * @returns regress [{prompt_id, 곳들: [{method, engine, 앞:[h,n], 뒤:[h,n]}], urls}] · regressUnknown [{prompt_id, method, engine, 왜}]
  * @returns promote [{prompt_id, text, method, hit, n}] · gaps [{prompt_id, text, radius, method, n, root}]
  */
-export function 자기점검({ questions, rows, 판정rows = rows, runs, posts, today, domain, probes = [], 적중, 새탐침한도 = 2, 탐침 = true, 변형 = null }) {
+export function 자기점검({ questions, rows, 판정rows = rows, runs, posts, today, domain, probes = [], 적중, 새탐침한도 = 2, 탐침 = true, 변형 = null, 확장들 = [] }) {
   const findings = [];
   const skipContent = new Set();
   const stageOf = Object.fromEntries(questions.map((x) => [x.prompt_id, x.stage]));
@@ -266,13 +274,22 @@ export function 자기점검({ questions, rows, 판정rows = rows, runs, posts, 
         (모름.length ? ` · 비교 못 함: ${모름.map((u) => `${u.prompt_id} ${곳(u.method)}(${u.왜})`).join(", ")}` : ""),
       action: "이 질문을 오늘 후보 맨 앞에 둡니다. 불리던 글부터 색인 알림으로 다시 밉니다.",
     });
+  } else if (모름.length) {
+    // 떨어졌는지 모르는 것도 적는다(Richard 31) — 후보 순서는 안 바꾼다
+    findings.push({
+      code: "regress-unknown",
+      title: `불리던 질문 ${new Set(모름.map((u) => u.prompt_id)).size}개는 최근에 떨어졌는지 모릅니다`,
+      evidence: `비교 못 함 — ${모름.map((u) => `${u.prompt_id} ${곳(u.method)}(${u.왜})`).join(", ")}`,
+      action: "같은 곳·같은 엔진으로 최근 7일 5건이 모이면 다시 봅니다. 그때까지 후보 순서는 그대로입니다.",
+    });
   }
 
-  // ── promote (D40): 탐침이 7일 안 한 곳에서 4번 넘게 재서 절반 넘게 불렸다. 곳끼리 합치지 않는다
+  // ── promote (D40): 탐침이 14일 안 한 곳에서 4번 넘게 재서 절반 넘게 불렸다(Arch 31 — 7일이면 탐침 몫으로 4번에 못 닿는다). 곳끼리 합치지 않는다
   const 칠일 = 날더하기(today, -6);
+  const 두주일 = 날더하기(today, -13);
   const 승격 = [];
   for (const p of probes.filter((x) => x.active !== false)) {
-    const w = rows.filter((r) => r.prompt_id === p.prompt_id && r.day >= 칠일);
+    const w = rows.filter((r) => r.prompt_id === p.prompt_id && r.day >= 두주일);
     const 좋은 = [...new Set(w.map((r) => r.collection_method))]
       .map((m) => { const l = w.filter((r) => r.collection_method === m); return { method: m, hit: l.filter(적중).length, n: l.length }; })
       .filter((s) => s.n >= 4 && s.hit * 2 >= s.n)
@@ -283,13 +300,22 @@ export function 자기점검({ questions, rows, 판정rows = rows, runs, posts, 
 
   if (탐침 === "variants" && 변형) {
     // ── variant (D43): 넓힐 동네가 없다. 승인 검색어의 기능 말로 「{기능} 앱·프로그램·무료」 변형을 하루 한도 안에서 만든다
-    const 있는글 = [...questions.map((x) => x.text), ...probes.map((p) => p.text)];
+    // 승인·확장 질문과 꼬리말(추천·좀·해줘 …)을 뺀 뒤 같으면 사실상 같은 검색어다 — 만들지 않는다(Richard 31)
+    const 있는글 = [...questions.map((x) => x.text), ...확장들, ...probes.map((p) => p.text)].map(꼬리뺀);
     const 새것 = [];
     for (const v of 변형후보(questions, 변형)) {
       if (새것.length >= 새탐침한도) break;
-      if (있는글.some((t) => 같은글(t, v.text))) continue;
+      if (있는글.includes(꼬리뺀(v.text))) continue;
       새것.push({ source_prompt: v.source_prompt, radius: "변형", text: v.text, form: "keyword" });
-      있는글.push(v.text);
+      있는글.push(꼬리뺀(v.text));
+    }
+    // gaps (D41, Arch 31): 한 곳에서 14일 4번 넘게 재서 한 번도 안 나온 변형 — 탐침 순서대로 처음 것
+    for (const p of probes.filter((x) => x.active !== false && x.source_prompt)) {
+      const w = rows.filter((r) => r.prompt_id === p.prompt_id && r.day >= 두주일);
+      const 빈곳 = [...new Set(w.map((r) => r.collection_method))]
+        .map((m) => ({ method: m, l: w.filter((r) => r.collection_method === m) }))
+        .find((s) => s.l.length >= 4 && !s.l.some(적중));
+      if (빈곳) 더.gaps.push({ prompt_id: p.prompt_id, text: p.text, radius: p.radius, method: 빈곳.method, n: 빈곳.l.length, root: p.source_prompt });
     }
     const 잰것 = probes.map((p) => {
       const w = rows.filter((r) => r.prompt_id === p.prompt_id && r.collection_method === 탐침곳 && r.day >= 칠일);
@@ -402,7 +428,7 @@ export function 자기점검({ questions, rows, 판정rows = rows, runs, posts, 
 }
 
 /** 진단 맨 앞에 붙일 한 줄. 가장 무거운 것 하나 — 후퇴는 잃고 있는 것이라 맨 앞 */
-const 무게 = ["regress", "repeat", "narrow", "stalled", "discover", "widen", "variant"];
+const 무게 = ["regress", "repeat", "narrow", "stalled", "discover", "widen", "variant", "regress-unknown"];
 export const 점검요약 = (findings) => {
   const top = [...findings].sort((a, b) => 무게.indexOf(a.code) - 무게.indexOf(b.code))[0];
   if (!top) return "";

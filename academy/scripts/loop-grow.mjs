@@ -17,6 +17,20 @@
 import { 점유, 이름정규식 } from "../pilot-report-core.mjs";
 
 export const 확장자리 = 100;
+
+/**
+ * 탐침·확장 질문 측정 표. 운영 DB 에 아직 없을 수 있다(2026-09-30 Richard 31) — company.mjs 시작 준비와 ai-measure 가 이 줄로 만든다.
+ * academy/db/schema.sql · web/db/schema.sql 과 같은 줄 — 한쪽만 고치지 않는다. 읽는 쪽은 to_regclass 로 감싸 없으면 빈 결과
+ */
+export const 탐침측정DDL = `create table if not exists academy.ai_probe_measurements (
+      id bigserial primary key, client_id int not null default 1, measured_on date not null,
+      collection_method text not null, engine text not null, model text, prompt_id text not null,
+      stage text, prompt_text text not null, attempt int not null default 1,
+      mentioned boolean not null default false, cited boolean not null default false,
+      citations jsonb not null default '[]'::jsonb, note text, raw jsonb not null,
+      form text not null default 'sentence', radius text,
+      imported_at timestamptz not null default now(),
+      unique (client_id, measured_on, collection_method, engine, prompt_id, attempt))`;
 const 글자만 = (s) => String(s ?? "").replace(/[^가-힣a-zA-Z0-9]/g, "");
 
 /** 단계별 가장 최근 「효과 있음」 행동. Map stage → run */
@@ -97,7 +111,7 @@ export async function 승격일감(q, { clientId, p, 곳이름, DRY }) {
   const key = `probe-promote-${p.prompt_id}`;
   const title = `승인 질문 후보: 「${p.text}」 (탐침 ${p.hit}/${p.n})`;
   if (DRY) return { key, title, 말: "(dry) 쓰지 않음" };
-  const detail = `${곳이름} 에서 최근 7일 ${p.n}번 물어 ${p.hit}번 이름이 나왔습니다. ` +
+  const detail = `${곳이름} 에서 최근 14일 ${p.n}번 물어 ${p.hit}번 이름이 나왔습니다. ` +
     "「했어요」를 누르면 승인 20문항은 그대로 두고 「확장 질문」으로 넣어 계속 잽니다. 영업 숫자와 효과 판정에는 안 들어갑니다. 넣지 않을 거면 그냥 두셔도 됩니다.";
   const r = await q(
     `insert into geo.agent_tasks (client_id, agent, kind, dedupe_key, title, detail, status, priority, payload)

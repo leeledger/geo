@@ -217,7 +217,9 @@ async function 확장줄읽기(q, now = new Date()) {
                           join geo.pilots p on p.id = pq.pilot_id join geo.clients c on c.id = p.client_id
                          where pq.stage = 'extend' order by c.id, pq.position`);
   if (!질문.length) return [];
-  const rows = await q(`select client_id, prompt_id, collection_method, mentioned, cited from academy.ai_probe_measurements
+  // 표가 아직 없으면(운영 DB 2026-09-30) 잰 것이 없는 것 — 멈추지 않고 전부 「덜 잼」
+  const [표] = await q(`select to_regclass('academy.ai_probe_measurements')::text as t`);
+  const rows = !표?.t ? [] : await q(`select client_id, prompt_id, collection_method, mentioned, cited from academy.ai_probe_measurements
                          where measured_on >= $1::date - 6 and prompt_id = any($2::text[])`, [오늘, [...new Set(질문.map((x) => x.prompt_id))]]);
   const out = [];
   for (const id of [...new Set(질문.map((x) => x.id))]) {

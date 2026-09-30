@@ -5,7 +5,7 @@
 import assert from "node:assert/strict";
 import { bySlug } from "../clients.mjs";
 import { 패널 } from "./seed-ilog-panel.mjs";
-import { 자기점검, 변형후보 } from "./loop-review.mjs";
+import { 자기점검, 변형후보, 꼬리뺀 } from "./loop-review.mjs";
 import { 전파찾기, 전파칸, 사다리짓기, 경쟁우세, 후보고르기, 불리던글, 확장줄, 승격일감, 확장넣기 } from "./loop-grow.mjs";
 import { 탐침글일감 } from "./session-task.mjs";
 
@@ -80,10 +80,13 @@ t("D39 안 걸림 — 앞 14일도 안 불렸다(3/8)", () => {
   const r = 자기점검({ ...기본, questions: [동네], rows: [...앞창({ hit: 3 }), ...뒤창({ hit: 0 })] });
   assert.equal(r.regress.length + r.regressUnknown.length, 0);
 });
-t("D39 표본 부족 — 최근 4건이면 「모른다」, finding 없음", () => {
+t("D39 표본 부족 — 최근 4건이면 「모른다」 finding 만(후보 순서 안 바꿈)", () => {
   const r = 자기점검({ ...기본, questions: [동네], rows: [...앞창({ hit: 6 }), ...잰("q2", { from: -3, n: 4, hit: 0 })] });
   assert.equal(r.regress.length, 0);
   assert.deepEqual(r.regressUnknown.map((u) => u.왜), ["최근 표본 모자람"]);
+  const f = r.findings.find((x) => x.code === "regress-unknown");
+  assert.match(f.evidence, /^비교 못 함 — q2 Claude\(최근 표본 모자람\)/);
+  assert.equal(r.findings.some((x) => x.code === "regress"), false);
 });
 t("D39 엔진 바뀜 — 같은 곳 다른 엔진이면 비교 안 함", () => {
   const rows = [...앞창({ hit: 6, engine: "openrouter" }), ...뒤창({ hit: 0 })];
@@ -116,9 +119,10 @@ t("D40 안 걸림 — 4번 중 1번 · 꺼진 탐침", () => {
   assert.equal(자기점검({ ...기본, questions: [], probes: [탐], rows: 잰("p9", { from: -5, n: 4, hit: 1 }) }).promote.length, 0);
   assert.equal(자기점검({ ...기본, questions: [], probes: [{ ...탐, active: false }], rows: 잰("p9", { from: -5, n: 4, hit: 4 }) }).promote.length, 0);
 });
-t("D40 표본 부족 — 3번뿐 · 8일 전 측정은 안 셈", () => {
+t("D40 표본 부족 — 3번뿐 · 15일 전 측정은 안 셈, 14일 안이면 셈(Arch 31)", () => {
   assert.equal(자기점검({ ...기본, questions: [], probes: [탐], rows: 잰("p9", { from: -5, n: 3, hit: 3 }) }).promote.length, 0);
-  assert.equal(자기점검({ ...기본, questions: [], probes: [탐], rows: 잰("p9", { from: -10, n: 4, hit: 4 }) }).promote.length, 0);
+  assert.equal(자기점검({ ...기본, questions: [], probes: [탐], rows: 잰("p9", { from: -17, n: 4, hit: 4 }) }).promote.length, 0);
+  assert.equal(자기점검({ ...기본, questions: [], probes: [탐], rows: 잰("p9", { from: -13, n: 4, hit: 2 }) }).promote.length, 1);
 });
 t("D40 곳 바뀜 — 두 곳 2번씩은 합치지 않는다", () => {
   const rows = [...잰("p9", { from: -5, n: 2, hit: 2 }), ...잰("p9", { from: -3, n: 2, hit: 2, method: "google-ai-mode-web-logged-out", engine: "google" })];
@@ -272,11 +276,15 @@ t("D43 기능 말은 승인 검색어에서만 — 새 말 없음", () => {
 });
 t("D43 걸림 — 하루 한도 2개, 승인 질문과 같은 글은 안 만든다", () => {
   const r = 자기점검({ ...기본, domain: "ilog.ai.kr", questions: 승인, rows: [], 탐침: "variants", 변형: 아이로그.loop.probeVariants, 새탐침한도: 2 });
-  assert.deepEqual(r.probes.map((p) => p.text), ["학원 관리 앱", "학원 관리 프로그램"]);
+  assert.deepEqual(r.probes.map((p) => p.text), ["학원 관리 앱", "학원 관리 무료"]); // 「학원 관리 프로그램」 = q13 에서 「추천」 뺀 것 — 안 만듦
   assert.ok(r.probes.every((p) => p.form === "keyword" && p.source_prompt === "q13"));
   const 많이 = 자기점검({ ...기본, domain: "ilog.ai.kr", questions: 승인, rows: [], 탐침: "variants", 변형: 아이로그.loop.probeVariants, 새탐침한도: 99 });
   assert.equal(많이.probes.some((p) => p.text === "학원 출결 관리 앱"), false); // 승인 q15 와 같은 글
-  assert.equal(많이.probes.length, 9);
+  assert.equal(많이.probes.length, 8);
+  // 확장 질문과 꼬리말 빼고 같아도 안 만든다
+  const 확장 = 자기점검({ ...기본, domain: "ilog.ai.kr", questions: 승인, rows: [], 탐침: "variants", 변형: 아이로그.loop.probeVariants, 새탐침한도: 99, 확장들: ["학원 관리 앱 추천 좀 해줘"] });
+  assert.equal(확장.probes.some((p) => p.text === "학원 관리 앱"), false);
+  assert.equal(확장.probes.length, 7);
   assert.equal(많이.findings.some((f) => f.code === "widen"), false); // 송파 넓힘은 안 돈다
 });
 t("D43 안 걸림 — 오늘 한도를 다 썼거나 이미 다 만들었다", () => {
@@ -291,6 +299,21 @@ t("D43 표본 부족·곳 바뀜 — 근거 줄은 Claude 로 잰 변형만, 안
   assert.match(r.findings.find((f) => f.code === "variant").evidence, /^아직 잰 변형 없음/);
   const r2 = 자기점검({ ...기본, domain: "ilog.ai.kr", questions: 승인, probes: 다, rows: 잰("p1", { from: -2, n: 2, hit: 1 }), 탐침: "variants", 변형: 아이로그.loop.probeVariants, 새탐침한도: 0 });
   assert.match(r2.findings.find((f) => f.code === "variant").evidence, /「학원 관리 앱」 1\/2/);
+});
+const 변형탐 = { prompt_id: "p3", source_prompt: "q13", radius: "변형", text: "학원 관리 앱", active: true, form: "keyword" };
+const 변형빈칸 = (rows) => 자기점검({ ...기본, domain: "ilog.ai.kr", questions: 승인, probes: [변형탐], rows, 탐침: "variants", 변형: 아이로그.loop.probeVariants, 새탐침한도: 0 }).gaps;
+t("D41 아이로그 걸림 — 변형이 14일 4번 모두 0 이면 세션 글 칸", () => {
+  assert.deepEqual(변형빈칸(잰("p3", { from: -12, n: 4, hit: 0 })).map((g) => [g.prompt_id, g.n, g.root]), [["p3", 4, "q13"]]);
+});
+t("D41 아이로그 안 걸림·표본 부족·곳 바뀜", () => {
+  assert.equal(변형빈칸(잰("p3", { from: -12, n: 4, hit: 1 })).length, 0);
+  assert.equal(변형빈칸(잰("p3", { from: -12, n: 3, hit: 0 })).length, 0);
+  assert.equal(변형빈칸([...잰("p3", { from: -12, n: 2, hit: 0 }), ...잰("p3", { from: -5, n: 2, hit: 0, method: "gemini-web-logged-out" })]).length, 0);
+  assert.equal(변형빈칸(잰("p3", { from: -20, n: 4, hit: 0 })).length, 0); // 15일 넘은 측정
+});
+t("꼬리뺀 — 띄어쓰기·꼬리말", () => {
+  assert.equal(꼬리뺀("학원 관리 프로그램 추천 좀 해줘"), "학원관리프로그램");
+  assert.equal(꼬리뺀("추천 학원"), "추천학원");
 });
 t("D43 학원은 그대로 넓힘(변형 안 만듦)", () => {
   const r = 자기점검({ ...기본, 탐침: bySlug("robotncoding").loop.probes, questions: [], rows: [] });

@@ -21,6 +21,7 @@ import { 오픈라우터, 재시도, 모델들 } from "./writer-common.mjs";
 import { 클로드코드, 클로드코드있음 } from "./claude-code.mjs";
 import { 측정대상, HOUSE, 예산부족알림, 예산부족닫기, 측정상한, 고객측정일 } from "../measure-targets.mjs";
 import { bySlug } from "../clients.mjs";
+import { 탐침측정DDL } from "./loop-grow.mjs";
 
 for (const l of fs.readFileSync(new URL("../.env.local", import.meta.url), "utf8").split(/\r?\n/)) {
   const m = /^([A-Z_]+)=(.*)$/.exec(l);
@@ -293,19 +294,12 @@ const main = async () => {
       요약.push(`${e.engine} 탐침: 오늘 측정 몫 ${몫}회를 ${씀 !== null ? `승인 질문이 ${씀}회로 다 써서` : "셀 수 없어"} 건너뜀`);
       return;
     }
-    await q(`create table if not exists academy.ai_probe_measurements (
-      id bigserial primary key, client_id int not null default 1, measured_on date not null,
-      collection_method text not null, engine text not null, model text, prompt_id text not null,
-      stage text, prompt_text text not null, attempt int not null default 1,
-      mentioned boolean not null default false, cited boolean not null default false,
-      citations jsonb not null default '[]'::jsonb, note text, raw jsonb not null,
-      form text not null default 'sentence', radius text,
-      imported_at timestamptz not null default now(),
-      unique (client_id, measured_on, collection_method, engine, prompt_id, attempt))`);
+    await q(탐침측정DDL);
     /**
      * 가장 오래 안 잰 탐침부터. 오늘 잰 것은 빼고, 오늘 이미 잰 만큼은 한도에서 뺀다.
      * 확장 질문(Step 31 D40 — 원장이 받아들인 불린 탐침, pilot_questions stage 'extend', approved=false)도 이 줄에 같이 선다.
-     * 승인 20문항이 아니니 ai_measurements 에 안 넣는다(form 'extend' → 탐침 표). 같은 날짜면 확장 질문이 먼저
+     * 승인 20문항이 아니니 ai_measurements 에 안 넣는다(form 'extend' → 탐침 표). 같은 날짜면 확장 질문이 먼저.
+     * 최근 14일 한 번이라도 이름이 나온 것을 먼저 잰다(Arch 31) — 승격 문턱(14일 4번)에 닿으려면 불린 탐침을 몰아 재야 한다
      */
     const 탐침 = await q(
       `select c.prompt_id, c.stage, c.text, c.form, c.radius, m.last_day
@@ -315,11 +309,13 @@ const main = async () => {
                select 'q' || pq.position, 'extend', pq.text, 'extend', null, 0, pq.position
                  from geo.pilot_questions pq join geo.pilots pl on pl.id = pq.pilot_id
                 where pl.client_id=$1 and pq.stage='extend') c
-         left join (select prompt_id, max(measured_on) as last_day from academy.ai_probe_measurements
+         left join (select prompt_id, max(measured_on) as last_day,
+                           bool_or((mentioned or cited) and measured_on >= $3::date - 13) as hit14
+                      from academy.ai_probe_measurements
                      where client_id=$1 and collection_method=$2 group by prompt_id) m
            on m.prompt_id = c.prompt_id
         where m.last_day is null or m.last_day < $3::date
-        order by m.last_day nulls first, c.ord_kind, c.ord_id
+        order by coalesce(m.hit14, false) desc, m.last_day nulls first, c.ord_kind, c.ord_id
         limit greatest(0, $4 - (select count(*) from academy.ai_probe_measurements
                                  where client_id=$1 and collection_method=$2 and measured_on=$3::date))`,
       [client.id, e.method, 오늘, Math.min(탐침수, 남은몫)]);

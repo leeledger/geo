@@ -216,6 +216,20 @@ alter table geo.agent_runs add column if not exists effective_on date;
 alter table geo.agent_runs add column if not exists judged_at timestamptz;
 alter table geo.agent_runs enable row level security;
 
+-- 탐침·확장 질문 측정(Step 22·31). 승인 20문항(academy.ai_measurements)과 섞지 않는 따로 표.
+-- academy/scripts/loop-grow.mjs 탐침측정DDL · academy/db/schema.sql 과 같은 줄
+create schema if not exists academy;
+create table if not exists academy.ai_probe_measurements (
+  id bigserial primary key, client_id int not null default 1, measured_on date not null,
+  collection_method text not null, engine text not null, model text, prompt_id text not null,
+  stage text, prompt_text text not null, attempt int not null default 1,
+  mentioned boolean not null default false, cited boolean not null default false,
+  citations jsonb not null default '[]'::jsonb, note text, raw jsonb not null,
+  form text not null default 'sentence', radius text,
+  imported_at timestamptz not null default now(),
+  unique (client_id, measured_on, collection_method, engine, prompt_id, attempt)
+);
+
 -- 영업용 뷰 — 점수가 낮을수록 후킹이 강하다
 create or replace view geo.lead_queue as
 select l.id, l.created_at, l.email, l.company, l.phone, l.wants, l.status,

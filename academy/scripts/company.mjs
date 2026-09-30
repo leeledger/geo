@@ -32,6 +32,7 @@ import { fileURLToPath } from "node:url";
 import { Pool } from "pg";
 import { CLIENTS as CLIENT_CONF, 세션글제목 } from "../clients.mjs";
 import { 같은질문일감, 세션글키 } from "./session-task.mjs";
+import { 탐침측정DDL } from "./loop-grow.mjs";
 import { 오픈라우터, 재시도, 모델들, 공급자들 } from "./writer-common.mjs";
 import { 프로필 } from "./profile.mjs";
 import { PM보고 } from "./pm-report.mjs";
@@ -191,6 +192,8 @@ const ensure = async () => {
       what text not null default '', created_at timestamptz not null default now())`,
     `alter table geo.client_hours enable row level security`,
   ]) await q(s).catch((e) => console.log("  ⚠ client_hours 표 준비 실패", 끝(e.message, 200)));
+  // 탐침·확장 질문 측정 표(Step 31). 운영 DB 에 아직 없었다 — 첫 측정 전에 만든다. 실패해도 계속(읽는 쪽이 없으면 빈 결과로 돈다)
+  await q(탐침측정DDL).catch((e) => console.log("  ⚠ ai_probe_measurements 표 준비 실패", 끝(e.message, 200)));
 };
 
 const 본키 = new Set(); // 이번 계획에서 신호가 살아 있는 일감

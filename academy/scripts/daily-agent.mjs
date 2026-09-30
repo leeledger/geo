@@ -287,6 +287,7 @@ const 돌기 = async (c, 설정) => {
   // ── 자기 점검 (loop-review.mjs). 판정 뒤에 돈다 — 방금 닫힌 행동은 「멈춤」으로 안 센다
   const 점검 = 자기점검({
     questions, rows: 점검rows, 판정rows: rows, runs, posts, today: 오늘, domain: c.domain, probes, 적중, 탐침: 설정.probes, 변형: 설정.probeVariants,
+    확장들: (await q(`select q.text from geo.pilot_questions q join geo.pilots p on p.id=q.pilot_id where p.client_id=$1 and q.stage='extend'`, [c.id])).map((x) => x.text),
     // 검색어 씨앗(source_prompt 없음)은 하루 한도에 안 센다
     새탐침한도: Math.max(0, 2 - probes.filter((p) => p.created_on === 오늘 && p.source_prompt).length),
   });
@@ -444,13 +445,14 @@ const 돌기 = async (c, 설정) => {
     const 진단 = `${x.prompt_id}「${x.text}」 최근 7일 적중 ${x.hit}/${x.n} (${x.stage})` +
       `${x.후퇴 ? " · 불리던 질문이 떨어짐" : ""}${우세[x.prompt_id] > 0 ? ` · 경쟁사 이름이 우리보다 ${우세[x.prompt_id]}번 더 나옴` : ""} · ${전체}`;
 
-    // 후퇴(D39): 사다리보다 먼저 불리던 글을 다시 민다. 불리던 글이 없으면 사다리대로
-    if (x.후퇴) {
+    // 후퇴(D39): 사다리보다 먼저 불리던 글을 다시 민다. 불리던 글이 없거나 글 고치기를 건너뛰는 단계(repeat)면 사다리대로
+    if (x.후퇴 && !점검.skipContent.has(x.stage)) {
       const r = 후퇴.get(x.prompt_id);
       const 글 = 불리던글(r.urls, published)
         ?? published.map((p) => ({ ...p, score: 겹침(x.text, p.title) })).sort((a, b) => b.score - a.score).find((p) => p.score >= 0.4);
       if (글) {
         const res = 색인알림(`/blog/${글.slug}`);
+        전파중 = null; // 후퇴 재색인은 전파가 아니다 — 근거에 전파를 붙이지 않는다
         await 저장({
           status: res.ok ? "완료" : "실패", diagnosis: 진단, target_prompt: x.prompt_id, action_kind: "content", target_slug: 글.slug, effective_on: 오늘,
           action: `불리던 질문이 떨어졌습니다. 불리던 글 「${글.title}」을 색인 알림으로 다시 밀고 7일 뒤부터 효과를 잽니다.`,

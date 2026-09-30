@@ -187,4 +187,16 @@ create table if not exists geo.site_visits (
   device text not null default ''
 );
 create index if not exists site_visits_client_day_idx on geo.site_visits (client_id, day);
+-- 탐침·확장 질문 측정(Step 22·31). 승인 20문항(ai_measurements)과 섞지 않는 따로 표.
+-- academy/scripts/loop-grow.mjs 탐침측정DDL 과 같은 줄 — company.mjs 시작·ai-measure 가 만든다
+create table if not exists academy.ai_probe_measurements (
+  id bigserial primary key, client_id int not null default 1, measured_on date not null,
+  collection_method text not null, engine text not null, model text, prompt_id text not null,
+  stage text, prompt_text text not null, attempt int not null default 1,
+  mentioned boolean not null default false, cited boolean not null default false,
+  citations jsonb not null default '[]'::jsonb, note text, raw jsonb not null,
+  form text not null default 'sentence', radius text,
+  imported_at timestamptz not null default now(),
+  unique (client_id, measured_on, collection_method, engine, prompt_id, attempt)
+);
 alter table geo.site_visits enable row level security;

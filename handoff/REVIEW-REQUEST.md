@@ -46,3 +46,15 @@ Status: DONE_WITH_CONCERNS — 새 시험 34 통과(test-grow-loop) · test-ilog
 - KG-31-3 승인 질문 후보 일감에 「안 넣음」 버튼 없음
 - KG-31-4 D41 은 사슬 있는 학원만 · 아이로그는 열린 세션 글 6건에 막힘
 - KG-31-5 D38~D42 조건 운영 DB 확인 못 함
+
+## 재제출 — Richard 31 Should Fix 1~4 + Arch 5~7 (2026-09-30)
+- academy/scripts/daily-agent.mjs 후퇴 분기 — `!점검.skipContent.has(x.stage)` 일 때만 재색인(③), 저장 전 `전파중 = null`(①) · 자기 점검에 `확장들`(확장 질문 글) 넘김(④)
+- academy/scripts/loop-review.mjs — `regress-unknown` finding(②) · `꼬리뺀` export 와 변형 중복 판정(④) · promote 14일(⑤) · 변형 gaps 14일 4건 모두 0(⑥) · 무게 끝에 regress-unknown
+- academy/scripts/loop-grow.mjs — `탐침측정DDL`(⑦) · 승격 일감 문구 「최근 14일」
+- academy/scripts/ai-measure.mjs — DDL 을 탐침측정DDL 로 · 탐침 줄 순서 hit14 먼저(⑤)
+- academy/scripts/company.mjs — 시작 준비에 탐침측정DDL(실패해도 계속, ⑦)
+- academy/scripts/pm-report.mjs — 확장줄읽기 to_regclass(⑦)
+- academy/db/schema.sql · web/db/schema.sql — academy.ai_probe_measurements(⑦)
+- academy/scripts/test-grow-loop.mjs — 37개(모름만 finding · D40 14일 창 · 꼬리말·확장 중복 · D41 아이로그 변형 걸림/안 걸림/표본 부족/곳 바뀜/15일 밖)
+- 확인: test-grow-loop 37/0 · test-ilog-loop 33/0 · web tsc 0 · 학원 daily-agent --dry 전후 diff 0(그대로·조기 종료 끈 사본 둘 다) · 아이로그 dry 변형 「학원 관리 프로그램」→「학원 관리 무료」 · pm-report --dry 정상
+- Open: 학원 넓힘 사슬 gaps 는 7일 그대로(KG-31-6) — 14일로 맞출지 Arch
