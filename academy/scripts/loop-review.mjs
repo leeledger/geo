@@ -337,8 +337,8 @@ export function 자기점검({ questions, rows, 판정rows = rows, runs, posts, 
   // ── widen: 맞는 질문을 한 칸 넓힌다. 탐침 결과는 반경을 재는 것뿐, 판정에 안 쓴다
   // 모양이 둘이다 — 문장(승인 동네 질문에서 출발)과 검색어(송파구 씨앗 3개에서 출발). 모양·곳끼리 합치지 않는다
   const 주전 = 날더하기(today, -6);
-  const 탐침율 = (pid, method = 탐침곳) => {
-    const w = rows.filter((r) => r.prompt_id === pid && r.collection_method === method && r.day >= 주전);
+  const 탐침율 = (pid, method = 탐침곳, from = 주전) => {
+    const w = rows.filter((r) => r.prompt_id === pid && r.collection_method === method && r.day >= from);
     return { hit: w.filter(적중).length, n: w.length };
   };
   const 모양 = (p) => p.form ?? "sentence";
@@ -388,13 +388,14 @@ export function 자기점검({ questions, rows, 판정rows = rows, runs, posts, 
     return `${c.radius} ${c.id} ${n ? `${hit}/${n}` : "안 잼"}`;
   }).join(" → ");
   /**
-   * gaps (D41): 뿌리 다음 칸부터 따라가 처음 0 이 된 칸. 7일 4건 넘게 재서 전부 0 일 때만 — 덜 쟀으면 기다린다.
+   * gaps (D41): 뿌리 다음 칸부터 따라가 처음 0 이 된 칸. 14일 4건 넘게 재서 전부 0 일 때만 — 덜 쟀으면 기다린다.
+   * 7일로는 하루 2개씩 돌려 재는 탐침이 4건을 못 채워 영영 안 걸린다(Arch 31, 승격 문턱과 같은 14일)
    * 안 잰 칸을 만나면 멈춘다(모르는 칸 뒤는 못 본다)
    */
   const 빈칸 = [];
   const 빈칸보기 = (root, cells, method) => {
     for (const c of cells.slice(1)) {
-      const { hit, n } = 탐침율(c.id, method);
+      const { hit, n } = 탐침율(c.id, method, 날더하기(today, -13));
       if (!n) return;
       if (hit) continue;
       if (n >= 4 && !빈칸.some((g) => g.prompt_id === c.id)) 빈칸.push({ prompt_id: c.id, text: c.text, radius: c.radius, method, n, root });
