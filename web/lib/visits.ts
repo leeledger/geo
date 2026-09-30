@@ -38,10 +38,17 @@ const INSERT_VISIT = `insert into geo.site_visits (client_id, path, ref_host, re
 const g = globalThis as unknown as { __visitsReady?: boolean };
 
 export async function saveVisit(clientId: number, v: Visit): Promise<void> {
-  // 배포 직후 첫 방문부터 받아야 「그날부터 셈」이 맞다 — 표를 여기서도 만든다(인스턴스마다 한 번)
+  // 배포 직후 첫 방문부터 받아야 「그날부터 셈」이 맞다 — 표를 여기서도 만든다(인스턴스마다 한 번).
+  // 표가 있으면 DDL 을 안 돌린다 — 콜드 스타트마다 create index·alter table 이 잠금을 잡지 않게.
+  // 준비가 실패해도(표는 이미 있음) 쓰기는 해 본다 — 쓰기 실패만 부른 쪽으로 올라간다
   if (!g.__visitsReady) {
-    for (const s of VISITS_DDL) await pool().query(s);
-    g.__visitsReady = true;
+    try {
+      const { rows: [r] } = await pool().query<{ ok: boolean }>(`select to_regclass('geo.site_visits') is not null as ok`);
+      if (!r?.ok) for (const s of VISITS_DDL) await pool().query(s);
+      g.__visitsReady = true;
+    } catch {
+      // 아래 insert 가 실패하면 그때 알린다
+    }
   }
   await pool().query(INSERT_VISIT, [clientId, v.path, v.ref_host, v.ref_kind, v.visitor, v.device]);
 }

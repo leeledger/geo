@@ -57,6 +57,13 @@ const refCases = [
   [null, "naver_blog", "sns", "naver_blog"],
   [null, "instagram", "sns", "instagram"],
   [null, "newsletter", "other", "newsletter"],
+  // SNS utm 은 같거나 접두어만 — 중간에 든 글자로 세지 않는다
+  [null, "facebook_ad", "sns", "facebook_ad"],
+  [null, "kakao_ch", "sns", "kakao_ch"],
+  [null, "navercafe", "sns", "navercafe"],
+  [null, "feedback", "other", "feedback"],
+  [null, "myblog", "other", "myblog"],
+  [null, "newsband", "other", "newsband"],
 ];
 for (const [ref, utm, kind, host] of refCases) {
   await t(`ref ${ref} utm=${utm}`, () => {
@@ -169,6 +176,32 @@ for (const [name, u] of [
   if (!fs.existsSync(u)) { console.log(`- ${name} 없음 — 대조 건너뜀`); continue; }
   await t(`사본 같음 ${name}`, () => assert.ok(fs.readFileSync(u, "utf8").replace(/\r\n/g, "\n") === mine, "academy/lib/visit.ts 와 다르다"));
 }
+
+// ── 아이로그 랜딩·로그인 쿠키 (Arch 29) — 파일이 없으면 건너뜀
+const landingFile = here("../../../자동피드백생성기/lib/cited-landing.ts");
+if (!fs.existsSync(landingFile)) console.log("- 자동피드백생성기/lib/cited-landing.ts 없음 — 건너뜀");
+else {
+  const L = await import(landingFile);
+  const cases = [
+    ["/", null, true], ["/features", "", true], ["/guide/abc", "theme=dark", true], ["/terms", null, true], ["/privacy", null, true],
+    ["/dashboard", null, false], ["/attendance-keypad", null, false], ["/guidebook", null, false], ["/p/abc", null, false],
+    ["/", "authjs.session-token=x", false],
+    ["/", "theme=dark; __Secure-authjs.session-token=x", false],
+    ["/guide/a", "__Secure-authjs.session-token.0=x; __Secure-authjs.session-token.1=y", false],
+    ["/", "authjs.csrf-token=x; authjs.callback-url=y", true],
+    ["/", "my-authjs.session-token=x", true],
+  ];
+  for (const [p, c, want] of cases) await t(`아이로그 랜딩 ${p} ${c}`, () => assert.equal(L.countsAsLanding(p, c), want));
+}
+
+// ── 받는 라우트: 학원은 키 없으면 닫힘 · 표가 있으면 DDL 안 돌림 (Richard 29)
+await t("학원 /api/visit fail closed", () =>
+  assert.ok(fs.readFileSync(here("../app/api/visit/route.ts"), "utf8").includes(`if (!key || req.headers.get("x-crawl-key") !== key)`)));
+await t("표가 있으면 DDL 건너뜀 두 곳", () => {
+  for (const f of ["../app/api/visit/route.ts", "../../web/lib/visits.ts"]) {
+    assert.ok(fs.readFileSync(here(f), "utf8").includes("to_regclass('geo.site_visits')"), f);
+  }
+});
 
 // ── DDL·insert 대조
 const norm = (s) => s.replace(/\s+/g, " ").replace(/\( /g, "(").replace(/ \)/g, ")").replace(/\s*;\s*$/, "").trim();

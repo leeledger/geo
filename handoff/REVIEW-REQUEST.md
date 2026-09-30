@@ -7,6 +7,14 @@ Status: DONE_WITH_CONCERNS — 코드·시험·tsc 는 통과. 화면은 실제 
 - AGO&GEO `e8873b0` — Step 29 — 고객사 사이트 사람 방문 추이 (13 파일) + 이 문서·BUILD-LOG 는 뒤 커밋
 - 자동피드백생성기 `d30c9c0` — 사람 방문을 사이티드로 보낸다 (2 파일)
 
+## 리뷰 반영 (Richard 29 Should Fix + Arch) — 커밋은 아래 BUILD-LOG 끝 줄
+- academy/app/api/visit/route.ts — CRAWL_KEY 없거나 다르면 401(fail closed) · DDL 은 to_regclass 로 표 없을 때만, insert 와 다른 try
+- web/lib/visits.ts saveVisit — 같은 준비 규칙
+- lib/visit.ts 세 사본 — SNS utm 접두어만
+- 자동피드백생성기 lib/cited-landing.ts(새) · proxy.ts — 공개 랜딩 + 세션 쿠키 없음일 때만
+- 시험 94 통과 0 실패 · tsc 0 (세 곳) · 아이로그 eslint 0
+- 배포 추가 조건: 학원 Vercel 에 CRAWL_KEY 가 있어야 한다(없으면 사람 기록 401)
+
 ## Files Changed
 공통 분류 (세 저장소 같은 글자 — test-visit.mjs 가 대조)
 - academy/lib/visit.ts:1-151 — classifyRef(utm 우선 · AI→SNS→검색 순, blog/cafe.naver 는 SNS, 같은 도메인은 internal) · isHumanDocument(D30) · deviceOf · kstDay · readVisit(보내는 쪽: 해시·경로만, IP 안 보냄, 물음표 뒤 버림) · cleanVisit(받는 쪽: 모양·길이·글자)

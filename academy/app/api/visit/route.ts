@@ -41,7 +41,8 @@ const g = globalThis as unknown as { __visitsReady?: boolean };
 
 export async function POST(req: Request) {
   const key = process.env.CRAWL_KEY;
-  if (key && req.headers.get("x-crawl-key") !== key) {
+  // 키가 없으면 닫는다 — 열어 두면 누구나 방문 기록을 채울 수 있다(/api/crawl 과 달리 fail closed)
+  if (!key || req.headers.get("x-crawl-key") !== key) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
   if (!dbEnabled) return NextResponse.json({ ok: false });
@@ -57,11 +58,18 @@ export async function POST(req: Request) {
   const v = cleanVisit(raw);
   if (!v) return NextResponse.json({ error: "bad request" }, { status: 400 });
 
+  // 표 준비와 쓰기를 따로 잡는다 — 준비가 실패해도(표는 이미 있음) 쓰기는 해 본다.
+  // 표가 있으면 DDL 을 안 돌린다 — 콜드 스타트마다 create index·alter table 이 잠금을 잡지 않게
   try {
     if (!g.__visitsReady) {
-      for (const s of VISITS_DDL) await q(s);
+      const [r] = await q<{ ok: boolean }>(`select to_regclass('geo.site_visits') is not null as ok`);
+      if (!r?.ok) for (const s of VISITS_DDL) await q(s);
       g.__visitsReady = true;
     }
+  } catch {
+    // 아래 쓰기가 실패하면 그때 삼킨다
+  }
+  try {
     await q(INSERT_VISIT, [CLIENT_ID, v.path, v.ref_host, v.ref_kind, v.visitor, v.device]);
   } catch {
     // 기록 실패가 페이지 서빙을 막아서는 안 된다

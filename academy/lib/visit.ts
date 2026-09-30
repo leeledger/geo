@@ -32,7 +32,9 @@ const AI: [string, string[], string[]][] = [
 /** 검색보다 먼저 본다 — blog.naver.com·cafe.naver.com 은 검색이 아니라 SNS */
 const SNS = ["blog.naver.com", "cafe.naver.com", "cafe.daum.net", "instagram.com", "facebook.com", "kakao.com",
   "youtube.com", "youtu.be", "x.com", "twitter.com", "t.co", "threads.net", "band.us", "tistory.com", "brunch.co.kr"];
-const SNS_UTM = ["instagram", "facebook", "fb", "kakao", "youtube", "twitter", "threads", "band", "blog", "cafe"];
+/** utm_source 가 이 말과 같거나 이 말로 시작하면 SNS(facebook_ad·kakao_ch). 중간에 든 것은 안 본다 — feedback 이 fb 가 아니다 */
+const SNS_UTM = ["instagram", "facebook", "fb", "kakao", "youtube", "twitter", "threads", "band", "blog", "cafe",
+  "naver_blog", "naverblog", "naver_cafe", "navercafe"];
 const SEARCH = ["naver.com", "daum.net", "bing.com", "duckduckgo.com", "search.brave.com", "zum.com", "ecosia.org"];
 const SEARCH_UTM = ["google", "naver", "daum", "bing", "yahoo", "duckduckgo", "brave", "zum"];
 
@@ -48,7 +50,7 @@ export function classifyRef(referer: string | null, ownHost: string, utm: string
     for (const [main, alt, words] of AI) {
       if (under(host, main) || alt.some((a) => under(host, a)) || words.indexOf(host) >= 0) return { ref_host: main, ref_kind: "ai" };
     }
-    if (SNS.some((d) => under(host, d)) || SNS_UTM.some((w) => host.indexOf(w) >= 0)) return { ref_host: host, ref_kind: "sns" };
+    if (SNS.some((d) => under(host, d)) || SNS_UTM.some((w) => host.indexOf(w) === 0)) return { ref_host: host, ref_kind: "sns" };
     if (isSearch(host) || SEARCH_UTM.indexOf(host) >= 0) return { ref_host: host, ref_kind: "search" };
     return { ref_host: host, ref_kind: "other" };
   }
