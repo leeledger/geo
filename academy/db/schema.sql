@@ -173,3 +173,18 @@ create table if not exists geo.client_hours (
   created_at timestamptz not null default now()
 );
 alter table geo.client_hours enable row level security;
+-- 고객사 사이트 사람 방문(Step 29). IP 는 없다 — visitor 는 그날만 같은 사람을 묶는 해시 앞 16자.
+-- web/lib/visits.ts VISITS_DDL · academy/app/api/visit/route.ts 와 같은 줄(academy/scripts/test-visit.mjs 가 대조)
+create table if not exists geo.site_visits (
+  id bigserial primary key,
+  client_id int not null references geo.clients(id),
+  at timestamptz not null default now(),
+  day date not null default ((now() at time zone 'Asia/Seoul')::date),
+  path text not null,
+  ref_host text not null default '',
+  ref_kind text not null check (ref_kind in ('ai','search','sns','direct','internal','other')),
+  visitor text not null,
+  device text not null default ''
+);
+create index if not exists site_visits_client_day_idx on geo.site_visits (client_id, day);
+alter table geo.site_visits enable row level security;

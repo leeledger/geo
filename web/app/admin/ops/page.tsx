@@ -6,6 +6,7 @@ import { readOps, listClients } from "@/lib/ops";
 import { readGrowth, type Growth as GrowthData } from "@/lib/growth";
 import { readAgents } from "@/lib/agents";
 import { readPmReport } from "@/lib/pm-report";
+import { readVisits, type Visits as VisitsData } from "@/lib/visits";
 import Todo from "./Todo";
 import AgentStrip from "./AgentStrip";
 import Growth, { GrowthMore } from "./Growth";
@@ -13,6 +14,7 @@ import AgentBoard from "./AgentBoard";
 import Brief from "./Brief";
 import PmReport, { PM_CSS } from "./PmReport";
 import AskLog from "./AskLog";
+import Visits from "./Visits";
 
 /** 로그인 뒤 돌아올 자리 */
 const HERE = "/admin/ops";
@@ -138,7 +140,7 @@ export default async function OpsPage({
   const clients = await listClients();
   const client = clients.find((x) => x.slug === want) ?? clients[0] ?? null;
 
-  const [d, gr, agents, pm] = await Promise.all([
+  const [d, gr, agents, pm, vis] = await Promise.all([
     readOps(client ?? undefined),
     // 통째로 실패하면 섹션에 이유 한 줄. 조각 실패는 readGrowth 안에서 null 로 잡힌다
     client
@@ -148,6 +150,12 @@ export default async function OpsPage({
       : Promise.resolve({ g: null, err: "고객사가 없습니다" }),
     readAgents(),
     readPmReport(),
+    // 사람 방문(Step 29) — 못 읽으면 카드에 이유 한 줄
+    client
+      ? readVisits(client.id).then(
+          (v): { v: VisitsData | null; err?: string } => ({ v }),
+          (e) => ({ v: null, err: e instanceof Error ? e.message : String(e) }))
+      : Promise.resolve({ v: null, err: "고객사가 없습니다" }),
   ]);
 
   return (
@@ -180,6 +188,7 @@ export default async function OpsPage({
         <Todo company={d.company} unresolved={gr.g?.inquiries ? gr.g.inquiries.unresolved : null} />
         <AgentStrip initial={agents} />
         <Growth g={gr.g} err={gr.err} />
+        <Visits v={vis.v} err={vis.err} name={client?.name ?? "고객사 미선택"} />
         <AskLog client={client} />
 
         <details className="ops-more">

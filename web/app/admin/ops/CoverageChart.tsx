@@ -10,7 +10,8 @@ import { useEffect, useRef, useState, type KeyboardEvent } from "react";
  * 이름·라벨은 JSX 텍스트로만 넣는다.
  */
 
-export type CovSeries = { vendor: string; label: string; color: string; points: { day: string; pages: number }[] };
+/** pages 는 그 날 점의 값(커버리지는 누적 쪽 수). 사람 방문 카드(Visits.tsx)도 이 차트를 쓴다 — unit 이 없으면 「쪽」 */
+export type CovSeries = { vendor: string; label: string; color: string; unit?: string; points: { day: string; pages: number }[] };
 
 const H = 212;
 const T = 10;          // 위 여백
@@ -22,7 +23,8 @@ const MERGE = 14;      // 끝 라벨 세로 간격이 이보다 좁으면 한 �
 const md = (d: string) => `${Number(d.slice(5, 7))}/${Number(d.slice(8, 10))}`;
 const isMonday = (d: string) => new Date(`${d}T00:00:00Z`).getUTCDay() === 1;
 
-export default function CoverageChart({ total, series }: { total: number; series: CovSeries[] }) {
+export default function CoverageChart({ total, series, what = "답변 색인에 들어간 쪽 수", table = true }:
+  { total: number; series: CovSeries[]; what?: string; table?: boolean }) {
   const box = useRef<HTMLDivElement>(null);
   const [w, setW] = useState(720);
   const [idx, setIdx] = useState<number | null>(null);
@@ -89,7 +91,7 @@ export default function CoverageChart({ total, series }: { total: number; series
   const hx = idx === null ? 0 : x(idx);
   const flip = hx > w / 2;
   const readout = idx === null ? "" :
-    `${md(days[idx])} — ` + series.map((s) => `${s.label} ${s.points[idx].pages}쪽`).join(", ");
+    `${md(days[idx])} — ` + series.map((s) => `${s.label} ${s.points[idx].pages}${s.unit ?? "쪽"}`).join(", ");
 
   return (
     <div className="gr-chart">
@@ -103,7 +105,7 @@ export default function CoverageChart({ total, series }: { total: number; series
         className="gr-plot"
         tabIndex={0}
         role="group"
-        aria-label={`답변 색인에 들어간 쪽 수 선그래프, ${md(days[0])}부터 ${md(days[last])}까지. 좌우 화살표로 날짜를 옮긴다. 날짜별 값은 아래 자세히의 표에 있다`}
+        aria-label={`${what} 선그래프, ${md(days[0])}부터 ${md(days[last])}까지. 좌우 화살표로 날짜를 옮긴다.${table ? " 날짜별 값은 아래 자세히의 표에 있다" : ""}`}
         onKeyDown={onKey}
         onFocus={() => setIdx((i) => i ?? last)}
         onBlur={() => setIdx(null)}
@@ -152,7 +154,7 @@ export default function CoverageChart({ total, series }: { total: number; series
             {series.map((s) => (
               <div key={s.vendor} className="gr-tip-r">
                 <i style={{ background: s.color }} />
-                <b>{s.points[idx].pages}쪽</b>
+                <b>{s.points[idx].pages}{s.unit ?? "쪽"}</b>
                 <span>{s.label}</span>
               </div>
             ))}

@@ -72,8 +72,8 @@ const CSS = `
 const md = (d: string) => `${Number(d.slice(5, 7))}/${Number(d.slice(8, 10))}`;
 const n = (v: number) => v.toLocaleString("ko-KR");
 
-/** 변화 단어 — 기호+단어+색. 좋은 방향이면 --ok, 나쁜 방향이면 --crit */
-function Word({ d }: { d: Delta | null }) {
+/** 변화 단어 — 기호+단어+색. 좋은 방향이면 --ok, 나쁜 방향이면 --crit. 사람 방문 카드(Visits.tsx)도 쓴다 */
+export function Word({ d }: { d: Delta | null }) {
   if (!d) return <span className="gw mut">확인 못함</span>;
   if (d.dir === "none") return <span className="gw mut">아직 비교 전</span>;
   if (d.dir === "flat") return <span className="gw mut">그대로</span>;
