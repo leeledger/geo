@@ -94,6 +94,7 @@ const CSS = `
 .td-naver{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .td-naver input{background:var(--sunk);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 9px;font:inherit;font-size:14px;min-width:150px}
 .td-more{margin:8px 0 0;font-size:14px;color:var(--ink2)}
+.td-session{margin:10px 2px 0;font-size:14px;color:var(--ink2);word-break:keep-all}
 .td-list li.doing{opacity:.6}
 .ops .td-more-d{position:relative;border:0;border-radius:0;background:none;overflow:visible;box-shadow:none}
 .ops .td-more-d>summary{display:inline-block;padding:7px 12px;font-size:14px}

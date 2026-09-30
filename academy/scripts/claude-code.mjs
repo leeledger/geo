@@ -21,7 +21,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 // 빈 문자열("")은 없는 것으로 친다 — Actions 는 설정 안 한 변수를 "" 로 넘긴다(9/22 첫 dry 에 상한 0). 규칙은 measure-targets 측정상한
-import { 측정상한, 유료측정일 } from "../measure-targets.mjs";
+import { 측정상한, 고객측정일 } from "../measure-targets.mjs";
 
 /** 토큰이 있거나(Actions) 로컬에서 로그인한 claude 를 쓰겠다고 했을 때(CLAUDE_CODE_LOCAL=1) */
 export const 클로드코드있음 = () => Boolean(process.env.CLAUDE_CODE_OAUTH_TOKEN || process.env.CLAUDE_CODE_LOCAL === "1");
@@ -82,7 +82,7 @@ export async function 클로드코드(prompt, opts = {}) {
       where (at at time zone 'Asia/Seoul')::date = (now() at time zone 'Asia/Seoul')::date`).catch(() => [null]);
     if (!row && opts.capRequired) return 못셈;
     // 유료 파일럿 고객이 측정 대상에 있는 날만 두 배(40→60 · 측정 몫 22→42). env 가 먼저. 판단은 DB 로 — 어느 워크플로가 불러도 같은 값(Step 28 D25)
-    const 한도 = 측정상한(await 유료측정일(q, new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" })));
+    const 한도 = 측정상한(await 고객측정일(q, new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" })));
     const 상한 = 한도.claude;
     const n = purpose === "measure" ? (row?.n ?? 0) : (row?.other ?? 0);
     const 몫 = purpose === "measure" ? 상한 : 상한 - 한도.reserve;

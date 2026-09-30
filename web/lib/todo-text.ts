@@ -194,16 +194,6 @@ export function todoText(t: TodoTask, now = Date.now()): TodoText {
       action: linkAction(t.link), doing,
     };
   }
-  // 학원 밖 고객(아이로그)의 글 — 글이 그 고객 저장소 코드라 Claude 세션이 쓴다(Step 30 D37). 제목은 루프가 「세션에서 …」로 짓는다
-  if (t.kind === "question-draft" && t.title.startsWith("세션에서")) {
-    // 「했어요」로 닫으면 개선 루프가 그날부터 효과를 잰다(daily-agent 판정). 그래서 링크·자세히가 아니라 닫기 버튼이다
-    return {
-      title: cut(t.title.replace(/^세션에서\s*/, ""), 60),
-      why: "Claude 세션을 열고 이 제목을 말하면 세션이 씁니다. 배포까지 끝나면 「했어요」",
-      action: { type: "finish" },
-      doing,
-    };
-  }
   if (t.kind === "listing") {
     const query = typeof p.query === "string" ? p.query : "";
     return {

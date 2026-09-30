@@ -25,6 +25,7 @@ export default function AgentBoard({ data: d, clientName }: { data: Ops; clientN
         : d.agentLoop.day !== today ? `오늘 실행 기록이 없습니다 (마지막 ${d.agentLoop.day})`
         : d.agentLoop.status === "실패" ? "오늘 루프가 실패했습니다"
         : d.agentLoop.status === "사람 대기" ? "사람이 할 일에서 막혀 있습니다"
+        : d.agentLoop.status === "세션 대기" ? "Claude 세션이 쓸 글을 기다립니다"
         : "오늘 행동을 실행했습니다",
       reason: d.agentLoop.diagnosis + (d.agentLoop.evidence ? ` · 근거: ${d.agentLoop.evidence}` : ""),
       next: d.agentLoop.action,
@@ -88,26 +89,28 @@ export default function AgentBoard({ data: d, clientName }: { data: Ops; clientN
     const acts = W.activity.filter((x) => x.agent === a.id);
     const act = acts[0];
     const by = (s: string) => ts.filter((t) => t.status === s);
-    const run = by("실행 중")[0], fail = by("실패"), wait = by("대기"), human = by("사람 대기"), local = by("로컬 대기"), watch = by("관찰");
+    const run = by("실행 중")[0], fail = by("실패"), wait = by("대기"), human = by("사람 대기"), local = by("로컬 대기"), session = by("세션 대기"), watch = by("관찰");
     const queue = { run: by("실행 중").length, wait: wait.length + fail.length, human: human.length, local: local.length, watch: watch.length };
-    const top = run ?? fail[0] ?? human[0] ?? wait[0] ?? local[0] ?? watch[0];
+    const top = run ?? fail[0] ?? human[0] ?? wait[0] ?? local[0] ?? session[0] ?? watch[0];
     const recent = act && hoursAgo(act.at) < 26;
     if (a.id === "improve") {
       return { ...a, queue, acts, last: act?.at ?? a.last, lastLabel: act ? `마지막 실제 활동 (${act.ok ? "성공" : "실패"})` : a.lastLabel };
     }
     return {
       ...a, queue, acts,
-      status: (human.length || fail.length ? "attention" : recent || watch.length || wait.length ? "recorded" : "review") as Status,
+      status: (human.length || fail.length ? "attention" : recent || watch.length || wait.length || session.length ? "recorded" : "review") as Status,
       headline: run ? `일하는 중: ${run.title}`
         : fail.length ? `재시도 대기: ${fail[0].title}`
         : human.length ? `원장님 확인 ${human.length}건: ${human[0].title}`
         : wait.length ? `다음 일 ${wait.length}건: ${wait[0].title}`
         : local.length ? `PC 에서 할 일 ${local.length}건: ${local[0].title}`
+        : session.length ? `세션에서 할 일 ${session.length}건: ${session[0].title}`
         : act ? `최근 한 일: ${act.action}` : "아직 실행 기록이 없습니다",
       reason: top ? (lastLine(top.evidence) || top.detail) : act ? act.summary : a.reason,
       next: !top ? (act ? "새 신호가 생기면 매시 23분 회사 루프가 일감을 만듭니다." : a.next)
         : top.status === "사람 대기" ? `원장님 할 일 — ${top.error || top.detail}`
         : top.status === "로컬 대기" ? "원장 PC 의 로컬 에이전트가 12:40·19:10 에 처리합니다 (PC 가 켜져 있어야 합니다)."
+        : top.status === "세션 대기" ? "Claude 세션을 열면 세션이 씁니다. 원장님 몫이 아닙니다."
         : top.status === "관찰" ? `조치를 끝내고 효과를 기다리는 중 · 다음 확인 후 필요하면 다시 합니다.`
         : "매시 23분 회사 루프가 집어 갑니다.",
       last: act?.at ?? null, lastLabel: act ? `마지막 실제 활동 (${act.ok ? "성공" : "실패"})` : "실제 활동 기록 없음",

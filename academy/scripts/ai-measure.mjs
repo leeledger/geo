@@ -12,14 +12,14 @@
  * 소비자 ChatGPT 화면이 아니다. collection_method 에 api- 를 붙여 남기고,
  * 다른 방법의 수치와 한 비율로 합치지 않는다.
  *
- *   node scripts/ai-measure.mjs                    오늘 안 잰 질문만 · 대상 목록 전부(진행 중 파일럿 고객 → 학원 → 탐침)
+ *   node scripts/ai-measure.mjs                    오늘 안 잰 질문만 · 대상 목록 전부(진행 중 파일럿 고객 → 학원 → 자사 고객 → 탐침)
  *   node scripts/ai-measure.mjs --client robotncoding --engine gemini --limit 3
  */
 import fs from "node:fs";
 import { Pool } from "pg";
 import { 오픈라우터, 재시도, 모델들 } from "./writer-common.mjs";
 import { 클로드코드, 클로드코드있음 } from "./claude-code.mjs";
-import { 측정대상, HOUSE, 예산부족알림, 예산부족닫기, 측정상한, 유료측정일 } from "../measure-targets.mjs";
+import { 측정대상, HOUSE, 예산부족알림, 예산부족닫기, 측정상한, 고객측정일 } from "../measure-targets.mjs";
 
 for (const l of fs.readFileSync(new URL("../.env.local", import.meta.url), "utf8").split(/\r?\n/)) {
   const m = /^([A-Z_]+)=(.*)$/.exec(l);
@@ -30,7 +30,7 @@ const arg = (name) => {
   const i = process.argv.indexOf(name);
   return i >= 0 ? process.argv[i + 1] : null;
 };
-const CLIENT = arg("--client");   // 없으면 대상 목록 전부(academy/measure-targets.mjs) — 순서: 유료 파일럿 고객 → 학원 → 탐침
+const CLIENT = arg("--client");   // 없으면 대상 목록 전부(academy/measure-targets.mjs) — 순서: 유료 파일럿 고객 → 학원 → 자사 고객 → 탐침
 const ONLY = arg("--engine");
 const LIMIT = Number(arg("--limit")) || 0;
 const 오늘 = new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" });
@@ -228,8 +228,8 @@ const main = async () => {
   const 나눔 = 대상.length > 1;   // 학원만 있으면 나누지 않는다 — 지금과 같게
   const 유료있음 = 대상.some((t) => t.묶음 === "유료");
   const 집 = 대상.find((t) => t.slug === HOUSE) ?? 대상[0];
-  /** Claude 측정 몫. claude-code.mjs 와 같은 규칙(measure-targets 측정상한 — 유료 고객 있는 날 42, 아니면 22, env 먼저) */
-  const 몫 = 측정상한(await 유료측정일(q, 오늘)).reserve;
+  /** Claude 측정 몫. claude-code.mjs 와 같은 규칙(measure-targets 측정상한 — 학원 밖에 잴 고객(유료·승인 질문 있는 자사) 있는 날 42, 아니면 22, env 먼저) */
+  const 몫 = 측정상한(await 고객측정일(q, 오늘)).reserve;
   const 측정씀 = async () => {
     const [r] = await q(`select count(*)::int n from geo.claude_calls where purpose = 'measure'
       and (at at time zone 'Asia/Seoul')::date = (now() at time zone 'Asia/Seoul')::date`).catch(() => [null]);
@@ -335,6 +335,7 @@ const main = async () => {
     if (탐침.length) 요약.push(`${e.engine} 탐침: ${pOk}/${탐침.length} 측정 · 언급·인용 ${pHit}/${pOk}`);
   };
 
+  const 나중탐침 = [];
   for (const t of 대상) {
     const 머리 = 나눔 ? `${t.name} · ` : "";
     // 이름 정규식이 없으면 지어내지 않고 그 고객만 멈춘다 — 다른 고객은 잰다
@@ -463,14 +464,16 @@ const main = async () => {
       if (e.engine === "claude-code-web" && done.size + ok === questions.length) {
         await 예산부족닫기(q, t, "claude", `${오늘} ${e.engine} ${questions.length}/${questions.length} 측정`)
           .catch((err) => console.log("  ⚠ 예산 일감 닫기 실패", err.message));
-        // 탐침은 학원 승인 질문 바로 뒤 — 순서 「유료 → 학원 → 탐침」. 유료 파일럿 고객이 있는 날은 끈다(그 몫은 고객 기준선에 쓴다)
+        // 탐침은 모든 대상 뒤 — 순서 「유료 → 학원 → 자사 → 탐침」(Step 30 Arch). 학원 승인 질문을 다 잰 날만 차례를 잡는다.
+        // 유료 파일럿 고객이 있는 날은 끈다(그 몫은 고객 기준선에 쓴다)
         if (탐침수 > 0 && !LIMIT && (t.slug === HOUSE || !나눔)) {
           if (유료있음) 요약.push(`${e.engine} 탐침: 유료 파일럿 고객이 있는 날이라 끔`);
-          else await 탐침재기(client, e);
+          else 나중탐침.push(() => 탐침재기(client, e));
         }
       }
     }
   }
+  for (const 재기 of 나중탐침) await 재기();
 
   // 크레딧이 없으면 웹 검색을 쓰는 측정이 통째로 막힌다(무료 모델도 검색은 유료다).
   // 돈 쓰는 일은 사람만 할 수 있으니 일감으로 올려 대시보드에 띄운다 — 로그에만 남기면 아무도 안 본다

@@ -17,6 +17,7 @@
  *   node scripts/daily-agent.mjs --review 자기 점검(loop-review.mjs)만 찍고 끝낸다. DB 안 씀
  *   node scripts/daily-agent.mjs --complete "한 일" "근거"   사람이 오늘 행동을 끝냈을 때 (--id 행번호 · --client 슬러그)
  *   node scripts/daily-agent.mjs --client ilog --dry         한 고객만
+ *   node scripts/daily-agent.mjs --session-done 28 "근거"      세션이 「세션 대기」 글 일감을 끝냈을 때
  *
  * 고객(Step 30): 학원과, 승인 질문이 있는 고객을 차례로 돈다. 사다리는 같고 고객마다 다른 것은 clients.mjs 의 loop 덩어리다 —
  * 이름 질문 적중 말, 홈 JSON-LD 검사, 글 쓰는 길(학원은 write-draft, 아이로그는 Claude 세션 일감), 넓힘 탐침 여부.
@@ -83,7 +84,8 @@ const 준비 = async () => {
 
 /**
  * 세션 글 일감. 같은 질문의 question-draft 일감(회사 루프 who-wins 가 만든 「겨냥 초안」)이 있으면 그것을 다시 열어 쓴다 — 두 개로 쌓지 않는다.
- * 원장 현황판 「오늘 하실 일」에 뜬다(사람 대기). 끝내는 것은 Claude 세션이다
+ * 상태는 「세션 대기」 — 원장 할 일(사람 대기)에 넣지 않는다(Arch, 현황판 할 일은 원장 몫만). 현황판에는 할 일 상자 밖 「세션에서 할 일 n건」 한 줄.
+ * 끝내는 것은 Claude 세션이다 — `daily-agent.mjs --session-done <일감번호>`
  */
 const 세션일감 = async (c, 설정, x, 경쟁) => {
   const title = 세션글제목(c.name, x.text);
@@ -94,7 +96,7 @@ const 세션일감 = async (c, 설정, x, 경쟁) => {
   if (DRY) return { id: 있음?.id ?? null, 말: 있음 ? `(dry) 일감 #${있음.id}(${있음.status}) 다시 엶` : "(dry) 새 세션 일감" };
   const 표시 = JSON.stringify({ sticky: true, session: true, prompt_id: x.prompt_id });
   if (있음) {
-    await q(`update geo.agent_tasks set status='사람 대기', title=$2, done_at=null, updated_at=now(), last_error=$3,
+    await q(`update geo.agent_tasks set status='세션 대기', title=$2, done_at=null, updated_at=now(), last_error=$3,
                payload = payload || $4::jsonb, evidence = left(evidence || $5, 4000) where id=$1`,
       [있음.id, title, `Claude 세션에서 ${설정.draftWhere} 에 씁니다`, 표시, `\n${오늘} 개선 루프가 ${x.prompt_id} 로 다시 엶`]);
     return { id: 있음.id, 말: `일감 #${있음.id} 다시 엶` };
@@ -102,8 +104,8 @@ const 세션일감 = async (c, 설정, x, 경쟁) => {
   const key = `qdraft-${crypto.createHash("sha1").update(x.text).digest("hex").slice(0, 10)}`;
   const [새] = await q(
     `insert into geo.agent_tasks (client_id, agent, kind, dedupe_key, title, detail, status, priority, last_error, payload)
-     values ($1, 'content', 'question-draft', $2, $3, $4, '사람 대기', 35, $5, $6::jsonb)
-     on conflict (client_id, dedupe_key) do update set status='사람 대기', title=excluded.title, detail=excluded.detail,
+     values ($1, 'content', 'question-draft', $2, $3, $4, '세션 대기', 35, $5, $6::jsonb)
+     on conflict (client_id, dedupe_key) do update set status='세션 대기', title=excluded.title, detail=excluded.detail,
        last_error=excluded.last_error, payload = geo.agent_tasks.payload || excluded.payload, done_at=null, updated_at=now()
      returning id`,
     [c.id, key, title, detail, `Claude 세션에서 ${설정.draftWhere} 에 씁니다`,
@@ -211,7 +213,7 @@ const 돌기 = async (c, 설정) => {
       continue;
     }
     // 세션 글 일감(글 쓰는 길이 세션인 고객)을 끝냈으면 알아챈다 — 같은 질문의 question-draft 일감이 완료면 그날부터 효과를 잰다
-    if (r.action_kind === "content" && r.status === "사람 대기" && !r.target_slug && 설정.draft === "session") {
+    if (r.action_kind === "content" && r.status === "세션 대기" && !r.target_slug && 설정.draft === "session") {
       const 글 = questions.find((x) => x.prompt_id === r.target_prompt)?.text;
       const [t] = 글 ? await q(
         `select id, done_at from geo.agent_tasks where client_id=$1 and kind='question-draft' and status='완료'
@@ -241,7 +243,7 @@ const 돌기 = async (c, 설정) => {
       }
     }
     // 사람이 할 일이 14일 넘게 안 됐으면 닫는다. 「효과 없음」과 다르다 — 해 보지 않았다
-    if (r.status === "사람 대기" && r.run_day <= 날더하기(오늘, -14)) {
+    if ((r.status === "사람 대기" || r.status === "세션 대기") && r.run_day <= 날더하기(오늘, -14)) {
       기록.push(`${r.target_prompt} ${r.action_kind} 14일 미처리 → 닫음`);
       if (!DRY) await q(`update geo.agent_runs set verdict='미처리', verdict_note='14일 동안 사람 작업이 없었음', judged_at=now() where id=$1`, [r.id]);
       r.verdict = "미처리";
@@ -414,10 +416,11 @@ const 돌기 = async (c, 설정) => {
     ?? (다른초안 ? { target_slug: 다른초안.slug } : null);
   // 글 쓰는 길이 세션인 고객 — 넘긴 세션 글이 안 끝났으면 새로 넘기지 않는다
   const 대기세션 = 설정.draft === "session"
-    ? runs.find((r) => r.verdict === "판정 전" && r.action_kind === "content" && r.status === "사람 대기" && !r.target_slug) ?? null
+    ? runs.find((r) => r.verdict === "판정 전" && r.action_kind === "content" && r.status === "세션 대기" && !r.target_slug) ?? null
     : null;
   const 대기일 = 대기초안 ? `/blog/${대기초안.target_slug} 초안을 사실 확인 후 발행합니다.`
     : 대기세션 ? `${대기세션.target_prompt} 세션 글 일감을 끝내고 완료로 닫습니다.` : null;
+  const 대기상태 = 대기초안 ? "사람 대기" : 대기세션 ? "세션 대기" : null;
   const 후보 = 표
     .filter((x) => x.n > 0 && x.rate < 50 && !열림.has(x.prompt_id) && !버린질문.has(x.prompt_id))
     .sort((a, b) => (STAGE_ORDER[a.stage] ?? 9) - (STAGE_ORDER[b.stage] ?? 9) || a.rate - b.rate);
@@ -426,7 +429,7 @@ const 돌기 = async (c, 설정) => {
     const why = 표.some((x) => x.n > 0 && x.rate < 50)
       ? `적중률 50% 미만 질문은 모두 행동이 진행 중입니다${대기초안 ? ` — 초안 ${대기초안.target_slug} 발행 전 사실 확인 대기` : 대기세션 ? ` — ${대기세션.target_prompt} 세션 글 대기` : ""}`
       : "측정된 질문이 모두 적중률 50% 이상입니다";
-    await 저장({ status: 대기일 ? "사람 대기" : "완료", diagnosis: `${전체}. ${why}`, action: 대기일 ?? "측정만 이어 갑니다.", evidence: 엔진별 });
+    await 저장({ status: 대기상태 ?? "완료", diagnosis: `${전체}. ${why}`, action: 대기일 ?? "측정만 이어 갑니다.", evidence: 엔진별 });
     return;
   }
 
@@ -492,15 +495,15 @@ const 돌기 = async (c, 설정) => {
           .sort((a, b) => b[1] - a[1]).slice(0, 5).map(([d]) => d);
         if (설정.draft === "session") {
           // 글이 DB 가 아니라 고객 저장소 코드다(아이로그 lib/guides.ts). write-draft 를 부르면 학원 블로그에 남의 글이 들어간다.
-          // 사람 대기 일감으로 세션에 넘긴다. 한 번에 하나 — 열린 세션 글이 있으면 새로 쌓지 않는다
+          // 세션 대기 일감으로 세션에 넘긴다. 한 번에 하나 — 열린 세션 글이 있으면 새로 쌓지 않는다
           if (대기세션) {
             막힘 ??= `${x.prompt_id} 은 새 글이 필요한데 ${대기세션.target_prompt} 세션 글 일감이 끝나기를 기다리고 있어 새로 넘기지 않았습니다`;
             continue 질문;
           }
           const 일감 = await 세션일감(c, 설정, x, 경쟁);
           await 저장({
-            status: "사람 대기", diagnosis: 진단, target_prompt: x.prompt_id, action_kind: "content", target_slug: null,
-            action: `${c.name} 글은 이 저장소에서 쓰지 않습니다. Claude 세션에서 「${x.text}」에 답하는 가이드 초안을 ${설정.draftWhere} 에 씁니다${일감.id ? ` (일감 #${일감.id})` : ""}. 일감을 완료로 닫으면 다음 날 루프가 효과 측정을 시작합니다.`,
+            status: "세션 대기", diagnosis: 진단, target_prompt: x.prompt_id, action_kind: "content", target_slug: null,
+            action: `${c.name} 글은 이 저장소에서 쓰지 않습니다. Claude 세션에서 「${x.text}」에 답하는 가이드 초안을 ${설정.draftWhere} 에 씁니다${일감.id ? ` (일감 #${일감.id})` : ""}. 세션이 --session-done 으로 닫으면 다음 날 루프가 효과 측정을 시작합니다.`,
             evidence: `대신 인용된 곳: ${경쟁.join(", ") || "없음"} · ${일감.말}`,
           });
           return;
@@ -569,7 +572,7 @@ const 돌기 = async (c, 설정) => {
   }
 
   await 저장({
-    status: "사람 대기", diagnosis: `${전체}. ${막힘 ?? "후보 질문의 자동 행동이 모두 소진됐습니다"}`,
+    status: 대기상태 ?? "사람 대기", diagnosis: `${전체}. ${막힘 ?? "후보 질문의 자동 행동이 모두 소진됐습니다"}`,
     action: 대기일 ?? "사다리를 다 쓴 질문은 사람이 원인을 새로 정합니다.",
     evidence: 엔진별,
   });
@@ -581,6 +584,19 @@ const 돌기 = async (c, 설정) => {
  */
 const main = async () => {
   await 준비();
+  if (process.argv.includes("--session-done")) {
+    // 세션이 글을 쓰고 배포까지 끝냈을 때. 근거 없는 완료는 감사(R3)가 잡으니 근거를 받는다
+    const k = process.argv.indexOf("--session-done");
+    const id = Number(process.argv[k + 1]);
+    const 근거 = String(process.argv[k + 2] ?? "").trim();
+    if (!Number.isInteger(id) || !근거) throw new Error(`--session-done <일감번호> "근거(쓴 파일·배포)" 로 부르세요`);
+    const 시각 = new Date().toLocaleString("sv-SE", { timeZone: "Asia/Seoul" }).slice(0, 16);
+    const hit = await q(`update geo.agent_tasks set status='완료', done_at=now(), updated_at=now(), evidence = left(evidence || $2, 4000)
+                          where id=$1 and kind='question-draft' and status='세션 대기' returning id`, [id, `\n${시각} 세션이 끝냄 · ${근거}`]);
+    console.log(hit.length ? `세션 글 일감 #${id} 완료 · 다음 날 개선 루프가 효과 측정을 시작합니다` : `세션 대기인 글 일감 #${id} 이 없습니다`);
+    if (!hit.length) process.exitCode = 1;
+    return;
+  }
   const i = process.argv.indexOf("--client");
   const 지정 = i > 0 ? process.argv[i + 1] : null;
   const 대상 = 지정 || process.argv.includes("--complete")

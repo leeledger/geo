@@ -81,3 +81,10 @@ Status: DONE_WITH_CONCERNS — 시험 18 통과 · tsc 0(web·academy) · 학원
 - KG-30-3 측정 예산(유료 없는 날 22 — 학원 20 뒤 아이로그 20은 밀림)
 - KG-30-4 pm-report 원장 할 일 수는 전 고객 합
 - KG-30-5 아이로그 case-report
+
+## Arch 결정 반영 (리뷰 전 추가, 2026-09-30)
+- academy/measure-targets.mjs — 대상 묶음 「자사」(relation 자사, 진행 중 또는 measure_active) 추가, 순서 유료 → 학원 → 자사 → 측정. 고객행에 relation·approved_n. `고객있음()`(유료 또는 승인 질문 있는 자사)·`고객측정일()`(옛 `유료측정일`). 측정상한 인자 이름만 바꿈 — 값 40·22·60 / 60·42·120 그대로
+- academy/scripts/ai-measure.mjs · claude-code.mjs · tools/ai-web-measure.mjs — `고객측정일` 로 이름 바꿈. ai-measure 탐침은 `나중탐침` 으로 모든 대상 뒤에(유료 있는 날 끄기는 그대로)
+- 「세션 대기」 새 상태: daily-agent 세션일감·개선 루프 행·판정·14일 닫기 · `--session-done <id> "근거"`(근거 없으면 거부) · company.mjs 세션글열기·who-wins·question-draft 실행 · pm-report 고객 줄 「세션 몫 n건」 · web Todo.tsx 상자 밖 한 줄(+page.tsx .td-session) · ops.ts 정렬 · AgentBoard 세션 칸·개선 카드 문구 · todo-text 세션 분기 삭제
+- 확인: 시험 23 통과(측정 예산 5개 추가) · tsc 0 두 곳 · 학원 daily-agent --dry 변경 전과 동일 · pm-report --dry 학원 줄 동일 · seed dry 동일 · 운영 DB 읽기로 오늘 `고객측정일` false → 40·22·60
+- 원장 할 일 수(pm-report·Todo)는 이제 세션 일감을 안 센다 — KG-30-4 닫힘. KG-30-3 닫힘

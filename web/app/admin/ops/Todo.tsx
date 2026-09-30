@@ -79,8 +79,11 @@ export default function Todo({ company, unresolved }: { company: Ops["company"];
   const shown = items.slice(0, MAX);
   const rest = items.length - shown.length;
   const open = items.filter((x) => !x.doing).length;
+  // 「세션 대기」는 원장 몫이 아니다(Step 30 Arch) — 할 일 상자 밖에 한 줄만. Claude 세션을 열면 세션이 처리한다
+  const session = company.tasks.filter((t) => t.status === "세션 대기").length;
 
   return (
+    <>
     <section className="td" aria-labelledby="td-h">
       <h2 id="td-h">오늘 원장님이 하실 일{open > 0 && <span className="td-n"> {open}건</span>}</h2>
       {items.length === 0 ? (
@@ -100,5 +103,7 @@ export default function Todo({ company, unresolved }: { company: Ops["company"];
       )}
       {rest > 0 && <p className="td-more">나머지 {rest}건은 맨 아래 「자세히」에 있습니다</p>}
     </section>
+    {session > 0 && <p className="td-session">세션에서 할 일 {session}건 — 원장님 몫이 아닙니다. Claude 세션을 열면 세션이 처리합니다</p>}
+    </>
   );
 }

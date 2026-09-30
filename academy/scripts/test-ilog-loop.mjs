@@ -1,12 +1,13 @@
 // 아이로그를 학원과 같은 수준으로(Step 30) 단위 시험 — 가짜 행만, DB·네트워크 없음.
 //   node academy/scripts/test-ilog-loop.mjs
 // 1) 질문 패널 20개 모양  2) 이름 판별 말(오탐)  3) 고객별 루프 설정(이름 질문 적중·홈 JSON-LD)
-// 4) 자기 점검 — 탐침 끄기·검색어형 묶음  5) 세션 글 일감 제목
+// 4) 자기 점검 — 탐침 끄기·검색어형 묶음  5) 세션 글 일감 제목  6) 측정 예산 두 배 조건·순서
 // 하나라도 틀리면 종료코드 1.
 import assert from "node:assert/strict";
 import { bySlug, 세션글제목 } from "../clients.mjs";
 import { 패널, 이름말 } from "./seed-ilog-panel.mjs";
 import { 자기점검 } from "./loop-review.mjs";
+import { 대상고르기, 고객있음, 측정상한 } from "../measure-targets.mjs";
 
 let fail = 0, pass = 0;
 const t = (name, f) => {
@@ -97,6 +98,26 @@ t("검색어형(keyword)은 일반 질문 묶음으로 센다", () => {
 
 // ── 5. 세션 글 일감 제목
 t("세션 글 제목", () => assert.equal(세션글제목("아이로그", "학원 출결 관리 앱 뭐가 있어요?"), "세션에서 아이로그 가이드 초안: 「학원 출결 관리 앱 뭐가 있어요?」"));
+
+// ── 6. 측정 예산(Arch — 학원 밖에 잴 고객이 있는 날만 두 배, 순서 유료 → 학원 → 자사)
+const 행 = (o) => ({ answer_pattern: null, measure_active: false, relation: "외부", price: 0, started_on: null, ends_on: null,
+  kickoff_on: null, needs_build: "none", site_launch_on: null, cancelled_on: null, approved_n: 0, ...o });
+const 학원행 = 행({ id: 1, slug: "robotncoding", name: "학원", domain: "robotncoding.com", relation: "자사", price: 0, started_on: "2026-09-17", ends_on: "2026-10-17", approved_n: 20 });
+const 아이로그행 = (n) => 행({ id: 2, slug: "ilog", name: "아이로그", domain: "ilog.ai.kr", relation: "자사", measure_active: true, started_on: "2026-09-30", ends_on: "2026-10-30", approved_n: n });
+const 유료행 = 행({ id: 3, slug: "paid", name: "유료", domain: "paid.example", price: 390000, started_on: "2026-09-25", ends_on: "2026-10-24", approved_n: 20 });
+t("학원만 있는 날 — 40·22·60 그대로", () => {
+  assert.equal(고객있음(대상고르기([학원행], 오늘)), false);
+  assert.deepEqual(측정상한(false, {}), { claude: 40, reserve: 22, web: 60 });
+});
+t("아이로그 승인 질문 0개 — 두 배 안 함", () => assert.equal(고객있음(대상고르기([학원행, 아이로그행(0)], 오늘)), false));
+t("아이로그 승인 질문 있음 — 60·42·120", () => {
+  assert.equal(고객있음(대상고르기([학원행, 아이로그행(20)], 오늘)), true);
+  assert.deepEqual(측정상한(true, {}), { claude: 60, reserve: 42, web: 120 });
+});
+t("유료 고객 — 두 배(전과 같음)", () => assert.equal(고객있음(대상고르기([학원행, 유료행], 오늘)), true));
+t("순서 유료 → 학원 → 자사", () => {
+  assert.deepEqual(대상고르기([아이로그행(20), 학원행, 유료행], 오늘).map((r) => `${r.묶음}:${r.slug}`), ["유료:paid", "학원:robotncoding", "자사:ilog"]);
+});
 
 console.log(`\n${pass} 통과 · ${fail} 실패`);
 if (fail) process.exitCode = 1;

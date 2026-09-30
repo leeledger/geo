@@ -209,7 +209,7 @@ export async function 보고짓기(q, now = new Date()) {
  * 학원 밖 고객 한 줄씩(Step 30 D36). 위의 학원 숫자(AI답변·산출물)는 건드리지 않는다.
  *   AI 답변  곳(collection_method)마다 가장 최근 측정일 하루치 「n번 중 k번 이름 나옴」. 3일 넘게 안 잰 곳은 뺀다(AI답변읽기와 같은 셈)
  *   방문     어제까지 7일 방문자(geo.site_visits, Step 29). 표가 없으면 「방문 기록 없음」
- *   일감     완료·닫힘이 아닌 것과 그중 사람 대기
+ *   일감     완료·닫힘이 아닌 것과 그중 사람 대기(원장 몫)·세션 대기(세션 몫)
  */
 const 더하기일 = (day, n) => new Date(Date.parse(`${day}T00:00:00Z`) + n * 86400000).toISOString().slice(0, 10);
 async function 고객줄읽기(q, now = new Date()) {
@@ -241,11 +241,11 @@ async function 고객줄읽기(q, now = new Date()) {
     const 방문 = !v?.since ? "방문 기록 없음"
       : v.since >= 오늘 ? `방문 기록 ${월일(`${v.since}T00:00:00+09:00`)} 시작 — 어제까지 숫자 없음`
       : `방문자 ${v.n}명(${v.since > 더하기일(오늘, -7) ? `기록 시작 ${월일(`${v.since}T00:00:00+09:00`)}부터` : "7일"} 어제까지)`;
-    const [일] = await q(`select count(*)::int n, count(*) filter (where status = '사람 대기')::int h
+    const [일] = await q(`select count(*)::int n, count(*) filter (where status = '사람 대기')::int h, count(*) filter (where status = '세션 대기')::int s
                           from geo.agent_tasks where client_id = $1 and status not in ('완료', '닫힘')`, [c.id]);
     out.push({
       slug: c.slug, name: c.name,
-      줄: [AI, 방문, `열린 일감 ${일.n}건${일.h ? `(원장 몫 ${일.h}건)` : ""}`].join(" · "),
+      줄: [AI, 방문, `열린 일감 ${일.n}건${일.h || 일.s ? `(${[일.h ? `원장 몫 ${일.h}건` : "", 일.s ? `세션 몫 ${일.s}건` : ""].filter(Boolean).join(" · ")})` : ""}`].join(" · "),
     });
   }
   return out;
