@@ -22,6 +22,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { 확장줄 } from "./loop-grow.mjs";
 
 const KST = 9 * 3600 * 1000;
 const 시 = 3600 * 1000;
@@ -201,8 +202,29 @@ export async function 보고짓기(q, now = new Date()) {
 
   const AI답변 = await AI답변읽기(q, now).catch((e) => { console.log(`  ⚠ AI 답변 측정을 못 읽음 ${e.message}`); return []; });
   const 고객별 = await 고객줄읽기(q, now).catch((e) => { console.log(`  ⚠ 고객별 줄을 못 읽음 ${e.message}`); return []; });
+  const 확장 = await 확장줄읽기(q, now).catch((e) => { console.log(`  ⚠ 확장 질문 줄을 못 읽음 ${e.message}`); return []; });
 
-  return { day: 오늘, status, body: { status, conclusion, 직원, 확인필요, 원장할일, 산출물, 다음, AI답변, 고객별, 기간: { 시작: 시작.toISOString(), 끝: now.toISOString() } } };
+  return { day: 오늘, status, body: { status, conclusion, 직원, 확인필요, 원장할일, 산출물, 다음, AI답변, 고객별, ...(확장.length ? { 확장 } : {}), 기간: { 시작: 시작.toISOString(), 끝: now.toISOString() } } };
+}
+
+/**
+ * 「확장 질문 n개 중 k개 불림」 고객마다 한 줄(Step 31 D40). 승인 20문항 밖이라 위 숫자(AI답변·고객별)와 따로 적는다.
+ * 확장 질문이 있는 고객만 — 없으면 빈 목록이고 보고 모양은 Step 31 전과 같다
+ */
+async function 확장줄읽기(q, now = new Date()) {
+  const 오늘 = kst(now).toISOString().slice(0, 10);
+  const 질문 = await q(`select c.id, c.slug, c.name, 'q' || pq.position as prompt_id from geo.pilot_questions pq
+                          join geo.pilots p on p.id = pq.pilot_id join geo.clients c on c.id = p.client_id
+                         where pq.stage = 'extend' order by c.id, pq.position`);
+  if (!질문.length) return [];
+  const rows = await q(`select client_id, prompt_id, collection_method, mentioned, cited from academy.ai_probe_measurements
+                         where measured_on >= $1::date - 6 and prompt_id = any($2::text[])`, [오늘, [...new Set(질문.map((x) => x.prompt_id))]]);
+  const out = [];
+  for (const id of [...new Set(질문.map((x) => x.id))]) {
+    const mine = 질문.filter((x) => x.id === id);
+    out.push({ slug: mine[0].slug, name: mine[0].name, 줄: 확장줄(mine, rows.filter((r) => r.client_id === id)) });
+  }
+  return out;
 }
 
 /**
@@ -337,6 +359,7 @@ if (직접) {
       console.log(`원장 할 일 ${b.원장할일}건 · 산출물 ${b.산출물.join(" · ")}`);
       for (const a of b.AI답변 ?? []) console.log(`  AI ${a.엔진} ${a.day} 이름 ${a.이름}/${a.n} · 인용 ${a.인용}/${a.n}${a.비교 ? ` (${a.비교.day} 같은 ${a.비교.공통}문항 ${a.비교.전이름}→${a.비교.지금이름}, ${a.비교.말})` : ""}`);
       for (const c of b.고객별 ?? []) console.log(`  ${c.name}: ${c.줄}`);
+      for (const c of b.확장 ?? []) console.log(`  ${c.name}: ${c.줄}`);
       console.log(`다음\n${b.다음.map((s) => `  · ${s}`).join("\n")}`);
       console.log(`\nbody = ${JSON.stringify(b)}`);
     }

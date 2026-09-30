@@ -72,7 +72,7 @@ t("홈 JSON-LD 검사는 고객 것만 통과", () => {
 t("글 쓰는 길 — 아이로그는 세션, 쓸 곳이 적혀 있음", () => {
   assert.equal(아이로그.loop.draft, "session");
   assert.match(아이로그.loop.draftWhere, /guides\.ts/);
-  assert.equal(아이로그.loop.probes, false);
+  assert.equal(아이로그.loop.probes, "variants"); // Step 31 D43 — 송파 넓힘 대신 검색어 변형
   for (const c of [학원, 아이로그]) assert.equal(c.loop.offsite.length, 2);
 });
 

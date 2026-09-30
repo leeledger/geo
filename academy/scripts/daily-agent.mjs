@@ -21,14 +21,20 @@
  *
  * 고객(Step 30): 학원과, 승인 질문이 있는 고객을 차례로 돈다. 사다리는 같고 고객마다 다른 것은 clients.mjs 의 loop 덩어리다 —
  * 이름 질문 적중 말, 홈 JSON-LD 검사, 글 쓰는 길(학원은 write-draft, 아이로그는 Claude 세션 일감), 넓힘 탐침 여부.
+ *
+ * 성과가 개수로 늘어나는 고리(Step 31, loop-grow.mjs): 「효과 있음」 처방을 같은 단계로 전파, 후퇴한 질문 맨 앞(불리던 글 재색인),
+ * 경쟁사 우세 정렬, 불린 탐침 → 원장에게 승인 질문 후보 → 확장 질문, 안 불린 반경 → 세션 글 일감.
  */
 import fs from "node:fs";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { Pool } from "pg";
-import { 자기점검, 점검요약, 겹침 } from "./loop-review.mjs";
+import { 자기점검, 점검요약, 겹침, 곳 as 곳이름 } from "./loop-review.mjs";
 import { CLIENTS } from "../clients.mjs";
-import { 세션일감열기, 세션완료찾기, 세션일감닫기, 세션끝냄 } from "./session-task.mjs";
+import { 세션일감열기, 세션완료찾기, 세션일감닫기, 세션끝냄, 탐침글일감 } from "./session-task.mjs";
+import { 전파찾기, 전파칸, 사다리짓기, 경쟁우세, 후보고르기, 불리던글, 승격일감, 확장넣기 } from "./loop-grow.mjs";
+import { 경쟁사목록 } from "../pilot-report-core.mjs";
+import { 측정설정 } from "../measure-targets.mjs";
 
 for (const l of fs.readFileSync(new URL("../.env.local", import.meta.url), "utf8").split(/\r?\n/)) {
   const m = /^([A-Z_]+)=(.*)$/.exec(l);
@@ -280,7 +286,7 @@ const 돌기 = async (c, 설정) => {
 
   // ── 자기 점검 (loop-review.mjs). 판정 뒤에 돈다 — 방금 닫힌 행동은 「멈춤」으로 안 센다
   const 점검 = 자기점검({
-    questions, rows: 점검rows, 판정rows: rows, runs, posts, today: 오늘, domain: c.domain, probes, 적중, 탐침: 설정.probes,
+    questions, rows: 점검rows, 판정rows: rows, runs, posts, today: 오늘, domain: c.domain, probes, 적중, 탐침: 설정.probes, 변형: 설정.probeVariants,
     // 검색어 씨앗(source_prompt 없음)은 하루 한도에 안 센다
     새탐침한도: Math.max(0, 2 - probes.filter((p) => p.created_on === 오늘 && p.source_prompt).length),
   });
@@ -296,8 +302,13 @@ const 돌기 = async (c, 설정) => {
   const 점검줄 = 점검요약(점검.findings);
 
   const facts = { day: 오늘, engines: 엔진별, week: 전체, questions: 표.map(({ prompt_id, n, hit }) => ({ prompt_id, n, hit })), judged: 기록, selfcheck: 점검.findings };
+  // 전파(D38)로 올린 칸이면 근거에 원판정 행을 남긴다. 판정은 원래 규칙 그대로 따로 받는다
+  let 전파중 = null;
   const 저장 = async (row) => {
     row = { ...row, diagnosis: 점검줄 ? `${점검줄}\n${row.diagnosis}` : row.diagnosis };
+    if (전파중 && row.target_prompt === 전파중.pid && row.action_kind === 전파중.kind) {
+      row.evidence = `${row.evidence ?? ""} · 전파: 행 #${전파중.id}(${전파중.from} ${전파중.kind} 「효과 있음」)`;
+    }
     console.log(`\n진단: ${row.diagnosis}\n행동: ${row.action}\n상태: ${row.status}${row.evidence ? `\n근거: ${row.evidence}` : ""}`);
     if (process.env.GITHUB_STEP_SUMMARY) {
       fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,
@@ -326,6 +337,17 @@ const 돌기 = async (c, 설정) => {
   if (점검줄) console.log(`  → ${점검줄}`);
   for (const t of 일감들) console.log(`  ${DRY ? "(dry) " : ""}발견성 일감 ${t.key}: ${t.slugs.join(", ")}`);
   for (const p of 점검.probes) console.log(`  ${DRY ? "(dry) " : ""}탐침 ${p.form} ${p.seed ? "씨앗" : `${p.source_prompt} →`} ${p.radius}「${p.text}」`);
+  // ── 성과가 개수로 (Step 31). 일감 함수는 DRY 면 읽기만 한다
+  for (const 줄 of await 확장넣기(q, { clientId: c.id, 오늘, DRY })) console.log(`  확장 질문: ${줄}`);
+  for (const p of 점검.promote) {
+    const r = await 승격일감(q, { clientId: c.id, p, 곳이름: 곳이름(p.method), DRY });
+    console.log(`  ${DRY ? "(dry) " : ""}${r.title} · ${r.말}`);
+  }
+  if (점검.gaps.length) {
+    const g = 점검.gaps[0];
+    const r = await 탐침글일감(q, { c, 설정, gap: g, 곳이름: 곳이름(g.method), 오늘, DRY });
+    console.log(`  안 불린 반경 ${g.prompt_id}「${g.text}」 ${g.n}번 모두 0 → ${r.말}`);
+  }
   if (REVIEW) return;
 
   if (!DRY) {
@@ -390,9 +412,16 @@ const 돌기 = async (c, 설정) => {
   const 대기일 = 대기초안 ? `/blog/${대기초안.target_slug} 초안을 사실 확인 후 발행합니다.`
     : 대기세션 ? `${대기세션.target_prompt} 세션 글 일감을 끝내고 완료로 닫습니다.` : null;
   const 대기상태 = 대기초안 ? "사람 대기" : 대기세션 ? "세션 대기" : null;
-  const 후보 = 표
-    .filter((x) => x.n > 0 && x.rate < 50 && !열림.has(x.prompt_id) && !버린질문.has(x.prompt_id))
-    .sort((a, b) => (STAGE_ORDER[a.stage] ?? 9) - (STAGE_ORDER[b.stage] ?? 9) || a.rate - b.rate);
+  // 경쟁사 우세(D42) — 파일럿에 경쟁사가 적힌 고객만. 못 읽으면(칸 없음 등) 0 으로 두고 Step 31 전 순서대로
+  const 경쟁사 = 경쟁사목록((await q(`select competitors from geo.pilots where client_id=$1 order by id limit 1`, [c.id]).catch(() => []))[0]?.competitors);
+  let 우세 = {};
+  if (경쟁사.length) {
+    const [패턴] = await q(`select answer_pattern from geo.clients where id=$1`, [c.id]).catch(() => []);
+    const 우리 = 측정설정({ ...c, answer_pattern: 패턴?.answer_pattern })?.answerRe;
+    우세 = Object.fromEntries(questions.map((x) => [x.prompt_id, 경쟁우세(창(x.prompt_id, 주전), 우리, 경쟁사)]));
+  }
+  const 후퇴 = new Map(점검.regress.map((r) => [r.prompt_id, r]));
+  const 후보 = 후보고르기(표, { 열림, 버린: 버린질문, 후퇴: new Set(후퇴.keys()), 우세, 단계순: STAGE_ORDER });
 
   if (!후보.length) {
     const why = 표.some((x) => x.n > 0 && x.rate < 50)
@@ -406,10 +435,32 @@ const 돌기 = async (c, 설정) => {
   const tried = (pid) => new Map(runs.filter((r) => r.target_prompt === pid).map((r) => [r.action_kind, r.verdict]));
   let 막힘 = null;
 
+  const 전파 = 전파찾기(runs, stageOf);
+
   질문: for (const x of 후보) {
     const t = tried(x.prompt_id);
-    const 진단 = `${x.prompt_id}「${x.text}」 최근 7일 적중 ${x.hit}/${x.n} (${x.stage}) · ${전체}`;
-    for (const kind of LADDER[x.stage] ?? LADDER.problem) {
+    const 원 = 전파칸(전파.get(x.stage), x, t);
+    전파중 = 원 ? { pid: x.prompt_id, kind: 원.action_kind, id: 원.id, from: 원.target_prompt } : null;
+    const 진단 = `${x.prompt_id}「${x.text}」 최근 7일 적중 ${x.hit}/${x.n} (${x.stage})` +
+      `${x.후퇴 ? " · 불리던 질문이 떨어짐" : ""}${우세[x.prompt_id] > 0 ? ` · 경쟁사 이름이 우리보다 ${우세[x.prompt_id]}번 더 나옴` : ""} · ${전체}`;
+
+    // 후퇴(D39): 사다리보다 먼저 불리던 글을 다시 민다. 불리던 글이 없으면 사다리대로
+    if (x.후퇴) {
+      const r = 후퇴.get(x.prompt_id);
+      const 글 = 불리던글(r.urls, published)
+        ?? published.map((p) => ({ ...p, score: 겹침(x.text, p.title) })).sort((a, b) => b.score - a.score).find((p) => p.score >= 0.4);
+      if (글) {
+        const res = 색인알림(`/blog/${글.slug}`);
+        await 저장({
+          status: res.ok ? "완료" : "실패", diagnosis: 진단, target_prompt: x.prompt_id, action_kind: "content", target_slug: 글.slug, effective_on: 오늘,
+          action: `불리던 질문이 떨어졌습니다. 불리던 글 「${글.title}」을 색인 알림으로 다시 밀고 7일 뒤부터 효과를 잽니다.`,
+          evidence: `${r.곳들.map((g) => `${곳이름(g.method)} 앞 14일 ${g.앞[0]}/${g.앞[1]} → 최근 7일 ${g.뒤[0]}/${g.뒤[1]}`).join(", ")} · IndexNow ${res.ok ? "접수" : `실패: ${res.out.slice(-200)}`}`,
+        });
+        if (!res.ok) process.exitCode = 1;
+        return;
+      }
+    }
+    for (const kind of 사다리짓기(LADDER[x.stage] ?? LADDER.problem, 전파중?.kind)) {
       const v = t.get(kind);
       if (v === "효과 없음" || v === "표본 부족" || v === "통과") continue;
       // 검색 결과에 안 뜨는 단계는 글을 고쳐도 못 읽는다(자기 점검 repeat). 다음 칸으로

@@ -10,6 +10,10 @@
  *   repeat    같은 처방(글 고치기·재색인)을 3번 넘게 했는데 검색 결과에 우리 주소가 없다
  *   discover  그러니 글이 아니라 발견성(Brave 색인)을 본다
  *   widen     맞는 동네 질문을 한 칸씩 넓혀 어디서 빠지는지 잰다 (탐침 — 문장형·검색어형)
+ *   variant   넓힐 동네가 없는 고객(아이로그)은 승인 검색어의 기능 말로 변형 탐침을 만든다 (Step 31 D43)
+ *   regress   불리던 질문이 같은 곳·같은 엔진에서 떨어졌다 (Step 31 D39)
+ *   promote   불린 탐침 — 승인 질문 후보로 원장에게 묻는다 (D40, 일감은 daily-agent 가 쓴다)
+ *   gaps      넓힘 사슬에서 처음 0 이 된 칸 — 그 문장으로 세션 글 일감 (D41, 일감은 daily-agent 가 쓴다)
  *
  * LLM 을 부르지 않는다. DB 숫자를 문장틀에 넣기만 한다 — 지어낼 자리가 없다.
  * 곳(collection_method)이 다르면 비율을 합치지 않는다. 곳마다 따로 적는다.
@@ -51,7 +55,7 @@ const 곳이름 = {
   "api-gemini-google-search": "Gemini API",
   "api-groq-compound": "Groq",
 };
-const 곳 = (m) => 곳이름[m] ?? m;
+export const 곳 = (m) => 곳이름[m] ?? m;
 const 탐침곳 = "claude-code-headless-websearch";
 
 // ── 반경 사다리: 동네 → 송파 → 서울 → 없음
@@ -100,6 +104,19 @@ export const 검색어넓히기 = ({ text, radius }) => {
   return 틀 && to ? { radius: to, text: 검색어(to, 틀) } : null;
 };
 
+/**
+ * 변형 탐침(D43). 기능 말은 승인 검색어형 질문에서 틀 말(추천·무료·앱·프로그램)을 뺀 나머지다 — 새 말을 지어내지 않는다.
+ * 변형 = { forms: ["{기능} 앱", …], strip: /…/g } (clients.mjs loop.probeVariants)
+ */
+export const 변형후보 = (questions, 변형) => {
+  const 기능들 = [];
+  for (const x of questions.filter((q) => q.stage === "keyword")) {
+    const 기능 = x.text.replace(변형.strip, " ").replace(/\s{2,}/g, " ").trim();
+    if (기능 && !기능들.some((f) => f.기능 === 기능)) 기능들.push({ 기능, from: x.prompt_id });
+  }
+  return 기능들.flatMap(({ 기능, from }) => 변형.forms.map((f) => ({ source_prompt: from, text: f.replace("{기능}", 기능) })));
+};
+
 const 같은글 = (a, b) => String(a).replace(/[^가-힣a-zA-Z0-9]/g, "") === String(b).replace(/[^가-힣a-zA-Z0-9]/g, "");
 const 우리주소 = (domain) => (r) => (r.citations ?? []).some((s) => s?.domain === domain || String(s?.domain ?? "").endsWith(`.${domain}`));
 
@@ -112,10 +129,13 @@ const 우리주소 = (domain) => (r) => (r.citations ?? []).some((s) => s?.domai
  * @param probes    academy.ai_probe_questions [{prompt_id, source_prompt, radius, text, active, form}] — 표가 없으면 []
  * @param 적중      daily-agent 의 적중 판정 (brand 는 인용 또는 「석촌」)
  * @param 새탐침한도 오늘 더 넓혀도 되는 탐침 수 (검색어 씨앗은 안 센다)
- * @param 탐침      넓힘 탐침(widen)을 도는가. 반경 사다리·씨앗이 송파 말이라 학원만 true (clients.mjs loop.probes)
+ * @param 탐침      true 넓힘 탐침(widen, 반경 사다리·씨앗이 송파 말이라 학원만) · "variants" 검색어 변형(D43) · false 끔 (clients.mjs loop.probes)
+ * @param 변형      탐침 "variants" 의 틀 (clients.mjs loop.probeVariants)
  * @returns probes  [{source_prompt, radius, text, form, seed?}] — 씨앗은 source_prompt 가 null
+ * @returns regress [{prompt_id, 곳들: [{method, engine, 앞:[h,n], 뒤:[h,n]}], urls}] · regressUnknown [{prompt_id, method, engine, 왜}]
+ * @returns promote [{prompt_id, text, method, hit, n}] · gaps [{prompt_id, text, radius, method, n, root}]
  */
-export function 자기점검({ questions, rows, 판정rows = rows, runs, posts, today, domain, probes = [], 적중, 새탐침한도 = 2, 탐침 = true }) {
+export function 자기점검({ questions, rows, 판정rows = rows, runs, posts, today, domain, probes = [], 적중, 새탐침한도 = 2, 탐침 = true, 변형 = null }) {
   const findings = [];
   const skipContent = new Set();
   const stageOf = Object.fromEntries(questions.map((x) => [x.prompt_id, x.stage]));
@@ -204,7 +224,89 @@ export function 자기점검({ questions, rows, 판정rows = rows, runs, posts, 
     발견성.push({ group: g, slugs, finding });
   }
 
-  if (!탐침) return { findings, skipContent, probes: [], discover: 발견성 };
+  // ── regress (D39): 앞 14일 ≥50% 이던 질문이 최근 7일 ≤25%. 같은 곳·같은 엔진끼리만, 양쪽 5건 이상일 때만 말한다
+  const 앞끝 = 날더하기(today, -7), 뒤처음 = 날더하기(today, -6), 앞처음 = 날더하기(today, -20);
+  const 후퇴 = [], 모름 = [];
+  const 셈2 = (list) => [list.filter(적중).length, list.length];
+  for (const x of questions) {
+    const mine = rows.filter((r) => r.prompt_id === x.prompt_id && r.day >= 앞처음);
+    const 곳들 = [];
+    for (const k of [...new Set(mine.map((r) => `${r.collection_method}\t${r.engine}`))]) {
+      const [m, e] = k.split("\t");
+      const 같은 = mine.filter((r) => r.collection_method === m && r.engine === e);
+      const 앞 = 같은.filter((r) => r.day <= 앞끝), 뒤 = 같은.filter((r) => r.day >= 뒤처음);
+      const [ah, an] = 셈2(앞);
+      if (an < 5 || ah * 2 < an) continue;
+      if (뒤.length < 5) {
+        // 같은 곳에서 다른 엔진으로 최근 5건이 넘으면 엔진이 바뀐 것이다 — 비교하지 않는다
+        const 딴엔진 = mine.filter((r) => r.collection_method === m && r.engine !== e && r.day >= 뒤처음).length >= 5;
+        모름.push({ prompt_id: x.prompt_id, method: m, engine: e, 왜: 딴엔진 ? "엔진 바뀜" : "최근 표본 모자람" });
+        continue;
+      }
+      const [bh, bn] = 셈2(뒤);
+      if (bh * 4 <= bn) 곳들.push({ method: m, engine: e, 앞: [ah, an], 뒤: [bh, bn], 앞rows: 앞 });
+    }
+    if (!곳들.length) continue;
+    // 불리던 글: 앞 창에서 AI 가 인용한 우리 주소. 많이 인용된 것부터
+    const 주소 = {};
+    for (const g of 곳들) for (const r of g.앞rows) for (const s of r.citations ?? []) {
+      if (우리주소(domain)({ citations: [s] }) && s.url) 주소[s.url] = (주소[s.url] ?? 0) + 1;
+    }
+    후퇴.push({
+      prompt_id: x.prompt_id, stage: x.stage, text: x.text,
+      곳들: 곳들.map(({ 앞rows, ...g }) => g),
+      urls: Object.entries(주소).sort((a, b) => b[1] - a[1]).map(([u]) => u),
+    });
+  }
+  if (후퇴.length) {
+    findings.push({
+      code: "regress",
+      title: `불리던 질문 ${후퇴.length}개가 최근 7일에 떨어졌습니다`,
+      evidence: 후퇴.map((r) => `${r.prompt_id} ${r.곳들.map((g) => `${곳(g.method)} 앞 14일 ${g.앞[0]}/${g.앞[1]} → 최근 7일 ${g.뒤[0]}/${g.뒤[1]}`).join(", ")}`).join(" / ") +
+        (모름.length ? ` · 비교 못 함: ${모름.map((u) => `${u.prompt_id} ${곳(u.method)}(${u.왜})`).join(", ")}` : ""),
+      action: "이 질문을 오늘 후보 맨 앞에 둡니다. 불리던 글부터 색인 알림으로 다시 밉니다.",
+    });
+  }
+
+  // ── promote (D40): 탐침이 7일 안 한 곳에서 4번 넘게 재서 절반 넘게 불렸다. 곳끼리 합치지 않는다
+  const 칠일 = 날더하기(today, -6);
+  const 승격 = [];
+  for (const p of probes.filter((x) => x.active !== false)) {
+    const w = rows.filter((r) => r.prompt_id === p.prompt_id && r.day >= 칠일);
+    const 좋은 = [...new Set(w.map((r) => r.collection_method))]
+      .map((m) => { const l = w.filter((r) => r.collection_method === m); return { method: m, hit: l.filter(적중).length, n: l.length }; })
+      .filter((s) => s.n >= 4 && s.hit * 2 >= s.n)
+      .sort((a, b) => b.n - a.n || b.hit - a.hit)[0];
+    if (좋은) 승격.push({ prompt_id: p.prompt_id, text: p.text, ...좋은 });
+  }
+  const 더 = { regress: 후퇴, regressUnknown: 모름, promote: 승격, gaps: [] };
+
+  if (탐침 === "variants" && 변형) {
+    // ── variant (D43): 넓힐 동네가 없다. 승인 검색어의 기능 말로 「{기능} 앱·프로그램·무료」 변형을 하루 한도 안에서 만든다
+    const 있는글 = [...questions.map((x) => x.text), ...probes.map((p) => p.text)];
+    const 새것 = [];
+    for (const v of 변형후보(questions, 변형)) {
+      if (새것.length >= 새탐침한도) break;
+      if (있는글.some((t) => 같은글(t, v.text))) continue;
+      새것.push({ source_prompt: v.source_prompt, radius: "변형", text: v.text, form: "keyword" });
+      있는글.push(v.text);
+    }
+    const 잰것 = probes.map((p) => {
+      const w = rows.filter((r) => r.prompt_id === p.prompt_id && r.collection_method === 탐침곳 && r.day >= 칠일);
+      return { p, hit: w.filter(적중).length, n: w.length };
+    }).filter((x) => x.n);
+    if (잰것.length || 새것.length) {
+      findings.push({
+        code: "variant",
+        title: "검색어를 바꿔 어디서 이름이 나오는지 잽니다",
+        evidence: (잰것.length ? `${곳(탐침곳)} 7일: ${잰것.map((x) => `「${x.p.text}」 ${x.hit}/${x.n}`).join(" · ")}` : "아직 잰 변형 없음") +
+          (새것.length ? ` · 오늘 새로: ${새것.map((p) => `${p.source_prompt}→「${p.text}」`).join(", ")}` : ""),
+        action: "변형은 승인 검색어에 나온 기능 말로만 하루 2개까지 만들고, 측정은 하루 탐침 몫 안에서 Claude 로 합니다. 적중률 계산·효과 판정에는 쓰지 않습니다.",
+      });
+    }
+    return { findings, skipContent, probes: 새것, discover: 발견성, ...더 };
+  }
+  if (!탐침) return { findings, skipContent, probes: [], discover: 발견성, ...더 };
 
   // ── widen: 맞는 질문을 한 칸 넓힌다. 탐침 결과는 반경을 재는 것뿐, 판정에 안 쓴다
   // 모양이 둘이다 — 문장(승인 동네 질문에서 출발)과 검색어(송파구 씨앗 3개에서 출발). 모양·곳끼리 합치지 않는다
@@ -245,27 +347,43 @@ export function 자기점검({ questions, rows, 판정rows = rows, runs, posts, 
   }
 
   /** 뿌리에서 자식을 따라가며 「반경 id 적중/n」 을 잇는다 */
-  const 사슬 = (pid, radius, method) => {
-    const 칸 = [];
-    const 적기 = (id, r) => {
-      const { hit, n } = 탐침율(id, method);
-      칸.push(`${r} ${id} ${n ? `${hit}/${n}` : "안 잼"}`);
-    };
-    적기(pid, radius);
+  const 칸들 = (pid, radius, text) => {
+    const out = [{ id: pid, radius, text }];
     for (let cur = pid, guard = 0; guard < 5; guard++) {
       const child = probes.find((p) => p.source_prompt === cur);
       if (!child) break;
-      적기(child.prompt_id, child.radius);
+      out.push({ id: child.prompt_id, radius: child.radius, text: child.text });
       cur = child.prompt_id;
     }
-    return 칸.join(" → ");
+    return out;
   };
-  const 문장사슬 = questions.filter((x) => x.stage === "local" && 자식있음.has(x.prompt_id))
-    .map((x) => 사슬(x.prompt_id, 반경(x.text), 탐침곳));
+  const 사슬 = (pid, radius, method) => 칸들(pid, radius).map((c) => {
+    const { hit, n } = 탐침율(c.id, method);
+    return `${c.radius} ${c.id} ${n ? `${hit}/${n}` : "안 잼"}`;
+  }).join(" → ");
+  /**
+   * gaps (D41): 뿌리 다음 칸부터 따라가 처음 0 이 된 칸. 7일 4건 넘게 재서 전부 0 일 때만 — 덜 쟀으면 기다린다.
+   * 안 잰 칸을 만나면 멈춘다(모르는 칸 뒤는 못 본다)
+   */
+  const 빈칸 = [];
+  const 빈칸보기 = (root, cells, method) => {
+    for (const c of cells.slice(1)) {
+      const { hit, n } = 탐침율(c.id, method);
+      if (!n) return;
+      if (hit) continue;
+      if (n >= 4 && !빈칸.some((g) => g.prompt_id === c.id)) 빈칸.push({ prompt_id: c.id, text: c.text, radius: c.radius, method, n, root });
+      return;
+    }
+  };
+  const 문장뿌리 = questions.filter((x) => x.stage === "local" && 자식있음.has(x.prompt_id));
+  for (const x of 문장뿌리) 빈칸보기(x.prompt_id, 칸들(x.prompt_id, 반경(x.text), x.text), 탐침곳);
+  const 문장사슬 = 문장뿌리.map((x) => 사슬(x.prompt_id, 반경(x.text), 탐침곳));
   const 검색어뿌리 = probes.filter((p) => 모양(p) === "keyword" && !p.source_prompt);
   const 검색어id = new Set(probes.filter((p) => 모양(p) === "keyword").map((p) => p.prompt_id));
   // 검색어 탐침은 Claude 말고 다른 곳(구글 AI 모드 등)에서도 잰다. 곳마다 따로 적는다
   const 검색어곳 = [탐침곳, ...new Set(rows.filter((r) => 검색어id.has(r.prompt_id) && r.collection_method !== 탐침곳).map((r) => r.collection_method))];
+  for (const m of 검색어곳) for (const p of 검색어뿌리) 빈칸보기(p.prompt_id, 칸들(p.prompt_id, p.radius, p.text), m);
+  더.gaps = 빈칸;
   const 줄들 = [
     ...(문장사슬.length ? [`문장 · ${곳(탐침곳)} 7일: ${문장사슬.join(" / ")}`] : []),
     ...(검색어뿌리.length ? 검색어곳.map((m) => `검색어 · ${곳(m)} 7일: ${검색어뿌리.map((p) => 사슬(p.prompt_id, p.radius, m)).join(" / ")}`) : []),
@@ -280,11 +398,11 @@ export function 자기점검({ questions, rows, 판정rows = rows, runs, posts, 
     });
   }
 
-  return { findings, skipContent, probes: 새탐침, discover: 발견성 };
+  return { findings, skipContent, probes: 새탐침, discover: 발견성, ...더 };
 }
 
-/** 진단 맨 앞에 붙일 한 줄. 가장 무거운 것 하나 */
-const 무게 = ["repeat", "narrow", "stalled", "discover", "widen"];
+/** 진단 맨 앞에 붙일 한 줄. 가장 무거운 것 하나 — 후퇴는 잃고 있는 것이라 맨 앞 */
+const 무게 = ["regress", "repeat", "narrow", "stalled", "discover", "widen", "variant"];
 export const 점검요약 = (findings) => {
   const top = [...findings].sort((a, b) => 무게.indexOf(a.code) - 무게.indexOf(b.code))[0];
   if (!top) return "";

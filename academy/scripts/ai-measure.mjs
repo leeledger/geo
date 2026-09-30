@@ -20,6 +20,7 @@ import { Pool } from "pg";
 import { 오픈라우터, 재시도, 모델들 } from "./writer-common.mjs";
 import { 클로드코드, 클로드코드있음 } from "./claude-code.mjs";
 import { 측정대상, HOUSE, 예산부족알림, 예산부족닫기, 측정상한, 고객측정일 } from "../measure-targets.mjs";
+import { bySlug } from "../clients.mjs";
 
 for (const l of fs.readFileSync(new URL("../.env.local", import.meta.url), "utf8").split(/\r?\n/)) {
   const m = /^([A-Z_]+)=(.*)$/.exec(l);
@@ -301,15 +302,24 @@ const main = async () => {
       form text not null default 'sentence', radius text,
       imported_at timestamptz not null default now(),
       unique (client_id, measured_on, collection_method, engine, prompt_id, attempt))`);
-    // 가장 오래 안 잰 탐침부터. 오늘 잰 것은 빼고, 오늘 이미 잰 만큼은 한도에서 뺀다
+    /**
+     * 가장 오래 안 잰 탐침부터. 오늘 잰 것은 빼고, 오늘 이미 잰 만큼은 한도에서 뺀다.
+     * 확장 질문(Step 31 D40 — 원장이 받아들인 불린 탐침, pilot_questions stage 'extend', approved=false)도 이 줄에 같이 선다.
+     * 승인 20문항이 아니니 ai_measurements 에 안 넣는다(form 'extend' → 탐침 표). 같은 날짜면 확장 질문이 먼저
+     */
     const 탐침 = await q(
-      `select p.prompt_id, 'probe' as stage, p.text, p.form, p.radius, m.last_day
-         from academy.ai_probe_questions p
+      `select c.prompt_id, c.stage, c.text, c.form, c.radius, m.last_day
+         from (select p.prompt_id, 'probe' as stage, p.text, p.form, p.radius, 1 as ord_kind, p.id as ord_id
+                 from academy.ai_probe_questions p where p.client_id=$1 and p.active
+               union all
+               select 'q' || pq.position, 'extend', pq.text, 'extend', null, 0, pq.position
+                 from geo.pilot_questions pq join geo.pilots pl on pl.id = pq.pilot_id
+                where pl.client_id=$1 and pq.stage='extend') c
          left join (select prompt_id, max(measured_on) as last_day from academy.ai_probe_measurements
                      where client_id=$1 and collection_method=$2 group by prompt_id) m
-           on m.prompt_id = p.prompt_id
-        where p.client_id=$1 and p.active and (m.last_day is null or m.last_day < $3::date)
-        order by m.last_day nulls first, p.id
+           on m.prompt_id = c.prompt_id
+        where m.last_day is null or m.last_day < $3::date
+        order by m.last_day nulls first, c.ord_kind, c.ord_id
         limit greatest(0, $4 - (select count(*) from academy.ai_probe_measurements
                                  where client_id=$1 and collection_method=$2 and measured_on=$3::date))`,
       [client.id, e.method, 오늘, Math.min(탐침수, 남은몫)]);
@@ -466,7 +476,8 @@ const main = async () => {
           .catch((err) => console.log("  ⚠ 예산 일감 닫기 실패", err.message));
         // 탐침은 모든 대상 뒤 — 순서 「유료 → 학원 → 자사 → 탐침」(Step 30 Arch). 학원 승인 질문을 다 잰 날만 차례를 잡는다.
         // 유료 파일럿 고객이 있는 날은 끈다(그 몫은 고객 기준선에 쓴다)
-        if (탐침수 > 0 && !LIMIT && (t.slug === HOUSE || !나눔)) {
+        // 탐침을 도는 고객(clients.mjs loop.probes — 학원 넓힘, 아이로그 검색어 변형 Step 31 D43)은 고객마다 같은 하루 탐침 몫
+        if (탐침수 > 0 && !LIMIT && (t.slug === HOUSE || !나눔 || Boolean(bySlug(t.slug)?.loop?.probes))) {
           if (유료있음) 요약.push(`${e.engine} 탐침: 유료 파일럿 고객이 있는 날이라 끔`);
           else 나중탐침.push(() => 탐침재기(client, e));
         }

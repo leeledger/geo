@@ -1,100 +1,48 @@
-# Review Request — Step 30 (아이로그를 학원과 같은 수준으로 D34~D37)
+# Review Request — Step 31 (성과가 개수로 늘어나는 고리 D38~D43)
 Date: 2026-09-30
 Ready for Review: YES
-Status: DONE_WITH_CONCERNS — 시험 18 통과 · tsc 0(web·academy) · 학원 dry 출력 동일. 아이로그 content 칸(세션 일감) 경로는 승인 질문·측정이 없어 dry 로 끝까지 못 탔다(DB 쓰기 금지 — 가짜 행 시험과 코드로만 확인)
+Status: DONE_WITH_CONCERNS — 새 시험 34 통과(test-grow-loop) · test-ilog-loop 33 통과 · web tsc 0 · 학원 daily-agent --dry 변경 전과 diff 0. D38~D42 가 걸리는 경로는 운영 DB 에 오늘 조건이 없어 가짜 행 시험으로만 탔다(DB 쓰기 금지 · 임시 DB 읽기 스크립트는 권한 거부)
 
 ## Files Changed
-- academy/clients.mjs:37-53 — 학원 `loop` 설정. Step 30 전 daily-agent 에 박혀 있던 값 그대로(석촌 · address+석촌|송파 · write-draft · 탐침 켬 · offsite 문장 두 개 원문)
-- academy/clients.mjs:79-84 — 아이로그 answerRe 를 `(?<!\(주\)\s?)아이로그|ilog\.ai\.kr` 로(D34). seed 가 이 원문을 DB 에 넣는다 — 한 곳
-- academy/clients.mjs:90-108 — 아이로그 `loop` 설정(이름 질문 적중 출결|알림톡|수업 피드백 · 홈 SoftwareApplication+ilog.ai.kr · draft=session · 탐침 끔)
-- academy/clients.mjs:149-151 — `세션글제목()` — daily-agent 와 company 가 같은 제목
-- academy/scripts/daily-agent.mjs:18-22,39,59-64 — 머리말 · HOUSE · keyword 단계(LADDER·DISCOVER_GROUP general·STAGE_ORDER 4)
-- academy/scripts/daily-agent.mjs:75-116 — 준비(DDL) 분리 · `세션일감()`: 같은 질문의 question-draft 일감이 있으면 다시 열고(사람 대기) 없으면 새로. dry 는 읽기만
-- academy/scripts/daily-agent.mjs:137-141,180 — 홈 JSON-LD 검사·이름 질문 적중을 고객 설정으로(D35)
-- academy/scripts/daily-agent.mjs:213-230 — 판정: 세션 글 일감이 run_day 이후 완료면 그날부터 판정 창을 연다
-- academy/scripts/daily-agent.mjs:312 — 자기 점검에 `탐침: 설정.probes`
-- academy/scripts/daily-agent.mjs:400-402 — 학원 밖 고객 「측정 없음」은 실패로 적되 종료코드 1 을 안 낸다
-- academy/scripts/daily-agent.mjs:415-420,427-429,458-459,573 — 대기세션·대기일(학원이면 대기초안 문장 그대로)
-- academy/scripts/daily-agent.mjs:493-507 — content 칸: draft=session 이면 write-draft 를 안 부르고 세션 일감 + 사람 대기 행(한 번에 하나)
-- academy/scripts/daily-agent.mjs:563 — offsite 문장을 고객 설정에서
-- academy/scripts/daily-agent.mjs:578-608 — main: --client 하나 · --complete 는 학원(또는 --client) · 기본은 학원 먼저 + 승인 질문 있는 고객. loop 설정 없는 고객은 적고 건너뜀. 고객별 실패 격리
-- academy/scripts/loop-review.mjs:40-41,115,118,181,207-208 — keyword → 일반 질문 묶음 · `탐침` 인자(false 면 widen·씨앗 없음) · skipContent 는 있는 단계만(학원 출력 불변을 위해)
-- academy/scripts/company.mjs:33,427-444,539 — D37 `세션글열기()`: 세션 고객의 관찰 question-draft 를 사람 대기 + 세션 제목으로(매시, 관찰인 것만)
-- academy/scripts/company.mjs:657-662 — who-wins 가 세션 고객 일감을 처음부터 세션 제목·사람 대기로
-- academy/scripts/company.mjs:710-713 — question-draft 실행: 세션 고객은 관찰(30일) 대신 사람 대기
-- academy/scripts/pm-report.mjs:203-251,339 — D36 `고객줄읽기()`: 학원 밖 고객 한 줄(곳별 「n번 중 k번 이름 나옴」 · 방문자(기록 시작 전은 0 이라 안 씀) · 열린 일감/원장 몫). 학원 숫자·문장 불변
-- web/lib/pm-report.ts:28-29 · web/app/admin/ops/PmReport.tsx:91 — 고객별 줄 타입·표시
-- web/lib/todo-text.ts:197-206 — 「세션에서 …」 question-draft 를 원장 할 일 문장으로. 버튼은 「했어요」(닫으면 루프가 판정 창을 연다)
-- academy/scripts/seed-ilog-panel.mjs (새) — 0원 리허설 파일럿 + 질문 20개 approved=false + answer_pattern + measure_active. 기본 dry, `--apply` 는 Arch
-- academy/scripts/test-ilog-loop.mjs (새) — 18개: 패널 모양·출처, 이름 말 오탐((주)아이로그·IBM ILOG·ilog.co.kr), 학원 설정 원값, 홈 검사 교차, 탐침 끄기, keyword 묶음, 제목
+- academy/scripts/loop-grow.mjs (새 파일) — 전파찾기·전파칸·사다리짓기(D38) · 경쟁우세(D42, pilot-report-core 점유 재사용) · 후보고르기(후퇴 맨 앞 → 단계 → 우세 → 적중률) · 불리던글(D39) · 확장줄 · 승격일감(D40, probe-promote-<id>, 사람 대기, 30일 쿨다운) · 확장넣기(「했어요」 → pilot_questions extend q101~, 탐침 끔, payload.extend 로 한 번만)
+- academy/scripts/loop-review.mjs:13-16,58,107-119 — 머리말 · `곳` export · `변형후보()`(승인 keyword 질문에서 틀 말을 뺀 기능 말 × 틀)
+- academy/scripts/loop-review.mjs:227-309 — regress(같은 곳·같은 엔진, 앞 14일 ≥50% · 최근 7일 ≤25% · 양쪽 5건, 표본 부족·엔진 바뀜은 「비교 못 함」) · promote(한 곳 7일 4번 이상 ≥50%, 곳 안 합침) · variant 가지(아이로그, 하루 한도 안, 승인 질문과 같은 글 제외)
+- academy/scripts/loop-review.mjs:350-378 — 사슬을 칸 목록으로 · gaps(뿌리 다음 칸부터 처음 0 인 칸, 7일 4건 이상 전부 0 · 안 잰 칸에서 멈춤)
+- academy/scripts/loop-review.mjs:401-405 — 반환에 regress·regressUnknown·promote·gaps · 무게 맨 앞 regress, 끝 variant
+- academy/scripts/daily-agent.mjs:24-37 — 머리말 · import
+- academy/scripts/daily-agent.mjs:289 — 자기 점검에 `변형: 설정.probeVariants`
+- academy/scripts/daily-agent.mjs:305-312 — 저장: 전파로 올린 칸이면 근거에 「전파: 행 #id(원질문 kind 「효과 있음」)」
+- academy/scripts/daily-agent.mjs:340-350 — 확장넣기 · 승격일감 · 탐침글일감(첫 gap 하나) — DRY 면 읽기만. 「오늘 이미 행동」과 무관하게 돈다
+- academy/scripts/daily-agent.mjs:415-424 — 경쟁사(geo.pilots.competitors, 못 읽으면 0) · 후퇴 Map · 후보고르기
+- academy/scripts/daily-agent.mjs:438-463 — 전파중 설정 · 진단에 후퇴/우세(있을 때만) · 후퇴 질문은 불리던 글(인용 주소 → 없으면 제목 겹침 0.4) 재색인 먼저 · 사다리짓기
+- academy/scripts/session-task.mjs:66-99 — `탐침글일감()`: 14일 지난 탐침 글 일감 닫기 · 열린 세션 글 1편 · 같은 문장 일감 있으면 안 엶 · 재료(academy.materials 안 쓴 것) 없으면 제목·본문에 「재료 필요」
+- academy/clients.mjs:47-48 — 학원 draftWhere(D41 세션 글 자리)
+- academy/clients.mjs:105-110 — 아이로그 probes "variants" + probeVariants(틀 「{기능} 앱·프로그램·무료」, strip 추천|무료|앱|프로그램)
+- academy/scripts/ai-measure.mjs:23,305-321 — 탐침 줄에 확장 질문 union(form 'extend' → ai_probe_measurements, 같은 날짜면 확장 먼저, 확장 없으면 순서 불변)
+- academy/scripts/ai-measure.mjs:479-480 — 탐침 도는 자사 고객(loop.probes)도 탐침재기 — 고객마다 하루 2(기존 고객별 셈)
+- academy/scripts/pm-report.mjs:25,205-227,362 — body.확장 「확장 질문 n개 중 k개 불림(최근 7일 · m개는 아직 덜 잼)」, 확장 질문 있는 고객만(없으면 body 모양 불변)
+- web/lib/pm-report.ts:30-31 · web/app/admin/ops/PmReport.tsx:92 — 현황판에 그 한 줄
+- web/lib/pilots.ts:14-16 · web/lib/pilot-actions.ts:64 — 파일럿 패널·「승인」 버튼에서 stage 'extend' 제외(승인 버튼이 확장 질문을 20문항에 섞지 않게)
+- academy/scripts/test-grow-loop.mjs (새 파일) — D38~D43 각각 걸림·안 걸림·표본 부족·엔진(곳) 바뀜, 가짜 q 로 일감·확장 넣기·dry
+- academy/scripts/test-ilog-loop.mjs:75 — 아이로그 probes 기대값 false → "variants"
 
-## 확인한 것
-- `node academy/scripts/test-ilog-loop.mjs` → 18 통과 · 0 실패
-- `node ./node_modules/typescript/bin/tsc --noEmit` → web 0 · academy 0
-- 학원 불변: 변경 전 `daily-agent.mjs --dry` 출력을 떠 두고 변경 후와 diff → **동일**(처음엔 「건너뛰는 단계」에 keyword 가 붙어 한 줄 달랐다 → skipContent 를 있는 단계만으로 고쳐 동일). `--dry --review` 종료 0
-- pm-report `--dry`: 변경 전후 `body` 에서 기간·고객별을 빼고 비교 → **같음**. 출력은 한 줄만 늘었다: `아이로그: AI 답변 측정 없음 — 승인된 질문 0개 · 방문 기록 없음 · 열린 일감 7건`
-- `daily-agent.mjs --dry --client ilog`: 측정 0건이라 「최근 7일 자동 AI 측정이 없습니다 · 실패」 기록 줄까지(종료 0). 기본 실행(고객 지정 없음)에서는 승인 질문이 없어 아이로그를 돌지 않는다
-- 7건: DB 를 읽어 보니 question-draft(client 2) 는 관찰 6(#28·30·32·33·417·757) + 완료 1(#29 「원장이 완료 표시」). D37 은 관찰 6건을 올린다. #29 질문도 패널 q2 에 넣었다
-
-## seed --dry 출력 원문 (Arch·원장 검토용)
-```
-아이로그 (client 2) · dry — DB 안 씀
-  파일럿: 새로 — 0원 리허설, 오늘부터 30일
-  이름 판별: ilog\.ai\.kr → (?<!\(주\)\s?)아이로그|ilog\.ai\.kr
-  측정 대상 고정(measure_active): false → true  (리허설 30+7일이 지나도 계속 잰다)
-  질문 20개 (approved=false · 원장이 /admin/pilots 에서 승인)
-  q1  consider 학원 관리 프로그램 뭐가 좋은가요?   ← 겨냥 초안 일감 #28
-  q2  consider 학원 관리 프로그램 추천 순위나 후기 알려줘   ← 겨냥 초안 일감 #29
-  q3  consider 무료로 쓸 수 있는 학원 관리 프로그램 있나요?   ← 겨냥 초안 일감 #30
-  q4  consider 학원에서 카톡 알림 보내는 프로그램 뭐 써요?   ← 겨냥 초안 일감 #32
-  q5  consider 학원 수업 리포트 보내는 앱 어떤 게 좋아요?   ← 겨냥 초안 일감 #33
-  q6  consider 학원관리프로그램 추천 좀 해주세요   ← 겨냥 초안 일감 #417
-  q7  consider 학원 출결 관리 앱 뭐가 있어요?   ← 겨냥 초안 일감 #757
-  q8  problem  학원 관리 프로그램, 무엇을 보고 골라야 하나요?   ← guides.ts how-to-choose-academy-management-program 제목
-  q9  problem  무료 학원 관리 프로그램, 어디까지 무료인가요?   ← guides.ts free-academy-management-program 제목
-  q10 problem  학원 출결을 학부모 카카오톡으로 자동으로 알리려면 무엇이 필요한가요?   ← guides.ts academy-attendance-kakao-notification 제목
-  q11 problem  학원 수업 리포트, AI가 대신 쓰면 선생님은 무엇을 하나요?   ← guides.ts ai-class-report 제목
-  q12 problem  학교별 기출로 영어 내신 예상 문제를 만들 수 있나요?   ← guides.ts english-exam-generator 제목
-  q13 keyword  학원 관리 프로그램 추천   ← guides.ts query · 설계서 예시
-  q14 keyword  무료 학원 관리 프로그램   ← guides.ts query · clients.mjs c3
-  q15 keyword  학원 출결 관리 앱   ← clients.mjs c4
-  q16 keyword  학원 카톡 알림 프로그램   ← clients.mjs c5
-  q17 keyword  학원 수업 리포트 앱   ← guides.ts query · clients.mjs c6
-  q18 brand    아이로그 학원 관리 프로그램 어떤 거야?   ← 이름 질문 — 학원 패널 「어떤 곳이야?」 꼴
-  q19 brand    ilog.ai.kr 이 사이트 뭐 하는 곳이야?   ← 이름 질문 — 학원 패널 「robotncoding.com 이 사이트 무슨 학원이야?」 꼴
-  q20 brand    아이로그는 정말 무료인가요?   ← guides.ts how-to-choose FAQ 원문
-  단계: consider 7 · problem 5 · keyword 5 · brand 3
-```
+## 확인
+- `node academy/scripts/test-grow-loop.mjs` → 34 통과 · 0 실패 (변이 확인: 후퇴 문턱을 ≤50% 로 바꾸면 1 실패)
+- `node academy/scripts/test-ilog-loop.mjs` → 33 통과 · 0 실패
+- `web: node ./node_modules/typescript/bin/tsc --noEmit` → 0
+- 학원 `daily-agent --client robotncoding --dry` 전후 diff 없음. 오늘 행동이 이미 있어 선택까지 안 가므로 조기 종료 줄만 `if (false)` 로 바꾼 임시 사본으로도 전후 비교 — diff 없음(q15 discover 사람 대기 그대로). 임시 사본은 지움
+- 아이로그 dry: 변화는 variant finding + 탐침 2개(「학원 관리 앱」「학원 관리 프로그램」, q13 에서)뿐
+- pm-report --dry: 학원 줄·아이로그 줄 그대로, 확장 줄 없음(확장 질문 0개)
 
 ## Open Questions
-- 이름 말: 「아이로그」를 세고 「(주)아이로그」만 뺐다. 설계서의 `i-log` 는 아이로그 코드·가이드 어디에도 없는 표기라 넣지 않았다. `ilog` 단독은 IBM ILOG 와 겹쳐 안 셌다. 이대로 좋은지
-- 아이로그 이름 질문 적중 말(출결|알림톡|수업 피드백)은 학원의 「석촌」과 같은 역할로 Bob 이 골랐다. 답이 이름을 따라 말하는 것과 제품을 아는 것을 가르는 말로 적당한지
-- q19 는 질문에 도메인이 들어 있어 「이름 나옴」은 늘 참이다(학원 q 의 robotncoding.com 질문과 같다). 판정은 위 적중 말로만 한다
-- 파일럿 업무 19개·정합성 20칸은 안 넣었다(교육청 공개정보·네이버 플레이스가 소프트웨어에 안 맞는다). 리허설은 회사 루프가 업무 일감을 안 올리니 영향은 /admin/pilots 화면이 비는 것뿐
-- measure_active=true 로 고정한다 — 리허설 30+7일 뒤에도 잰다. 측정 예산은 KG-30-3
-- D37 이 돌면 pm-report 「원장 할 일」(전 고객 합)이 6 늘어난다(KG-30-4). 학원 줄 숫자 계산식은 안 바꿨다
-- 세션 일감을 원장이 「했어요」로 닫으면 who-wins 가 다음 주 같은 검색어로 지면 24시간 쿨다운 뒤 다시 연다(기존 일감() 동작 그대로)
+- **확장 질문 approved=false**(Bob 결정). 설계서는 「pilot_questions 에 stage 'extend'」까지만 정했다. approved=true 로 두면 approved 로 거르는 곳 7군데(ai-measure·ai-web-measure·daily-agent·pilot-report·pm-report·measure-targets approved_n·web 패널)를 전부 고쳐야 하고 하나라도 빠지면 영업 숫자에 섞인다. false 면 기본이 안전하고 측정만 탐침 줄로 넣으면 된다. 대신 web 승인 버튼·패널은 extend 를 빼도록 고쳤다 — Richard 는 이 방향이 맞는지와 빠진 소비처가 없는지 봐 주세요
+- 확장 질문을 넣을 때 원래 탐침을 끈다(같은 문장 두 번 재지 않게). 끈 탐침은 넓힘 출발에서도 빠진다 — 이미 자식이 있으면 영향 없음
+- 아이로그 탐침 측정 몫: 고객마다 하루 2(학원 몫 안 줄임). 「하루 탐침 몫 안에서」를 고객당으로 읽었다. 둘이 2 를 나눠 쓰라는 뜻이면 학원 몫이 1 로 줄어 학원 출력이 바뀐다
+- D41 「열린 세션 글 1편」을 고객의 세션 대기 question-draft 전부로 셌다(D35 run 짝 일감 포함)
 
 ## Out of Scope (logged in BUILD-LOG)
-- KG-30-1 loop 설정 없는 외부 고객은 개선 루프를 건너뜀
-- KG-30-2 아이로그 content 칸이 이미 있는 가이드(lib/guides.ts)와의 겹침을 안 봄
-- KG-30-3 측정 예산(유료 없는 날 22 — 학원 20 뒤 아이로그 20은 밀림)
-- KG-30-4 pm-report 원장 할 일 수는 전 고객 합
-- KG-30-5 아이로그 case-report
-
-## Arch 결정 반영 (리뷰 전 추가, 2026-09-30)
-- academy/measure-targets.mjs — 대상 묶음 「자사」(relation 자사, 진행 중 또는 measure_active) 추가, 순서 유료 → 학원 → 자사 → 측정. 고객행에 relation·approved_n. `고객있음()`(유료 또는 승인 질문 있는 자사)·`고객측정일()`(옛 `유료측정일`). 측정상한 인자 이름만 바꿈 — 값 40·22·60 / 60·42·120 그대로
-- academy/scripts/ai-measure.mjs · claude-code.mjs · tools/ai-web-measure.mjs — `고객측정일` 로 이름 바꿈. ai-measure 탐침은 `나중탐침` 으로 모든 대상 뒤에(유료 있는 날 끄기는 그대로)
-- 「세션 대기」 새 상태: daily-agent 세션일감·개선 루프 행·판정·14일 닫기 · `--session-done <id> "근거"`(근거 없으면 거부) · company.mjs 세션글열기·who-wins·question-draft 실행 · pm-report 고객 줄 「세션 몫 n건」 · web Todo.tsx 상자 밖 한 줄(+page.tsx .td-session) · ops.ts 정렬 · AgentBoard 세션 칸·개선 카드 문구 · todo-text 세션 분기 삭제
-- 확인: 시험 23 통과(측정 예산 5개 추가) · tsc 0 두 곳 · 학원 daily-agent --dry 변경 전과 동일 · pm-report --dry 학원 줄 동일 · seed dry 동일 · 운영 DB 읽기로 오늘 `고객측정일` false → 40·22·60
-- 원장 할 일 수(pm-report·Todo)는 이제 세션 일감을 안 센다 — KG-30-4 닫힘. KG-30-3 닫힘
-
-## Richard 30 Should Fix + Arch 반영 (2026-09-30)
-- academy/scripts/session-task.mjs (새) — 「세션 대기」 생애주기 한 곳: 같은질문일감 · 세션글키(질문 글자 sha1) · 세션일감열기 · 세션완료찾기 · 세션일감닫기 · 세션끝냄(근거 없으면 거부, DRY 면 안 씀). daily-agent 는 이것을 부른다
-- academy/scripts/daily-agent.mjs — 세션일감 본문을 session-task 로 옮김 · 14일 닫기 때 짝 일감 닫힘 · `--session-done` 은 DRY 면 찍기만
-- academy/scripts/company.mjs — who-wins 세션 가지: 키 = 같은 질문 일감 키 ?? 세션글키(질문), cooldownH 24*30
-- academy/clients.mjs — 이름 말 `(?<!(?:\(주\)|㈜|주식회사)\s?)아이로그|ilog\.ai\.kr`
-- academy/scripts/seed-ilog-panel.mjs — q8~q12 채팅 말투(Arch). 새 q8 「학원 관리 프로그램 고를 때 뭘 봐야 해?」 q9 「무료 학원 관리 프로그램은 어디까지 공짜야?」 q10 「학원 출결을 학부모한테 카톡으로 자동으로 보내려면 어떻게 해?」 q11 「학원 수업 리포트를 AI가 써 주는 프로그램 있어?」 q12 「학원 관리 프로그램 한 달에 보통 얼마야?」
-- academy/scripts/test-ilog-loop.mjs — ㈜·주식회사 오탐 2줄 · 생애주기 10개(열기·같은 질문 재사용·dry·키·끝냄 거부/dry/판정 찾기·14일 닫기)
-- 확인: 시험 33 통과 · tsc 0 두 곳 · 학원 daily-agent --dry 변경 전과 동일 · pm-report --dry 학원 줄 동일 · `--dry --session-done 28 시험` → 「(dry) … 쓰지 않음」 · seed dry 는 이름 말·q8~q12 만 바뀜
-- Richard 참고(ai-measure 나눔 머리)는 코드 안 바꿈 — seed --apply 뒤 학원 출력 비교 때 「로봇&코딩학원 · 」 머리가 붙는 것은 정상
+- KG-31-1 /admin/asks 탐침 격자에 확장 질문이 안 보임
+- KG-31-2 화면 측정(ai-web-measure)은 확장 질문·아이로그 변형을 안 잼
+- KG-31-3 승인 질문 후보 일감에 「안 넣음」 버튼 없음
+- KG-31-4 D41 은 사슬 있는 학원만 · 아이로그는 열린 세션 글 6건에 막힘
+- KG-31-5 D38~D42 조건 운영 DB 확인 못 함

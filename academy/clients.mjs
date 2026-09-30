@@ -44,6 +44,8 @@ export const CLIENTS = [
       homeLdFix: "academy/app/page.tsx 의 JSON-LD 에 주소·지역을 넣고 배포합니다.",
       // 글은 write-draft 가 academy.posts 에 초안으로 쓴다
       draft: "write-draft",
+      // 탐침에서 안 불린 반경 글(Step 31 D41)은 세션이 쓴다 — 세션 글 일감에 적는 자리
+      draftWhere: "academy.posts 초안(원장이 /admin/drafts 에서 사실 확인 후 발행)",
       // 반경 넓힘 탐침(loop-review widen)은 송파 동네 말로만 짜여 있다
       probes: true,
       offsite: [
@@ -100,7 +102,12 @@ export const CLIENTS = [
       // 글은 DB 가 아니라 코드다. 자동 경로가 없어 Claude 세션이 이 파일에 쓴다
       draft: "session",
       draftWhere: "C:\\dev\\자동피드백생성기 lib/guides.ts",
-      probes: false,
+      /**
+       * 넓힐 동네가 없다. 대신 승인 검색어형 질문에서 틀 말을 뺀 기능 말(「학원 출결 관리」 등)로 변형 탐침을 만든다(Step 31 D43).
+       * 기능 말은 승인 질문에 나온 말만 — 여기 목록을 두지 않고 strip 으로 뺀 나머지를 쓴다
+       */
+      probes: "variants",
+      probeVariants: { forms: ["{기능} 앱", "{기능} 프로그램", "{기능} 무료"], strip: /추천|무료|앱|프로그램/g },
       offsite: [
         "사이트 글과 검색 색인으로도 안 움직였습니다. 아이로그가 직접 고칠 수 있는 바깥 정보(앱·서비스 소개가 올라간 곳)의 사실 일치와 최신성을 확인합니다.",
         "사이트 글로는 안 움직였고, 답에 출처가 안 잡혀 확인할 곳을 고르지 못했습니다.",

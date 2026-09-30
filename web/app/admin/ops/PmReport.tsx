@@ -89,6 +89,7 @@ export default function PmReport({ data }: { data: Data }) {
       )}
       {b.산출물.length > 0 && <p className="pm-meta">어제부터 한 일: {b.산출물.join(" · ")}</p>}
       {(b.고객별 ?? []).map((c) => <p key={c.slug} className="pm-meta"><b>{c.name}</b> {c.줄}</p>)}
+      {(b.확장 ?? []).map((c) => <p key={`x-${c.slug}`} className="pm-meta"><b>{c.name}</b> {c.줄}</p>)}
       <details className="pm-staff">
         <summary>담당별로 한 일과 다음 할 일</summary>
         <ul>

@@ -27,6 +27,8 @@ export type PmBody = {
   }[];
   /** 학원 밖 고객 한 줄씩 — 2026-09-30(Step 30) 부터. 옛 보고에는 없다 */
   고객별?: { slug: string; name: string; 줄: string }[];
+  /** 「확장 질문 n개 중 k개 불림」 — Step 31 부터, 확장 질문이 있는 고객만 */
+  확장?: { slug: string; name: string; 줄: string }[];
 };
 
 export type PmReport =
