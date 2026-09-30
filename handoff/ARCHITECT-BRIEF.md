@@ -89,3 +89,19 @@
   - 기록 시작일을 적는다(「9/30 부터 셈 — 그 전은 없음」). 0 이면 0 이라고. 지어낸 추정치 금지.
 - **D33 배포** — 학원은 `academy/` 에서 `npx vercel --prod --yes`(git push 로 배포 안 됨 — CLAUDE.md). 아이로그는 C:\dev\자동피드백생성기 에서 같은 명령(메모리 ilog-source-repo). 두 곳에 env `VISIT_SALT` 가 필요하면 Arch 가 넣는다 — 코드에서는 없으면 조용히 건너뜀. 사이티드 web 은 git push.
 - 확인: 가짜 요청으로 분류 함수(ref_kind·사람/봇·문서 요청) 단위 시험, tsc(세 저장소 각각), 학원·아이로그 기존 봇 기록 경로가 그대로인지. 실제 운영 DB 쓰기·배포 금지.
+
+## Step 30 — 아이로그를 학원과 같은 수준으로 돌린다 (원장 2026-09-30 「에이전트들이 아이로그 업무는 왜 잘 안 하지?」)
+
+진단(Arch, DB·코드):
+- **질문 패널 0개 → AI 측정 0건(학원 381건).** 아이로그는 9/10 등록인데 geo.pilots·pilot_questions 가 없다. Step 25 측정기는 승인 질문이 있는 고객만 잰다.
+- **개선 루프가 학원 전용.** `daily-agent.mjs:33 SLUG = "robotncoding"` → geo.agent_runs 에 아이로그 0행(학원 14행).
+- **콘텐츠가 막힌 채 쌓임.** 아이로그 「겨냥 초안」 일감 7건이 9/27 부터 「관찰」. write-draft 는 학원 원장 인격·academy.posts 전용(KG-27-3)이고, 아이로그 글은 DB 가 아니라 코드(C:\dev\자동피드백생성기\lib/guides.ts → npx vercel --prod)다. 자동 경로가 없다.
+- **보고가 학원 전용.** pm-report(아침 보고)·case-report 가 client_id=1 고정. 현황판에 아이로그 성과가 안 모인다.
+(9/24 원장 결정 「학원 레퍼런스가 먼저」로 영업을 멈춘 것과는 별개 — 아이로그는 자사 제품이라 측정·개선은 돌아야 한다.)
+
+- **D34 질문 패널.** 아이로그용 0원 리허설 파일럿(학원과 같은 모양, status 리허설, measure 대상) + 질문 20개 **초안**(approved=false). 재료는 지어내지 않고 이미 있는 것만: 「겨냥 초안」 일감 7건의 질문 원문, Step 22 검색어형 틀(「{지역없음} 학원 관리 프로그램 추천」「학원 출결 앱」「학원 문자 알림 프로그램」 류 — 아이로그가 실제로 하는 기능은 C:\dev\자동피드백생성기 lib/marketing-facts·guides 에서 확인한 것만), 이름 질문 3개. stage 는 problem/consider/brand + 검색어형은 keyword. 승인은 원장이 /admin/pilots 에서. 초안을 넣는 SQL 은 스크립트(`academy/scripts/seed-ilog-panel.mjs`, --dry 기본)로 만들고 **Arch 가 실행한다.**
+  answer_pattern: 「아이로그|ilog(\.ai\.kr)?|i-log」 류(escape, 흔한 영단어 오탐 주의 — ilog 단독이 영어 문장에 섞이는지 판단).
+- **D35 개선 루프 고객별.** daily-agent 가 승인 질문이 있는 고객을 돈다(학원 동작·기록은 그대로 — 학원만 있을 때 출력 동일 확인). 고객마다 LADDER 는 같되, content 칸에서 그 고객에 글쓰기 경로가 없으면(학원 외) write-draft 를 부르지 않고 사람 대기 일감 「세션에서 아이로그 가이드 초안: 「질문」」(dedupe) — 이미 있는 question-draft 일감과 중복되지 않게 그 일감을 다시 열어 쓴다. entity 칸의 홈 JSON-LD 검사 정규식(석촌|송파)도 고객 설정으로.
+- **D36 보고.** pm-report 아침 보고에 고객별 한 줄(아이로그: 측정 곳별 「n번 중 k번」, 방문, 열린 일감 수). 학원 줄과 숫자 불변. case-report 는 학원 그대로(아이로그 케이스는 KG).
+- **D37 막힌 7건.** 「관찰」로 멈춘 question-draft 7건을 현황판 원장/세션 할 일에 보이게(상태 정리만 — 글은 세션이 쓴다).
+- 확인: daily-agent --dry 두 고객, pm-report dry, seed 스크립트 --dry 출력(질문 20개 원문을 REVIEW-REQUEST 에 붙인다 — Arch·원장 검토용). DB 쓰기·배포 금지.
