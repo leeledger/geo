@@ -1279,3 +1279,4 @@ Known Gaps (26)
 - KG-29-4 없는 주소(404)·스캐너 경로(/wp-admin 등)도 사람 UA 면 센다 — 많이 본 페이지에 섞일 수 있다
 - 2026-09-30: Step 29 Richard PASS + Should Fix(c31fb9a · ilog 069eb40). Arch: 아이로그 로그인 쿠키 있으면 안 셈. VISIT_SALT 학원·아이로그 production 48자 확인, 학원 CRAWL_KEY 있음 → 배포
 - 2026-09-30 13시: Step 29 배포 — 사이티드(8d69b2e push), 학원(npx vercel --prod), 아이로그(npx vercel --prod, 069eb40 — 그 저장소 origin 보다 12 앞섬, 푸시 안 함). 실제 방문 시험: 학원 client 1·아이로그 client 2 기록 확인, IP 없음. 시험 2행(ref cited-test)은 지움. 기록 시작 2026-09-30
+- 2026-09-30: 리드 알림 LEAD_ALERT_TO(원장 Resend 가입 주소) 운영 env 17자 확인 · 시험 메일 Resend 접수(id 01a0f083…) · env 반영 위해 재배포
