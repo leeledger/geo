@@ -1,22 +1,22 @@
-# Review Feedback — Step 28 (D19~D28)
+# Review Feedback — Step 29 (고객사 사이트 사람 방문 추이 D29~D33)
 Date: 2026-09-30
 Ready for Builder: YES
+
+검토 범위: AGO&GEO e8873b0 (13 파일) · 자동피드백생성기 d30c9c0 (2 파일).
+직접 돌림: `node --experimental-strip-types academy/scripts/test-visit.mjs` → 72 통과 · 0 실패.
+tsc --noEmit academy 0 · web 0 · 아이로그 0. visit.ts 세 사본 diff → 같음.
 
 ## Must Fix
 없음.
 
 ## Should Fix
-- academy/measure-targets.mjs:96-103 (confidence: 9/10) — env 가 한 칸만 있으면 상한과 측정 몫이 엇갈린다. 직접 돌려 봤다: `측정상한(true, { CLAUDE_DAILY_MAX: "40" })` → `{ claude: 40, reserve: 42 }`. claude-code.mjs:88 `상한 - 한도.reserve` = -2 가 되고, 유료 날에는 초안·수리·감사가 전부 막힌다. 지금은 vars 가 비어 있어 살아 있는 문제는 아니다(REVIEW-REQUEST 확인). 고칠 길은 둘: `reserve = Math.min(reserve, claude)` 로 묶거나, CLAUDE_DAILY_MAX 가 env 에서 왔으면 reserve 기본값을 22 로 둔다. 적어도 BUILD-LOG 에 「vars 는 둘 다 넣는다」를 남긴다.
-- web/app/api/lead/route.ts:64 (confidence: 7/10) — `await sendLeadAlert(...)` 가 폼 응답을 최대 5초 붙잡는다(AbortSignal.timeout(5000)). 한도는 있어서 폼이 멈추지는 않는다. Resend 가 느린 날에는 신청자가 5초를 기다린다. 이 Next 판에서 `after()`(next/server)가 되면 응답 뒤로 넘긴다. 안 되면 지금대로 둔다.
-- research/paid-pilot-order-form.md:51 (confidence: 6/10) — 「(원장 2026-09-30)」은 내부 메모다. 이 절은 입금 전에 고객에게 서면으로 준다. 고객에게 나가는 글에서는 뺀다. 예전 줄의 「(… BUILD-LOG KG)」도 같은 종류였다.
-- web/lib/lead-alert.ts:13 (confidence: 5/10) — 숫자가 1~3자리뿐인 연락처도 「(전화 안 남김)」으로 찍힌다. 남기긴 했는데 짧은 경우다. 문구만 「(연락처 확인 필요)」로 가르면 된다. 사소하다.
+- academy/app/api/visit/route.ts:44-46 (confidence: 7) — `if (key && req.headers.get("x-crawl-key") !== key)` — CRAWL_KEY 가 비면 누구나 넣는다(KG-29-2). 지금은 막는 항목이 아니다: academy/.env.local 에 CRAWL_KEY 가 비지 않은 값으로 있다(값은 안 봄). 그래도 새 라우트이고 proxy 는 늘 키를 보내니 닫힌 쪽이 공짜다 — `if (!key || header !== key) return 401`. 키가 빠지면 조용히 0 이 되지 스팸이 영업 숫자로 들어가지는 않는다. 배포 전 Arch 가 `vercel env ls`(academy) 로 운영에 CRAWL_KEY 가 있는지 한 번 본다.
+- web/lib/visits.ts:42-46 · academy/app/api/visit/route.ts:62-66 (confidence: 6) — DDL 세 줄과 insert 가 한 try 안이다. DDL 중 하나가 실패하면(`alter table … enable row level security` 는 소유자만 된다) 표가 있어도 insert 까지 안 가고, 인스턴스마다 다시 실패한다. 지금 DB 사용자가 neondb_owner 라 실제로는 안 터진다 — 확인. 또 `alter table … enable rls` 는 이미 켜져 있어도 콜드 스타트마다 표에 AccessExclusive 잠금을 잠깐 건다. 권장: DDL 을 따로 try 로 감싸 실패해도 insert 는 시도하거나, `select to_regclass('geo.site_visits')` 가 있으면 DDL 을 건너뛴다.
+- academy/lib/visit.ts:51 (세 사본 같은 줄) (confidence: 7) — `SNS_UTM.some((w) => host.indexOf(w) >= 0)` 는 부분 일치다. utm_source=broadband·fbx·weblog 류가 sns 로 간다. `w === host || host.startsWith(w + ".")` 정도로 좁힌다. 세 사본 함께, 시험 한 줄 추가.
+- 기록 대상 (confidence: 5, verify) — proxy 는 응답 코드를 모른다. 브라우저 UA·Accept text/html 로 오는 스캐너(`/wp-admin/`, `/.git/`는 FILE 로 빠지지만 확장자 없는 경로는 들어온다)와 404 경로가 방문자·「많이 본 페이지」에 들어간다. 지금 고칠 일은 아니고 BUILD-LOG Known Gaps 에 「404·탐침 경로 포함」으로 적고, 카드 숫자를 영업 자료로 쓸 때 많이 본 페이지 표에 이상한 경로가 있는지 본다.
 
 ## Escalate to Architect
-- D25 env 우선 규칙: 나중에 CLAUDE_DAILY_MAX 만 40 으로 넣으면 유료 날 두 배가 꺼지고, 위 첫 항목대로 다른 일까지 막힌다. 원장에게 「vars 는 둘 다, 아니면 둘 다 비움」을 알릴지 Arch 가 정한다.
+- 아이로그 LANDING 에 `/` 가 들어 있다. 로그인한 학원 사람이 홈을 거쳐 대시보드로 가면 그 한 번이 랜딩 방문으로 잡힌다. 공개 랜딩만 세는 것은 이미 승인됐으니 이 정도 섞임을 받아들일지만 정해 달라 — 코드로는 로그인 여부를 proxy 에서 판단해야 해 범위가 커진다.
 
 ## Cleared
-- D25: 학원만 있는 날 40·22·60, 유료 날 60·42·120. 빈/공백 vars 는 없는 값으로 친다. 음수·소수 env 는 기본값으로 간다. `유료측정일` 은 q 가 던지거나 null 이면 false 라 작은 쪽으로 돌고 측정은 안 멈춘다. claude-code.mjs 는 count 가 실패해도 capRequired 규칙을 그대로 지킨다. 세 실행기가 모두 한 함수를 쓴다.
-- D27: 저장이 성공한 뒤에만 보낸다. 키나 받는 주소가 없으면 건너뛴다. 5초 제한이 있고 던지지 않는다. 로그에는 status 나 e.message 만 찍히고 키·연락처는 안 찍힌다. 본문은 이름 첫 글자, 끝 4자리, /admin 링크뿐이고 이메일은 안 싣는다. 허니팟은 그 전에 끊는다.
-- D20: `미\s?소\s?치\s?과` 가 「미소 치과」에는 걸리고 빈칸 둘에는 안 걸린다. 40자 최악 입력이 2ms 라 ReDoS 는 없다. `\s*\s?` 이 붙는 자리도 없다. clients.mjs 는 diff 가 없어 학원 정규식이 그대로다. 경쟁사 정규식도 같은 규칙이다(Arch 승인).
-- D19 파라미터 SQL, D21 대기 종료코드, D22 `오늘 < 착수+60` ↔ SQL `>= kickoff_on + 60` 같은 날, 세 목록을 다 읽었을 때만 pilot 신호. D23 `fail()` 이 try 밖이라 redirect 가 삼켜지지 않고, slug 를 거절한다(Arch 승인). D24 vars 줄.
-- 신청서 30일 환불 절(46-50)은 web/lib/services.ts:63-67 과 글자가 같다. web tsc 0. node --check 8개 통과.
+개인정보(IP·원 UA 는 해시 입력으로만 쓰고 저장·전송·로그 없음, 소금 없으면 readVisit null, 쿠키 없음), proxy(waitUntil·실패 삼킴·봇 분기 불변·아이로그 matcher 불변·리다이렉트 없음), 받는 곳(clientForKey 인증·2KB·cleanVisit 모양 검사·1분 중복 억제·client_id 분리), 현황판 카드(기록 시작일 표시, 시작 전 안 그림, 0 은 0, 비교는 두 주가 다 찼을 때만, AI 곳별)를 보고 통과시켰다.

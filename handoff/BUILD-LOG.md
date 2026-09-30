@@ -1277,3 +1277,4 @@ Known Gaps (26)
 - KG-29-3 화면은 실제 브라우저로 안 봤다(운영 DB 에 표가 없어 빈 상태만 나온다). 배포 뒤 첫 기록이 쌓이면 390px·데스크톱 눈으로 확인
 - 2026-09-30 Richard 29 PASS + Should Fix/Arch 반영: ① 학원 /api/visit fail closed(CRAWL_KEY 없으면 401 — 학원 Vercel 에 CRAWL_KEY 가 있어야 사람 기록이 들어간다) ② DDL 과 insert 를 다른 try 로, to_regclass 로 표가 있으면 DDL 건너뜀(web·academy) ③ SNS utm 은 같거나 접두어만(naver_blog·naver_cafe 명시) — 세 사본 동일 ④ 아이로그: Auth.js 세션 쿠키((__Secure-)authjs.session-token(.n)) 있으면 안 셈 — 새 lib/cited-landing.ts(import 없음) ⑤ 404·스캐너 경로는 KG-29-4. 시험 94 통과 · tsc 0 세 곳 · 아이로그 eslint 0
 - KG-29-4 없는 주소(404)·스캐너 경로(/wp-admin 등)도 사람 UA 면 센다 — 많이 본 페이지에 섞일 수 있다
+- 2026-09-30: Step 29 Richard PASS + Should Fix(c31fb9a · ilog 069eb40). Arch: 아이로그 로그인 쿠키 있으면 안 셈. VISIT_SALT 학원·아이로그 production 48자 확인, 학원 CRAWL_KEY 있음 → 배포
