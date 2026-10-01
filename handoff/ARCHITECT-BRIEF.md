@@ -129,3 +129,12 @@
   방문·크롤러: 문서딱은 정적 사이트·추적 금지 → proxy 방식 안 씀. 현황판 카드는 「Cloudflare 통계 연결 전」.
 - **D45 예산 = 고객 수.** 측정상한: k = 학원 밖 측정 대상 고객 수(유료+자사). claude = 40+20k, reserve = 22+20k, web = 60+60k (k=1 이면 지금 60·42·120 과 같다, k=0 이면 40·22·60). env 우선·reserve ≤ claude 유지. optimize.yml timeout 이 Claude 측정 62회를 견디는지 계산하고 모자라면 늘린다(근거 REVIEW-REQUEST).
 - **D46 (토큰 뒤) Cloudflare 통계.** 원장이 줄 읽기 전용 토큰(Zone Analytics Read)으로 GraphQL Analytics API 를 매일 읽어 `geo.site_traffic_daily(client_id, day, requests, page_views, uniques, top_paths jsonb, source text)` 에 적는다. 요금제에서 실제로 보이는 칸만 — 안 보이는 칸(봇 구분·리퍼러)은 null 로 두고 화면에 「Cloudflare 무료 요금제라 안 보임」. 지어낸 추정 금지. 토큰은 GitHub secret 으로만.
+
+## Step 33 — 현황판 고객 탭이 맨 위 아침 보고까지 바꾼다 (원장 2026-10-01 스크린샷)
+
+원장: 「각 고객사를 선택 시 내용이 전환이 되어야 하는데 안 됨」. 문서딱 탭에서도 「오늘 아침 보고」의 곳별 표가 학원 숫자(「학원 이름이 나온 답」)다. web/app/admin/ops/page.tsx:153 `readPmReport()` 가 고객과 무관한 저장된 보고 한 장을 읽기 때문(PmReport.tsx).
+
+- **D47** 아침 보고를 둘로 나눈다. ① 회사 공통(실패 n건·확인 필요·원장 할 일·자동으로 도는 일) — 탭과 무관, 제목 「회사 전체」로 분명히. ② **선택한 고객의 측정 표** — 「{고객 이름} 이름이 나온 답 · 우리 링크가 붙은 답 · 지난번과」를 선택 고객 client_id 로 계산(web/lib/asks.ts readAskDays 처럼 곳별 최근 측정일·그 전 측정일, 곳끼리 합치지 않음, 「비슷」 규칙은 지금과 같게). 학원 탭은 지금 표와 **숫자가 같아야** 한다(같은 날·같은 곳 — 확인 출력).
+  측정이 아직 없는 고객(문서딱 오늘): 「아직 잰 날이 없습니다 — 질문 승인 {날짜}, 첫 측정 예정 다음 07:05」. 지어낸 0 금지(안 잰 것과 0 은 다르다).
+- **D48** 그 밖에 탭이 안 바뀌는 부분이 있는지 page.tsx 전체를 훑어 목록을 REVIEW-REQUEST 에(예: AgentBoard·Todo·초안 링크 도메인 `?? "robotncoding.com"` 238행). 고객별이어야 하는 것은 client 로, 회사 공통인 것은 「회사 전체」 표시.
+- 아침 보고 저장 형식(pm-report.mjs)·영업 숫자는 바꾸지 않는다. tsc. 화면 확인은 운영 DB 읽기로 학원·아이로그·문서딱 세 탭의 표 값을 표준출력으로 찍어 붙인다.
