@@ -117,3 +117,15 @@
 - **D42 경쟁사 우세 우선(자동 정렬).** 후보 정렬 둘째 키 = 최근 7일 답 원문에서 (경쟁사 이름 횟수 − 우리 이름 횟수), pilot-report-core `점유` 재사용. 경쟁사 미설정이면 0. 점수·가중치 만들지 않음.
 - **D43 아이로그 탐침.** 반경 넓힘 대신 검색어형 변형(clients.mjs 에 아이로그용 틀: 「{기능} 앱」「{기능} 프로그램」「{기능} 무료」 — 기능은 승인 질문에 나온 말만)으로 탐침 켠다. 하루 탐침 몫 안에서.
 - 공통: 학원 동작(Step 30 이전과 같은 날 입력이면 같은 선택)이 D38~D42 조건이 안 걸리는 날 그대로인지 dry 비교. 영업 숫자 불변. 새 finding·일감 문구 사람 말.
+
+## Step 32 — 문서딱(docttak.com) 두 번째 자사 레퍼런스 (원장 2026-10-01)
+
+브리프: research/docttak-brief-2026-10-01.md (문서딱 저장소 docs/GEO-BRIEF-FOR-CITED.md 사본). 사이트 코드는 문서딱 저장소 절차 — 우리는 건드리지 않는다.
+원장 결정: ① 시작(등록·질문 초안·승인 뒤 기준선) ② 예산은 고객 수만큼 늘린다 ③ Cloudflare 서버 통계 연결(토큰은 원장이 준다 — D46 은 토큰 받은 뒤).
+
+- **D44 등록.** seed-ilog-panel.mjs 를 고객 설정을 받는 일반형으로(`seed-panel.mjs --client <slug>`, 아이로그 결과 불변 확인) 또는 같은 모양의 seed-docttak-panel.mjs. geo.clients: slug docttak, name 문서딱, domain docttak.com, relation 자사, answer_pattern 「문서딱|docttak(\.com)?」(escape), measure_active. 0원 리허설 파일럿, competitors 「iLovePDF, Smallpdf, 알PDF, allinpdf, 한컴독스」.
+  질문 20개(approved=false, 원장 승인): 브리프 「측정 요청」의 자동완성 검색어에서만 — keyword 17 + brand 3(「문서딱 어떤 사이트야?」「docttak.com 이 사이트 뭐 하는 곳이야?」「문서딱 파일 안 올리고 처리돼?」 꼴). 지어낸 검색어 금지. 브리프 22개 중 17개 고르는 기준(도구 5개 고르게)을 REVIEW-REQUEST 에.
+  clients.mjs 덩어리: 이름 질문 적중 말, 홈 JSON-LD 검사(WebApplication), 탐침 변형 틀(「{도구} 무료」「{도구} 사이트」 — 도구 말은 승인 질문에 나온 것만), 글쓰기 경로 없음 → 세션 대기(문서딱 저장소에 넘길 안내 페이지 제안).
+  방문·크롤러: 문서딱은 정적 사이트·추적 금지 → proxy 방식 안 씀. 현황판 카드는 「Cloudflare 통계 연결 전」.
+- **D45 예산 = 고객 수.** 측정상한: k = 학원 밖 측정 대상 고객 수(유료+자사). claude = 40+20k, reserve = 22+20k, web = 60+60k (k=1 이면 지금 60·42·120 과 같다, k=0 이면 40·22·60). env 우선·reserve ≤ claude 유지. optimize.yml timeout 이 Claude 측정 62회를 견디는지 계산하고 모자라면 늘린다(근거 REVIEW-REQUEST).
+- **D46 (토큰 뒤) Cloudflare 통계.** 원장이 줄 읽기 전용 토큰(Zone Analytics Read)으로 GraphQL Analytics API 를 매일 읽어 `geo.site_traffic_daily(client_id, day, requests, page_views, uniques, top_paths jsonb, source text)` 에 적는다. 요금제에서 실제로 보이는 칸만 — 안 보이는 칸(봇 구분·리퍼러)은 null 로 두고 화면에 「Cloudflare 무료 요금제라 안 보임」. 지어낸 추정 금지. 토큰은 GitHub secret 으로만.
