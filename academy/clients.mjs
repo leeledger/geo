@@ -81,7 +81,7 @@ export const CLIENTS = [
     /**
      * AI 답은 이름도 센다(Step 30 D34). 「학원 관리 프로그램」 질문의 답에서 아이로그는 우리다.
      * 동명 SI 회사는 「(주)아이로그」「㈜아이로그」「주식회사 아이로그」로 불리니 그 꼴은 뺀다. 「ilog」 단독은 안 센다 — 영어 답의 IBM ILOG 와 겹친다.
-     * DB(geo.clients.answer_pattern)에는 academy/scripts/seed-ilog-panel.mjs 가 이 원문을 넣는다
+     * DB(geo.clients.answer_pattern)에는 academy/scripts/seed-panel.mjs --client ilog 가 이 원문을 넣는다
      */
     answerRe: /(?<!(?:\(주\)|㈜|주식회사)\s?)아이로그|ilog\.ai\.kr/i,
     // 사이트 저장소가 밖에 있다. 키 파일은 전달 파일(deliverables/ilog/public)로 넘긴다
@@ -126,6 +126,65 @@ export const CLIENTS = [
       { id: "b1", q: "아이로그", kind: "브랜드" },
       { id: "b2", q: "아이로그 학원", kind: "브랜드" },
       { id: "b3", q: "아이로그 학원관리", kind: "브랜드" },
+    ],
+  },
+  {
+    /**
+     * 문서딱(Step 32 D44) — 두 번째 자사 레퍼런스. 학원과 다른 업종인 무료 웹 도구(PDF·사진·HWP 5개).
+     * 사실은 research/docttak-brief-2026-10-01.md 와 공개 사이트(2026-10-01 curl)에서만. 사이트 저장소는 우리가 안 건드린다.
+     * id 3 은 geo.clients 시퀀스(마지막 5)가 다시 내주지 않는 빈 번호다 — seed-panel.mjs 가 이 번호로 넣는다
+     */
+    id: 3,
+    slug: "docttak",
+    name: "문서딱",
+    domain: "docttak.com",
+    // 검색 결과 화면에서는 도메인으로만 찾는다 — 「문서딱」 글자가 다른 곳에 없는지 아직 안 봤다
+    brandRe: /docttak\.com/i,
+    // AI 답은 이름도 센다. DB(geo.clients.answer_pattern)에는 seed-panel.mjs 가 이 원문을 넣는다
+    answerRe: /문서딱|docttak(\.com)?/i,
+    // 키는 문서딱 저장소가 IndexNow 를 붙일 때 정한다(브리프 「진행 중」). 그 전에는 indexnow.mjs 가 건너뛴다
+    // https://docttak.com/llms.txt 200 text/plain (2026-10-01 확인)
+    llmsTxt: true,
+    publishes: false,
+    /**
+     * 사람 방문·크롤러 기록 장치를 달지 않는다. 정적 사이트(Cloudflare Pages)이고 추적·제3자 스크립트를 넣지 않기로 했다(브리프 「하지 말 것」).
+     * 숫자는 Cloudflare 통계를 연결한 뒤(D46)부터 — 브리핑·현황판은 그 전까지 「Cloudflare 통계 연결 전」으로 적는다
+     */
+    siteLog: "Cloudflare 통계 연결 전",
+    loop: {
+      // 이름 질문 3개는 도구 이름을 안 담는다. 답이 도구 이름을 대면 문서딱을 아는 답이다
+      brandHit: /PDF\s?합치|PDF\s?용량|사진\s?용량|증명사진|여권\s?사진|HWP/i,
+      /**
+       * 홈 JSON-LD 는 WebSite·Organization 이다. WebApplication 은 도구 페이지(/pdf-merge/ 등)에만 있다(2026-10-01 curl).
+       * 루프는 홈만 읽으니 홈에 실제로 있는 Organization 과 도메인으로 본다 — WebApplication 으로 보면 매일 헛경보가 난다
+       */
+      homeLd: [/"Organization"/, /docttak\.com/],
+      homeLdMissing: "홈 JSON-LD 에 Organization 또는 docttak.com 없음",
+      homeLdFix: "문서딱 사이트 코드는 문서딱 저장소 절차(설계 → 개발 → 리뷰 → 배포)로 고칩니다. 이 저장소에서는 고치지 않고 문서딱 세션에 넘깁니다.",
+      // 글 쓰는 자동 경로가 없다. 세션이 안내 페이지 제안을 써서 문서딱 저장소에 넘긴다(그쪽이 /guide/* 로 반영)
+      draft: "session",
+      draftWhere: "deliverables/docttak/guide/ 안내 페이지 제안(문서딱 저장소가 설계·리뷰 뒤 /guide/ 로 반영)",
+      /**
+       * 변형 탐침(Step 31 D43 과 같은 틀). 도구 말은 승인 검색어형 질문에서 틀 말(무료·방법·사이트)을 뺀 나머지 — 새 말을 안 만든다.
+       * 틀의 자리 이름은 loop-review 변형후보가 「{기능}」으로 읽는다. 여기서는 도구 말이다
+       */
+      probes: "variants",
+      probeVariants: { forms: ["{기능} 무료", "{기능} 사이트"], strip: /무료|방법|사이트/g },
+      offsite: [
+        "사이트 글과 검색 색인으로도 안 움직였습니다. 답이 인용한 바깥 글(블로그·카페·지식iN·비교 글)에 문서딱 사실이 맞게 올라 있는지 확인하고, 정당한 소개와 사용 후기만 확보합니다(대가성이면 표시).",
+        "사이트 글로는 안 움직였고, 답에 출처가 안 잡혀 확인할 곳을 고르지 못했습니다.",
+      ],
+    },
+    queries: [
+      { id: "idx", q: "site:docttak.com", kind: "색인" },
+      // 도구 5개에 하나씩. 브리프 「측정 요청」의 자동완성 검색어 원문
+      { id: "c1", q: "pdf 합치기 무료", kind: "경쟁" },
+      { id: "c2", q: "pdf 용량 줄이기", kind: "경쟁" },
+      { id: "c3", q: "사진 용량 줄이기", kind: "경쟁" },
+      { id: "c4", q: "여권사진 규격", kind: "경쟁" },
+      { id: "c5", q: "hwp pdf 변환", kind: "경쟁" },
+      { id: "b1", q: "문서딱", kind: "브랜드" },
+      { id: "b2", q: "docttak", kind: "브랜드" },
     ],
   },
 ];

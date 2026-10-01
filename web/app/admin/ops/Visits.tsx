@@ -20,6 +20,14 @@ const AI_NAME: Record<string, string> = {
   "clova-x.naver.com": "클로바X",
 };
 
+/**
+ * 사이트 안 기록 장치를 일부러 달지 않는 고객(academy/clients.mjs siteLog — Step 32 D44). 기록이 없을 때 이 말로 적는다.
+ * 문서딱은 정적 사이트이고 추적·제3자 스크립트를 넣지 않기로 했다. 숫자는 Cloudflare 통계(D46)를 연결한 날부터다
+ */
+const NO_SITE_LOG: Record<string, string> = {
+  docttak: "Cloudflare 통계 연결 전 — 문서딱은 사이트에 방문 기록 장치를 달지 않습니다(정적 사이트·추적 스크립트 없음). 숫자는 Cloudflare 통계를 연결한 날부터 셉니다.",
+};
+
 const CSS = `
 .vs-h3{font-size:17px;font-weight:800;margin:22px 0 8px;color:var(--ink)}
 .vs-now{font-size:21px;font-weight:700;line-height:1.45;letter-spacing:-.02em;margin:0 0 4px;color:var(--ink);word-break:keep-all}
@@ -46,7 +54,8 @@ const readable = (p: string) => {
   }
 };
 
-export default function Visits({ v, err, name }: { v: V | null; err?: string; name: string }) {
+export default function Visits({ v, err, name, slug }: { v: V | null; err?: string; name: string; slug?: string }) {
+  const noLog = slug ? NO_SITE_LOG[slug] : undefined;
   return (
     <section className="gr gr-card" aria-labelledby="vis-h">
       <style dangerouslySetInnerHTML={{ __html: CSS }} />

@@ -227,7 +227,7 @@ const main = async () => {
   if (!잴것.length) return;
 
   // 하루 상한 — 모든 고객 합계. 막혀서 적재 안 된 시도도 화면에는 간 것이라 이번 실행에서 보낸 수는 따로 센다
-  // 로그아웃 소비자 화면은 소량으로만 묻는다(research/pilot-measurement-sop.md). 학원 밖에 잴 고객 있는 날 120, 아니면 60, env 먼저(Step 28 D25 · Step 30)
+  // 로그아웃 소비자 화면은 소량으로만 묻는다(research/pilot-measurement-sop.md). 학원 밖에 잴 고객 k 곳이면 60+60k, env 먼저(Step 32 D45)
   const 하루상한 = 측정상한(await 고객측정일(q, 오늘)).web;
   const [{ n: 오늘보냄 }] = await q(
     `select count(*)::int n from academy.ai_measurements where measured_on=$1 and collection_method like '%-web-logged-out'`, [오늘]);

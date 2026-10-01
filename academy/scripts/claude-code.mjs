@@ -36,7 +36,7 @@ const 인증문구 = /Failed to authenticate|Invalid bearer token|API Error: 401
 /**
  * 모든 호출자(측정·초안·분석·감사·수리)가 같은 구독 한도를 쓴다. 한 곳이 폭주하면 원장 Claude 까지 멈춘다.
  * 그래서 호출마다 geo.claude_calls 에 한 줄 남기고, 오늘(KST) 센 수가 상한을 넘으면 부르지 않는다.
- * 측정이 먼저다 — 측정 아닌 호출은 CLAUDE_MEASURE_RESERVE(기본 22 — 승인 20문항 + 탐침 2, Step 23 Arch · 유료 고객 있는 날 42, 하루 40→60, Step 28 D25) 만큼 남겨 두고 멈춘다 (Step 10, 2026-09-22)
+ * 측정이 먼저다 — 측정 아닌 호출은 CLAUDE_MEASURE_RESERVE(기본 22 — 승인 20문항 + 탐침 2, Step 23 Arch · 학원 밖 측정 고객 k 곳이면 22+20k, 하루 40+20k, Step 32 D45) 만큼 남겨 두고 멈춘다 (Step 10, 2026-09-22)
  * 상한에 걸린 것은 「한도」로 돌려준다. 호출자들은 한도를 실패로 세지 않는다
  */
 let 기록q = null;
@@ -81,7 +81,7 @@ export async function 클로드코드(prompt, opts = {}) {
     const [row] = await q(`select count(*)::int n, count(*) filter (where purpose is distinct from 'measure')::int other from geo.claude_calls
       where (at at time zone 'Asia/Seoul')::date = (now() at time zone 'Asia/Seoul')::date`).catch(() => [null]);
     if (!row && opts.capRequired) return 못셈;
-    // 유료 파일럿 고객이 측정 대상에 있는 날만 두 배(40→60 · 측정 몫 22→42). env 가 먼저. 판단은 DB 로 — 어느 워크플로가 불러도 같은 값(Step 28 D25)
+    // 학원 밖 측정 고객 수 k 만큼 늘린다(40+20k · 측정 몫 22+20k). env 가 먼저. 판단은 DB 로 — 어느 워크플로가 불러도 같은 값(Step 32 D45)
     const 한도 = 측정상한(await 고객측정일(q, new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" })));
     const 상한 = 한도.claude;
     const n = purpose === "measure" ? (row?.n ?? 0) : (row?.other ?? 0);

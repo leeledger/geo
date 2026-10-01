@@ -189,7 +189,7 @@ export default async function OpsPage({
         <Todo company={d.company} unresolved={gr.g?.inquiries ? gr.g.inquiries.unresolved : null} />
         <AgentStrip initial={agents} />
         <Growth g={gr.g} err={gr.err} />
-        <Visits v={vis.v} err={vis.err} name={client?.name ?? "고객사 미선택"} />
+        <Visits v={vis.v} err={vis.err} name={client?.name ?? "고객사 미선택"} slug={client?.slug} />
         <AskLog client={client} />
 
         <details className="ops-more">

@@ -201,7 +201,10 @@ for (const c of CLIENTS.slice(1)) {
   const [ch] = await q(`
     select count(*)::int n, count(*) filter (where seen_at > now() - interval '24 hours')::int d
       from academy.crawl_hits where client_id = $1`, [c.id]);
-  if (ch.n === 0) {
+  if (ch.n === 0 && c.siteLog) {
+    // 기록 장치를 일부러 안 다는 곳(문서딱 — 정적 사이트·추적 금지). 장치 일감을 올리면 헛일이다
+    line(`  크롤러 기록  ${c.siteLog}`);
+  } else if (ch.n === 0) {
     line("  크롤러 기록 장치 없음");
     todo.push(`[${c.name}] 크롤러 기록 장치 — deliverables/${c.slug} 전달 파일 반영 확인`);
   } else {

@@ -20,7 +20,7 @@ on:
 jobs:
   loop:
     runs-on: ubuntu-latest
-    timeout-minutes: 50
+    timeout-minutes: 80 # Step 32 D45 — 고객 k 곳이면 Claude 측정 22+20k회. k=2(62회)는 9/29·9/30 실측 회당 30~34초로 35분, 느린 날 40분 + 개선 루프 몫
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5

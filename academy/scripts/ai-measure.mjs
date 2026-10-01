@@ -64,7 +64,7 @@ const ENGINES = [
         tools: ["WebSearch"],
         model: e.model,
         purpose: "measure", // 하루 상한에서 측정 몫을 먼저 쓴다
-        // 50분 작업에 20문항이다. 한 문항이 멈추면 나머지를 다 잃는다
+        // 80분 작업에 고객마다 20문항이다. 한 문항이 멈추면 나머지를 다 잃는다
         timeoutMs: 3 * 60 * 1000,
       });
       // 구독 한도에 걸리면 나머지 질문도 똑같이 막힌다 — 429 로 넘겨 루프를 멈춘다
@@ -230,7 +230,7 @@ const main = async () => {
   const 나눔 = 대상.length > 1;   // 학원만 있으면 나누지 않는다 — 지금과 같게
   const 유료있음 = 대상.some((t) => t.묶음 === "유료");
   const 집 = 대상.find((t) => t.slug === HOUSE) ?? 대상[0];
-  /** Claude 측정 몫. claude-code.mjs 와 같은 규칙(measure-targets 측정상한 — 학원 밖에 잴 고객(유료·승인 질문 있는 자사) 있는 날 42, 아니면 22, env 먼저) */
+  /** Claude 측정 몫. claude-code.mjs 와 같은 규칙(measure-targets 측정상한 — 학원 밖에 잴 고객(유료·승인 질문 있는 자사) k 곳이면 22+20k, env 먼저 · Step 32 D45) */
   const 몫 = 측정상한(await 고객측정일(q, 오늘)).reserve;
   const 측정씀 = async () => {
     const [r] = await q(`select count(*)::int n from geo.claude_calls where purpose = 'measure'
@@ -278,7 +278,7 @@ const main = async () => {
   /**
    * 넓힘 탐침 — daily-agent 자기 점검이 만든 「송파」「서울」「동네 없이」·검색어형 질문. 따로 표(ai_probe_measurements)에 넣는다.
    * Claude(구독)로만, 승인 20문항을 다 잰 날에만 잰다. 기준선이 먼저다.
-   * optimize.yml 제한이 50분이라 35분이 지났으면 멈춘다 — 뒤의 개선 루프가 잘리면 안 된다
+   * optimize.yml 제한이 80분이라 60분이 지났으면 멈춘다 — 뒤의 개선 루프(20분 남김)가 잘리면 안 된다(Step 32 D45: 고객 2곳이면 승인 60문항만 35~40분)
    */
   const 탐침재기 = async (client, e) => {
     const [표] = await q(`select to_regclass('academy.ai_probe_questions')::text as t`);
@@ -321,9 +321,9 @@ const main = async () => {
       [client.id, e.method, 오늘, Math.min(탐침수, 남은몫)]);
     let pOk = 0, pHit = 0;
     for (const x of 탐침) {
-      // 한 문항이 3분까지 걸린다. 문항마다 본다 — 묶음 앞에서 한 번만 보면 35분에 시작해 42분까지 간다
-      if (Date.now() - 시작 > 35 * 60 * 1000) {
-        요약.push(`${e.engine} 탐침: 시작 후 35분이 지나 멈춤`);
+      // 한 문항이 3분까지 걸린다. 문항마다 본다 — 묶음 앞에서 한 번만 보면 60분에 시작해 67분까지 간다
+      if (Date.now() - 시작 > 60 * 60 * 1000) {
+        요약.push(`${e.engine} 탐침: 시작 후 60분이 지나 멈춤`);
         break;
       }
       const r = await e.ask(e, x.text).catch((err) => ({ status: 0, error: err.message }));
