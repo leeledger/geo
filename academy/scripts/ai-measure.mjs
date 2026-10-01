@@ -233,7 +233,9 @@ const main = async () => {
   /** Claude 측정 몫. claude-code.mjs 와 같은 규칙(measure-targets 측정상한 — 학원 밖에 잴 고객(유료·승인 질문 있는 자사) k 곳이면 22+20k, env 먼저 · Step 32 D45) */
   const 몫 = 측정상한(await 고객측정일(q, 오늘)).reserve;
   const 측정씀 = async () => {
+    // 한도에 걸려 바로 돌아온 호출(429·주간 한도)은 구독을 안 썼다 — 세면 그날 뒤 고객이 몫을 잃는다(2026-10-01 문서딱)
     const [r] = await q(`select count(*)::int n from geo.claude_calls where purpose = 'measure'
+      and not (not ok and note ~* '(limit|429|한도)')
       and (at at time zone 'Asia/Seoul')::date = (now() at time zone 'Asia/Seoul')::date`).catch(() => [null]);
     return r ? r.n : null;
   };
