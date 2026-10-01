@@ -122,7 +122,7 @@ export default async function Brief() {
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
       <div className="brf-top">
         <div>
-          <h2 className="brf-title">오늘의 운영 기록 · {md(b.open.day)}</h2>
+          <h2 className="brf-title">오늘의 운영 기록 · {md(b.open.day)} · 회사 전체</h2>
           <p className="brf-range">
             집계 범위 {md(b.closed.day)} {b.cutoff} ~ {md(b.open.day)} {b.cutoff}
             <span className="brf-state">자동 저장까지 {left(b.open.end)}</span>

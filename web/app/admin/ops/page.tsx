@@ -7,6 +7,7 @@ import { readGrowth, type Growth as GrowthData } from "@/lib/growth";
 import { readAgents } from "@/lib/agents";
 import { readPmReport } from "@/lib/pm-report";
 import { readVisits, type Visits as VisitsData } from "@/lib/visits";
+import { readAnswerTable, type AnswerTable } from "@/lib/asks";
 import Todo from "./Todo";
 import AgentStrip from "./AgentStrip";
 import Growth, { GrowthMore } from "./Growth";
@@ -141,7 +142,7 @@ export default async function OpsPage({
   const clients = await listClients();
   const client = clients.find((x) => x.slug === want) ?? clients[0] ?? null;
 
-  const [d, gr, agents, pm, vis] = await Promise.all([
+  const [d, gr, agents, pm, vis, ans] = await Promise.all([
     readOps(client ?? undefined),
     // 통째로 실패하면 섹션에 이유 한 줄. 조각 실패는 readGrowth 안에서 null 로 잡힌다
     client
@@ -157,6 +158,8 @@ export default async function OpsPage({
           (v): { v: VisitsData | null; err?: string } => ({ v }),
           (e) => ({ v: null, err: e instanceof Error ? e.message : String(e) }))
       : Promise.resolve({ v: null, err: "고객사가 없습니다" }),
+    // 아침 보고 아래 측정 표 — 저장된 보고(학원 숫자)가 아니라 선택한 고객으로 지금 센다(Step 33)
+    client ? readAnswerTable(client) : Promise.resolve<AnswerTable>({ ok: true, rows: [], empty: "고객사가 없습니다" }),
   ]);
 
   return (
@@ -185,8 +188,8 @@ export default async function OpsPage({
 
         {!d.ok && <div className="err">데이터를 못 읽었습니다 — {d.err}</div>}
 
-        <PmReport data={pm} />
-        <Todo company={d.company} unresolved={gr.g?.inquiries ? gr.g.inquiries.unresolved : null} />
+        <PmReport data={pm} ans={ans} client={client} />
+        <Todo name={client?.name ?? null} company={d.company} unresolved={gr.g?.inquiries ? gr.g.inquiries.unresolved : null} />
         <AgentStrip initial={agents} />
         <Growth g={gr.g} err={gr.err} />
         <Visits v={vis.v} err={vis.err} name={client?.name ?? "고객사 미선택"} slug={client?.slug} />
@@ -235,10 +238,13 @@ export default async function OpsPage({
                     <tr key={r.slug}>
                       <td className="m">{fmtDay(r.at)}</td>
                       <td>
-                        <a href={`https://${client?.domain ?? "robotncoding.com"}/blog/${r.slug}`}
-                           target="_blank" rel="noopener" style={{ color: "var(--cool)" }}>
-                          {r.title}
-                        </a>
+                        {/* 도메인이 없는 고객에 학원 주소를 붙이면 남의 글로 간다 — 그때는 제목만 */}
+                        {client?.domain ? (
+                          <a href={`https://${client.domain}/blog/${r.slug}`}
+                             target="_blank" rel="noopener" style={{ color: "var(--cool)" }}>
+                            {r.title}
+                          </a>
+                        ) : r.title}
                       </td>
                     </tr>
                   ))}

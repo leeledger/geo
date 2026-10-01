@@ -1318,3 +1318,11 @@ Known Gaps (26)
 - KG-32-4 health.mjs 크롤러 줄은 문서딱을 「기록 장치 아직 없음 (실패로 치지 않음)」으로 찍는다 — 틀리진 않지만 siteLog 말로 바꿀지
 - 2026-10-01: 10/1 측정 실패 원인 = Claude Max 주간 한도(429 weekly limit, resets 6am UTC) — 원장 정정: 원인은 같은 계정의 다른 개발 작업이고 사이티드 작업은 소모가 크지 않다(Arch 가 세션 작업 탓으로 짐작해 적었던 것을 바로잡음). 같은 계정 한도를 나눠 쓴다는 점은 사실 — 한도에 걸리면 측정이 멈춘다. Step 32 는 Arch 직접 확인(seed dry·상한 k=0/1/2) 후 seed --apply → 푸시. 문서딱 질문 20 승인 대기
 - 2026-10-01: 원장 「다승인」 → 문서딱 질문 20개 승인(approveQuestions 와 같은 쿼리). 다음 측정부터 학원·아이로그·문서딱 세 곳(k=2 → 80·62·180)
+
+### Step 33 — 현황판 고객 탭이 아침 보고 표까지 바꾼다 D47·D48 — BUILT · Richard 대기 (2026-10-01, Bob)
+- 상태: DONE — web tsc 0 · 운영 DB 읽기로 세 탭 표 출력 · 학원 탭 표 = 저장된 10/1 보고 AI답변(키 정렬 후 값 전부 일치). DB 쓰기 없음, pm-report.mjs·영업 숫자 손 안 댐
+- 파일: web/lib/asks.ts(readAnswerTable) · web/lib/pm-report.ts(AnswerRow 타입 분리) · web/app/admin/ops/PmReport.tsx(회사 전체 / 선택 고객 표 둘로) · page.tsx(배선·최근 글 도메인 없으면 링크 안 붙임) · Todo.tsx(제목에 고객 이름) · AgentStrip.tsx·Brief.tsx(제목에 「회사 전체」)
+- 결정(Bob): ① 고객 표 셈은 readAskDays 가 아니라 pm-report.mjs AI답변읽기 를 client_id 만 바꿔 그대로 옮김(attempt 1·30일·1문항 날 제외·3일 넘은 곳 제외·공통 5문항 이상 비교) — readAskDays 는 attempt 를 안 걸러 학원 숫자가 저장된 보고와 어긋날 수 있다. 엔진 이름표도 pm-report.mjs 것 그대로 ② 표가 빌 때 한 줄: 승인 질문 0 → 「승인된 질문이 아직 없습니다」, 승인 뒤 07:05 가 한 번도 안 지났으면 「질문 승인 M/D, 첫 측정 예정 오늘|내일 07:05」, 지났는데 기록 없으면 「질문 승인 M/D 뒤 07:05 측정 기록이 아직 없습니다. 다음 측정 …」(아이로그 오늘이 이 경우), 예전 측정만 있으면 「최근 3일 표에 넣을 측정이 없습니다 — 마지막 측정 M/D」 ③ 저장된 보고의 고객별·확장 줄은 회사 전체 묶음에 그대로 둠
+- KG-33-1 AgentBoard 활동은 `client_id = 고객 or client_id is null` 이라 회사 공통 활동이 고객 이름 아래 섞인다(ops.ts readOps)
+- KG-33-2 상단 링크 영업판·파일럿·상담 기록은 고객 탭을 안 넘긴다(상담 기록 /admin/inquiry 는 학원 것)
+- KG-33-3 「07:05」는 optimize.yml cron 을 글자로 박았다 — 시각을 바꾸면 asks.ts 도 고쳐야 한다

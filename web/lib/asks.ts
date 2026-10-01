@@ -1,5 +1,6 @@
 import { pool, type Client } from "./ops";
 import { engineName } from "./agents";
+import type { AnswerRow } from "./pm-report";
 
 /**
  * AI 에게 실제로 물어본 기록 — academy.ai_measurements 를 사람이 읽는 모양으로.
@@ -183,6 +184,87 @@ export async function readAskDays(client: Client, limit = 120): Promise<AskDay[]
   const rank = (p: AskPlace) => (p.method === "claude-code-headless-websearch" ? 0 : p.auto ? 1 : 2);
   for (const d of days) d.places.sort((a, b) => rank(a) - rank(b) || b.n - a.n || a.method.localeCompare(b.method));
   return days;
+}
+
+/** academy/scripts/pm-report.mjs 엔진이름 과 같다 — 학원 탭 표가 저장된 아침 보고 표와 글자까지 같아야 한다 */
+const 엔진이름: Record<string, string> = { "claude-code-web": "Claude", "chatgpt-web": "ChatGPT", "perplexity-web": "Perplexity", "gemini-web": "Gemini" };
+const 월일 = (day: string) => { const [, m, d] = day.split("-").map(Number); return `${m}/${d}`; };
+const kstDay = (t: number) => new Date(t + KST).toISOString().slice(0, 10);
+
+export type AnswerTable =
+  | { ok: true; rows: AnswerRow[]; empty: string | null }
+  | { ok: false; err: string };
+
+/**
+ * 현황판 맨 위 「{고객} 이름이 나온 답」 표 (Step 33 D47). 선택한 고객 client_id 로 지금 센다.
+ * 셈은 pm-report.mjs AI답변읽기 를 그대로 옮겼다 — 곳마다 최근 측정일과 그 전 측정일, attempt 1 만,
+ * 같은 문항 5개 이상일 때만 비교, 이름 수 차이 3 이하 「비슷」, 1문항짜리 날과 3일 넘게 안 잰 곳은 뺀다. 곳끼리 합치지 않는다.
+ * 표에 넣을 게 없으면 empty 에 이유 한 줄. 안 잰 것을 0 으로 쓰지 않는다.
+ */
+export async function readAnswerTable(client: Client): Promise<AnswerTable> {
+  try {
+    const now = Date.now();
+    const { rows } = await pool().query(
+      `with d as (
+         select collection_method m, engine, measured_on,
+                dense_rank() over (partition by collection_method order by measured_on desc) r
+           from academy.ai_measurements where client_id = $1 and measured_on > now() - interval '30 days'
+          group by 1, 2, 3)
+       select d.m, d.engine, d.r, d.measured_on::text as day,
+              count(*)::int n, count(*) filter (where a.mentioned)::int 이름, count(*) filter (where a.cited)::int 인용,
+              array_agg(a.prompt_id) ids
+         from d join academy.ai_measurements a on a.collection_method = d.m and a.engine = d.engine and a.measured_on = d.measured_on and a.client_id = $1 and a.attempt = 1
+        where d.r <= 2 group by 1, 2, 3, 4 order by 1, 3`, [client.id]);
+    const out: AnswerRow[] = [];
+    for (const m of [...new Set(rows.map((r) => r.m as string))]) {
+      // dense_rank 는 bigint 라 문자열로 온다
+      const 지금 = rows.find((r) => r.m === m && Number(r.r) === 1);
+      const 전 = rows.find((r) => r.m === m && Number(r.r) === 2);
+      if (!지금 || 지금.n < 2) continue;
+      if (now - Date.parse(`${지금.day}T00:00:00+09:00`) > 3 * 86400000) continue;
+      let 비교: AnswerRow["비교"] = null;
+      if (전) {
+        const 공통 = (지금.ids as string[]).filter((x) => (전.ids as string[]).includes(x));
+        if (공통.length >= 5) {
+          const [a, b] = await Promise.all([지금, 전].map((x) => pool().query(
+            `select count(*) filter (where mentioned)::int 이름, count(*) filter (where cited)::int 인용 from academy.ai_measurements
+              where client_id = $5 and collection_method = $1 and measured_on = $2 and prompt_id = any($3) and engine = $4 and attempt = 1`,
+            [m, x.day, 공통, x.engine, client.id]).then((r) => r.rows[0] as { 이름: number; 인용: number })));
+          const dd = a.이름 - b.이름;
+          비교 = { day: 전.day, 공통: 공통.length, 전이름: b.이름, 지금이름: a.이름, 전인용: b.인용, 지금인용: a.인용,
+            말: Math.abs(dd) <= 3 ? "비슷" : dd > 0 ? "늘었음" : "줄었음" };
+        }
+      }
+      out.push({ 엔진: 엔진이름[지금.engine] ?? 지금.engine, day: 지금.day, n: 지금.n, 전체: 지금.n >= 18, 링크없음: 지금.engine === "gemini-web", 이름: 지금.이름, 인용: 지금.인용, 비교 });
+    }
+    if (out.length) return { ok: true, rows: out, empty: null };
+
+    const { rows: [last] } = await pool().query(
+      `select max(measured_on)::text as day from academy.ai_measurements where client_id = $1`, [client.id]);
+    if (last?.day) return { ok: true, rows: [], empty: `최근 3일 표에 넣을 측정이 없습니다 — 마지막 측정 ${월일(last.day)}` };
+
+    // 한 번도 안 잰 고객 — 질문 승인일과 다음 측정(optimize.yml 매일 07:05 KST)을 적는다
+    const { rows: [ap] } = await pool().query(
+      `select count(*) filter (where pq.approved)::int n,
+              (select max(questions_approved_at) from geo.pilots where client_id = $1) as at
+         from geo.pilot_questions pq join geo.pilots p on p.id = pq.pilot_id where p.client_id = $1`, [client.id]);
+    if (!ap?.n) return { ok: true, rows: [], empty: "아직 잰 날이 없습니다 — 승인된 질문이 아직 없습니다" };
+    const today = kstDay(now);
+    const slotToday = Date.parse(`${today}T07:05:00+09:00`);
+    const next = now < slotToday ? "오늘" : "내일";
+    const lastSlot = now < slotToday ? slotToday - 86400000 : slotToday;
+    const at = ap.at ? new Date(ap.at).getTime() : null;
+    if (at === null) return { ok: true, rows: [], empty: `아직 잰 날이 없습니다 — 질문 승인 날짜 기록 없음, 다음 측정 ${next} 07:05` };
+    const 승인 = 월일(kstDay(at));
+    return {
+      ok: true, rows: [],
+      empty: at < lastSlot
+        ? `아직 잰 날이 없습니다 — 질문 승인 ${승인} 뒤 07:05 측정 기록이 아직 없습니다. 다음 측정 ${next} 07:05`
+        : `아직 잰 날이 없습니다 — 질문 승인 ${승인}, 첫 측정 예정 ${next} 07:05`,
+    };
+  } catch (e) {
+    return { ok: false, err: e instanceof Error ? e.message : String(e) };
+  }
 }
 
 /** 대표 곳 — 가장 최근 날의 첫 자동 측정. 격자와 현황판 목록이 이 곳 하나만 본다 */

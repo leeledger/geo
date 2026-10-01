@@ -48,11 +48,13 @@ function Act({ id, a }: { id: number; a: TodoAction }) {
   );
 }
 
-export default function Todo({ company, unresolved }: { company: Ops["company"]; unresolved: number | null }) {
+export default function Todo({ name, company, unresolved }: { name: string | null; company: Ops["company"]; unresolved: number | null }) {
+  // 일감은 고객사별로 읽는다(readOps) — 어느 탭의 할 일인지 제목에 적는다(Step 33 D48)
+  const who = name ? ` · ${name}` : "";
   if (!company.ok) {
     return (
       <section className="td" aria-labelledby="td-h">
-        <h2 id="td-h">오늘 원장님이 하실 일</h2>
+        <h2 id="td-h">오늘 원장님이 하실 일{who}</h2>
         <p className="td-none bad">할 일 목록을 못 읽었습니다</p>
       </section>
     );
@@ -85,7 +87,7 @@ export default function Todo({ company, unresolved }: { company: Ops["company"];
   return (
     <>
     <section className="td" aria-labelledby="td-h">
-      <h2 id="td-h">오늘 원장님이 하실 일{open > 0 && <span className="td-n"> {open}건</span>}</h2>
+      <h2 id="td-h">오늘 원장님이 하실 일{who}{open > 0 && <span className="td-n"> {open}건</span>}</h2>
       {items.length === 0 ? (
         <p className="td-none">없습니다. 나머지는 자동으로 돕니다</p>
       ) : (

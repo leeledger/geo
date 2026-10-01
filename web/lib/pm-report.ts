@@ -12,6 +12,12 @@ export type PmStatus = "정상" | "주의" | "막힘";
 
 export type PmStaff = { id: string; 이름: string; 한일: string; 성공: number; 실패: number; 지금: string };
 
+/** 곳 하나의 AI 답변 한 줄 — 저장된 보고(학원)와 현황판 고객 탭 표(asks.ts readAnswerTable)가 같은 모양 */
+export type AnswerRow = {
+  엔진: string; day: string; n: number; 이름: number; 인용: number; 전체?: boolean; 링크없음?: boolean;
+  비교: { day: string; 공통: number; 전이름: number; 지금이름: number; 전인용: number; 지금인용: number; 말: string } | null;
+};
+
 export type PmBody = {
   status: PmStatus;
   conclusion: string;
@@ -20,11 +26,8 @@ export type PmBody = {
   원장할일: number;
   산출물: string[];
   다음: string[];
-  /** 엔진별 AI 답변 — 2026-09-24 부터. 옛 보고에는 없다 */
-  AI답변?: {
-    엔진: string; day: string; n: number; 이름: number; 인용: number; 전체?: boolean; 링크없음?: boolean;
-    비교: { day: string; 공통: number; 전이름: number; 지금이름: number; 전인용: number; 지금인용: number; 말: string } | null;
-  }[];
+  /** 엔진별 AI 답변 — 2026-09-24 부터. 옛 보고에는 없다. 학원(client_id 1) 숫자라 현황판은 이걸 안 쓰고 탭마다 다시 센다(Step 33) */
+  AI답변?: AnswerRow[];
   /** 학원 밖 고객 한 줄씩 — 2026-09-30(Step 30) 부터. 옛 보고에는 없다 */
   고객별?: { slug: string; name: string; 줄: string }[];
   /** 「확장 질문 n개 중 k개 불림」 — Step 31 부터, 확장 질문이 있는 고객만 */
