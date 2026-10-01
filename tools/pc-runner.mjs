@@ -75,11 +75,17 @@ function 돌리기(job) {
   });
 }
 
-/** 이미 떠 있는 일꾼이 있으면 true */
+/**
+ * 이미 떠 있는 일꾼이 있으면 true.
+ * 일꾼은 매분 잠금 파일을 새로 쓴다. 5분 넘게 안 바뀐 잠금은 죽은 일꾼의 것으로 본다 —
+ * 윈도는 pid 를 다시 쓰므로 pid 가 살아 있다는 것만으로는 일꾼이라는 뜻이 아니다.
+ * 2026-09-30 13:34 에 일꾼이 꺼진 뒤 33시간 아무것도 안 돌았다(10/1 화면 측정 0건)
+ */
 function 떠있음() {
   try {
     const pid = Number(fs.readFileSync(LOCK, "utf8"));
-    if (pid && pid !== process.pid) { process.kill(pid, 0); return true; }
+    const 신선 = Date.now() - fs.statSync(LOCK).mtimeMs < 5 * 60000;
+    if (pid && pid !== process.pid && 신선) { process.kill(pid, 0); return true; }
   } catch {}
   return false;
 }
@@ -94,6 +100,8 @@ async function 일꾼() {
 
   let busy = false;
   const tick = async () => {
+    // 살아 있다는 표시 — 일이 돌고 있어도(busy) 매분 갱신한다
+    try { fs.writeFileSync(LOCK, String(process.pid)); } catch {}
     if (busy) return;
     busy = true;
     try {
@@ -117,9 +125,10 @@ function 설치() {
   const startup = path.join(process.env.APPDATA ?? path.join(os.homedir(), "AppData", "Roaming"),
     "Microsoft", "Windows", "Start Menu", "Programs", "Startup");
   const vbs = path.join(startup, "Cited PC Runner.vbs");
-  // 창 없이 띄운다 (0 = 숨김, False = 기다리지 않음)
+  // 창 없이 띄우고(0 = 숨김), 끝날 때까지 기다렸다가(True) 1분 뒤 다시 띄운다.
+  // 일꾼이 꺼져도 로그인 전까지 아무도 안 띄워 33시간 멈췄다(2026-09-30~10-01). 이미 떠 있으면 새 일꾼은 바로 끝나고 1분 뒤 또 본다
   fs.writeFileSync(vbs,
-    `CreateObject("WScript.Shell").Run """${NODE}"" ""${path.join(HERE, "pc-runner.mjs")}""", 0, False\r\n`);
+    `Set sh = CreateObject("WScript.Shell")\r\nDo\r\n  sh.Run """${NODE}"" ""${path.join(HERE, "pc-runner.mjs")}""", 0, True\r\n  WScript.Sleep 60000\r\nLoop\r\n`);
   console.log(`시작프로그램 등록: ${vbs}`);
   for (const t of OLD_TASKS) {
     try {
