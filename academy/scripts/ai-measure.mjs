@@ -423,6 +423,7 @@ const main = async () => {
       }
 
       let ok = 0, fail = 0, hit = 0;
+      let 연속초과 = 0;
       let 마지막오류 = "";
       for (const x of todo) {
         let r;
@@ -454,11 +455,20 @@ const main = async () => {
         }
         if (r.error) {
           // 한도·키·모델 문제는 나머지 질문도 똑같이 막힌다. 계속 두드리지 않는다
-          // 503 은 Claude Code 시간 초과, 500 은 결과 없이 끝남(CLI 고장) — 다음 문항도 같을 공산이 커 멈춘다
-          if ([400, 401, 402, 403, 404, 413, 429, 500, 503].includes(r.status)) break;
+          // 500 은 결과 없이 끝남(CLI 고장) — 다음 문항도 같을 공산이 커 멈춘다
+          // 503(시간 초과)은 한 문항만 느린 때가 많다 — 연속 두 번일 때만 멈춘다.
+          // 한 번에 멈췄더니 문서딱이 2/20 만 재고 끝났다(2026-10-02, q3 한 문항 180초)
+          if (r.status === 503) {
+            연속초과++;
+            if (연속초과 >= 2) break;
+            await 쉼(e.gap);
+            continue;
+          }
+          if ([400, 401, 402, 403, 404, 413, 429, 500].includes(r.status)) break;
           await 쉼(e.gap);
           continue;
         }
+        연속초과 = 0;
         const { mentioned, cited } = await 적재(client, e, x, r);
         ok++;
         if (mentioned || cited) hit++;
