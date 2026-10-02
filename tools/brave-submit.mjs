@@ -31,6 +31,8 @@ const 결과 = [];
 for (const url of 목록) {
   await p.goto("https://search.brave.com/submit-url", { waitUntil: "domcontentloaded" });
   await p.waitForTimeout(3000);
+  // 창이 다른 창 뒤에 숨어 원장이 못 찾았다(2026-10-02). 주소마다 맨 앞으로
+  await p.bringToFront().catch(() => {});
   await p.locator("input[type=text]").first().fill(url);
   // 누르기 전에 찍어 둔다. 캡차 없이 바로 접수되는 때가 있어, 누른 뒤에 찍으면 이미 「Success」라 변화가 안 보인다(2026-09-22)
   const 처음글 = await p.evaluate(() => document.body.innerText);
