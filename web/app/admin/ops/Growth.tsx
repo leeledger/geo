@@ -219,13 +219,13 @@ export default function Growth({ g, err, name }: { g: G | null; err?: string; na
           )}
 
           {/* 4 문의 */}
-          {iq === null ? <Card none head="학원 문의 — 확인 못함" />
+          {iq === null ? <Card none head={`${name ? `${name} ` : ""}문의 — 확인 못함`} />
             : !iq.ever ? (
               <Card none head="상담 기록이 아직 없습니다"
                     extra={<Link href="/admin/inquiry">기록하러 가기 →</Link>} />
             ) : (
               <Card
-                head={<>최근 30일 학원 문의 <b>{n(iq.last30.now ?? 0)}건</b></>}
+                head={<>최근 30일 {name ? `${name} ` : ""}문의 <b>{n(iq.last30.now ?? 0)}건</b></>}
                 cmp={<>그 전 30일 {n(iq.last30.prev ?? 0)}건 <Word d={iq.last30} /></>}
                 extra={iq.unresolved > 0 ? <Link href="/admin/inquiry">결과 미입력 {iq.unresolved}건 →</Link> : undefined}
               />
@@ -274,7 +274,7 @@ export function GrowthMore({ g, client, place }: { g: G | null; client: Client |
       <h3>숫자 읽는 법</h3>
       <dl>
         <div><dt>AI 답변</dt>
-          <dd><b>뜻</b>AI 에게 학원을 물었을 때 이름이 나오는가. 재는 방법이 다르면 합치지 않습니다.</dd>
+          <dd><b>뜻</b>AI 에게 물었을 때 {client ? `${client.name} 이름` : "이름"}이 나오는가. 이름 질문은 빼고 셉니다. 재는 방법이 다르면 합치지 않습니다.</dd>
           <dd><b>좋아지려면</b>같은 방법으로 다시 잽니다. 사이트 인용은 그 AI 가 찾는 검색 색인에 들어가야 생깁니다.</dd></div>
         <div><dt>답변 색인</dt>
           <dd><b>뜻</b>AI 가 답할 때 찾는 검색 색인에 우리 쪽이 몇 쪽 들어갔나. 구글·네이버·빙 중 제일 적은 곳을 카드에 씁니다.</dd>
@@ -283,7 +283,7 @@ export function GrowthMore({ g, client, place }: { g: G | null; client: Client |
         <div><dt>글</dt>
           <dd><b>뜻</b>주 1편이 끊기면 크롤러가 뜸해지고 레퍼런스가 늙습니다.</dd>
           <dd><b>좋아지려면</b>이번 주 0편이면 초안 검토 → 발행.</dd></div>
-        <div><dt>학원 문의</dt>
+        <div><dt>{client ? `${client.name} 문의` : "문의"}</dt>
           <dd><b>뜻</b>노출이 실제 문의로 이어졌나. 상담에서 “어떻게 알고 오셨어요”로만 잽니다.</dd>
           <dd><b>좋아지려면</b>상담마다 30초 기록.</dd></div>
         <div><dt>비교 규칙</dt>
