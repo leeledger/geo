@@ -48,7 +48,7 @@ function Act({ id, a }: { id: number; a: TodoAction }) {
   );
 }
 
-export default function Todo({ name, company, unresolved }: { name: string | null; company: Ops["company"]; unresolved: number | null }) {
+export default function Todo({ name, company, unresolved, marketing = 0 }: { name: string | null; company: Ops["company"]; unresolved: number | null; marketing?: number }) {
   // 일감은 고객사별로 읽는다(readOps) — 어느 탭의 할 일인지 제목에 적는다(Step 33 D48)
   const who = name ? ` · ${name}` : "";
   if (!company.ok) {
@@ -73,6 +73,15 @@ export default function Todo({ name, company, unresolved }: { name: string | nul
       title: `상담 ${unresolved}건 — 등록했는지 적기`,
       why: "문의가 등록으로 이어졌는지는 이것으로만 압니다. 건마다 버튼 하나입니다",
       act: <a className="td-btn" href="/admin/inquiry">입력하기 →</a>,
+    });
+  }
+  // 바깥 글(Step 35 D54) — 글마다 줄을 세우지 않고 하루 한 줄. 손은 아래 「오늘 올릴 글」 카드에서
+  if (marketing > 0 && name) {
+    items.push({
+      key: "mk", doing: null,
+      title: `${name} 글 ${marketing}건 올리기(3분)`,
+      why: "지식iN·카페는 본문 복사 → 질문 골라 붙이기 → 주소 적기. 블로그는 읽고 확인만",
+      act: <a className="td-btn" href="#mk">올리러 가기 →</a>,
     });
   }
   // 조치 중인 것은 맨 뒤로 (정렬은 안정적이라 나머지 순서는 그대로)

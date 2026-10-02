@@ -1,91 +1,176 @@
-# Review Request — Step 34 (D49 · D50 · D51)
+# Review Request — Step 35 (D52 · D53 · D54 · D55 · D56)
 Date: 2026-10-02
 Ready for Review: YES
-Status: DONE — tsc 0 · academy 시험 32+33+37 통과 · 운영 DB 읽기로 세 탭 확인 · 학원 탭 「자동으로 도는 일」 줄 = 바꾸기 전 코드와 같음. DB 쓰기·푸시·배포 없음
-
-## 확인한 것
-- web `node ./node_modules/typescript/bin/tsc --noEmit` 0
-- academy `node scripts/test-docttak.mjs` 32/0 · `test-ilog-loop.mjs` 33/0 · `test-grow-loop.mjs` 37/0
-- 학원 줄 불변: HEAD 의 agents.ts 와 새 agents.ts 를 같은 시각(now)으로 운영 DB 에 돌려 rows JSON 비교 → `학원 탭 줄 같음: true · 고객 없음 같음: true · client null` (스크래치 cmp.mjs, 저장소 밖)
-- 운영 DB 읽기(2026-10-02, 스크래치 verify.mjs — web/lib 를 typescript 로 옮겨 그대로 부름). 운영·측정 줄 상태가 탭마다 다른 건 읽은 시각 차이(측정이 도는 중)다 — 회사 줄은 고객으로 안 거른다
-
-### 세 탭 「자동으로 도는 일」 줄 (D49)
-```
-══ 로봇&코딩학원 — 자동으로 도는 일 · 회사 전체
-  [정상] 운영 — 매시 일을 나눠 맡기고, 건너뛴 예약과 실패한 작업을 다시 돌립니다
-  [꺼짐] 수리공 — 꺼 둠 · 켜는 건 원장님 결정
-  [정상] 측정 — 매일 아침 AI 답변과 검색 순위를 잽니다
-  [정상] 콘텐츠 — 월요일 아침 초안을 주 1편 씁니다. 쓸 거리가 없으면 그 주는 건너뜁니다
-  [쉬는 중] 삽화 — 지금은 할 일이 없습니다
-  [실패] 유통 — 빙 주소 제출 실패 — 다음 차례에 다시 해 봅니다
-══ 아이로그 — 자동으로 도는 일 · 회사 전체 · 콘텐츠·유통은 아이로그
-  [정상] 운영 / [꺼짐] 수리공 / [정상] 측정  (학원과 같은 회사 줄)
-  [정상] 콘텐츠 — 자동 초안 없음 · 세션에서 쓸 글 7건 → 아이로그 저장소에 반영
-  [정상] 유통 — 매일 새벽 사이트 주소를 빙·네이버에 알립니다. 네이버 블로그 옮기기·구글 색인 요청은 이 고객에 안 돕니다
-  (삽화 줄 없음)
-══ 문서딱 — 자동으로 도는 일 · 회사 전체 · 콘텐츠·유통은 문서딱
-  [일하는 중] 운영 / [꺼짐] 수리공 / [일하는 중] 측정  (읽은 시각 차이)
-  [정상] 콘텐츠 — 자동 초안 없음 · 세션에서 쓸 글 1건 → 문서딱 저장소에 반영
-  [해당 없음] 유통 — 색인 알림 없음 · 이 고객에는 자동 유통이 안 돕니다   (오른쪽 칸: 「이 고객에는 안 돕니다」)
-  (삽화 줄 없음)
-```
-고객별 판단 근거(코드에서 확인한 것만, agents.ts PIPES 주석):
-- 글 길(posts) 학원만 — write.yml 의 write-draft·write-news `CLIENT = 1` 고정, illustrate.mjs 는 academy.posts(글이 있는 곳은 학원뿐, clients.mjs `publishes` 학원만 true), local-agent.mjs 네이버 옮기기 `client_id = 1`, `submit-gsc --all` 기본 학원
-- 색인 알림 — snapshot.yml 03:23 → indexnow.mjs 가 clients.mjs 에서 키 있는 곳만: 학원(키 파일)·아이로그(`indexnowKey`, https://ilog.ai.kr/<key>.txt 200 오늘 확인). 문서딱은 키 없음 → 건너뜀. clients.mjs 에 없는 고객은 안 돈다 → PIPES 기본값 둘 다 false
-- 「세션에서 쓸 글 n건」 = geo.agent_tasks 그 고객 · agent content · status 「세션 대기」(session-task.mjs 가 여는 question-draft). 아이로그 7건은 실제 값이다 — session-task 는 「한 번에 하나」인데 7건이 열려 있다. 회사 루프 who-wins 도 같은 키로 여는지 Richard 가 한 번 봐 주면 좋겠다(이번 단계 밖, KG)
-
-### 세 탭 새 머리 숫자 (D51 — 이름 질문 빼고, 곳끼리 안 합침)
-아침 보고 표(readAnswerTable):
-```
-로봇&코딩학원  ChatGPT 10/2 17개 중 3개 · 링크 0 · 10/1 4→3 (비슷)
-              Claude  10/2 17개 중 9개 · 링크 10 · 10/1 7→9 (비슷)
-              Gemini  10/2 17개 중 4개 · 링크 안 보여 줌 · 10/1 4→4 (비슷)
-              Perplexity 10/2 17개 중 0개 · 링크 0 · 10/1 0→0 (비슷)
-              이름 질문 3개 중 ChatGPT 3 · Claude 3 · Gemini 3 · Perplexity 0 — 확인용(노출 성과 아님)
-아이로그      ChatGPT 17개 중 4개 (4→4) · Claude 17개 중 0개 (0→0) · Gemini 17개 중 6개 (5→6) · Perplexity 17개 중 0개 (0→0) · 모두 「비슷」
-              이름 질문 3개 중 ChatGPT 3 · Claude 3 · Gemini 3 · Perplexity 0
-문서딱        ChatGPT 17개 중 0개 (0→0) · Claude 2개 중 0개 (일부만 물음, 첫 측정) · Gemini 17개 중 0개 (0→0) · Perplexity 17개 중 0개 (0→0)
-              이름 질문 ChatGPT 3개 중 2개 · Gemini 3개 중 2개 · Perplexity 3개 중 0개 (Claude 는 이름 질문을 안 잼)
-```
-성과 카드(Growth, 대표 쌍 ChatGPT 화면): 학원 17개 중 3개 · 지난번 4→3 / 아이로그 17개 중 4개 · 4→4 / 문서딱 17개 중 0개 · 0→0. 이름 질문 줄: 3개 중 3 · 3 · 2.
-AI 질문 기록(10/2 곳별): 학원 Claude 17 중 9 · ChatGPT 3 · Gemini 4 · Perplexity 0 / 아이로그 0 · 4 · 6 · 0 / 문서딱 Claude 2 중 0 · 나머지 17 중 0.
-문서딱 이름 나온 답은 전부 이름 질문(ChatGPT·Gemini 각 2)이다 — 원장 지적 그대로.
+Status: DONE_WITH_CONCERNS — web tsc 0 · test-marketing 31 · test-docttak 32 · ilog 33 · grow 37 통과 · `marketing-draft --dry` 실제 초안 3종(Claude 3회, purpose marketing). DB 쓰기·푸시·배포·실게시 없음. 걱정: geo.marketing_posts 가 아직 없어 현황판 카드·효과 줄·로컬 에이전트 블로그 경로는 실DB로 못 돌려 봄(코드·tsc·가짜 행 시험만)
 
 ## Files Changed
-- web/lib/agents.ts:11,18-23 — AgentState 에 「none」(해당 없음), Act·OpenTask 에 clientId(고객별 줄 가를 때만)
-- web/lib/agents.ts:45-64 — Agents.client · PIPES/pipeOf: 고객마다 실제로 도는 글·색인 알림(근거 주석)
-- web/lib/agents.ts:431-466 — clientRows: 글 길 없는 고객의 콘텐츠(세션 대기 n건, 학원 write 옮긴 줄 안 봄)·삽화(뺌)·유통(snapshot 만 또는 해당 없음)
-- web/lib/agents.ts:468-531 — readAgents(now, client): client_id 같이 읽음. 학원·고객 없음은 예전 경로 그대로(위 비교 true)
-- web/app/api/admin/agents/route.ts — ?c=슬러그 로 같은 고객 고르기(현황판과 같은 규칙, 없으면 첫 고객)
-- web/app/admin/ops/AgentStrip.tsx:16,93-94,111,144,151,174-180 — slug 로 다시 읽기, 머리글 「· 콘텐츠·유통은 {이름}」(학원은 그대로), 해당 없음 줄은 오른쪽 칸 하나
-- web/app/admin/ops/page.tsx:153,194-196,258 — readAgents 에 client, AgentStrip key=slug(탭 바꾸면 state 새로), Growth name, AgentBoard clientId
-- web/app/admin/ops/AgentBoard.tsx:2,13,78-96 — 글 길 없는 고객의 콘텐츠·유통 카드 문구(주간 초안·도해·네이버 이관 → 세션 글·색인 알림/없음)
-- web/lib/growth.ts:31-32,156-200 — AI 카드 머리 숫자 이름 질문 빼고, brand(최근 이름 질문 회차) 따로. 이름 질문만 잰 쌍은 뺌
-- web/app/admin/ops/Growth.tsx:85-90,135-136,176-181,296 — Card note 칸, 「{이름} 이름이 나왔습니다 · 이름 질문 빼고」, 이름 질문 한 줄, 「지역·업종 검색 (이름 없이)」
-- web/lib/asks.ts:29-38,75,96,103-104 — AskPlace.brand, BRAND 조건, 7일 곳 합계 이름 질문 빼고
-- web/lib/asks.ts:175-186 — readAskDays n·named·cited 이름 질문 빼고 + brand 칸
-- web/lib/asks.ts:204-263 — readAnswerTable: 이름 질문 빼고 셈, BrandRow 곳별, 「일부만 물음」 = 그날 최대 수의 90%(pm-report 20 중 18 규칙을 17 에 그대로)
-- web/app/admin/ops/PmReport.tsx:3,49-57,68,80 — 머리 칸 「이름 질문 빼고」, 표 아래 이름 질문 한 줄
-- web/app/admin/ops/AskLog.tsx:47-49 — 「{고객} 이름」, 이름 질문 빼고 + 이름 질문 확인용 꼬리
-- web/app/admin/asks/page.tsx:84,140-141,165,201-202,273,287 — 「사람들이 AI 에…」·「{고객} 이름」, 이름 질문 빼는 설명, 곳별 합계 표시
-- academy/clients.mjs:172-176 — 문서딱 probeVariants.seeds ["pdf 병합"] (원장 2026-10-02)
-- academy/scripts/loop-review.mjs:109,306-314,336 — 변형 씨앗: 하루 한도와 따로 한 번, 이미 있으면 안 만듦, 증거 글 「씨앗 「…」」
-- academy/scripts/test-docttak.mjs:115-128 — 씨앗 포함 기대값 + 씨앗 중복·한도 0 시험
+- web/lib/marketing-core.mjs(새) + .d.mts — MARKETING_DDL(스키마와 같은 줄) · searchLink(지식iN where=kin · 카페 where=article) · normUrl(m.·www.·끝 / · 지식iN docId · 블로그 PostView→/id/logNo) · countUsed(올린 날 이후 측정만, 곳별)
+- academy/db/schema.sql 끝 · web/db/schema.sql 「영업용 뷰」 앞 — geo.marketing_posts(설계서 칸 그대로) + (client_id, created_on) 색인 + RLS
+- academy/clients.mjs:182-211 — 문서딱 `marketing`: 검색어→안내(guide)·도구(tool) 페이지 11줄, blogDays [1,4], 공개 문장, blogProfile
+- academy/scripts/marketing-draft.mjs(새) — 63 본문글 · 97 대상고르기 · 146 프롬프트 · 184 관문 · 226 대조표 · 246 main
+- academy/scripts/test-marketing.mjs(새) — 31개, DB·네트워크·Claude 없음
+- .github/workflows/optimize.yml:89-99 — 측정·판정 뒤 「바깥 글 초안 (문서딱)」 단계(`!cancelled()`)
+- web/lib/marketing.ts(새) · marketing-actions.ts(새: markPosted·discardDraft·approveBlog, 모두 guard)
+- web/app/admin/ops/Marketing.tsx(새) · CopyButton.tsx(새) · page.tsx:11,20,147,167,198,200 · Todo.tsx:51,78-86
+- tools/naver-blog-post.mjs:27-30,59-67,86-102,176,192,512-533 — `--marketing <id> --profile <dir>`, NAVER_BLOG_ID 필수, 학원 꼬리 안 붙임, 끝나면 marketing_posts 올림
+- tools/open-session.mjs:12-36,70-75,88-89,113 — `--blog <프로필>` 네이버 로그인만
+- tools/local-agent.mjs:10,71-81,144-198 — 고객 블로그 게시(시도 기록·로그인 일감·발행했을수도 = 사람 확인)
+- academy/scripts/pilot-report.mjs:22,303-323 — 「바깥 글 — AI 답 출처로 쓰였나」 절(올린 글 있을 때만)
+- .gitignore · tools/.gitignore — `.browser-profile-*`
+
+## 돌리는 곳 — optimize.yml 끝 (D53)
+측정 직후라 「최근 7일 이름 안 나온 검색어」에 오늘 결과가 든다. 하루 한 번 도는 워크플로라 날짜 잠금이 따로 필요 없다. company.mjs 는 매시간 두 번이라 하루 한 번 장치를 또 만들어야 한다. 다시 돌려도 오늘 쓴 채널은 건너뛰고, 관문 탈락도 「버림」으로 남겨 같은 날 호출을 또 안 쓴다. 호출은 최대 5회(--max-calls), 측정 아닌 몫 18 을 같이 쓴다.
+
+## 설계서와 다르게 한 것 — Arch 확인
+1. **블로그 자동 게시를 원장 확인 뒤로.** D55 는 「local-agent 가 블로그 초안을 올리게」인데 CLAUDE.md 「사람만 할 수 있는 일 — 발행 전 사실 확인」과 부딪친다. 그래서 카드에 「읽었어요 · 올려 주세요」를 두고, 누르면 note 가 「게시 승인 MM-DD HH:MI」가 되며 로컬 에이전트는 그 표시가 있는 블로그 초안만 올린다. 게시 손일은 여전히 자동. 승인 칸을 따로 만들지 않고 note 앞머리로 했다(설계서 스키마 그대로) — 칸으로 바꿀지 결정 필요
+2. 대상 질문은 keyword 17개만. 이름 질문 3개(「문서딱 어떤 사이트야?」 등)는 지식iN·카페 글감이 아니다
+3. 14일 반복 금지는 채널별. 전체로 걸면 17개를 하루 2~3편이 6~8일에 다 써서 블로그·카페가 선다
+4. 블로그 아이디를 clients.mjs 에 박지 않고 원장 PC `academy/.env.local` NAVER_BLOG_ID_DOCTTAK 로. 문서딱 블로그가 아직 없다
+
+## 문서딱 세션 지시 반영
+- 색인 알림(IndexNow·네이버·GSC) 코드 안 넣음
+- /remove-background/ — 오늘 사이트맵에 없는 문서딱 주소는 근거로도 링크로도 안 씀 + 본문에 「remove-background」「배경 지우기 도구」 말 금지(시험 2개)
+- 고정 사실은 「안내 글 31편(그날 사이트맵에서 셈) · 모든 도구 무료·가입 없음 · 파일은 기기 안에서 처리, 어디로도 안 보냄」만. 나머지는 그날 가져온 페이지 원문
+
+## --dry 실제 초안 3종 (2026-10-02 금, `--channels jisikin,cafe,blog --max-calls 4`, Claude 3회 · 3종 모두 1판에 관문 통과)
+명령: `CLAUDE_CODE_LOCAL=1 node scripts/marketing-draft.mjs --client docttak --dry --channels jisikin,cafe,blog --max-calls 4`
+대상 고르기: 오늘 문서딱 측정에서 17개 모두 이름 0 → 순번대로, 같은 날 다른 페이지 → 지식iN 「pdf 합치기 무료」(pdf-merge) · 카페 「pdf 용량 줄이기」(pdf-compress) · 블로그 「정부24 pdf 용량」(upload-limits). (블로그는 원래 월·목 — 금요일이라 `--channels` 로 강제)
+
+아래 대조표는 초안을 만든 뒤 고친 대조표 함수(숫자 바로 뒤 단위까지 보고 그 꼴이 든 원문 줄을 먼저 찾게)와 한 자리 규격 관문을 붙인 최종 코드로 같은 본문을 다시 돌린 것이다(Claude 재호출 없이 — 상한 3~4회). 최종 관문도 셋 다 통과.
+
+### 1. 지식iN — 「pdf 합치기 무료」 · 근거 /guide/pdf-merge/ · /pdf-merge/
+제목(답할 질문 예): pdf 여러 개를 하나로 합치고 싶은데 무료로 할 수 있는 방법 없을까요? 폰에서도 되면 좋겠어요
+
+```
+문서딱 PDF 합치기에서 파일을 고르고 순서를 정한 뒤 합치기를 누르면 한 파일로 저장돼요. 가입도 설치도 없이 무료예요. 주소는 https://docttak.com/pdf-merge/ 예요.
+
+방법은 세 단계예요. 「PDF 파일 선택」으로 합칠 파일을 두 개 이상 골라요. 위로·아래로 버튼이나 왼쪽 손잡이를 끌어서 순서를 바꿔요. 합치기를 누르고 「내려받기」로 저장해요. 아이폰, 갤럭시, PC 모두 같은 방법이고 합친 파일은 「다운로드」 폴더에 저장돼요.
+
+한 번에 50개 파일까지 합칠 수 있어요. 합계는 PC가 500 MB, 휴대폰이 150 MB까지예요. 이 한도를 넘으면 나눠서 합쳐야 해요. 비밀번호가 걸린 파일은 열 때 쓰는 비밀번호를 넣으면 합칠 수 있어요. 파일은 이 기기 안에서만 처리되고 밖으로 나가지 않아요.
+
+합친 파일을 메일로 보낼 거라면 Gmail 고객센터의 「Gmail에서 첨부파일 보내기」 안내를 확인해 보세요. 개인 지메일은 첨부파일 합계가 25 MB를 넘을 수 없어요. 합친 파일이 크면 문서딱 PDF 용량 줄이기로 줄일 수 있어요. 제출처에 따라 규격이 다르면 그 기관 공고에서 확인해 주세요.
+
+제가 만든 무료 도구입니다(가입·업로드 없음).
+```
+
+| 본문 숫자 | 원문 줄 | 페이지 |
+|---|---|---|
+| 50 개 | 50개까지 (표: 파일 수) | /guide/pdf-merge/ |
+| 500 MB | 500 MB까지 (표: PC 파일 합계) | /guide/pdf-merge/ |
+| 150 MB | 150 MB까지 (표: 휴대폰 파일 합계) | /guide/pdf-merge/ |
+| 25 MB | 개인 지메일은 첨부파일 합계가 25 MB를 넘을 수 없어요. | /guide/pdf-merge/ |
+
+대조 메모: 「이 한도를 넘으면 나눠서 합쳐야 해요」는 숫자는 없지만 원문에 없는 말이다(원문은 PC 200 MB·1,500쪽 넘으면 「먼저 확인을 요청」). 관문은 숫자만 본다 — 원장이 올리기 전 읽을 자리.
+
+### 2. 카페 — 「pdf 용량 줄이기」 · 근거 /guide/pdf-compress/ · /pdf-compress/
+제목: PDF 용량 줄이기 정리
+
+```
+PDF 용량은 품질 단계나 목표 용량, 둘 중 하나로 줄입니다.
+글자와 선은 그대로 두고 스캔·사진 같은 이미지만 줄입니다.
+
+**줄이는 방법**
+품질 단계: 고화질·권장·강력 중 선택. 처음이면 권장
+목표 용량: 제출처 한도를 MB로 입력. 0.5–100 MB 사이에서 정할 수 있음
+
+**단계별 선명도**
+고화질: 약 200 ppi, 인쇄용
+권장: 약 150 ppi, 제출용
+강력: 약 110 ppi, 화면용. 확대하면 흐려질 수 있음
+
+**얼마나 줄어드나**
+스캔하거나 사진이 들어간 PDF: 권장 단계에서 85–96% 줄었음(시험한 파일 기준)
+글자 위주 문서: 4–25% 줄었음
+이미 작게 저장된 파일은 더 줄지 않을 수 있고, 그땐 원본을 그대로 둡니다.
+
+**메일로 보낼 때**
+Gmail 고객센터(Gmail에서 첨부파일 보내기, 확인일 2026-09-30)에 따르면 개인 지메일 첨부 한도는 25 MB입니다.
+목표 용량은 한도보다 조금 작게 잡는 편이 안전합니다.
+대학·기관 제출 한도는 그 기관 공고에서 확인.
+
+**안 맞는 경우**
+전자서명이 든 PDF는 줄이면 서명이 더 이상 유효하지 않습니다.
+발급받은 증명서처럼 서명이 필요한 문서는 원본을 내세요.
+
+**처리 범위**
+줄일 수 있는 크기: PC 100 MB까지, 휴대폰 50 MB까지
+처리 위치: 파일은 이 기기 안에서만 처리되고 밖으로 나가지 않음
+
+도구: https://docttak.com/pdf-compress/
+방법 자세히: https://docttak.com/guide/pdf-compress/
+
+제가 만든 무료 도구입니다(가입·업로드 없음).
+```
+
+| 본문 숫자 | 원문 줄 | 페이지 |
+|---|---|---|
+| 2026-09-30 | 출처: Gmail 고객센터 — Gmail에서 첨부파일 보내기 · 확인일 2026-09-30 | /guide/pdf-compress/ |
+| 0.5 · 100 MB | 0.5–100 MB 사이에서 정할 수 있어요. | /guide/pdf-compress/ |
+| 200 ppi | 인쇄용 선명도 (약 200 ppi) | /pdf-compress/ |
+| 150 ppi | 제출용 선명도 (약 150 ppi) | /pdf-compress/ |
+| 110 ppi | 화면용 선명도 (약 110 ppi) | /pdf-compress/ |
+| 85 · 96 % · 4 · 25 % | 스캔하거나 사진이 들어간 PDF는 권장 단계에서 85–96% 줄었고, 글자 위주 문서는 4–25% 줄었습니다. | /pdf-compress/ |
+| 25 MB | 개인 지메일은 첨부 한도가 25 MB예요. | /guide/pdf-compress/ |
+| 100 MB · 50 MB | PC에서는 100 MB, 휴대폰에서는 50 MB까지 줄일 수 있습니다. | /pdf-compress/ |
+
+### 3. 블로그 — 「정부24 pdf 용량」 · 근거 /guide/upload-limits/ · /pdf-compress/ · /guide/pdf-compress/
+제목: 정부24 PDF 용량이 커서 안 올라갈 때, 한도는 어디서 확인하고 어떻게 줄이나요?
+
+```
+정부24에서 받은 PDF를 어딘가에 올리다가 막혔다면, 한도가 정부24에 있는지 올리는 곳에 있는지부터 가려야 합니다. 제가 확인한 안내 중에는 정부24 PDF 용량 한도라고 적힌 숫자가 없습니다. 그래서 그 숫자는 쓰지 않겠습니다.
+
+## 정부24 PDF 용량 한도는 몇 MB인가요?
+
+정부24에서 내려받은 서류를 학교, 회사, 법원 같은 곳에 다시 올리는 경우라면 한도는 대개 올리는 쪽이 정합니다. 그 기관의 모집요강이나 공고, 첨부 안내에서 확인해야 하는 값입니다. 제가 가진 근거로는 기관마다 다른 값을 대신 말해 드릴 수 없습니다.
+
+정부24 이름이 붙은 값은 하나 있습니다. 여권 사진을 온라인으로 신청하는 경우입니다. 권장 크기가 413×531 픽셀이고, 파일은 500KB 이하 JPG·JPEG입니다. PDF가 아니라 사진 이야기입니다.
+
+참고로 다른 곳의 값도 확인된 것만 적습니다. 전자소송은 첨부 파일 하나가 20MB까지이고 총용량은 100M 이하입니다. 개인 Gmail과 Outlook.com 첨부는 각각 25MB입니다. 이 값들은 정부24의 한도가 아니라 해당 서비스의 한도입니다. 표로 모아 둔 페이지는 여기 있습니다: https://docttak.com/guide/upload-limits/
+
+## 제출 마감 직전에 파일이 안 올라갈 때
+
+마감이 코앞인데 업로드가 계속 실패하면 원인은 대부분 용량입니다. 올리는 곳의 한도 숫자를 확인한 뒤, 그 숫자보다 작게 파일을 줄이면 됩니다. 제가 만든 문서딱의 PDF 용량 줄이기에서는 품질 단계(고화질·권장·강력)를 고르거나 목표 용량을 직접 정할 수 있습니다. 목표는 3 MB, 5 MB, 10 MB, 20 MB 중에서 고르거나 0.5–100 MB 사이에서 직접 입력합니다. 제출용 서류라면 「권장」 단계가 맞습니다.
+
+세 단계 모두 글자와 선은 그대로 두고 스캔이나 사진 같은 이미지만 줄입니다. 줄인 뒤에도 글자를 선택하고 검색할 수 있습니다. 시험한 파일 기준으로 스캔하거나 사진이 들어간 PDF는 권장 단계에서 85–96% 줄었고, 글자 위주 문서는 4–25% 줄었습니다. 이미 작게 저장된 파일은 더 줄지 않을 수 있고, 그럴 때는 원본을 그대로 둡니다.
+
+한도가 「이하」인지 「미만」인지도 봐야 합니다. 이하는 그 값까지 되고, 미만은 그 값이 되면 안 됩니다. 350 KB 미만이면 350 KB보다 조금이라도 작아야 합니다. 마감 직전에는 한도에 딱 맞추기보다 조금 작게 잡는 편이 안전합니다.
+
+## 휴대폰만 있을 때, 그리고 줄이면 안 되는 파일
+
+휴대폰만 있어도 같은 순서로 됩니다. 설치나 가입이 필요 없고, 휴대폰에서는 50 MB까지의 파일을 줄일 수 있습니다. PC는 100 MB까지입니다. 휴대폰에서 20 MB가 넘는 파일은 시간이 걸릴 수 있어 먼저 확인을 묻습니다. 파일은 기기 안에서만 처리되고 밖으로 나가지 않습니다. 못 믿겠다면 한 번 줄여 본 뒤 비행기 모드로 바꾸고 다시 줄여 보면 됩니다. 인터넷 없이도 되면 밖으로 안 나간다는 뜻입니다.
+
+문서딱이 맞지 않는 경우도 있습니다. 전자서명이 들어 있는 PDF는 줄이면 파일이 새로 저장되어 서명이 더 이상 유효하지 않습니다. 발급받은 증명서처럼 서명이 필요한 문서는 줄이지 말고 원본을 내야 합니다. 서명이 들어 있으면 결과 화면에서도 알려 줍니다.
+
+목표 용량까지 줄지 않으면 가장 작게 줄인 결과를 보여 줍니다. 이때는 「이미지로 변환」을 켜거나 파일을 나눠서 낼 수 있습니다. 이미지로 변환하면 글자를 선택하거나 검색할 수 없고 입력 칸·링크·책갈피가 사라집니다. 올리는 곳이 글자 검색을 요구하는지는 그 기관 공고에서 확인해야 합니다.
+
+제가 만든 무료 도구입니다(가입·업로드 없음).
+```
+
+| 본문 숫자 | 원문 줄 | 페이지 |
+|---|---|---|
+| 24 (정부24, 7곳) | 여권 사진 (온라인 신청·정부24, 권장 크기) — 이름의 일부 | /guide/upload-limits/ |
+| 413 · 531 픽셀 | 413×531 픽셀 | /guide/upload-limits/ |
+| 500 KB | 500KB 이하 | /guide/upload-limits/ |
+| 20 MB | 20MB까지 (전자소송 파일 하나) | /guide/upload-limits/ |
+| 100 | 100M 이하 (전자소송 총용량) | /guide/upload-limits/ |
+| 25 MB | 25MB (Gmail·Outlook.com) | /guide/upload-limits/ |
+| 3 MB · 5 MB · 10 MB · 20 MB | 3 MB 5 MB 10 MB 20 MB 직접 입력 (목표 용량 버튼) | /pdf-compress/ |
+| 0.5 · 100 MB | 0.5–100 MB 사이에서 정할 수 있어요. | /guide/pdf-compress/ |
+| 85 · 96 % · 4 · 25 % | 85–96% 줄었고 … 4–25% 줄었습니다. | /pdf-compress/ |
+| 350 KB | 350KB 미만 | /guide/upload-limits/ |
+| 50 MB · 100 MB | PC에서는 100 MB, 휴대폰에서는 50 MB까지 줄일 수 있습니다. | /pdf-compress/ |
+| 20 MB (휴대폰 확인) | 휴대폰에서 20 MB 또는 300쪽을 넘으면 … 먼저 확인을 요청합니다. | /pdf-compress/ |
+
+대조 메모: 숫자는 전부 원문에 있다. 「서명이 들어 있으면 결과 화면에서도 알려 줍니다」도 /guide/pdf-compress/ 원문에 있다. 다만 ① 첫 문단 「그래서 그 숫자는 쓰지 않겠습니다」「제가 가진 근거로는」은 글쓴이 자기 이야기라 어색하다 ② 「원인은 대부분 용량입니다」는 근거 없는 일반화다(관문은 숫자만 본다). 블로그를 원장 확인 뒤 게시로 바꾼 이유가 이것이다.
 
 ## Open Questions
-- D51 로 학원 탭 아침 보고 표가 저장된 아침 보고(pm-report.mjs, 이름 질문 포함 20개)와 숫자가 달라졌다. Step 33 의 「학원 탭 = 저장된 보고」 확인은 이제 성립하지 않는다(의도). 저장 셈은 안 건드렸다
-- 「일부만 물음」 기준을 「그날 곳들 중 최대 수의 90%」로 옮겼다. 학원·아이로그는 17 전부라 영향 없음, 문서딱 Claude 2개만 표시됨
-- 유통 「해당 없음」은 상태 하나를 새로 만들었다(회색 점, 라벨 「해당 없음」). 숨기는 쪽보다 「키가 없어 안 돈다」가 보이는 게 낫다고 판단
-- 콘텐츠 줄(글 길 없는 고객)은 그 고객 content 활동·일감으로만 판정한다. 학원 write.yml 늦음이 아이로그 탭에 안 뜬다
+- 블로그 원장 확인 단계(위 1) 유지 여부, 승인을 note 앞머리로 둘지 칸을 만들지
+- 관문은 숫자·주소·말만 본다. 숫자 없는 지어낸 설명(지식iN 「나눠서 합쳐야」, 블로그 「원인은 대부분 용량」)은 못 잡는다 — 지식iN·카페는 원장이 손으로 올리니 그 자리에서 읽는다
+- `--dry` 는 geo.claude_calls 에 기록을 안 남긴다(DB 쓰기 금지) → 사람이 dry 를 돌리면 하루 상한에 안 잡힌다
+- 현황판 카드는 표가 생기고 첫 초안이 들어간 뒤에야 뜬다(그 고객 초안이 0이면 숨김) — 첫 optimize 실행 뒤 화면 확인 필요
 
-## 화면에 남은 「학원」 (D50 grep, web/app/admin, 주석 제외)
-- web/app/admin/ops/Growth.tsx:222 「학원 문의 — 확인 못함」 · :228 「최근 30일 학원 문의」 · :286 「학원 문의」(dt) — 문의 기록(/admin/inquiry)이 학원 것뿐이라 지금은 사실. 고객 탭과 안 맞으면 Arch 판단
-- web/app/admin/ops/Growth.tsx:277 「AI 에게 학원을 물었을 때 이름이 나오는가」 — 자세히 안 정의 글. 이번 지정 목록 밖이라 그대로
-- web/app/admin/asks/page.tsx:300 넓혀 본 질문 설명 「송파」「서울」「송파구 코딩학원 추천」 — widen 탐침(학원만) 설명. 아이로그·문서딱 탭의 변형 탐침에도 이 글이 뜬다. :298 「승인 20문항」도 고객마다 다를 수 있음
-- web/app/admin/outreach/page.tsx:107 영업 전화 대본(학원 대상) — 영업판, 고객 탭 아님
-- web/app/admin/pilots/page.tsx:49·52·70 등록 양식 예시(○○수학학원)·내부 고객 안내 — 고객 탭 아님
-- web/app/admin/ops/page.tsx:243 주석(화면 아님)
-
-## Out of Scope (BUILD-LOG Known Gaps)
-- 아이로그 세션 대기 content 일감 7건 — 「한 번에 하나」 규칙과 안 맞음, 여는 곳 점검 필요
-- 위 남은 「학원」 문구
+## Out of Scope (logged in BUILD-LOG)
+- KG-35-1 Step 34 콘텐츠·유통 줄(web/lib/agents.ts:443·450)이 바깥 글 자동 초안·블로그 게시를 모른다
+- KG-35-2 optimize 「측정 실패 표시」가 바깥 글 단계 실패 때 안 찍힘
+- KG-35-3 optimize timeout 80분에 바깥 글 최악 20분
+- KG-35-4 pc-runner 60분 한도 안에 블로그 한 편(최대 15분) — 로그인 뒤 첫 실행에서 확인

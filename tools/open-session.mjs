@@ -9,14 +9,31 @@
  * 그래서 지금은 로그인 상태를 스스로 확인하고, 다 되면 스스로 닫는다.
  *
  *   node open-session.mjs
+ *   node open-session.mjs --blog .browser-profile-docttak
+ *        고객 블로그용 따로 둔 프로필에 네이버 로그인만(Step 35 D55). 학원 블로그 세션(.browser-profile)과 섞이지 않는다.
+ *        그 고객 네이버 계정으로 로그인한다. 로컬 에이전트가 이 프로필로 원장이 확인한 블로그 초안을 올린다
  */
 import { chromium } from "playwright";
 import path from "node:path";
 
-const PROFILE = path.join(process.cwd(), ".browser-profile");
+const bi = process.argv.indexOf("--blog");
+const BLOG_PROFILE = bi >= 0 ? process.argv[bi + 1] : null;
+if (bi >= 0 && (!BLOG_PROFILE || BLOG_PROFILE === ".browser-profile")) {
+  console.log("--blog 다음에 따로 둘 프로필 폴더 이름을 주세요. 예: --blog .browser-profile-docttak (학원 프로필은 안 됩니다)");
+  process.exit(1);
+}
+const PROFILE = path.resolve(process.cwd(), BLOG_PROFILE ?? ".browser-profile");
 
 /** 로그인 판정 — 로그인 화면이나 안내 페이지로 튀지 않으면 된 것으로 본다 */
-const SITES = [
+const SITES = BLOG_PROFILE ? [
+  {
+    key: "naver",
+    name: "네이버 블로그",
+    // 로그인 화면에서 시작해 블로그 홈으로 돌아오면 된 것이다
+    open: "https://nid.naver.com/nidlogin.login?url=https%3A%2F%2Fsection.blog.naver.com%2F",
+    isOut: (u) => /nid\.naver\.com/.test(u),
+  },
+] : [
   {
     key: "google",
     name: "Google Search Console",
@@ -50,7 +67,12 @@ for (const p of ctx.pages()) {
   if (p.url() === "about:blank") await p.close().catch(() => {});
 }
 
-console.log(`
+console.log(BLOG_PROFILE ? `
+브라우저를 띄웠습니다(프로필 ${BLOG_PROFILE}). 블로그를 올릴 네이버 계정으로 로그인해 주세요.
+  ** '로그인 상태 유지' 를 꼭 켜주세요 ** — 안 켜면 창을 닫을 때 세션이 사라집니다
+  블로그 아이디(blog.naver.com/<아이디>)는 academy/.env.local 에 NAVER_BLOG_ID_<고객 슬러그 대문자>=<아이디> 로 적어 주세요.
+블로그 홈으로 돌아오면 제가 알아서 감지하고 창을 닫습니다.
+` : `
 브라우저를 띄웠습니다. 탭 두 개에 각각 로그인해 주세요.
 
   1. Google Search Console
@@ -63,7 +85,8 @@ console.log(`
 둘 다 되면 제가 알아서 감지하고 창을 닫습니다. Enter 안 누르셔도 됩니다.
 `);
 
-const done = { google: false, naver: false };
+// 블로그 프로필은 네이버 하나만 연다 — 구글은 처음부터 된 것으로 둔다
+const done = { google: Boolean(BLOG_PROFILE), naver: false };
 const started = Date.now();
 const LIMIT = 12 * 60 * 1000; // 12분
 
@@ -87,7 +110,7 @@ if (!done.google || !done.naver) {
   console.log(`\n아직 확인 안 된 곳: ${left}`);
   console.log("그래도 지금까지의 세션은 저장합니다.");
 } else {
-  console.log("\n둘 다 확인했습니다.");
+  console.log(BLOG_PROFILE ? "\n로그인을 확인했습니다." : "\n둘 다 확인했습니다.");
 }
 
 // 정상 종료 — 이래야 쿠키가 디스크에 남는다

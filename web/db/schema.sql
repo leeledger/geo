@@ -230,6 +230,25 @@ create table if not exists academy.ai_probe_measurements (
   unique (client_id, measured_on, collection_method, engine, prompt_id, attempt)
 );
 
+-- 바깥 글 초안(Step 35 D52) — 지식iN·카페·블로그. 초안은 academy/scripts/marketing-draft.mjs 가 매일 쓰고,
+-- 원장이 /admin/ops 에서 올린 주소를 적는다. web/lib/marketing-core.mjs MARKETING_DDL 과 같은 줄
+create table if not exists geo.marketing_posts (
+  id bigserial primary key,
+  client_id int not null references geo.clients(id),
+  channel text not null check (channel in ('jisikin','cafe','blog')),
+  target_query text not null,
+  source_url text not null,
+  title text not null,
+  body text not null,
+  status text not null default '초안' check (status in ('초안','올림','버림')),
+  posted_url text,
+  posted_at timestamptz,
+  created_on date not null default ((now() at time zone 'Asia/Seoul')::date),
+  note text not null default ''
+);
+create index if not exists marketing_posts_client_day_idx on geo.marketing_posts (client_id, created_on);
+alter table geo.marketing_posts enable row level security;
+
 -- 영업용 뷰 — 점수가 낮을수록 후킹이 강하다
 create or replace view geo.lead_queue as
 select l.id, l.created_at, l.email, l.company, l.phone, l.wants, l.status,

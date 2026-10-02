@@ -7,6 +7,7 @@
  *   naver-transfer  발행했는데 네이버에 없는 글을 옮긴다 (naver-blog-post.mjs)
  *   gsc-submit      구글 서치콘솔 색인 요청 (submit-gsc.mjs --all, 하루 한도 안에서)
  *   brave-index-check  개선 루프가 넘긴 글이 Brave 색인에 있나 (brave-index-check.mjs). 없으면 제출 명령을 사람에게
+ *   고객 블로그     원장이 현황판에서 확인한 바깥 글 블로그 초안을 그 고객 블로그에 (naver-blog-post.mjs --marketing, Step 35 D55)
  *
  * 로그인이 풀려 있으면 억지로 하지 않고 「사람 대기 · 로그인 필요」로 올린다.
  * 대시보드에 뜨고, 원장이 node tools/open-session.mjs 로 로그인하면 다음 실행부터 다시 돈다.
@@ -67,17 +68,17 @@ const q = async (s, p = []) => {
   try { return (await c.query(s, p)).rows; } finally { await c.end().catch(() => {}); }
 };
 
-const 돌리기 = (file, args, timeoutMin) => {
+const 돌리기 = (file, args, timeoutMin, env = {}) => {
   try {
-    return { ok: true, out: execFileSync(process.execPath, [file, ...args], { cwd: HERE, encoding: "utf8", timeout: timeoutMin * 60000, maxBuffer: 20 * 1024 * 1024 }) };
+    return { ok: true, out: execFileSync(process.execPath, [file, ...args], { cwd: HERE, encoding: "utf8", timeout: timeoutMin * 60000, maxBuffer: 20 * 1024 * 1024, env: { ...process.env, ...env } }) };
   } catch (e) {
     return { ok: false, out: `${e.stdout ?? ""}${e.stderr ?? ""}\n${e.message}` };
   }
 };
 const 끝 = (s, n = 300) => String(s).replace(/\s+/g, " ").trim().slice(-n);
-const 활동 = (agent, action, ok, summary, taskId = null) =>
-  q(`insert into geo.agent_activity (client_id, agent, action, ok, summary, task_id, run_url) values (1,$1,$2,$3,$4,$5,'local-agent')`,
-    [agent, action, ok, String(summary).slice(0, 1000), taskId]).catch(() => {});
+const 활동 = (agent, action, ok, summary, taskId = null, clientId = 1) =>
+  q(`insert into geo.agent_activity (client_id, agent, action, ok, summary, task_id, run_url) values ($6,$1,$2,$3,$4,$5,'local-agent')`,
+    [agent, action, ok, String(summary).slice(0, 1000), taskId, clientId]).catch(() => {});
 const 사람로그인 = (kind, what) =>
   q(`insert into geo.agent_tasks (client_id, agent, kind, dedupe_key, title, detail, status, priority, payload)
      values (1, 'deliver', 'human', $1, $2, $3, '사람 대기', 5, '{"sticky":true}'::jsonb)
@@ -139,6 +140,61 @@ try {
     }
   }
   if (!posts.length) 기록("네이버로 옮길 글 없음");
+
+  /**
+   * ── 고객 바깥 글 블로그(Step 35 D55). 원장이 현황판에서 「읽었어요」를 누른 블로그 초안만(note 「게시 승인」) — 발행 전 사실 확인은 사람 몫이다.
+   * 지식iN·카페는 자동으로 올리지 않는다(스팸·계정 정지 위험). 학원 블로그 세션과 섞이지 않게 고객마다 따로 둔 프로필로.
+   * 프로필이나 블로그 아이디가 없으면 로그인 일감 한 건(고객별 dedupe)만 올리고 건너뛴다. 중복 게시 막기는 학원 이관과 같은 시도 기록으로
+   */
+  const { CLIENTS } = await import("../academy/clients.mjs");
+  for (const c of CLIENTS.filter((x) => x.marketing?.blogProfile)) {
+    const 대기 = await q(`select m.id, m.title from geo.marketing_posts m
+        where m.client_id = $1 and m.channel = 'blog' and m.status = '초안' and m.note like '게시 승인%'
+          and not exists (select 1 from geo.agent_tasks a where a.client_id = $1 and a.dedupe_key = 'marketing-attempt-' || m.id
+                           and a.status not in ('완료', '닫힘'))
+        order by m.id limit 1`, [c.id]).catch(() => []);
+    if (!대기.length) continue;
+    const 프로필 = path.join(HERE, c.marketing.blogProfile);
+    const 아이디 = process.env[`NAVER_BLOG_ID_${c.slug.toUpperCase()}`];
+    const 로그인일감 = (why) => q(`insert into geo.agent_tasks (client_id, agent, kind, dedupe_key, title, detail, status, priority, payload)
+        values ($1, 'deliver', 'human', $2, $3, $4, '사람 대기', 5, '{"sticky":true}'::jsonb)
+        on conflict (client_id, dedupe_key) do update set status='사람 대기', updated_at=now()`,
+      [c.id, `login-naver-blog-${c.slug}`, `${c.name} 블로그 로그인 필요`,
+        `${why} 원장 PC 에서 tools 폴더로 가서 node open-session.mjs --blog ${c.marketing.blogProfile} 로 ${c.name} 블로그 네이버 계정에 로그인하고, academy/.env.local 에 NAVER_BLOG_ID_${c.slug.toUpperCase()}=<블로그 아이디> 를 적어 주세요. 다음 실행(12:40·19:10)부터 확인한 블로그 초안을 올립니다.`]);
+    if (!fs.existsSync(프로필) || !아이디) {
+      await 로그인일감(!fs.existsSync(프로필) ? "블로그용 프로필이 아직 없습니다." : "블로그 아이디가 아직 없습니다.");
+      await 활동("deliver", `${c.name} 블로그 멈춤`, false, "로그인 필요 — 프로필 또는 블로그 아이디 없음", null, c.id);
+      continue;
+    }
+    const m = 대기[0];
+    기록(`${c.name} 블로그: ${m.id} ${m.title}`);
+    const [attempt] = await q(
+      `insert into geo.agent_tasks (client_id, agent, kind, dedupe_key, title, detail, status, priority, payload)
+       values ($1, 'deliver', 'marketing-attempt', $2, $3, '로컬 에이전트가 블로그 게시를 시작했습니다.', '실행 중', 30, $4::jsonb)
+       on conflict (client_id, dedupe_key) do update set status='실행 중', updated_at=now()
+       returning id`,
+      [c.id, `marketing-attempt-${m.id}`, `${c.name} 블로그 게시 시도: ${m.title}`, JSON.stringify({ sticky: true, marketing_id: m.id })]);
+    const r = 돌리기("naver-blog-post.mjs", ["--marketing", String(m.id), "--profile", 프로필], 15, { NAVER_BLOG_ID: 아이디 });
+    const [after] = await q(`select status, posted_url from geo.marketing_posts where id = $1`, [m.id]);
+    const 발행했을수도 = /발행 버튼을 누릅니다|ETIMEDOUT|timed out|SIGTERM/i.test(r.out);
+    if (after?.status === "올림") {
+      await q(`update geo.agent_tasks set status='완료', done_at=now(), updated_at=now() where id=$1`, [attempt.id]);
+      await q(`update geo.agent_tasks set status='완료', done_at=now(), updated_at=now() where client_id=$1 and dedupe_key=$2 and status='사람 대기'`,
+        [c.id, `login-naver-blog-${c.slug}`]);
+      await 활동("deliver", `${c.name} 블로그 게시: ${m.title}`, true, after.posted_url, attempt.id, c.id);
+    } else if (/로그인이 필요/.test(r.out)) {
+      await q(`update geo.agent_tasks set status='닫힘', done_at=now(), updated_at=now(), evidence='발행 전 멈춤: 로그인 필요' where id=$1`, [attempt.id]);
+      await 로그인일감("네이버 로그인이 풀렸습니다.");
+      await 활동("deliver", `${c.name} 블로그 멈춤`, false, "로그인 필요", attempt.id, c.id);
+    } else if (발행했을수도) {
+      await q(`update geo.agent_tasks set status='사람 대기', updated_at=now(), last_error=$2 where id=$1`,
+        [attempt.id, `${c.name} 블로그에 이 글이 올라갔는지 확인해 주세요. 올라갔으면 update geo.marketing_posts set status='올림', posted_url='<주소>', posted_at=now() where id=${m.id}; 안 올라갔으면 이 일감을 닫으면 다시 시도합니다. 출력: ${끝(r.out, 200)}`]);
+      await 활동("deliver", `${c.name} 블로그 게시 확인 필요`, false, 끝(r.out), attempt.id, c.id);
+    } else {
+      await q(`update geo.agent_tasks set status='닫힘', done_at=now(), updated_at=now(), evidence=$2 where id=$1`, [attempt.id, `발행 전에 멈춤: ${끝(r.out, 200)}`]);
+      await 활동("deliver", `${c.name} 블로그 게시 실패`, false, 끝(r.out), attempt.id, c.id);
+    }
+  }
 
   // ── 플레이스 대표키워드: 원장(2026-09-24) 「플레이스에 올리는 것도 에이전트가」. 일감 payload {add, remove}
   for (const t of await q(`select id, title, payload from geo.agent_tasks where kind='place-keyword' and status='로컬 대기' order by priority, id`)) {

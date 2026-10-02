@@ -19,6 +19,7 @@ import {
   곳정보, 곳들, 곳이름, 창, 셈, 몇번, 비율글, 잰날, 브랜드문항, 이름정규식, 경쟁사목록, 점유, 점유칸,
   곳비교, 판정, 창겹침, 최소잰날,
 } from "../pilot-report-core.mjs";
+import { countUsed } from "../../web/lib/marketing-core.mjs";
 
 for (const l of fs.readFileSync(new URL("../.env.local", import.meta.url), "utf8").split(/\r?\n/)) {
   const m = /^([A-Z_]+)=(.*)$/.exec(l); if (m && !process.env[m[1]]) process.env[m[1]] = m[2];
@@ -297,6 +298,27 @@ async function main() {
       : "판정을 보류한다. 같은 조건의 비교나 상담 결과가 채워지기 전에는 갱신을 권하지 않는다.");
     w();
     w("노출·순위·문의를 보장하지 않는다. 보장하는 것은 약속한 작업의 수행과 같은 조건의 재측정 보고다. 변화가 없거나 나빠져도 그대로 적었다.");
+  }
+
+  /**
+   * 바깥 글(Step 35 D56) — 올린 글 주소가 AI 답 출처(citations)에 나왔나. 곳별로 센다(곳 = 측정 방법).
+   * 표가 없거나 올린 글이 없으면 절을 안 쓴다. 기여(이 글 덕에 이름이 나왔다)는 추정하지 않는다
+   */
+  const 올린 = await q(`select id, posted_url, (posted_at at time zone 'Asia/Seoul')::date::text as posted_day from geo.marketing_posts
+      where client_id = $1 and status = '올림' and posted_url is not null and posted_at is not null`, [p.cid]).catch(() => []);
+  if (올린.length) {
+    const 첫날 = 올린.map((x) => x.posted_day).sort()[0];
+    const 출처 = await q(`select m.collection_method as engine, m.measured_on::text as measured_on, c->>'url' as url
+        from academy.ai_measurements m, jsonb_array_elements(m.citations) c
+        where m.client_id = $1 and m.measured_on between $2::date and $3::date and m.prompt_id ~ '^q[0-9]+$'`, [p.cid, 첫날, 오늘]);
+    const 셈결과 = countUsed(올린, 출처);
+    w("## 바깥 글 — AI 답 출처로 쓰였나");
+    w();
+    w(`올린 글 ${셈결과.posted}개 중 ${셈결과.used}개가 AI 답 출처로 쓰였다(${첫날} ~ ${오늘} 승인 질문 측정. 올린 날 전 측정은 안 셈).`);
+    for (const [곳, n] of Object.entries(셈결과.perEngine)) w(`- ${곳이름(곳)} ${n}개`);
+    w();
+    w("출처 목록에 올린 주소가 나온 것만 셌다. 이 글 덕에 이름이 나왔다는 기여는 추정하지 않았다.");
+    w();
   }
 
   const md = out.join("\n") + "\n";

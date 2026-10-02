@@ -86,6 +86,17 @@ jobs:
           WRITER_MODEL: ${{ vars.WRITER_MODEL }}
         run: node scripts/daily-agent.mjs
 
+      # 바깥 글 초안(Step 35 D53) — 측정 뒤라 「최근 7일 이름이 안 나온 검색어」에 오늘 결과가 들어간다.
+      # 하루 한 번 도는 곳이라 따로 「하루 한 번」 장치가 필요 없다(다시 돌려도 오늘 쓴 채널은 건너뛴다). 측정·판정이 실패해도 쓴다
+      - name: 바깥 글 초안 (문서딱)
+        if: ${{ !cancelled() }}
+        working-directory: academy
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          CLAUDE_MEASURE_RESERVE: ${{ vars.CLAUDE_MEASURE_RESERVE }}
+          CLAUDE_DAILY_MAX: ${{ vars.CLAUDE_DAILY_MAX }}
+        run: node scripts/marketing-draft.mjs --client docttak
+
       # 측정이 실패했는데 루프가 어제 자료로 돌았으면 초록불로 끝난다. 그러면 아무도 안 본다
       - name: 측정 실패 표시
         if: steps.measure.outcome == 'failure' && steps.measure.outputs.code != '78'

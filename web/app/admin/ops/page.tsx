@@ -8,6 +8,7 @@ import { readAgents } from "@/lib/agents";
 import { readPmReport } from "@/lib/pm-report";
 import { readVisits, type Visits as VisitsData } from "@/lib/visits";
 import { readAnswerTable, type AnswerTable } from "@/lib/asks";
+import { readMarketing, type Marketing as MarketingData } from "@/lib/marketing";
 import Todo from "./Todo";
 import AgentStrip from "./AgentStrip";
 import Growth, { GrowthMore } from "./Growth";
@@ -16,6 +17,7 @@ import Brief from "./Brief";
 import PmReport, { PM_CSS } from "./PmReport";
 import AskLog from "./AskLog";
 import Visits from "./Visits";
+import Marketing, { MK_CSS } from "./Marketing";
 
 /** 로그인 뒤 돌아올 자리 */
 const HERE = "/admin/ops";
@@ -142,7 +144,7 @@ export default async function OpsPage({
   const clients = await listClients();
   const client = clients.find((x) => x.slug === want) ?? clients[0] ?? null;
 
-  const [d, gr, agents, pm, vis, ans] = await Promise.all([
+  const [d, gr, agents, pm, vis, ans, mk] = await Promise.all([
     readOps(client ?? undefined),
     // 통째로 실패하면 섹션에 이유 한 줄. 조각 실패는 readGrowth 안에서 null 로 잡힌다
     client
@@ -161,11 +163,13 @@ export default async function OpsPage({
       : Promise.resolve({ v: null, err: "고객사가 없습니다" }),
     // 아침 보고 아래 측정 표 — 저장된 보고(학원 숫자)가 아니라 선택한 고객으로 지금 센다(Step 33)
     client ? readAnswerTable(client) : Promise.resolve<AnswerTable>({ ok: true, rows: [], empty: "고객사가 없습니다" }),
+    // 바깥 글 초안(Step 35 D54) — 초안이 있는 고객 탭에만 카드가 뜬다
+    client ? readMarketing(client.id) : Promise.resolve<MarketingData>({ ok: true, enabled: false, drafts: [], todo: 0, used: null, firstPosted: null }),
   ]);
 
   return (
     <div className="ops">
-      <style dangerouslySetInnerHTML={{ __html: CSS + PM_CSS }} />
+      <style dangerouslySetInnerHTML={{ __html: CSS + PM_CSS + MK_CSS }} />
       <div className="w">
         <div className="ops-top">
           <h1>운영 현황{client && clients.length < 2 ? ` · ${client.name}` : ""}</h1>
@@ -190,8 +194,10 @@ export default async function OpsPage({
         {!d.ok && <div className="err">데이터를 못 읽었습니다 — {d.err}</div>}
 
         <PmReport data={pm} ans={ans} client={client} />
-        <Todo name={client?.name ?? null} company={d.company} unresolved={gr.g?.inquiries ? gr.g.inquiries.unresolved : null} />
+        <Todo name={client?.name ?? null} company={d.company} unresolved={gr.g?.inquiries ? gr.g.inquiries.unresolved : null}
+              marketing={mk.ok ? mk.todo : 0} />
         {/* key — 탭을 바꾸면 새로 그린다. 안 그러면 전 탭의 줄을 state 로 들고 있다 */}
+        {client && <Marketing m={mk} name={client.name} />}
         <AgentStrip key={client?.slug ?? "-"} initial={agents} slug={client?.slug} />
         <Growth g={gr.g} err={gr.err} name={client?.name ?? null} />
         <Visits v={vis.v} err={vis.err} name={client?.name ?? "고객사 미선택"} slug={client?.slug} />

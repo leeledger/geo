@@ -24,6 +24,10 @@
  *   node naver-blog-post.mjs <슬러그>                  새로 발행
  *   node naver-blog-post.mjs <슬러그> --dry            발행 직전까지
  *   node naver-blog-post.mjs <슬러그> --update <logNo> 이미 올린 글을 고쳐 쓰기
+ *   node naver-blog-post.mjs --marketing <id> --profile .browser-profile-docttak
+ *        고객 바깥 글(geo.marketing_posts 블로그 초안, Step 35 D55)을 그 고객 블로그에 올린다.
+ *        원장이 현황판에서 「읽었어요」를 누른 초안만(note 「게시 승인」). 블로그 아이디는 NAVER_BLOG_ID 로 준다.
+ *        학원 꼬리(주소·QR·지도·상담 전화)는 안 붙인다 — 다른 고객 글이다
  *
  * 글을 고쳤으면 새로 올리지 말고 --update 를 쓴다.
  * 같은 내용이 두 벌 올라가면 네이버 검색에서 서로 갉아먹는다.
@@ -52,8 +56,15 @@ const DRY = process.argv.includes("--dry");
 const ARGS = process.argv.slice(2);
 const ui = ARGS.indexOf("--update");
 const LOG_NO = ui >= 0 ? ARGS[ui + 1] : null;
-const skip = ui >= 0 ? ui + 1 : -1;
-const slug = ARGS.find((a, i) => !a.startsWith("--") && i !== skip);
+// 값을 받는 옵션들 — 그 값을 슬러그로 읽지 않는다
+const 값자리 = new Set(["--update", "--marketing", "--profile"].map((k) => ARGS.indexOf(k)).filter((i) => i >= 0).map((i) => i + 1));
+const 값 = (k) => { const i = ARGS.indexOf(k); return i >= 0 ? ARGS[i + 1] ?? null : null; };
+const MK_ID = 값("--marketing");
+// 프로필은 저장소 루트 기준(.browser-profile). 고객 블로그는 따로 둔 프로필로 — 학원 블로그 세션과 섞이면 남의 블로그에 올라간다
+const PROFILE = 값("--profile") ?? ".browser-profile";
+const slug = MK_ID ? `marketing-${MK_ID}` : ARGS.find((a, i) => !a.startsWith("--") && !값자리.has(i));
+if (MK_ID && (!/^\d+$/.test(MK_ID) || LOG_NO)) { console.log("--marketing 다음에는 초안 번호를 주고, --update 와 같이 쓰지 않습니다."); process.exit(1); }
+if (MK_ID && !process.env.NAVER_BLOG_ID) { console.log("--marketing 은 NAVER_BLOG_ID(그 고객 블로그 아이디)가 있어야 합니다 — 학원 블로그에 올리지 않게."); process.exit(1); }
 
 if (!slug) {
   console.log("슬러그를 주세요. 예: node naver-blog-post.mjs ai-ro-jjatneunde-wae-ne-beon");
@@ -72,19 +83,23 @@ const pool = new Pool({
   connectionString: u.toString(),
   ssl: { rejectUnauthorized: process.env.DATABASE_SSL_INSECURE !== "true" },
 });
-const { rows } = await pool.query(
-  `select slug, title, body, tags from academy.posts where slug = $1`, [slug],
-);
+// 바깥 글은 원장이 확인한 블로그 초안만 읽는다(note 「게시 승인」). 태그는 검색어 하나와 고객 이름
+const { rows } = MK_ID
+  ? await pool.query(
+    `select 'marketing-' || m.id as slug, m.title, m.body, array[replace(m.target_query, ' ', ''), c.name] as tags
+       from geo.marketing_posts m join geo.clients c on c.id = m.client_id
+      where m.id = $1 and m.channel = 'blog' and m.status = '초안' and m.note like '게시 승인%'`, [Number(MK_ID)])
+  : await pool.query(`select slug, title, body, tags from academy.posts where slug = $1`, [slug]);
 // 에이전트가 그린 도해는 public/blog 가 아니라 DB 에 있다(/blog/img/<슬러그>/<이름>.svg, Step 12)
-const dbImgs = rows[0]?.body.includes(`/blog/img/${slug}/`)
+const dbImgs = !MK_ID && rows[0]?.body.includes(`/blog/img/${slug}/`)
   ? (await pool.query(`select name, svg from academy.post_images where slug = $1`, [slug])).rows : [];
 await pool.end();
-if (!rows.length) { console.log(`${slug} 글이 없습니다.`); process.exit(1); }
+if (!rows.length) { console.log(MK_ID ? `바깥 글 ${MK_ID}: 원장이 확인한 블로그 초안이 아닙니다(이미 올렸거나 확인 전) — 안 올립니다.` : `${slug} 글이 없습니다.`); process.exit(1); }
 const post = rows[0];
 
 /** 지역 태그는 늘 붙인다. 네이버에서 들어오는 사람은 대개 동네부터 찾는다. */
 const LOCAL = ["송파코딩학원", "석촌동코딩학원", "잠실코딩학원", "코딩학원추천"];
-const TAGS = [...new Set([...post.tags, ...LOCAL])].slice(0, 30);
+const TAGS = [...new Set([...post.tags, ...(MK_ID ? [] : LOCAL)])].slice(0, 30);
 
 // path.resolve 는 실행 위치(cwd) 기준이다. 이 도구는 .browser-profile 이 저장소 루트에 있어서
 // 루트에서 돌리는데, 그러면 C:/dev/academy/... 를 뒤져 그림을 못 찾는다.
@@ -158,7 +173,7 @@ function toBlocks(md) {
 const QR_CARD = fileURLToPath(new URL("./assets/naver-footer/contact-qr.png", import.meta.url));
 const PLACE = { query: "로봇앤코딩학원", address: "송파대로37길 52" };
 
-const BLOCKS = [
+const BLOCKS = MK_ID ? toBlocks(post.body) : [
   ...toBlocks(post.body),
   { hr: true },
   { t: "― 로봇&코딩학원 (서울 송파구 석촌동 274-8 2층)" },
@@ -174,7 +189,7 @@ console.log(post.title);
 console.log(`  문단 ${BLOCKS.filter((b) => b.t).length} · 소제목 ${BLOCKS.filter((b) => b.h).length}` +
             ` · 사진 ${BLOCKS.filter((b) => b.img).length} · 태그 ${TAGS.length}`);
 
-const ctx = await chromium.launchPersistentContext(path.join(process.cwd(), ".browser-profile"), {
+const ctx = await chromium.launchPersistentContext(path.resolve(process.cwd(), PROFILE), {
   headless: false,
   viewport: { width: 1440, height: 940 },
   locale: "ko-KR",
@@ -494,7 +509,9 @@ if (발행됨) {
   const logNo = /\/(\d{6,})(?:[?#]|$)/.exec(끝주소)?.[1] ?? /logNo=(\d{6,})/.exec(끝주소)?.[1];
   if (!logNo) {
     console.log("  ⚠ 주소에서 글 번호를 못 뽑았습니다. 손으로 적어야 합니다:");
-    console.log(`     update academy.posts set naver_log_no='<번호>', naver_at=now() where slug='${slug}';`);
+    console.log(MK_ID
+      ? `     update geo.marketing_posts set status='올림', posted_url='https://blog.naver.com/${BLOG_ID}/<번호>', posted_at=now() where id=${MK_ID};`
+      : `     update academy.posts set naver_log_no='<번호>', naver_at=now() where slug='${slug}';`);
   } else {
     // 위쪽 풀은 글을 읽자마자 닫는다. 브라우저 작업이 몇 분이라 연결을 붙잡고 있으면
     // Neon 이 유휴로 끊는다. 그래서 적을 때만 잠깐 새로 연다.
@@ -504,13 +521,16 @@ if (발행됨) {
       connectionString: du.toString(),
       ssl: { rejectUnauthorized: process.env.DATABASE_SSL_INSECURE !== "true" },
     });
-    const r = await 기록풀.query(
-      `update academy.posts set naver_log_no = $1, naver_at = now()
-        where slug = $2 and naver_log_no is null`,
-      [logNo, slug],
-    ).catch((e) => { console.log("  ⚠ 기록 실패:", e.message.slice(0, 80)); return null; });
+    const r = await (MK_ID
+      ? 기록풀.query(
+        `update geo.marketing_posts set status = '올림', posted_url = $1, posted_at = now() where id = $2 and status = '초안'`,
+        [`https://blog.naver.com/${BLOG_ID}/${logNo}`, Number(MK_ID)])
+      : 기록풀.query(
+        `update academy.posts set naver_log_no = $1, naver_at = now()
+          where slug = $2 and naver_log_no is null`,
+        [logNo, slug])).catch((e) => { console.log("  ⚠ 기록 실패:", e.message.slice(0, 80)); return null; });
     await 기록풀.end().catch(() => {});
-    if (r?.rowCount) console.log(`  기록했습니다: naver_log_no=${logNo}`);
+    if (r?.rowCount) console.log(MK_ID ? `  기록했습니다: marketing_posts ${MK_ID} 올림 logNo=${logNo}` : `  기록했습니다: naver_log_no=${logNo}`);
     else if (r) console.log(`  이미 기록돼 있습니다 (덮어쓰지 않았습니다). 고쳐 쓰려면 --update 를 쓰세요`);
   }
 }

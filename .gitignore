@@ -36,6 +36,8 @@ scratch-leads-backup.json
 # 브라우저 세션 — 사람이 직접 로그인한 네이버·구글 쿠키가 들어 있다 (18MB).
 # 올라가면 계정이 통째로 열린다. open-session.mjs 가 만든다
 .browser-profile/
+# 고객 블로그용 따로 둔 프로필(open-session.mjs --blog, Step 35 D55)
+.browser-profile-*/
 
 # 도구가 저장소 루트에 남기는 화면 캡처
 /*-look.png
