@@ -150,7 +150,8 @@ export default async function OpsPage({
           (g): { g: GrowthData | null; err?: string } => ({ g }),
           (e) => ({ g: null, err: e instanceof Error ? e.message : String(e) }))
       : Promise.resolve({ g: null, err: "고객사가 없습니다" }),
-    readAgents(),
+    // 콘텐츠·유통 줄은 고른 고객에 실제로 도는 일만(Step 34)
+    readAgents(Date.now(), client),
     readPmReport(),
     // 사람 방문(Step 29) — 못 읽으면 카드에 이유 한 줄
     client
@@ -190,8 +191,9 @@ export default async function OpsPage({
 
         <PmReport data={pm} ans={ans} client={client} />
         <Todo name={client?.name ?? null} company={d.company} unresolved={gr.g?.inquiries ? gr.g.inquiries.unresolved : null} />
-        <AgentStrip initial={agents} />
-        <Growth g={gr.g} err={gr.err} />
+        {/* key — 탭을 바꾸면 새로 그린다. 안 그러면 전 탭의 줄을 state 로 들고 있다 */}
+        <AgentStrip key={client?.slug ?? "-"} initial={agents} slug={client?.slug} />
+        <Growth g={gr.g} err={gr.err} name={client?.name ?? null} />
         <Visits v={vis.v} err={vis.err} name={client?.name ?? "고객사 미선택"} slug={client?.slug} />
         <AskLog client={client} />
 
@@ -253,7 +255,7 @@ export default async function OpsPage({
               </table>
             </div>
 
-            <AgentBoard data={d} clientName={client?.name ?? "고객사 미선택"} />
+            <AgentBoard data={d} clientName={client?.name ?? "고객사 미선택"} clientId={client?.id} />
             <Brief />
           </div>
         </details>

@@ -8,18 +8,19 @@ import { pool } from "./ops";
  *
  * 직원은 회사 전체의 직원이다. 고객사마다 따로 있지 않다 — 그래서 고객사로 거르지 않는다.
  * (GitHub 실행 기록을 옮긴 줄은 첫 고객사 번호로 적혀서, 고객사로 거르면 아이로그 화면에선 전부 「지연」이 된다)
+ * 단 콘텐츠·삽화·유통은 고객마다 실제로 도는 일이 달라 글 길이 없는 고객 탭에서는 clientRows 로 고른다(Step 34 D49).
  *
  * 정해진 시각은 .github/workflows/*.yml 의 cron 을 KST 로 옮긴 상수다.
  * ★ yml 의 cron 을 바꾸면 여기도 바꾼다. 안 바꾸면 멀쩡한 직원이 「지연」으로 뜬다.
  */
 
 /** 화면 글자는 AgentStrip 의 LABEL (클라이언트가 이 파일을 불러오면 pg 까지 딸려 간다 — 타입만 가져간다) */
-export type AgentState = "unknown" | "off" | "stuck" | "late" | "wait" | "working" | "pcoff" | "idle" | "ok";
+export type AgentState = "unknown" | "off" | "stuck" | "late" | "wait" | "working" | "pcoff" | "idle" | "ok" | "none";
 
-/** 활동 한 줄 (geo.agent_activity + 그 일감의 kind) */
-export type Act = { agent: string; action: string; ok: boolean; summary: string; at: string; kind: string | null };
+/** 활동 한 줄 (geo.agent_activity + 그 일감의 kind). clientId 는 고객별 줄(Step 34)을 가를 때만 쓴다 */
+export type Act = { agent: string; action: string; ok: boolean; summary: string; at: string; kind: string | null; clientId?: number | null };
 /** 안 끝난 일감 */
-export type OpenTask = { agent: string; kind: string; status: string; title: string; updatedAt: string };
+export type OpenTask = { agent: string; kind: string; status: string; title: string; updatedAt: string; clientId?: number | null };
 
 export type AgentRow = {
   id: string;
@@ -41,7 +42,25 @@ export type Agents = {
   rows: AgentRow[];
   /** 오늘(KST) Claude 호출 수. cap 은 env CLAUDE_DAILY_MAX — 없으면 null 이고 화면은 상한을 안 쓴다 */
   claude: { n: number; cap: number | null; tokens: ClaudeTokens | null } | null;
+  /** 콘텐츠·유통 줄을 이 고객에 맞춰 골랐으면 그 이름. 학원(글 길이 다 도는 곳)·고객 없음이면 null — 머리글이 예전과 같다 */
+  client: string | null;
 };
+
+/**
+ * 그 고객에 실제로 도는 글·유통 일 (Step 34 D49). 코드에서 확인한 것만 적는다 — 스크립트를 바꾸면 여기도.
+ *   posts     write.yml(write-draft·write-news 가 CLIENT=1 고정) · 삽화(illustrate.mjs 가 academy.posts 를 돈다 — 글이 있는 곳은 학원뿐) ·
+ *             원장 PC(local-agent.mjs 네이버 옮기기 client_id=1, submit-gsc --all 기본 학원)
+ *   indexnow  snapshot.yml 03:23 이 indexnow.mjs 로 academy/clients.mjs 에서 키가 있는 곳만 돈다 — 학원·아이로그(키 파일 200, 2026-10-02 확인).
+ *             문서딱은 키가 없어 건너뛰고, clients.mjs 에 없는 고객(등록 화면으로만 들어온 곳)은 아예 안 돈다
+ */
+export type Pipe = { posts: boolean; indexnow: boolean };
+const PIPES: Record<number, Pipe> = {
+  1: { posts: true, indexnow: true },
+  2: { posts: false, indexnow: true },
+};
+/** 고객이 없으면 예전처럼 다 도는 것으로 본다(학원 한 곳이던 때와 같은 화면) */
+export const pipeOf = (clientId: number | null | undefined): Pipe =>
+  clientId == null ? PIPES[1] : PIPES[clientId] ?? { posts: false, indexnow: false };
 
 /**
  * 오늘(KST) 토큰 합 — 토큰을 읽어 둔 호출만(Step 25 D17). 입력은 캐시 읽기·쓰기를 더한 전체.
@@ -409,23 +428,61 @@ function claudeCap(): number | null {
   return Number.isInteger(n) && n > 0 ? n : null;   // 없으면 상한을 지어내지 않는다
 }
 
-export async function readAgents(now = Date.now()): Promise<Agents> {
+/**
+ * 글 길이 없는 고객(아이로그·문서딱)의 콘텐츠·유통 줄 (Step 34 D49). 학원 문구 한 벌을 모든 탭에 띄우면 돌지 않는 일을 돈다고 쓰게 된다.
+ *   콘텐츠  자동 초안 없음. 개선 루프가 넘긴 「세션 대기」 글 일감(session-task.mjs, agent content)만 센다. 학원 write.yml 의 옮긴 줄은 안 본다
+ *   삽화    없음 — 줄을 뺀다
+ *   유통    색인 알림이 그 고객에 돌면 그 일만, 안 돌면 「해당 없음」
+ * 운영·수리공·측정은 회사 전체 일이라 손대지 않는다.
+ */
+function clientRows(r: Role, c: { id: number; name: string }, pipe: Pipe, acts: Act[], tasks: OpenTask[], now: number): AgentRow[] {
+  if (r.id === "illustrate") return [];
+  if (r.id === "content") {
+    const ts = tasks.filter((t) => t.clientId === c.id && roleOfAgent(t.agent, t.kind) === "content");
+    const n = ts.filter((t) => t.status === "세션 대기").length;
+    const role: Role = { ...r, jobs: [], does: `자동 초안 없음 · 세션에서 쓸 글 ${n ? `${n}건 → ${c.name} 저장소에 반영` : "없음"}` };
+    const row = judge(role, { acts: acts.filter((a) => !isMirror(a) && a.clientId === c.id && roleOfAct(a) === "content"), tasks: ts }, now);
+    // 쉬는 중이면 이유 대신 위 문장을 보인다 — 「세션에서 쓸 글 없음」이 그 이유다
+    return [row.state === "idle" ? { ...row, reason: null } : row];
+  }
+  if (r.id === "deliver") {
+    if (!pipe.indexnow) {
+      return [{ id: r.id, name: r.name, state: "none", reason: null, does: "색인 알림 없음 · 이 고객에는 자동 유통이 안 돕니다", last: null, next: null, today: { ok: 0, fail: 0 } }];
+    }
+    // 색인 알림은 회사 전체 한 번 실행이 키 있는 곳을 다 돈다 — 옮긴 줄(자동 작업 snapshot)이 그 실행이다
+    const role: Role = {
+      ...r, jobs: r.jobs.filter((j) => j.wf === "snapshot"),
+      does: "매일 새벽 사이트 주소를 빙·네이버에 알립니다. 네이버 블로그 옮기기·구글 색인 요청은 이 고객에 안 돕니다",
+    };
+    return [judge(role, {
+      acts: acts.filter((a) => isMirror(a) && roleOfAct(a) === "deliver"),
+      tasks: tasks.filter((t) => t.clientId === c.id && roleOfAgent(t.agent, t.kind) === "deliver"),
+      catchups: acts.filter((a) => a.action === "밀린 예약 실행"),
+    }, now)];
+  }
+  return [];
+}
+
+export async function readAgents(now = Date.now(), client: { id: number; name: string } | null = null): Promise<Agents> {
   const stamp = new Date(now).toISOString();
+  const pipe = pipeOf(client?.id);
+  const mine = client && !pipe.posts ? client : null;
   // 오류 원문은 서버 로그에만 — 응답·화면에는 「상태를 못 읽었습니다」만 (내부 이름이 샌다)
   const unknown = (): Agents => ({
-    ok: false, at: stamp, claude: null,
-    rows: ROLES.map((r) => ({ id: r.id, name: r.name, does: r.does, state: "unknown", reason: "상태를 못 읽었습니다", last: null, next: null, today: { ok: 0, fail: 0 } })),
+    ok: false, at: stamp, claude: null, client: mine?.name ?? null,
+    rows: ROLES.filter((r) => !mine || r.id !== "illustrate")
+      .map((r) => ({ id: r.id, name: r.name, does: r.does, state: "unknown", reason: "상태를 못 읽었습니다", last: null, next: null, today: { ok: 0, fail: 0 } })),
   });
   try {
     const p = pool();
     // 10일 — 주 1회 일(월요일 초안·영업)의 마지막 활동까지 덮는다
     const { rows: ar } = await p.query(
-      `select a.agent, a.action, a.ok, coalesce(a.summary, '') as summary, a.at, t.kind
+      `select a.agent, a.action, a.ok, coalesce(a.summary, '') as summary, a.at, t.kind, a.client_id
          from geo.agent_activity a left join geo.agent_tasks t on t.id = a.task_id
         where a.at > now() - interval '10 days'
         order by a.at desc`);
     const { rows: tr } = await p.query(
-      `select agent, kind, status, title, updated_at from geo.agent_tasks where status not in ('완료', '닫힘')`);
+      `select agent, kind, status, title, updated_at, client_id from geo.agent_tasks where status not in ('완료', '닫힘')`);
     const { rows: sr } = await p.query(`select value from geo.settings where key = 'repair_paused'`);
     let claude: Agents["claude"] = null;
     try {
@@ -447,8 +504,8 @@ export async function readAgents(now = Date.now()): Promise<Agents> {
       claude = { n: c.n, cap: claudeCap(), tokens };
     } catch (e) { console.error("claude_calls 읽기 실패", e); }
 
-    const acts: Act[] = ar.map((r) => ({ agent: r.agent, action: r.action, ok: !!r.ok, summary: r.summary, at: iso(r.at), kind: r.kind ?? null }));
-    const tasks: OpenTask[] = tr.map((r) => ({ agent: r.agent, kind: r.kind, status: r.status, title: r.title, updatedAt: iso(r.updated_at) }));
+    const acts: Act[] = ar.map((r) => ({ agent: r.agent, action: r.action, ok: !!r.ok, summary: r.summary, at: iso(r.at), kind: r.kind ?? null, clientId: r.client_id ?? null }));
+    const tasks: OpenTask[] = tr.map((r) => ({ agent: r.agent, kind: r.kind, status: r.status, title: r.title, updatedAt: iso(r.updated_at), clientId: r.client_id ?? null }));
     const paused = sr[0]?.value === "true";
     let merged7: number | null = null;
     try {
@@ -459,14 +516,16 @@ export async function readAgents(now = Date.now()): Promise<Agents> {
     } catch (e) { console.error("repairs 읽기 실패", e); }
 
     return {
-      ok: true, at: stamp, claude,
-      rows: ROLES.map((r) => judge(r, {
+      ok: true, at: stamp, claude, client: mine?.name ?? null,
+      rows: ROLES.flatMap((r) => mine && (r.id === "content" || r.id === "illustrate" || r.id === "deliver")
+        ? clientRows(r, mine, pipe, acts, tasks, now)
+        : [judge(r, {
         acts: acts.filter((a) => roleOfAct(a) === r.id),
         tasks: tasks.filter((t) => roleOfAgent(t.agent, t.kind) === r.id),
         paused: r.id === "repair" ? paused : false,
         merged7: r.id === "repair" ? merged7 : null,
         catchups: acts.filter((a) => a.action === "밀린 예약 실행"),
-      }, now)),
+      }, now)]),
     };
   } catch (e) {
     console.error("에이전트 상태 읽기 실패", e);

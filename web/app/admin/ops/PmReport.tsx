@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import type { PmReport as Data, PmStatus } from "@/lib/pm-report";
-import type { AnswerTable } from "@/lib/asks";
+import type { AnswerTable, BrandRow } from "@/lib/asks";
 
 /**
  * ⓪ 오늘 아침 보고 — 현황판 맨 위, 「오늘 원장님이 하실 일」 위.
@@ -46,8 +46,15 @@ export const PM_CSS = `
 
 /**
  * ② 선택한 고객의 AI 답변 표 (Step 33 D47) — 탭을 바꾸면 이것만 바뀐다. 숫자는 저장된 보고가 아니라 asks.ts readAnswerTable 이 지금 센 것.
- * 학원 탭은 저장된 보고의 AI답변 과 같은 셈이라 같은 날·같은 곳이면 숫자가 같다.
+ * 숫자는 이름 질문을 뺀 질문만(Step 34 D51) — 그래서 학원 탭도 저장된 보고(이름 질문 포함)와 숫자가 다르다. 이름 질문은 표 아래 한 줄.
  */
+/** 이름 질문 한 줄 — 곳끼리 합치지 않는다. 물은 수가 곳마다 같으면 앞에 한 번만 */
+function brandLine(b: BrandRow[]): string {
+  const same = b.every((x) => x.n === b[0].n);
+  const each = b.map((x) => same ? `${x.엔진} ${x.이름}개` : `${x.엔진} ${x.n}개 중 ${x.이름}개`).join(" · ");
+  return `이름 질문${same ? ` ${b[0].n}개 중` : ""} ${each} — AI 가 이 사이트를 제대로 아는지 확인용(노출 성과 아님)`;
+}
+
 function ClientAnswers({ ans, client }: { ans: AnswerTable; client: { name: string; slug: string } | null }) {
   if (!client) return null;
   return (
@@ -58,7 +65,7 @@ function ClientAnswers({ ans, client }: { ans: AnswerTable; client: { name: stri
         : (
           <>
             <table className="pm-ai" aria-label={`${client.name} 엔진별 AI 답변`}>
-              <thead><tr><th>물어본 곳</th><th>{client.name} 이름이 나온 답</th><th>우리 링크가 붙은 답</th><th>지난번과</th></tr></thead>
+              <thead><tr><th>물어본 곳</th><th>{client.name} 이름이 나온 답 <span className="pm-ai-note">이름 질문 빼고</span></th><th>우리 링크가 붙은 답</th><th>지난번과</th></tr></thead>
               <tbody>
                 {ans.rows.map((a) => (
                   <tr key={a.엔진}>
@@ -70,6 +77,7 @@ function ClientAnswers({ ans, client }: { ans: AnswerTable; client: { name: stri
                 ))}
               </tbody>
             </table>
+            {ans.brand && ans.brand.length > 0 && <p className="pm-ai-note">{brandLine(ans.brand)}</p>}
             <p className="pm-ai-note">같은 질문을 매일 한 번 묻습니다. 답이 날마다 조금씩 달라서 3개 이하 차이는 「비슷」으로 봅니다. <a href={`/admin/asks?c=${client.slug}`} style={{ color: "var(--acc)" }}>어떤 질문을 몇 시에 물었는지 보기 →</a></p>
           </>
         )}

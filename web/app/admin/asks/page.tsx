@@ -81,7 +81,7 @@ const CSS = `
 }
 `;
 
-/** 날짜 칩 한 칸 — 한 곳이면 그 숫자, 여러 곳이면 몇 곳인지만 (합치지 않는다) */
+/** 날짜 칩 한 칸 — 한 곳이면 그 숫자(이름 질문 빼고), 여러 곳이면 몇 곳인지만 (합치지 않는다) */
 function Chip({ x, on, href }: { x: AskDay; on: boolean; href: string }) {
   const p = x.places;
   return (
@@ -137,7 +137,8 @@ export default async function AsksPage({
           <AdminNav here="/admin/asks" />
         </div>
         <p className="sub">
-          학부모가 AI 에 물을 법한 질문을 매일 똑같이 물어보고, 답에 학원 이름과 우리 사이트 링크가 나오는지 적습니다.
+          사람들이 AI 에 물을 법한 질문을 매일 똑같이 물어보고, 답에 {client ? `${client.name} 이름` : "이름"}과 우리 사이트 링크가 나오는지 적습니다.
+          머리 숫자는 이름 질문(질문에 이름이 든 것)을 뺀 질문만 셉니다 — 이름 질문은 답이 이름을 따라 말해 노출 성과가 아닙니다.
           기록은 지우지 않고 날짜별로 쌓입니다. 시각은 한국 시간입니다.
         </p>
 
@@ -161,7 +162,7 @@ export default async function AsksPage({
                   {p.where} — 방법: {p.how}
                   <span>
                     기간 {mdShort(p.first)}~{mdShort(p.last)} (잰 날 {p.days}일) · 표본 {p.n}
-                    {p.week.n > 0 && <> · 최근 7일 <b>{p.week.n}번 중 {p.week.k}번</b> 이름이나 링크가 나옴</>}
+                    {p.week.n > 0 && <> · 최근 7일 <b>{p.week.n}번 중 {p.week.k}번</b> 이름이나 링크가 나옴(이름 질문 빼고)</>}
                   </span>
                 </li>
               ))}
@@ -197,7 +198,8 @@ export default async function AsksPage({
               <ul>
                 {sel.places.map((p) => (
                   <li key={p.method}>
-                    {p.where} — 질문 {p.n}개 중 <b>{p.named}개</b> 답에 학원 이름, <b>{p.cited}개</b> 답에 우리 사이트 링크
+                    {p.where} — 질문 {p.n}개 중 <b>{p.named}개</b> 답에 {client ? `${client.name} 이름` : "이름"}, <b>{p.cited}개</b> 답에 우리 사이트 링크
+                    {p.brand.n > 0 && <> · 이름 질문 {p.brand.n}개 중 {p.brand.named}개 — AI 가 이 사이트를 제대로 아는지 확인용(노출 성과 아님)</>}
                     <span>{span(p.first, p.last) ? `물어본 시각 ${span(p.first, p.last)}` : "손으로 잰 기록이라 시각 없음"}</span>
                   </li>
                 ))}
@@ -268,7 +270,7 @@ export default async function AsksPage({
         {week && week.rows.length > 0 && (
           <>
             <h2>질문별 최근 7일 — 몇 번 중 몇 번</h2>
-            <p className="ak-key">한 번 나온 것을 적중으로 세지 않습니다. 곳마다 물어본 횟수 중 학원 이름이나 우리 링크가 나온 횟수입니다.</p>
+            <p className="ak-key">한 번 나온 것을 적중으로 세지 않습니다. 곳마다 물어본 횟수 중 {client ? `${client.name} 이름` : "이름"}이나 우리 링크가 나온 횟수입니다. 맨 아래 합계는 이름 질문을 뺍니다.</p>
             <div className="ak-grid">
               <table>
                 <thead>
@@ -282,7 +284,7 @@ export default async function AsksPage({
                     </tr>
                   ))}
                   <tr>
-                    <td><b>곳별 합계</b></td>
+                    <td><b>곳별 합계</b> <small className="ak-note">이름 질문 빼고</small></td>
                     {week.places.filter((p) => p.week.n > 0).map((p) => <td key={p.method}><b>{p.week.n}번 중 {p.week.k}번</b></td>)}
                   </tr>
                 </tbody>

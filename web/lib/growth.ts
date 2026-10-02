@@ -28,6 +28,8 @@ export type Growth = {
     engine: string; method: string;
     rounds: { day: string; prompts: number; mentioned: number; cited: number }[];
     compare: AiCompare | null;
+    /** 이름 질문(stage brand)의 최근 회차 — 질문에 이름이 들어 있어 답이 따라 말한다. 노출 성과가 아니라 따로 둔다(Step 34 D51). 없으면 null */
+    brand: { day: string; prompts: number; mentioned: number } | null;
   }[] | null;
   rival: {
     daily: { day: string; won: number | null; total: number; engines: number }[];
@@ -151,21 +153,27 @@ export async function readGrowth(client: Client): Promise<Growth> {
     };
   });
 
-  /* AI 답변 — 엔진+방법 쌍 안에서만, 두 회차 공통 문항으로만 비교 */
+  /*
+   * AI 답변 — 엔진+방법 쌍 안에서만, 두 회차 공통 문항으로만 비교.
+   * 머리 숫자는 이름 질문(stage brand)을 뺀 질문만 센다 — 이름이 든 질문은 답이 이름을 따라 말해 노출 성과가 아니다(Step 34 D51).
+   * 이름 질문은 brand 로 따로. 케이스 리포트·아침 보고 저장 셈은 이것과 별개라 그대로다
+   */
   const ai = await part("AI 측정", async () => {
-    const rows = await q<{ day: string; engine: string; method: string; prompt_id: string; m: boolean; c: boolean }>(
+    const rows = await q<{ day: string; engine: string; method: string; prompt_id: string; m: boolean; c: boolean; b: boolean }>(
       `select measured_on::text as day, engine, collection_method as method, prompt_id,
-              bool_or(mentioned) as m, bool_or(cited) as c
+              bool_or(mentioned) as m, bool_or(cited) as c, coalesce(bool_or(stage = 'brand'), false) as b
          from academy.ai_measurements where client_id = $1 group by 1, 2, 3, 4`, [id]);
-    const pairs = new Map<string, { engine: string; method: string; byDay: Map<string, Map<string, { m: boolean; c: boolean }>> }>();
+    type Days = Map<string, Map<string, { m: boolean; c: boolean }>>;
+    const pairs = new Map<string, { engine: string; method: string; byDay: Days; brandDay: Days }>();
     for (const r of rows) {
       const k = `${r.engine}\u0000${r.method}`;
-      if (!pairs.has(k)) pairs.set(k, { engine: r.engine, method: r.method, byDay: new Map() });
-      const byDay = pairs.get(k)!.byDay;
+      if (!pairs.has(k)) pairs.set(k, { engine: r.engine, method: r.method, byDay: new Map(), brandDay: new Map() });
+      const byDay = r.b ? pairs.get(k)!.brandDay : pairs.get(k)!.byDay;
       if (!byDay.has(r.day)) byDay.set(r.day, new Map());
       byDay.get(r.day)!.set(r.prompt_id, { m: !!r.m, c: !!r.c });
     }
-    const out = [...pairs.values()].map(({ engine, method, byDay }) => {
+    // 이름 질문만 잰 쌍은 머리 숫자가 없다 — 뺀다
+    const out = [...pairs.values()].filter((p) => p.byDay.size > 0).map(({ engine, method, byDay, brandDay }) => {
       const ds = [...byDay.keys()].sort();
       const rounds = ds.map((day) => {
         const ps = [...byDay.get(day)!.values()];
@@ -185,7 +193,10 @@ export async function readGrowth(client: Client): Promise<Growth> {
           };
         }
       }
-      return { engine, method, rounds, compare };
+      const bd = [...brandDay.keys()].sort().at(-1);
+      const bp = bd ? [...brandDay.get(bd)!.values()] : [];
+      const brand = bd ? { day: bd, prompts: bp.length, mentioned: bp.filter((x) => x.m).length } : null;
+      return { engine, method, rounds, compare, brand };
     });
     out.sort((a, b) => {
       const la = a.rounds[a.rounds.length - 1].day, lb = b.rounds[b.rounds.length - 1].day;

@@ -82,11 +82,12 @@ export function Word({ d }: { d: Delta | null }) {
   return <span className={`gw ${good ? "ok" : "crit"}`}>{d.dir === "up" ? "▲ 늘었음" : "▼ 줄었음"}</span>;
 }
 
-function Card({ head, none, cmp, extra }: { head: ReactNode; none?: boolean; cmp?: ReactNode; extra?: ReactNode }) {
+function Card({ head, none, cmp, note, extra }: { head: ReactNode; none?: boolean; cmp?: ReactNode; note?: ReactNode; extra?: ReactNode }) {
   return (
     <div className="gc">
       <p className={`gc-h${none ? " none" : ""}`}>{head}</p>
       {cmp && <p className="gc-c">{cmp}</p>}
+      {note && <p className="gc-c gc-d">{note}</p>}
       {extra && <div className="gc-x">{extra}</div>}
     </div>
   );
@@ -131,7 +132,8 @@ function lowest(g: G) {
   return { cov, low, covDelta };
 }
 
-export default function Growth({ g, err }: { g: G | null; err?: string }) {
+/** name — 고른 고객 이름. 없으면 「이름」만 (Step 34 D50: 문서딱 탭에 「학원 이름」이 뜨던 것) */
+export default function Growth({ g, err, name }: { g: G | null; err?: string; name?: string | null }) {
   if (!g) {
     return (
       <section className="gr">
@@ -171,9 +173,12 @@ export default function Growth({ g, err }: { g: G | null; err?: string }) {
             : (
               <Card
                 head={<>
-                  {engineName(aiTop.engine)}에게 물은 질문 {aiLast.prompts}개 중 <b>{aiLast.mentioned}개</b> 답에 학원 이름이 나왔습니다
-                  <span className="gc-s"> · 우리 사이트 링크 {aiLast.cited}개</span>
+                  {engineName(aiTop.engine)}에게 물은 질문 {aiLast.prompts}개 중 <b>{aiLast.mentioned}개</b> 답에 {name ? `${name} 이름` : "이름"}이 나왔습니다
+                  <span className="gc-s"> · 우리 사이트 링크 {aiLast.cited}개 · 이름 질문 빼고</span>
                 </>}
+                note={aiTop.brand ? <>
+                  이름 질문 {aiTop.brand.prompts}개 중 {aiTop.brand.mentioned}개{aiTop.brand.day !== aiLast.day && ` (${md(aiTop.brand.day)})`} — AI 가 이 사이트를 제대로 아는지 확인용(노출 성과 아님)
+                </> : undefined}
                 cmp={aiTop.compare ? <>
                   {aiTop.compare.common !== aiLast.prompts && `두 번 다 물은 질문 ${aiTop.compare.common}개 기준 · `}
                   지난번({md(aiTop.compare.prevDay)}) {aiTop.compare.mentioned[0]}개 → 이번({md(aiLast.day)}) {aiTop.compare.mentioned[1]}개{" "}
@@ -288,7 +293,7 @@ export function GrowthMore({ g, client, place }: { g: G | null; client: Client |
       <h3>그 밖의 숫자</h3>
       {!g ? <p className="gr-empty">확인 못함</p> : (
         <dl>
-          <div><dt>지역·업종 검색 (학원 이름 없이)</dt>
+          <div><dt>지역·업종 검색 (이름 없이)</dt>
             <dd>{rv === null ? "확인 못함" : !rv.latest ? "기록 없음" : <>
               {md(rv.latest.day)} — {rv.latest.total}개 중 <b>{rv.latest.won}개</b>에서 나옴
               {" "}({rv.latest.byEngine.map((e) => `${RIVAL_NAME[e.engine] ?? "기타"} ${e.hit}${e.best !== null && e.hit > 0 ? `·최고 ${e.best}위` : ""}`).join(" · ")})

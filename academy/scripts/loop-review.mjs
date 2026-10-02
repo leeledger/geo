@@ -106,7 +106,7 @@ export const 검색어넓히기 = ({ text, radius }) => {
 
 /**
  * 변형 탐침(D43). 기능 말은 승인 검색어형 질문에서 틀 말(추천·무료·앱·프로그램)을 뺀 나머지다 — 새 말을 지어내지 않는다.
- * 변형 = { forms: ["{기능} 앱", …], strip: /…/g } (clients.mjs loop.probeVariants)
+ * 변형 = { forms: ["{기능} 앱", …], strip: /…/g, seeds?: ["…"] } (clients.mjs loop.probeVariants). seeds 는 자기점검이 따로 한 번 만든다
  */
 export const 변형후보 = (questions, 변형) => {
   const 기능들 = [];
@@ -303,8 +303,15 @@ export function 자기점검({ questions, rows, 판정rows = rows, runs, posts, 
     // 승인·확장 질문과 꼬리말(추천·좀·해줘 …)을 뺀 뒤 같으면 사실상 같은 검색어다 — 만들지 않는다(Richard 31)
     const 있는글 = [...questions.map((x) => x.text), ...확장들, ...probes.map((p) => p.text)].map(꼬리뺀);
     const 새것 = [];
+    // 씨앗(변형.seeds): 원장이 실제로 들은·친 검색어. 승인 질문에서 못 뽑는 말이라 한 번 그대로 만든다. 하루 한도에 안 센다(widen 씨앗과 같다)
+    for (const text of 변형.seeds ?? []) {
+      if (있는글.includes(꼬리뺀(text))) continue;
+      새것.push({ source_prompt: null, radius: "변형", text, form: "keyword", seed: true });
+      있는글.push(꼬리뺀(text));
+    }
+    const 씨앗수 = 새것.length;
     for (const v of 변형후보(questions, 변형)) {
-      if (새것.length >= 새탐침한도) break;
+      if (새것.length - 씨앗수 >= 새탐침한도) break;
       if (있는글.includes(꼬리뺀(v.text))) continue;
       새것.push({ source_prompt: v.source_prompt, radius: "변형", text: v.text, form: "keyword" });
       있는글.push(꼬리뺀(v.text));
@@ -326,7 +333,7 @@ export function 자기점검({ questions, rows, 판정rows = rows, runs, posts, 
         code: "variant",
         title: "검색어를 바꿔 어디서 이름이 나오는지 잽니다",
         evidence: (잰것.length ? `${곳(탐침곳)} 7일: ${잰것.map((x) => `「${x.p.text}」 ${x.hit}/${x.n}`).join(" · ")}` : "아직 잰 변형 없음") +
-          (새것.length ? ` · 오늘 새로: ${새것.map((p) => `${p.source_prompt}→「${p.text}」`).join(", ")}` : ""),
+          (새것.length ? ` · 오늘 새로: ${새것.map((p) => `${p.seed ? "씨앗 " : `${p.source_prompt}→`}「${p.text}」`).join(", ")}` : ""),
         action: "변형은 승인 검색어에 나온 기능 말로만 하루 2개까지 만들고, 측정은 하루 탐침 몫 안에서 Claude 로 합니다. 적중률 계산·효과 판정에는 쓰지 않습니다.",
       });
     }

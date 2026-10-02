@@ -1,5 +1,5 @@
 import type { Ops } from "@/lib/ops";
-import { plain } from "@/lib/agents";
+import { pipeOf, plain } from "@/lib/agents";
 import "./agent-board.css";
 
 type Status = "attention" | "review" | "recorded" | "unknown";
@@ -10,7 +10,7 @@ const stamp = (value: string | null) => value
   ? new Date(value).toLocaleString("ko-KR", { timeZone: "Asia/Seoul", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false })
   : "기록 없음";
 
-export default function AgentBoard({ data: d, clientName }: { data: Ops; clientName: string }) {
+export default function AgentBoard({ data: d, clientName, clientId }: { data: Ops; clientName: string; clientId?: number }) {
   const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Seoul" });
   const measurementOld = !d.serp.day || d.serp.day.slice(0, 10) !== today;
   const roles: {
@@ -75,6 +75,25 @@ export default function AgentBoard({ data: d, clientName }: { data: Ops; clientN
       last: null, lastLabel: "미처리 리드", metric: String(d.sales.newLeads), metricLabel: "지금 처리할 리드", jobs: "무료 진단 전환 · 리드 후속 · 문의 유입 확인 · 등록·계약 결과 기록",
     },
   ];
+  // 글 길이 없는 고객(아이로그·문서딱) — 콘텐츠·유통 카드의 학원 문구(주간 초안·도해·네이버 이관)를 그 고객에 실제로 도는 일로 (Step 34 D49)
+  const pipe = pipeOf(clientId);
+  if (!pipe.posts) {
+    for (const a of roles) {
+      if (a.id === "content") {
+        a.mode = "자동 초안 없음 · 세션이 쓴다";
+        a.jobs = `개선 루프가 넘긴 질문을 Claude 세션이 글로 써서 ${clientName} 저장소에 넘깁니다. 이 저장소의 주간 초안·도해는 이 고객에 안 돕니다`;
+        a.next = "개선 루프가 세션 글 일감을 열면 세션이 씁니다.";
+      }
+      if (a.id === "deliver") {
+        a.mode = pipe.indexnow ? "색인 알림 자동 · 네이버 이관·구글 요청 없음" : "자동 유통 없음";
+        a.headline = pipe.indexnow ? "매일 03:23 색인 알림이 이 사이트도 돕니다" : "이 고객에는 색인 알림이 안 돕니다";
+        a.reason = pipe.indexnow ? "알림 접수와 검색 색인 완료는 서로 다른 단계입니다." : "IndexNow 키가 없어 색인 알림이 건너뜁니다.";
+        a.next = pipe.indexnow ? "다음 03:23 실행 기록을 확인합니다." : "키가 생기면 색인 알림 대상에 넣습니다.";
+        a.jobs = pipe.indexnow ? "IndexNow 알림(빙·네이버)" : "없음";
+        a.lastLabel = "마지막 네이버 이관 · 이 고객은 해당 없음";
+      }
+    }
+  }
   /**
    * 회사 루프의 실제 일감·활동을 카드에 덮어 쓴다.
    * 전에는 숫자를 보고 문장만 골랐다 — 그 문장을 실행하는 곳이 없어서 원장이 「왜 자동으로 안 하냐」고 물었다.

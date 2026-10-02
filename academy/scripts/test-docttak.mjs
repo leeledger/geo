@@ -112,8 +112,19 @@ t("변형 탐침 도구 말은 승인 검색어에서만", () => {
 t("변형 탐침 — 승인 질문과 같은 글은 안 만든다(「pdf 합치기 무료」)", () => {
   const r = 자기점검({ runs: [], posts: [], today: "2026-10-01", 적중: (x) => x.cited || x.mentioned, domain: "docttak.com",
     questions: 승인, rows: [], 탐침: 문서딱.loop.probes, 변형: 문서딱.loop.probeVariants, 새탐침한도: 2 });
-  assert.deepEqual(r.probes.map((p) => p.text), ["pdf 합치기 사이트", "아이폰 pdf 합치기 무료"]);
+  // 「pdf 병합」은 씨앗(원장 2026-10-02) — 하루 한도 2개와 따로 한 번 만든다
+  assert.deepEqual(r.probes.map((p) => p.text), ["pdf 병합", "pdf 합치기 사이트", "아이폰 pdf 합치기 무료"]);
+  assert.deepEqual(r.probes[0], { source_prompt: null, radius: "변형", text: "pdf 병합", form: "keyword", seed: true });
   assert.equal(r.findings.some((f) => f.code === "widen"), false); // 송파 넓힘 안 씀
+});
+t("변형 씨앗 — 이미 탐침에 있으면 다시 안 만든다 · 한도 0 이어도 씨앗은 만든다", () => {
+  const 기본 = { runs: [], posts: [], today: "2026-10-02", 적중: (x) => x.cited || x.mentioned, domain: "docttak.com",
+    questions: 승인, rows: [], 탐침: 문서딱.loop.probes, 변형: 문서딱.loop.probeVariants };
+  const 있음 = 자기점검({ ...기본, 새탐침한도: 2,
+    probes: [{ prompt_id: "p1", source_prompt: null, radius: "변형", text: "pdf 병합", active: true, form: "keyword" }] });
+  assert.equal(있음.probes.some((p) => p.text === "pdf 병합"), false);
+  const 영 = 자기점검({ ...기본, 새탐침한도: 0 });
+  assert.deepEqual(영.probes.map((p) => p.text), ["pdf 병합"]);
 });
 t("검색 결과 화면 질의 — 색인 1 · 경쟁 5(브리프 원문) · 브랜드 2", () => {
   const 셈 = 문서딱.queries.reduce((m, x) => ((m[x.kind] = (m[x.kind] ?? 0) + 1), m), {});

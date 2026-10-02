@@ -44,8 +44,9 @@ export default async function AskLog({ client }: { client: Client | null }) {
         <>
           {d.places.map((p) => (
             <p className="al-sum" key={p.method}>
-              {md(d.day)} {span(p.first, p.last)} · <b>{p.where}</b>에 질문 {p.n}개 —
-              학원 이름 <b>{p.named}개</b>, 우리 사이트 링크 <b>{p.cited}개</b>
+              {md(d.day)} {span(p.first, p.last)} · <b>{p.where}</b>에 질문 {p.n}개(이름 질문 빼고) —
+              {client.name} 이름 <b>{p.named}개</b>, 우리 사이트 링크 <b>{p.cited}개</b>
+              {p.brand.n > 0 && <> · 이름 질문 {p.brand.n}개 중 {p.brand.named}개는 확인용(노출 성과 아님)</>}
             </p>
           ))}
           {d.places.length > 1 && <p className="al-sum">아래 목록은 {rows[0]?.where ?? "대표 곳"} 질문만입니다. 다른 곳은 기록 화면에서 봅니다.</p>}

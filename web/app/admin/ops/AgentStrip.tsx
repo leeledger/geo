@@ -13,7 +13,7 @@ import type { Agents, AgentState } from "@/lib/agents";
  */
 
 const LABEL: Record<AgentState, string> = {
-  unknown: "확인 못함", off: "꺼짐", stuck: "실패", late: "늦음", wait: "원장님 차례", working: "일하는 중", pcoff: "PC 꺼짐", idle: "쉬는 중", ok: "정상",
+  unknown: "확인 못함", off: "꺼짐", stuck: "실패", late: "늦음", wait: "원장님 차례", working: "일하는 중", pcoff: "PC 꺼짐", idle: "쉬는 중", ok: "정상", none: "해당 없음",
 };
 const POLL_MS = 45_000;
 const FLASH_MS = 1_800;
@@ -90,7 +90,8 @@ function tok(n: number): string {
   return n.toLocaleString("ko-KR");
 }
 
-export default function AgentStrip({ initial }: { initial: Agents }) {
+/** slug 는 지금 고른 고객 탭 — 다시 읽을 때도 같은 고객 줄을 받는다(Step 34) */
+export default function AgentStrip({ initial, slug }: { initial: Agents; slug?: string }) {
   const [data, setData] = useState(initial);
   const [lost, setLost] = useState(false);
   // 첫 그림은 서버 시각으로 센다 — 서버와 브라우저가 같은 글자를 그려야 hydration 이 안 어긋난다
@@ -107,7 +108,7 @@ export default function AgentStrip({ initial }: { initial: Agents }) {
     const pull = async () => {
       if (document.hidden) return;
       try {
-        const r = await fetch("/api/admin/agents", { cache: "no-store" });
+        const r = await fetch(`/api/admin/agents${slug ? `?c=${encodeURIComponent(slug)}` : ""}`, { cache: "no-store" });
         if (!r.ok) throw new Error(String(r.status));
         const next = (await r.json()) as Agents;
         if (!alive) return;
@@ -140,14 +141,14 @@ export default function AgentStrip({ initial }: { initial: Agents }) {
       clearTimeout(unflash);
       document.removeEventListener("visibilitychange", onVis);
     };
-  }, []);
+  }, [slug]);
 
   const c = data.claude;
   return (
     <section className="ag" aria-labelledby="ag-h">
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
       <div className="ag-hd">
-        <h2 id="ag-h">자동으로 도는 일 · 회사 전체</h2>
+        <h2 id="ag-h">자동으로 도는 일 · 회사 전체{data.client ? ` · 콘텐츠·유통은 ${data.client}` : ""}</h2>
         {lost
           ? <span className="ag-sub lost" role="status">연결 끊김 · {ago(data.at, now)} 값</span>
           : <span className="ag-sub">{hhmm(data.at)} 기준 · 저절로 새로 고침</span>}
@@ -170,11 +171,13 @@ export default function AgentStrip({ initial }: { initial: Agents }) {
             </span>
             <b className="ag-nm">{r.name}</b>
             <span className="ag-main" title={r.reason ?? r.does}>{r.reason ?? r.does}</span>
-            <span className="ag-ago">{r.last ? `${ago(r.last.at, now)} 실행` : "최근 10일 기록 없음"}</span>
-            <span className="ag-nx">{r.next ? `다음 ${r.next}` : "필요할 때"}</span>
-            <span className="ag-cnt">
-              오늘 {r.today.ok + r.today.fail}번 실행{r.today.fail > 0 && <> · <b>실패 {r.today.fail}</b></>}
-            </span>
+            {r.state === "none" ? <span className="ag-ago">이 고객에는 안 돕니다</span> : <>
+              <span className="ag-ago">{r.last ? `${ago(r.last.at, now)} 실행` : "최근 10일 기록 없음"}</span>
+              <span className="ag-nx">{r.next ? `다음 ${r.next}` : "필요할 때"}</span>
+              <span className="ag-cnt">
+                오늘 {r.today.ok + r.today.fail}번 실행{r.today.fail > 0 && <> · <b>실패 {r.today.fail}</b></>}
+              </span>
+            </>}
           </li>
         ))}
       </ol>

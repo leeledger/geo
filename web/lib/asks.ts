@@ -26,10 +26,17 @@ export type AskRow = {
   answer: string;           // 앞부분만
 };
 
+/**
+ * n·named·cited 는 이름 질문(stage brand)을 뺀 질문만 — 이름이 든 질문은 답이 이름을 따라 말해 노출 성과가 아니다(Step 34 D51).
+ * 이름 질문은 brand 에 따로. 케이스 리포트·아침 보고 저장 셈은 이것과 별개라 그대로다
+ */
 export type AskPlace = {
   method: string; where: string; auto: boolean;
   n: number; named: number; cited: number; first: string | null; last: string | null;
+  brand: { n: number; named: number };
 };
+/** 이름 질문 — stage 가 brand 인 줄. stage 가 없는 옛 줄은 이름 질문이 아닌 쪽으로 센다 */
+const BRAND = `coalesce(stage, '') = 'brand'`;
 export type AskDay = { day: string; places: AskPlace[] };
 
 export type AskGrid = {
@@ -65,7 +72,7 @@ export function howOf(method: string): string {
 export type WeekPlace = {
   method: string; where: string; how: string;
   first: string; last: string; days: number; n: number; kept: number;
-  /** 최근 7일 이 곳 합계 — 물어본 횟수 n 중 이름이나 링크가 나온 k */
+  /** 최근 7일 이 곳 합계 — 물어본 횟수 n 중 이름이나 링크가 나온 k. 이름 질문(brand)은 뺀다(Step 34 D51) */
   week: { n: number; k: number };
 };
 export type WeekRates = {
@@ -86,14 +93,15 @@ export async function readWeekRates(client: Client): Promise<WeekRates> {
          from academy.ai_measurements where client_id = $1 group by 1 order by 1`, [client.id]),
     pool().query(
       `select prompt_id, max(prompt_text) as q, collection_method as method,
-              count(*)::int as n, count(*) filter (where mentioned or cited)::int as k
+              count(*)::int as n, count(*) filter (where mentioned or cited)::int as k, bool_or(${BRAND}) as b
          from academy.ai_measurements
         where client_id = $1 and measured_on > (now() at time zone 'Asia/Seoul')::date - 7
         group by 1, 3`, [client.id]),
   ]);
   const inWeek = new Set(week.rows.map((x) => x.method as string));
   const places: WeekPlace[] = all.rows.map((x) => {
-    const mine = week.rows.filter((w) => w.method === x.method);
+    // 곳 합계는 이름 질문을 뺀다(D51). 질문별 줄(rows)에는 이름 질문도 그대로 보인다
+    const mine = week.rows.filter((w) => w.method === x.method && !w.b);
     return {
       method: x.method, where: whereOf(x.engine, x.method).where, how: howOf(x.method),
       first: x.first, last: x.last, days: x.days, n: x.n, kept: x.kept,
@@ -164,7 +172,9 @@ const answerOf = (raw: unknown, max: number) => {
 export async function readAskDays(client: Client, limit = 120): Promise<AskDay[]> {
   const r = await pool().query(
     `select measured_on::text as day, collection_method as method, max(engine) as engine,
-            count(*)::int as n, count(*) filter (where mentioned)::int as named, count(*) filter (where cited)::int as cited,
+            count(*) filter (where not ${BRAND})::int as n,
+            count(*) filter (where mentioned and not ${BRAND})::int as named, count(*) filter (where cited and not ${BRAND})::int as cited,
+            count(*) filter (where ${BRAND})::int as bn, count(*) filter (where mentioned and ${BRAND})::int as bnamed,
             min(imported_at) as first, max(imported_at) as last
        from academy.ai_measurements where client_id = $1
       group by 1, 2 order by 1 desc`, [client.id]);
@@ -173,7 +183,7 @@ export async function readAskDays(client: Client, limit = 120): Promise<AskDay[]
     const w = whereOf(x.engine, x.method);
     const d: AskDay = by.get(x.day) ?? { day: x.day, places: [] };
     d.places.push({
-      method: x.method, where: w.where, auto: w.auto, n: x.n, named: x.named, cited: x.cited,
+      method: x.method, where: w.where, auto: w.auto, n: x.n, named: x.named, cited: x.cited, brand: { n: x.bn, named: x.bnamed },
       first: w.auto ? hhmm(new Date(x.first)) : null, last: w.auto ? hhmm(new Date(x.last)) : null,
     });
     by.set(x.day, d);
@@ -191,8 +201,11 @@ const 엔진이름: Record<string, string> = { "claude-code-web": "Claude", "cha
 const 월일 = (day: string) => { const [, m, d] = day.split("-").map(Number); return `${m}/${d}`; };
 const kstDay = (t: number) => new Date(t + KST).toISOString().slice(0, 10);
 
+/** 이름 질문 한 곳 — 표 머리 숫자와 따로 한 줄로 보인다(D51) */
+export type BrandRow = { 엔진: string; n: number; 이름: number };
+
 export type AnswerTable =
-  | { ok: true; rows: AnswerRow[]; empty: string | null }
+  | { ok: true; rows: AnswerRow[]; empty: string | null; brand?: BrandRow[] }
   | { ok: false; err: string };
 
 /**
@@ -200,6 +213,10 @@ export type AnswerTable =
  * 셈은 pm-report.mjs AI답변읽기 를 그대로 옮겼다 — 곳마다 최근 측정일과 그 전 측정일, attempt 1 만,
  * 같은 문항 5개 이상일 때만 비교, 이름 수 차이 3 이하 「비슷」, 1문항짜리 날과 3일 넘게 안 잰 곳은 뺀다. 곳끼리 합치지 않는다.
  * 표에 넣을 게 없으면 empty 에 이유 한 줄. 안 잰 것을 0 으로 쓰지 않는다.
+ *
+ * Step 34 D51 — 표 숫자는 이름 질문(stage brand)을 뺀 질문만. 이름이 든 질문은 답이 따라 말해 노출 성과가 아니다.
+ * 이름 질문은 brand 에 곳별로 따로(합치지 않는다). 그래서 학원 탭 숫자는 저장된 아침 보고(pm-report.mjs, 이름 질문 포함)와 이제 다르다 — 저장 셈은 안 바꾼다.
+ * 「일부만 물음」은 pm-report 의 20개 중 18개(90%) 규칙을 이름 질문 뺀 수에 그대로 쓴다 — 그날 곳들 중 가장 많이 물은 수의 90%
  */
 export async function readAnswerTable(client: Client): Promise<AnswerTable> {
   try {
@@ -211,11 +228,15 @@ export async function readAnswerTable(client: Client): Promise<AnswerTable> {
            from academy.ai_measurements where client_id = $1 and measured_on > now() - interval '30 days'
           group by 1, 2, 3)
        select d.m, d.engine, d.r, d.measured_on::text as day,
-              count(*)::int n, count(*) filter (where a.mentioned)::int 이름, count(*) filter (where a.cited)::int 인용,
-              array_agg(a.prompt_id) ids
+              count(*) filter (where not ${BRAND})::int n, count(*) filter (where a.mentioned and not ${BRAND})::int 이름,
+              count(*) filter (where a.cited and not ${BRAND})::int 인용,
+              coalesce(array_agg(a.prompt_id) filter (where not ${BRAND}), '{}') ids,
+              count(*) filter (where ${BRAND})::int bn, count(*) filter (where a.mentioned and ${BRAND})::int b이름
          from d join academy.ai_measurements a on a.collection_method = d.m and a.engine = d.engine and a.measured_on = d.measured_on and a.client_id = $1 and a.attempt = 1
         where d.r <= 2 group by 1, 2, 3, 4 order by 1, 3`, [client.id]);
     const out: AnswerRow[] = [];
+    const brand: BrandRow[] = [];
+    const 최대 = Math.max(0, ...rows.filter((r) => Number(r.r) === 1).map((r) => r.n as number));
     for (const m of [...new Set(rows.map((r) => r.m as string))]) {
       // dense_rank 는 bigint 라 문자열로 온다
       const 지금 = rows.find((r) => r.m === m && Number(r.r) === 1);
@@ -235,9 +256,11 @@ export async function readAnswerTable(client: Client): Promise<AnswerTable> {
             말: Math.abs(dd) <= 3 ? "비슷" : dd > 0 ? "늘었음" : "줄었음" };
         }
       }
-      out.push({ 엔진: 엔진이름[지금.engine] ?? 지금.engine, day: 지금.day, n: 지금.n, 전체: 지금.n >= 18, 링크없음: 지금.engine === "gemini-web", 이름: 지금.이름, 인용: 지금.인용, 비교 });
+      const 엔진 = 엔진이름[지금.engine] ?? 지금.engine;
+      out.push({ 엔진, day: 지금.day, n: 지금.n, 전체: 지금.n >= Math.ceil(최대 * 0.9), 링크없음: 지금.engine === "gemini-web", 이름: 지금.이름, 인용: 지금.인용, 비교 });
+      if (지금.bn > 0) brand.push({ 엔진, n: 지금.bn, 이름: 지금.b이름 });
     }
-    if (out.length) return { ok: true, rows: out, empty: null };
+    if (out.length) return { ok: true, rows: out, empty: null, brand };
 
     const { rows: [last] } = await pool().query(
       `select max(measured_on)::text as day from academy.ai_measurements where client_id = $1`, [client.id]);

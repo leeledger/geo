@@ -1330,3 +1330,11 @@ Known Gaps (26)
 - 2026-10-01 23시: PC 일꾼이 9/30 13:34 뒤 꺼져 33시간 멈춤(10/1 화면 측정 0, pc-silent 경보는 원장이 완료 처리). 원인 기록 없음. 고침: 시작프로그램 vbs 를 반복형(꺼지면 1분 뒤 다시) · 잠금은 매분 갱신, 5분 넘은 잠금은 죽은 것으로 판단(윈도 pid 재사용). --install 로 재설치·재기동 확인
 - 2026-10-01 23시: Brave 제출 4/4 성공(원장 캡차). agent_runs 25·26 완료 처리 — 효과 판정은 10/8 부터(Claude 일반 질문 q9·q12·q14·q11·q16 인용)
 - 2026-10-02: GitHub Actions 무료 시간(계정 2,000분) 소진 → 09:43 부터 전 워크플로 시작 못 함(추정 사용: doc-tools-kr 1,209 · geo 1,058 · aca_feedback 60). 원장 결정: geo 저장소 공개 전환(원장이 직접 실행 — 공개 전 Arch 검사: 기록 전체 비밀값 없음, DB 주소는 예시값, IndexNow 키는 원래 공개). 회사 루프 14:20 재개 확인, optimize 재실행(문서딱 18문항). 별건: 문서딱 측정이 시간 초과 1회에 남은 질문 전부 멈춤 → 연속 2회일 때만 멈추게 고침(Arch 직접)
+
+### Step 34 — 자동으로 도는 일을 고객마다 · 화면의 「학원」 · 이름 질문 따로 D49·D50·D51 — BUILT · Richard 대기 (2026-10-02, Bob)
+- 상태: DONE — web tsc 0 · academy 시험 docttak 32 · ilog 33 · grow 37 통과 · 운영 DB 읽기로 세 탭 줄·머리 숫자 출력(REVIEW-REQUEST) · 학원 탭 줄 = HEAD 코드와 같은 시각 비교 true. DB 쓰기·푸시·배포 없음, pm-report.mjs·케이스 리포트 손 안 댐
+- 파일: web/lib/agents.ts(PIPES·clientRows·readAgents(now, client)) · api/admin/agents/route.ts(?c=) · ops/AgentStrip.tsx·page.tsx·AgentBoard.tsx · web/lib/growth.ts·asks.ts · ops/Growth.tsx·PmReport.tsx·AskLog.tsx · admin/asks/page.tsx · academy/clients.mjs(문서딱 seeds 「pdf 병합」) · scripts/loop-review.mjs(변형 씨앗) · test-docttak.mjs
+- 결정(Bob): ① 고객별 사실은 web 에 PIPES 표(id 1 글+색인, id 2 색인, 그 밖 없음) — web 이 academy/clients.mjs 를 못 부르니 근거를 주석으로 박음. 스크립트를 바꾸면 여기도 ② 문서딱 유통은 숨기지 않고 새 상태 「해당 없음」(회색) ③ 글 길 없는 고객 콘텐츠 줄은 그 고객 content 활동·일감으로만 판정, 학원 write 옮긴 줄 안 봄. 쉬는 중이면 이유 대신 「세션에서 쓸 글 없음」 ④ 유통(아이로그)은 회사 한 번 실행인 snapshot 옮긴 줄로 판정 ⑤ AgentStrip key=slug — 탭을 바꾸면 state 새로 ⑥ D51 머리 숫자는 stage brand 를 뺀다(stage 없는 옛 줄은 빼지 않음). 「일부만 물음」 = 그날 최대 수의 90% ⑦ 변형 씨앗은 하루 한도와 따로 한 번(widen 씨앗과 같은 규칙)
+- KG-34-1 아이로그 세션 대기 content 일감 7건 — session-task 「한 번에 하나」와 안 맞음. 여는 곳(개선 루프·회사 루프 who-wins) 점검
+- KG-34-2 화면에 남은 「학원」: Growth.tsx 문의 카드·정의(222·228·277·286), asks/page.tsx 넓혀 본 질문 설명(298·300 송파·20문항)
+- KG-34-3 Step 33 「학원 탭 = 저장된 보고」는 D51 로 의도적으로 깨짐(화면은 이름 질문 빼고, 저장은 포함)
