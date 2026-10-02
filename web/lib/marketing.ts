@@ -61,9 +61,9 @@ export async function readMarketing(clientId: number): Promise<Marketing> {
     let used: UsedCount | null = null;
     const firstPosted = posted.map((p) => p.posted_day as string).sort()[0] ?? null;
     if (firstPosted) {
-      // 승인 질문(q<번호>) 측정만 — 탐침은 따로 표다
+      // 승인 질문(q<번호>) 측정만 — 탐침은 따로 표다. 곳 = 측정 방법(collection_method) — pilot-report 와 같은 칸으로 묶는다
       const { rows: cites } = await db.query(
-        `select m.engine, m.measured_on::text as measured_on, c->>'url' as url
+        `select m.collection_method as engine, m.measured_on::text as measured_on, c->>'url' as url
            from academy.ai_measurements m, jsonb_array_elements(m.citations) c
           where m.client_id = $1 and m.measured_on >= $2::date and m.prompt_id ~ '^q[0-9]+$'`, [clientId, firstPosted]);
       used = countUsed(posted, cites);

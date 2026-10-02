@@ -1,22 +1,22 @@
-# Review Feedback — Step 31 (성과가 개수로 늘어나는 고리 D38~D43)
-Date: 2026-09-30
+# Review Feedback — Step 35 (D52~D56) + 2판
+Date: 2026-10-02
 Ready for Builder: YES
 
-검토 범위: ce9b5ae (코드 13 파일). DB 는 읽기 전용 트랜잭션으로만 봤다(탐침 줄 union SQL 이 실제 스키마에서 돈다 — ai_probe_measurements 는 아직 없어 빈 자리로 바꿔 확인, geo.pilots.competitors 칸 있음, agent_tasks.evidence NOT NULL default '').
-실행: test-grow-loop 34/0 · test-ilog-loop 33/0 · web tsc 0 · daily-agent --dry(학원·아이로그) 정상.
+범위: git diff 130c47c..5e54bec. 확인: test-marketing 38 통과 · web tsc 0. DB 쓰기·Claude 호출·게시 없음.
 
 ## Must Fix
 없음.
 
 ## Should Fix
-- academy/scripts/daily-agent.mjs:187-203 (confidence: 8/10) — `전파중` 을 후퇴 분기보다 먼저 정한다(`전파중 = 원 ? {...} : null` → 그 뒤 `if (x.후퇴) { ... await 저장({ ... action_kind: "content" ... }) }`). 같은 단계의 「효과 있음」 처방이 content 면 후퇴 재색인 행 근거에 「전파: 행 #id … 「효과 있음」」이 붙는다. 전파가 아닌 행동을 전파로 기록한다 — 나중에 전파 성과를 셀 때 섞인다. 후퇴 분기 안에서 저장 전에 `전파중 = null`.
-- academy/scripts/loop-review.mjs:459-467 (confidence: 7/10) — 「비교 못 함」(regressUnknown)은 후퇴가 하나라도 있을 때만 finding 에 붙는다(`if (후퇴.length) { ... (모름.length ? ...) }`). 불리던 질문이 최근 표본 모자람·엔진 바뀜이면 아무 데도 안 나온다. 설계서 「표본 모자라면 「모른다」」. 모름만 있을 때도 한 줄(finding 또는 콘솔) 남기기.
-- academy/scripts/daily-agent.mjs:193-206 (confidence: 6/10, verify this) — 후퇴 재색인은 `점검.skipContent`(repeat: 이 단계는 글 고쳐도 못 읽음)를 안 본다. 지금 학원 problem·consider 가 skipContent 라 그 단계 질문이 후퇴하면 효과 없다고 판정된 처방을 또 한다. 사다리 칸(:211)과 같게 skip 이면 사다리로 넘기기.
-- academy/clients.mjs:110 · loop-review.mjs:392-399 (confidence: 5/10, verify this) — 변형 「{기능} 앱」은 원 승인 질문에서 「추천」만 뺀 문장과 같을 수 있다(dry: q13 → 「학원 관리 앱」). 사실상 승인 질문과 같은 검색어가 확장 질문으로 올라가면 「확장 질문 k개 불림」이 20문항 밖에서 늘어난 것처럼 보인다. 원 질문 문장에서 틀 말만 뺀 것과 같은 변형은 건너뛰기 검토.
+- web/lib/marketing.ts:66 vs academy/scripts/pilot-report.mjs:311 (confidence: 7/10) — 같은 「AI 답 출처로 쓰였나」를 다른 칸으로 묶는다. 현황판은 `select m.engine, …`(모델별), 리포트는 `m.collection_method as engine`(곳별). 한 모델을 두 곳에서 재면 카드와 리포트의 「곳별 n개」가 달라진다. 영업에 나갈 숫자다. 둘 중 하나로 맞추기 — 리포트 관례(곳 = collection_method, 곳이름)를 따르는 쪽을 권한다. 합계 used/posted 는 같으니 지금은 고장이 아니다.
+- academy/scripts/marketing-draft.mjs:220 (confidence: 5/10, verify) — 바깥 주소 관문 `p.바깥.some((h) => h.startsWith(u) || u.startsWith(h))`. 근거 페이지의 바깥 링크가 도메인 뿌리(예: https://www.gov.kr)면 그 도메인의 어떤 경로든 통과한다. 지어낸 깊은 주소가 새는 길이다. 정확히 같거나 끝 `/` 차이만 허용하도록 normUrl 비교로 좁히기.
+- web/lib/marketing-actions.ts:47 (confidence: 6/10) — approveBlog 가 note 를 통째로 「게시 승인 …」으로 바꿔 「읽을 자리」 기록이 사라진다(marketing-core 주석상 의도). 나중에 「무엇을 읽고 승인했나」를 되짚을 수 없다. `'게시 승인 ' || to_char(…) || ' · ' || note` 로 앞에 붙이면 local-agent·naver-blog-post 의 `like '게시 승인%'` 는 그대로 돈다. 단 readSpots 가 SPOT_HEAD 로 시작할 때만 읽으니 카드 표시는 바꿀 필요 없음.
+- tools/local-agent.mjs:191-194 (confidence: 6/10) — 「발행 전에 멈춤」은 시도를 닫힘으로 두어 다음 실행에 다시 시도한다. 원인이 고정(본문 서식 오류 등)이면 하루 두 번, 끝없이 실패 활동이 쌓인다. 같은 초안 닫힘 n회(예: 3) 넘으면 사람 대기로 올리기. BUILD-LOG 로 미뤄도 된다.
+- tools/local-agent.mjs:186-188 (confidence: 5/10) — 사람이 확인 뒤 SQL 로 marketing_posts 를 「올림」으로 고치면 시도 일감이 「사람 대기」로 영영 남는다(sticky). 다음 실행에서 `status='올림'` 인 초안의 열린 marketing-attempt 를 완료로 닫는 한 줄이면 된다.
 
 ## Escalate to Architect
-- D40 문턱(한 곳 7일 4번 이상)과 탐침 측정 몫(고객당 하루 2, 탐침마다 하루 1번, 가장 오래 안 잰 것부터)이 서로 맞지 않는다 — 학원은 활성 탐침이 이미 7개(p1~p7, dry 사슬)라 돌려 재면 탐침 하나가 7일에 약 2번 잰다. 활성 탐침이 3개를 넘으면 승격 일감은 영영 안 선다. 확장 질문이 늘면 같은 몫을 나눠 「덜 잼」도 늘어난다(확장줄은 7일 2번 필요). 문턱을 낮출지(예: 14일), 탐침 몫을 늘릴지, 불린 탐침을 몰아 잴지는 측정 예산·기준 판단이라 코드에서 못 정한다.
-- D41 은 학원만 탄다(gaps 는 widen 분기에서만 계산, KG-31-4). 아이로그는 「안 불린 변형」이 세션 글로 안 이어진다 — 의도인지 확인.
+- 블로그 게시 승인을 note 앞머리로 둘지, 칸(approved_at)으로 둘지 — Bob 이 열어 둔 질문. 코드상 안전은 확인했다: 승인 표시를 쓰는 길은 approveBlog(guard + `status='초안' and channel='blog'`) 하나뿐이고, 초안 스크립트의 note 는 「읽을 자리: 」 또는 「자동 관문 탈락: 」로만 시작해 모델 출력이 승인으로 둔갑할 길이 없다. 그래도 note 는 자유 글 칸이라 사람이 손으로 고칠 때 우연히 승인이 될 수 있다. 칸으로 바꿀지는 Arch 결정.
+- 「읽었어요 · 올려 주세요」 버튼이 본문 펼치지 않고도 눌린다. 사실 확인을 강제할지(펼친 뒤에만 활성) 제품 판단.
 
 ## Cleared
-영업 숫자 격리(확장 질문 approved=false → ai-measure·ai-web-measure·daily-agent·pilot-report·pm-report 승인 집계·measure-targets approved_n 전부 `approved` 로 걸러 안 섞임, 측정은 form 'extend' 로 ai_probe_measurements 에만, 승인 버튼·패널은 extend 제외, 케이스 리포트는 ai_measurements 만 읽음), 확장줄은 고객별·곳별로만 세고 곳 안 합침, 전파는 하루 1건·열린 초안 규칙·원래 판정 그대로이고 전파 칸이 열림 처리돼 반복 루프 없음, 후퇴 조건(앞 14일 ≥50% · 최근 7일 ≤25% · 양쪽 5건 · 같은 곳·같은 엔진)과 50% 필터 우회, 승격 30일 쿨다운·완료 재개 안 함·「했어요」→확장넣기(글자 중복·payload.extend 한 번만·탐침 끔), 세션 글 1편·재료 필요, 경쟁사 없는 날 정렬 불변, 탐침은 승인 20문항을 다 잰 뒤 남은 몫에서만 돌아 승인 측정을 밀지 않음 — 확인했다.
+관문(숫자·규격 단위·사이트맵·바깥 주소·다른 방법·공개 문장)과 읽을 자리, 블로그 자동 게시의 이중 승인 확인(local-agent 선택 쿼리 + naver-blog-post 읽기 쿼리 둘 다 `note like '게시 승인%' and status='초안'`), NAVER_BLOG_ID 없으면 멈춤(.env.local 로딩 전에 검사해 학원 블로그 force11 로 새지 않음)·학원 꼬리 미부착·별도 프로필, 발행 버튼 뒤 실패는 사람 확인으로, marketing-actions 세 동작 모두 guard, optimize.yml 의 continue-on-error 와 `always() &&` 측정 실패 표시, KST 처리(오늘·created_on·posted_day·승인 시각), ai_measurements 는 읽기만(학원·아이로그 리포트는 올린 글이 없어 절이 안 생김, case-report 무변경), PIPES 3=docttak, dry 가 insert/create/alter 를 막고 claude-code 기록은 insert 뿐인 것까지 확인했고 통과다.

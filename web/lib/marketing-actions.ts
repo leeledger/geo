@@ -45,7 +45,7 @@ export async function approveBlog(form: FormData) {
   const id = 아이디(form);
   if (!id) return;
   await pool().query(
-    `update geo.marketing_posts set note = '게시 승인 ' || to_char(now() at time zone 'Asia/Seoul', 'MM-DD HH24:MI')
-      where id = $1 and status = '초안' and channel = 'blog'`, [id]);
+    `update geo.marketing_posts set note = '게시 승인 ' || to_char(now() at time zone 'Asia/Seoul', 'MM-DD HH24:MI') || coalesce(' · ' || nullif(note, ''), '')
+      where id = $1 and status = '초안' and channel = 'blog' and coalesce(note, '') not like '게시 승인%'`, [id]);
   revalidatePath("/admin/ops");
 }

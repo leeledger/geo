@@ -217,7 +217,9 @@ export function 관문(ch, post, p, c) {
   const 우리 = 문서딱주소(body, c.domain);
   for (const u of 우리) if (!p.사이트맵.has(경로(u))) 이유.push(`사이트맵에 없는 주소: ${u}`);
   const 바깥 = [...body.matchAll(/https?:\/\/[^\s)\]」>"'<]+/g)].map((m) => m[0].replace(/[.,]+$/, "")).filter((u) => !u.includes(c.domain));
-  for (const u of 바깥) if (!p.바깥.some((h) => h.startsWith(u) || u.startsWith(h))) 이유.push(`근거에 없는 바깥 주소: ${u}`);
+  // 근거 주소 그대로이거나 그 앞부분(공식 사이트 첫 화면)만 — 근거가 첫 화면일 때 그 아래 아무 경로나 지어내는 걸 막는다
+  const 끝빗금 = (x) => x.replace(/\/+$/, "");
+  for (const u of 바깥) if (!p.바깥.some((h) => 끝빗금(h).startsWith(끝빗금(u)))) 이유.push(`근거에 없는 바깥 주소: ${u}`);
   const 경로들 = new Set(우리.map(경로));
   if (ch === "jisikin") {
     if (경로들.size !== 1 || !경로들.has(경로(p.tool))) 이유.push(`문서딱 링크는 도구 주소 하나여야 합니다(${p.tool}) — 지금 ${우리.length}개`);

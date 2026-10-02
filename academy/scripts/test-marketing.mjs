@@ -68,7 +68,7 @@ const 대안없음 = { ...p, 대안: [] };
 const 낯 = 낯선문장(`${좋은}\n\n업로드가 안 되는 원인은 대부분 인터넷 속도 문제입니다.`, [p.근거, c.marketing.disclosure].join("\n"));
 봄("읽을 자리 — 지어낸 원인", 낯.some((x) => x.문장.includes("인터넷 속도")));
 봄("읽을 자리 — 원문 문장은 안 걸림", !낯.some((x) => x.문장.includes("가로 3.5")) && !낯.some((x) => x.문장.includes("제가 만든")));
-봄("읽을 자리 note 왕복", JSON.stringify(readSpots(spotsNote(["가 ‖ 나", "다"]))) === JSON.stringify(["가 나", "다"]) && readSpots("게시 승인 10-02").length === 0 && spotsNote([]) === "");
+봄("읽을 자리 note 왕복", JSON.stringify(readSpots(spotsNote(["가 ‖ 나", "다"]))) === JSON.stringify(["가 나", "다"]) && readSpots("게시 승인 10-02").length === 0 && spotsNote([]) === "" && JSON.stringify(readSpots("게시 승인 10-02 22:50 · " + spotsNote(["가", "나"]))) === JSON.stringify(["가", "나"]));
 봄("보장 말", /보장 말/.test(걸림(`${좋은}\n\n무조건 통과돼요.`)));
 봄("후기처럼", /후기/.test(걸림(`${좋은}\n\n써 봤는데 좋았어요.`)));
 봄("블로그는 1500자 하한", /본문 \d+자/.test(걸림(좋은, "blog")));
