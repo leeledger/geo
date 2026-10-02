@@ -148,3 +148,20 @@
   - 글 경로가 없는 고객(아이로그·문서딱): 콘텐츠 줄 = 「자동 초안 없음 · 세션에서 쓸 글 n건 → {이름} 저장소에 반영」(n = 그 고객 「세션 대기」 일감 수, 0 이면 「없음」), 삽화 줄 숨김, 유통 줄은 그 고객에 실제로 도는 것만(색인 알림이 그 고객에 도는지 snapshot·indexnow 코드로 확인 — 안 돌면 숨김 또는 「색인 알림 없음」).
   - 측정·운영·수리공 같은 회사 공통 줄은 그대로(「회사 전체」 표시 유지).
 - 지어낸 일 금지 — 돌지 않는 일을 돈다고 쓰지 않는다. 사람 말. tsc. 세 탭의 줄 목록을 운영 DB 읽기로 찍어 REVIEW-REQUEST 에.
+
+## Step 35 — 문서딱 마케팅을 매일 쉬지 않고 (원장 2026-10-02 「단기간 집중적으로」「쉼없이 지속적으로」)
+
+원장 계정: 네이버 지식iN·카페, 네이버 블로그(문서딱 전용, 학원 블로그와 별도). 사이트 코드는 문서딱 저장소 몫 — 우리는 사이트 밖(off-site)만. 브리프 금지 그대로: 노출 보장·숨김 텍스트·대량 생성·가짜 후기 금지, 대가성·본인 제작은 밝힌다.
+출발점: 문서딱 검색어 17개, ChatGPT·Gemini·Perplexity 0, Claude 2개 잼 0 (10/2). 사이트 페이지 43(도구 7·가이드 32, sitemap.xml).
+
+- **D52 표** `geo.marketing_posts(id, client_id, channel text check in (jisikin, cafe, blog), target_query text, source_url text, title text, body text, status text check in (초안, 올림, 버림) default '초안', posted_url text, posted_at timestamptz, created_on date (KST), note text)` + RLS, 양쪽 schema.sql.
+- **D53 매일 초안(자동).** 새 스크립트 `academy/scripts/marketing-draft.mjs --client docttak`: 하루 지식iN 답변 1 · 카페 글 1, 블로그 글 주 2(월·목). 대상 질문은 승인 검색어 중 최근 7일 이름이 안 나온 것부터 돌려 쓰고(같은 질문 14일 안 반복 금지), 근거는 **그 질문에 맞는 문서딱 페이지를 그날 실제로 가져와(curl) 본문에서 확인한 사실만**(규격 숫자·용량·단계). 페이지에 없는 숫자 금지(숫자 게이트 — 본문 숫자가 원문에 있는지 대조, 없으면 버림).
+  - 지식iN: 질문자에게 답하는 말투, 첫 문장에 답, 무료 도구 링크 1개, 끝에 「제가 만든 무료 도구입니다(가입·업로드 없음).」 한 줄. 다른 방법(정부24·한컴 등 공식 길)도 한 번은 알려 준다(소개꾼 금지 규칙).
+  - 카페: 정보 공유 글(「○○ 사진 규격 정리」), 같은 공개 표기.
+  - 블로그: 상황별 안내 1편(가이드 복붙 금지 — 같은 사실을 다른 상황으로), 원문 가이드 링크.
+  - academy slop 규칙(slop-rules.mjs) 통과 못 하면 다시 쓰거나 버림. LLM 은 claude-code.mjs(purpose 'marketing', 측정 아닌 몫).
+  - 돌리는 곳: optimize.yml 끝(측정 뒤) 또는 company.mjs 하루 한 번 — 단순한 쪽, 이유를 REVIEW-REQUEST 에.
+- **D54 화면.** /admin/ops 문서딱 탭에 「오늘 올릴 글」 카드: 채널·제목·본문 복사 버튼, 지식iN/카페 검색 링크(그 질문으로 search.naver 지식iN·카페 검색 결과 — 원장이 실제 최근 질문을 골라 답하게), 「올렸어요」(올린 주소 입력)·「버림」. 원장 할 일 상자에는 하루 1줄 「문서딱 글 n건 올리기(3분)」. 30초 입력 모양(/admin/inquiry 와 같게).
+- **D55 블로그 자동 게시(원장 로그인 1회 뒤).** tools/naver-blog-post.mjs 가 학원 블로그 세션을 쓴다 — 문서딱 블로그는 **별도 브라우저 프로필**(open-session.mjs 로 원장이 1회 로그인)로 local-agent 가 블로그 초안을 올리게. 프로필이 없으면 「로그인 필요」 일감 1회. 지식iN·카페는 자동 게시하지 않는다(스팸·계정 정지 위험) — 원장 손으로만.
+- **D56 효과.** 올린 주소(posted_url)가 AI 답 출처(citations)에 나오면 세어 보고서·현황판에 「올린 글 n개 중 k개가 AI 답 출처로 쓰임(곳별)」. 지어낸 기여 추정 금지.
+- 확인: marketing-draft --dry 로 오늘 초안 3종 실제 출력(사실 대조표 포함)을 REVIEW-REQUEST 에. tsc. DB 쓰기·실게시 금지.
