@@ -2,6 +2,13 @@
 *Read this before reading anything else. If it covers current state, skip BUILD-LOG.*
 
 
+## Where We Stopped (2026-10-02 밤) — Step 32~35 배포(b625b69)
+
+- 32·33 문서딱 두 번째 자사 레퍼런스 · 현황판 고객 탭 · 34 자동 일을 고객마다, 화면 「학원」→고객 이름, 이름 질문 따로 · 35 문서딱 바깥 글(지식iN·카페 매일 초안, 블로그 주 2편 원장 확인 뒤 게시, AI 출처 효과)
+- Richard Step 35 통과 + Should Fix 3건 세션 반영. KG-35-3~6 남음
+- 원장 몫: 문서딱 네이버 블로그 만들기 → PC academy/.env.local NAVER_BLOG_ID_DOCTTAK → `node tools/open-session.mjs --blog` 로그인 · 현황판 #mk 초안 읽고 지식iN·카페 손으로 올리기 · 아이로그 가이드 초안 2편 사실 확인
+- 내일 확인: optimize 끝 「바깥 글 초안」 첫 실행 — geo.marketing_posts 생성, 초안 3건, 읽을 자리 상자, Claude 호출 5회 안
+
 ## Where We Stopped (2026-09-30 오후) — Step 29~31 배포(598ace3)
 
 - 29 고객사 사람 방문 추이(학원·아이로그, IP 없음, AI 유입 곳별) · 30 아이로그를 학원 수준으로(질문 20 승인 완료, 루프·보고 고객별, 세션 대기 상태) · 31 성과→개수 고리(효과 전파·후퇴 감지·불린 탐침→확장 질문·안 불린 칸→세션 글·경쟁사 우세 우선, 문턱 14일)
