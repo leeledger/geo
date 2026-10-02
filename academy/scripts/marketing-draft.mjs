@@ -23,9 +23,9 @@ import pg from "pg";
 
 import { bySlug } from "../clients.mjs";
 import { 클로드코드, 클로드기록연결 } from "./claude-code.mjs";
-import { 검사, 숫자뽑기, 최소길이 } from "./slop-rules.mjs";
+import { 검사, 숫자뽑기, 최소길이, 문장들 } from "./slop-rules.mjs";
 import { 금지, 파싱, 공통짜임새 } from "./writer-common.mjs";
-import { MARKETING_DDL, CHANNEL_NAME } from "../../web/lib/marketing-core.mjs";
+import { MARKETING_DDL, CHANNEL_NAME, spotsNote } from "../../web/lib/marketing-core.mjs";
 
 for (const l of fs.readFileSync(new URL("../.env.local", import.meta.url), "utf8").split(/\r?\n/)) {
   const m = /^([A-Z_]+)=(.*)$/.exec(l);
@@ -119,20 +119,25 @@ export function 대상고르기(질문들, 이름, 쓴것, 채널들, 맞는페�
 }
 
 // ─────────────────────────────────────────── 프롬프트
+/** 소개꾼이 되지 않게 다른 길을 한 번 — 원문 페이지가 말한 대안만. 없으면 제출처 공고 확인 정도 (Arch 2026-10-02) */
+const 대안말 = (p) => p.대안.length
+  ? `문서딱 말고 다른 방법도 한 번은 알려 준다 — 원문 페이지가 언급한 대안(${p.대안.join(", ")}) 가운데 맞는 것 하나를 원문에 적힌 범위에서.`
+  : "문서딱 말고 다른 방법은 원문에 없으니 「제출처 공고에서 확인」 한 줄만 적는다. 다른 도구·앱을 지어내지 않는다.";
+
 const 채널말 = {
   jisikin: (c, p) => [
     `네이버 지식iN 에 「${p.query}」 비슷한 질문을 한 사람에게 다는 답이다. 질문자에게 직접 말하는 해요체.`,
     "첫 문장이 답이다. 인사·공감·서론 없이 바로 규격·방법을 말한다.",
     "본문 300~700자. 문단 2~4개.",
     `문서딱 링크는 정확히 하나: ${p.tool}`,
-    `공식 길도 한 번은 알려 준다 — 아래 페이지 「출처」에 나온 기관·프로그램(${p.기관.join(", ") || "페이지에 적힌 공식 방법"})에서 직접 하는 방법이나 확인하는 곳. 페이지에 적힌 범위에서만.`,
+    대안말(p),
     "title 칸에는 이 답을 달 만한 질문 예를 질문자 말투 한 줄로 쓴다(원장이 실제 질문을 찾을 때 쓴다).",
   ],
   cafe: (c, p) => [
     `네이버 카페에 올리는 정보 공유 글이다. 주제는 「${p.query}」. 제목은 「○○ 정리」 꼴.`,
     "본문 600~1200자. 짧은 줄과 문단. 표 문법(|) 대신 「항목: 값」 줄.",
     `문서딱 링크는 한두 개만: ${p.guide} 또는 ${p.tool}`,
-    "공식 출처(페이지 「출처」에 나온 기관)를 한 번 적는다.",
+    대안말(p),
   ],
   blog: (c, p) => [
     `네이버 블로그 글이다. 검색어는 「${p.query}」. 제목은 사람이 검색창에 치는 질문형.`,
@@ -153,6 +158,7 @@ function 프롬프트(c, ch, p, 고칠것 = []) {
     "",
     "## 지어내지 않는다 (제일 중요)",
     "- 숫자(규격·픽셀·용량·쪽수·개수·날짜)는 아래 「근거」 원문에 있는 것만, 단위까지 그대로 쓴다. 원문에 없는 숫자는 하나도 쓰지 않는다.",
+    "- 숫자가 없는 문장도 원문 페이지에 있는 내용을 바꿔 말한 것만 쓴다. 원문에 없는 조언·원인 짐작·일반론(「대부분 ~ 때문」 같은 말)은 쓰지 않는다.",
     "- 기관의 한도·규격이 근거에 없으면 지어내지 말고 「그 기관 공고에서 확인」이라고 쓴다.",
     "- 써 봤다·후기·추천받았다 같은 말을 쓰지 않는다. 남의 말을 따옴표로 만들지 않는다.",
     "- 노출·효과를 보장하는 말(무조건, 1위, 100%)을 쓰지 않는다. 불안을 팔지 않는다.",
@@ -215,11 +221,46 @@ export function 관문(ch, post, p, c) {
   const 경로들 = new Set(우리.map(경로));
   if (ch === "jisikin") {
     if (경로들.size !== 1 || !경로들.has(경로(p.tool))) 이유.push(`문서딱 링크는 도구 주소 하나여야 합니다(${p.tool}) — 지금 ${우리.length}개`);
-    if (p.기관.length && !p.기관.some((k) => body.includes(k))) 이유.push(`공식 길을 안 알렸습니다 — 근거 출처: ${p.기관.join(", ")}`);
+  }
+  if (ch !== "blog") {
+    if (p.대안.length ? !p.대안.some((k) => body.includes(k)) : !/공고/.test(body)) {
+      이유.push(p.대안.length ? `다른 방법을 안 알렸습니다 — 원문 대안: ${p.대안.join(", ")}` : "다른 방법이 원문에 없으면 「제출처 공고에서 확인」을 적습니다");
+    }
   }
   if (ch === "cafe" && (경로들.size < 1 || 경로들.size > 2)) 이유.push(`문서딱 링크는 한두 개 — 지금 ${경로들.size}개`);
   if (ch === "blog" && !경로들.has(경로(p.guide))) 이유.push(`원문 안내 페이지 링크가 없습니다: ${p.guide}`);
   return 이유;
+}
+
+/**
+ * 원문 페이지가 언급한 다른 길 — 출처 기관 + 원문에 실제로 나온 공식 사이트·기본 앱·프로그램 이름.
+ * 목록은 문서딱 페이지들에서 본 이름이다. 원문에 없는 이름은 후보가 안 된다
+ */
+const 대안이름 = ["정부24", "한글 프로그램", "한컴", "외교부", "큐넷", "Q-Net", "Gmail", "Outlook", "구글 드라이브"];
+// 브라우저·「파일」 앱은 문서딱을 쓰는 길이라 대안이 아니다. 「함께 보면 좋은 안내」·「바로 쓰는 도구」 뒤는 다른 주제 링크라 안 본다
+const 본론 = (글) => 글.split(/\n(?:함께 보면 좋은 안내|관련 안내|바로 쓰는 도구)\n/)[0];
+export const 대안찾기 = (글들, 기관 = []) => [...new Set([...기관, ...대안이름.filter((w) => 글들.some((g) => 본론(g).includes(w)))])];
+
+/**
+ * 원문에 없는 문장 후보 — 본문 문장마다 글자 3자 조각이 원문에 몇 % 있나. 낮은 문장이 「읽을 자리」다(Arch 2026-10-02).
+ * 숫자 게이트가 못 잡는, 숫자 없는 지어낸 조언·원인·일반론을 사람이 먼저 보게 한다. 거르지는 않는다 — 판단은 원장
+ */
+export function 낯선문장(body, 근거, { 선 = 0.5, 최대 = 5 } = {}) {
+  const 납 = (t) => t.replace(/https?:\/\/\S+/g, "").replace(/[\s.,·!?「」『』()[\]*#:;"'~\-–—…]/g, "");
+  const 원문 = 납(근거);
+  const 조각 = new Set();
+  for (let i = 0; i + 3 <= 원문.length; i++) 조각.add(원문.slice(i, i + 3));
+  return 문장들(body)
+    .filter((t) => !/^#/.test(t) && 납(t).length >= 12)
+    .map((t) => {
+      const n = 납(t);
+      let 있음 = 0, 전체 = 0;
+      for (let i = 0; i + 3 <= n.length; i++) { 전체++; if (조각.has(n.slice(i, i + 3))) 있음++; }
+      return { 문장: t, 겹침: 전체 ? 있음 / 전체 : 1 };
+    })
+    .filter((x) => x.겹침 < 선)
+    .sort((a, b) => a.겹침 - b.겹침)
+    .slice(0, 최대);
 }
 
 /** 본문 숫자 하나하나가 원문 어느 줄에 있나 — 사람이 대조할 표 */
@@ -310,6 +351,7 @@ async function main() {
         기관: 출처기관(페이지.map((x) => x.글).join("\n")),
         근거: [사실, ...페이지.map((x) => x.글)].join("\n"),
       };
+      p.대안 = 대안찾기(페이지.map((x) => x.글), p.기관);
 
       let post = null, 이유 = [], 판 = 0;
       while (판 < 2 && 호출 < 호출상한) {
@@ -336,6 +378,10 @@ async function main() {
         console.log(`\n숫자 대조 ${표.length}개`);
         for (const t of 표) console.log(`  ${t.토막} | ${t.원문} | ${t.url.replace(/^https?:\/\/[^/]+/, "")}`);
       }
+      // 읽을 자리 — 원문과 겹침이 낮은 문장(숫자 없는 지어낸 말 후보). 초안 note 에 남겨 현황판 카드가 띄운다
+      // 공개 문장·「제출처 공고에서 확인」은 시킨 말이라 비교 원문에 넣는다
+      const 낯선 = post ? 낯선문장(post.body ?? "", [p.근거, c.marketing.disclosure, "제출처 공고에서 확인"].join("\n")) : [];
+      if (낯선.length) console.log(`\n읽을 자리(원문 겹침 낮은 문장):\n${낯선.map((x) => `  - ${Math.round(x.겹침 * 100)}% ${x.문장}`).join("\n")}`);
       if (이유.length) console.log(`\n걸린 곳:\n${이유.map((s) => `  - ${s}`).join("\n")}`);
       if (DRY) continue;
       // 탈락도 「버림」으로 남긴다 — 같은 날 다시 돌아도 호출을 또 쓰지 않고, 현황판이 왜 없는지 안다
@@ -343,7 +389,8 @@ async function main() {
         await q(`insert into geo.marketing_posts (client_id, channel, target_query, source_url, title, body, status, created_on, note)
                  values ($1,$2,$3,$4,$5,$6,$7,$8::date,$9)`,
           [c.id, ch, query, p.guide, String(post?.title ?? "").slice(0, 300) || query, String(post?.body ?? ""),
-            통과 ? "초안" : "버림", 오늘, 통과 ? "" : `자동 관문 탈락: ${이유.join(" / ")}`.slice(0, 1000)]);
+            통과 ? "초안" : "버림", 오늘,
+            (통과 ? spotsNote(낯선.map((x) => x.문장)) : `자동 관문 탈락: ${이유.join(" / ")}`).slice(0, 1000)]);
       }
       if (!통과 && post) 실패++;
     }

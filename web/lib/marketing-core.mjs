@@ -25,6 +25,15 @@ export const MARKETING_DDL = [
 ];
 
 export const CHANNELS = ["jisikin", "cafe", "blog"];
+
+/**
+ * 「읽을 자리」 — 초안 문장 가운데 원문과 겹침이 낮은 것(숫자 없는 지어낸 말 후보). 초안 note 에 이 꼴로 둔다.
+ * 블로그 「읽었어요」를 누르면 note 가 「게시 승인 …」으로 바뀌며 지워진다(읽었으니까)
+ */
+const SPOT_HEAD = "읽을 자리: ";
+const SPOT_SEP = " ‖ ";
+export const spotsNote = (sentences) => (sentences.length ? SPOT_HEAD + sentences.map((s) => s.replaceAll(SPOT_SEP, " ")).join(SPOT_SEP) : "");
+export const readSpots = (note) => (String(note ?? "").startsWith(SPOT_HEAD) ? String(note).slice(SPOT_HEAD.length).split(SPOT_SEP).filter(Boolean) : []);
 export const CHANNEL_NAME = { jisikin: "지식iN", cafe: "카페", blog: "블로그" };
 
 /**

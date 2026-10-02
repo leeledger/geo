@@ -2,6 +2,8 @@ export const MARKETING_DDL: string[];
 export type Channel = "jisikin" | "cafe" | "blog";
 export const CHANNELS: Channel[];
 export const CHANNEL_NAME: Record<Channel, string>;
+export function spotsNote(sentences: string[]): string;
+export function readSpots(note: string | null | undefined): string[];
 export function searchLink(channel: Channel, query: string): string | null;
 export function normUrl(raw: string | null | undefined): string;
 export type UsedCount = {

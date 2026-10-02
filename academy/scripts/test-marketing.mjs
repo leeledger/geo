@@ -1,8 +1,8 @@
 // 바깥 글 초안(Step 35 D53·D56) 단위 시험 — 가짜 행·글자만, DB·네트워크·Claude 없음.
 //   node scripts/test-marketing.mjs
 import { bySlug } from "../clients.mjs";
-import { 대상고르기, 관문, 대조표, 본문글 } from "./marketing-draft.mjs";
-import { countUsed, normUrl, searchLink } from "../../web/lib/marketing-core.mjs";
+import { 대상고르기, 관문, 대조표, 본문글, 대안찾기, 낯선문장 } from "./marketing-draft.mjs";
+import { countUsed, normUrl, searchLink, spotsNote, readSpots } from "../../web/lib/marketing-core.mjs";
 
 let 통과 = 0, 실패 = 0;
 const 봄 = (이름, 참) => { if (참) 통과++; else { 실패++; console.log(`✗ ${이름}`); } };
@@ -39,7 +39,7 @@ const 글 = 본문글(`<html><main><h1>여권사진</h1><p>가로 3.5 cm·세로
 const p = {
   query: "여권사진 규격", 사실: "고정 사실: 안내 글 31편", 페이지: [{ url: "https://docttak.com/guide/passport-photo/", 글 }],
   사이트맵: new Set(["/id-photo/", "/guide/passport-photo/"]), 바깥: ["https://www.passport.go.kr/home/kor/contents.do?menuPos=31"],
-  guide: "https://docttak.com/guide/passport-photo/", tool: "https://docttak.com/id-photo/", 기관: ["외교부"], 근거: `고정 사실: 안내 글 31편\n${글}`,
+  guide: "https://docttak.com/guide/passport-photo/", tool: "https://docttak.com/id-photo/", 기관: ["외교부"], 대안: ["외교부"], 근거: `고정 사실: 안내 글 31편\n${글}`,
 };
 const 좋은 = [
   "여권사진은 가로 3.5 cm·세로 4.5 cm예요. 온라인 신청 파일은 413×531픽셀, 500 KB 이하로 맞춰야 올라가요.",
@@ -57,7 +57,18 @@ const 걸림 = (body, ch = "jisikin") => 관문(ch, { title: "여권사진 규�
 봄("지식iN 링크 둘", /도구 주소 하나/.test(걸림(`${좋은}\n\nhttps://docttak.com/guide/passport-photo/`)));
 봄("근거에 없는 바깥 주소", /근거에 없는 바깥 주소/.test(걸림(`${좋은}\n\nhttps://example.com/x`)));
 봄("근거 페이지의 공식 주소는 됨", !/바깥 주소/.test(걸림(`${좋은}\n\nhttps://www.passport.go.kr/home/kor/contents.do?menuPos=31`)));
-봄("공식 길 안 알림", /공식 길/.test(걸림(좋은.replace("외교부 여권안내에서", "다른 곳에서"))));
+봄("다른 방법 안 알림(지식iN)", /다른 방법을 안 알렸습니다/.test(걸림(좋은.replace("외교부 여권안내에서", "다른 곳에서"))));
+봄("다른 방법 안 알림(카페)", /다른 방법을 안 알렸습니다/.test(걸림(좋은.replace("외교부 여권안내에서", "다른 곳에서"), "cafe")));
+const 대안없음 = { ...p, 대안: [] };
+봄("원문에 대안이 없으면 공고 확인", /제출처 공고/.test(관문("jisikin", { title: "여권사진", body: 좋은.replace("외교부 여권안내에서", "다른 곳에서") }, 대안없음, c).join(" ")));
+봄("원문에 대안이 없고 공고 확인 있음 → 통과", !/공고|다른 방법/.test(관문("jisikin", { title: "여권사진", body: 좋은.replace("외교부 여권안내에서", "제출처 공고에서") }, 대안없음, c).join(" ")));
+봄("대안은 본론에서만 · 브라우저는 대안 아님", JSON.stringify(대안찾기(["한컴 안내\nSafari 로 열어요\n함께 보면 좋은 안내\n정부24 사진"], ["외교부"])) === JSON.stringify(["외교부", "한컴"]));
+
+// 읽을 자리 — 원문 겹침 낮은 문장만, 공개 문장은 비교 원문에 넣으면 안 걸림
+const 낯 = 낯선문장(`${좋은}\n\n업로드가 안 되는 원인은 대부분 인터넷 속도 문제입니다.`, [p.근거, c.marketing.disclosure].join("\n"));
+봄("읽을 자리 — 지어낸 원인", 낯.some((x) => x.문장.includes("인터넷 속도")));
+봄("읽을 자리 — 원문 문장은 안 걸림", !낯.some((x) => x.문장.includes("가로 3.5")) && !낯.some((x) => x.문장.includes("제가 만든")));
+봄("읽을 자리 note 왕복", JSON.stringify(readSpots(spotsNote(["가 ‖ 나", "다"]))) === JSON.stringify(["가 나", "다"]) && readSpots("게시 승인 10-02").length === 0 && spotsNote([]) === "");
 봄("보장 말", /보장 말/.test(걸림(`${좋은}\n\n무조건 통과돼요.`)));
 봄("후기처럼", /후기/.test(걸림(`${좋은}\n\n써 봤는데 좋았어요.`)));
 봄("블로그는 1500자 하한", /본문 \d+자/.test(걸림(좋은, "blog")));

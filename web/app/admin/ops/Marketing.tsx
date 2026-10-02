@@ -28,6 +28,9 @@ export const MK_CSS = `
 .mk-act form{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0}
 .mk-act input{background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 9px;font:inherit;font-size:14px;min-width:220px}
 .mk-act a.td-btn{color:var(--ink)}
+.mk-spot{margin-top:8px;background:#1d1a14;border:1px solid #5c4a2a;border-radius:8px;padding:8px 12px;font-size:14px}
+.mk-spot b{color:#F0CE87}
+.mk-spot ul{margin:4px 0 0;padding-left:18px;color:var(--ink)}
 .mk-note{font-size:14px;color:var(--ink2);margin:8px 0 0}
 `;
 
@@ -52,6 +55,12 @@ export default function Marketing({ m, name }: { m: MarketingData; name: string 
                     <b>{d.title}</b>
                     <span className="mk-q">검색어 「{d.query}」 · {md(d.createdOn)}</span>
                   </div>
+                  {d.spots.length > 0 && (
+                    <div className="mk-spot">
+                      <b>읽을 자리 — 원문에 없을 수 있는 문장 {d.spots.length}개</b>
+                      <ul>{d.spots.map((t, i) => <li key={i}>{t}</li>)}</ul>
+                    </div>
+                  )}
                   <details className="mk-body">
                     <summary>본문 보기 ({d.body.length.toLocaleString("ko-KR")}자)</summary>
                     <pre>{d.body}</pre>

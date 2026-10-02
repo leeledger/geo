@@ -1,5 +1,5 @@
 import { pool } from "./ops";
-import { countUsed, searchLink, type Channel, type UsedCount } from "./marketing-core.mjs";
+import { countUsed, readSpots, searchLink, type Channel, type UsedCount } from "./marketing-core.mjs";
 
 /**
  * 「오늘 올릴 글」 카드 읽기 (Step 35 D54·D56). 쓰기(서버 동작)는 marketing-actions.ts.
@@ -21,6 +21,8 @@ export type MarketingDraft = {
   body: string;
   createdOn: string;
   blogOk: boolean;
+  /** 원문과 겹침이 낮은 문장 — 올리기 전에 읽을 자리(숫자 없는 지어낸 말 후보) */
+  spots: string[];
   search: string | null;
 };
 
@@ -48,7 +50,7 @@ export async function readMarketing(clientId: number): Promise<Marketing> {
         order by created_on desc, array_position(array['jisikin','cafe','blog'], channel), id`, [clientId]);
     const drafts: MarketingDraft[] = rows.map((r) => ({
       id: r.id, channel: r.channel, query: r.target_query, sourceUrl: r.source_url, title: r.title, body: r.body,
-      createdOn: r.created_on, blogOk: String(r.note ?? "").startsWith(BLOG_OK), search: searchLink(r.channel, r.target_query),
+      createdOn: r.created_on, blogOk: String(r.note ?? "").startsWith(BLOG_OK), spots: readSpots(r.note), search: searchLink(r.channel, r.target_query),
     }));
     // 원장 몫 — 손으로 올릴 지식iN·카페, 확인을 기다리는 블로그
     const todo = drafts.filter((d) => d.channel !== "blog" || !d.blogOk).length;

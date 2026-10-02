@@ -3,6 +3,15 @@ Date: 2026-10-02
 Ready for Review: YES
 Status: DONE_WITH_CONCERNS — web tsc 0 · test-marketing 31 · test-docttak 32 · ilog 33 · grow 37 통과 · `marketing-draft --dry` 실제 초안 3종(Claude 3회, purpose marketing). DB 쓰기·푸시·배포·실게시 없음. 걱정: geo.marketing_posts 가 아직 없어 현황판 카드·효과 줄·로컬 에이전트 블로그 경로는 실DB로 못 돌려 봄(코드·tsc·가짜 행 시험만)
 
+## 2판 — Arch 배포 전 고침 5건 (2026-10-02)
+- marketing-draft.mjs: 프롬프트 「숫자 없는 문장도 원문을 바꿔 말한 것만, 원문에 없는 조언·원인·일반론 금지」 · 대안말(원문 대안 있으면 그중 하나, 없으면 「제출처 공고에서 확인」) · 관문 「다른 방법」(지식iN·카페) · 대안찾기(본론만, 브라우저·파일 앱 제외) · 낯선문장 → note 「읽을 자리: …」(marketing-core spotsNote/readSpots)
+- web/lib/marketing.ts·Marketing.tsx: 초안마다 「읽을 자리 — 원문에 없을 수 있는 문장 n개」 상자
+- optimize.yml: 바깥 글 단계 continue-on-error · 측정 실패 표시 `always() &&` 측정 결과만
+- web/lib/agents.ts: PIPES marketing(문서딱) — 콘텐츠 줄 「매일 지식iN·카페 초안 1건씩, 블로그 주 2편(원장 확인 뒤 게시) · 세션에서 쓸 글 …」
+- company.mjs: 시작 준비에 MARKETING_DDL(실패해도 계속). schema.sql 양쪽 확인
+- 같은 dry 초안 3종에 돌린 읽을 자리: 지식iN 「이 한도를 넘으면 나눠서 합쳐야 해요」 46% · 「가입도 설치도 없이 무료예요」 20% · 「…그 기관 공고에서 확인해 주세요」 43% / 카페 「대학·기관 제출 한도는 그 기관 공고에서 확인」 25% / 블로그 「원인은 대부분 용량입니다」 8% · 「그래서 그 숫자는 쓰지 않겠습니다」 8% 외 3. 새 관문(다른 방법)도 셋 다 통과(지식iN·카페 Gmail)
+- 시험: test-marketing 38 · docttak 32 · ilog 33 · grow 37 · tsc 0
+
 ## Files Changed
 - web/lib/marketing-core.mjs(새) + .d.mts — MARKETING_DDL(스키마와 같은 줄) · searchLink(지식iN where=kin · 카페 where=article) · normUrl(m.·www.·끝 / · 지식iN docId · 블로그 PostView→/id/logNo) · countUsed(올린 날 이후 측정만, 곳별)
 - academy/db/schema.sql 끝 · web/db/schema.sql 「영업용 뷰」 앞 — geo.marketing_posts(설계서 칸 그대로) + (client_id, created_on) 색인 + RLS

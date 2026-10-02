@@ -52,15 +52,18 @@ export type Agents = {
  *             원장 PC(local-agent.mjs 네이버 옮기기 client_id=1, submit-gsc --all 기본 학원)
  *   indexnow  snapshot.yml 03:23 이 indexnow.mjs 로 academy/clients.mjs 에서 키가 있는 곳만 돈다 — 학원·아이로그(키 파일 200, 2026-10-02 확인).
  *             문서딱은 키가 없어 건너뛰고, clients.mjs 에 없는 고객(등록 화면으로만 들어온 곳)은 아예 안 돈다
+ *   marketing optimize.yml 끝 marketing-draft.mjs --client docttak(Step 35) — clients.mjs marketing 이 있는 곳. 지식iN·카페 매일 1건씩,
+ *             블로그 월·목. 블로그는 원장 「읽었어요」 뒤 local-agent 가 올린다
  */
-export type Pipe = { posts: boolean; indexnow: boolean };
+export type Pipe = { posts: boolean; indexnow: boolean; marketing: boolean };
 const PIPES: Record<number, Pipe> = {
-  1: { posts: true, indexnow: true },
-  2: { posts: false, indexnow: true },
+  1: { posts: true, indexnow: true, marketing: false },
+  2: { posts: false, indexnow: true, marketing: false },
+  3: { posts: false, indexnow: false, marketing: true },
 };
 /** 고객이 없으면 예전처럼 다 도는 것으로 본다(학원 한 곳이던 때와 같은 화면) */
 export const pipeOf = (clientId: number | null | undefined): Pipe =>
-  clientId == null ? PIPES[1] : PIPES[clientId] ?? { posts: false, indexnow: false };
+  clientId == null ? PIPES[1] : PIPES[clientId] ?? { posts: false, indexnow: false, marketing: false };
 
 /**
  * 오늘(KST) 토큰 합 — 토큰을 읽어 둔 호출만(Step 25 D17). 입력은 캐시 읽기·쓰기를 더한 전체.
@@ -440,7 +443,10 @@ function clientRows(r: Role, c: { id: number; name: string }, pipe: Pipe, acts: 
   if (r.id === "content") {
     const ts = tasks.filter((t) => t.clientId === c.id && roleOfAgent(t.agent, t.kind) === "content");
     const n = ts.filter((t) => t.status === "세션 대기").length;
-    const role: Role = { ...r, jobs: [], does: `자동 초안 없음 · 세션에서 쓸 글 ${n ? `${n}건 → ${c.name} 저장소에 반영` : "없음"}` };
+    // 바깥 글을 쓰는 고객은 그 일이 매일 돈다(Step 35). 사이트 글은 여전히 세션 몫
+    const 세션 = `세션에서 쓸 글 ${n ? `${n}건 → ${c.name} 저장소에 반영` : "없음"}`;
+    const does = pipe.marketing ? `매일 지식iN·카페 초안 1건씩, 블로그 주 2편(원장 확인 뒤 게시) · ${세션}` : `자동 초안 없음 · ${세션}`;
+    const role: Role = { ...r, jobs: [], does };
     const row = judge(role, { acts: acts.filter((a) => !isMirror(a) && a.clientId === c.id && roleOfAct(a) === "content"), tasks: ts }, now);
     // 쉬는 중이면 이유 대신 위 문장을 보인다 — 「세션에서 쓸 글 없음」이 그 이유다
     return [row.state === "idle" ? { ...row, reason: null } : row];
