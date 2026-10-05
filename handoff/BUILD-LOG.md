@@ -1493,3 +1493,6 @@ Known Gaps (26)
 
 - KG-38-8 client-core 내부주소 판정이 일부 IPv6 꼴(64:ff9b::/96 NAT64, 2002::/16 6to4, ::ffff:7f00:1 hex, ::a.b.c.d)을 공개로 본다 — getaddrinfo 가 드물게 주고 Vercel 은 NAT64 없음. KG-38-7 과 함께 dispatcher 로 닫을 때 같이(Richard 2차 SF)
 - 2026-10-05 Step 38 배포 결정: Richard 2차 통과(f5e0007)
+
+- 2026-10-05 밤 빙: .browser-profile 빙 웹마스터 로그인이 풀려 학원 빙 제출이 10-03 부터 매번 「Submit 버튼 못 찾음」으로 실패하고 있었다(풀리면 /webmasters/about 로 가는데 판정은 login|signin 만 봄). bing-submit-urls 판정에 /webmasters/about 추가 → local-agent 가 로그인 일감을 올린다. 원장 재로그인 뒤 학원 4개·문서딱 10개 제출 성공
+- KG-36-8 닫힘: 문서딱은 빙 웹마스터에 등록돼 있다(--look 원문: 사이트 선택 docttak.com/, URL Submission 화면). 미등록 판정 정규식은 원문이 없어 안 넣음(필요 없음)
