@@ -112,8 +112,7 @@ probe/
 - **네이버 서치어드바이저의 소유확인·RSS 제출은 캡차가 뜬다.** 우회하지 않는다 — 사람이 10초 안에 끝낸다
 - **DB 시각은 UTC 로 나온다.** `toISOString()`·`toLocaleString()` 에 `timeZone: "Asia/Seoul"` 을 안 주면
   GitHub Actions 러너에서 UTC 로 찍힌다. 첫 크롤러 방문 00:49(KST)가 「오후 3시 49분」으로 랜딩·리포트에 나가 있었다
-- **고객사를 추가하면 `academy/clients.mjs` 에 한 덩어리 넣는다.** 표에 client_id 만 만들고 스크립트를 안 고치면
-  아무도 안 잰다 — 아이로그가 하루 넘게 그랬다
+- **고객사는 `/admin/clients` 에서 등록한다.** 빈 칸은 상세 체크리스트가 말한다. 코드 3곳(학원·아이로그·문서딱)만 `academy/clients.mjs`
 - **저장소 경로의 `&` 가 npx 껍데기를 깨뜨린다.** `AGO&GEO` 의 `&` 가 cmd 에서 명령 구분자로 먹혀
   `npx tsc` 가 `C:\dev\typescript\bin\tsc` 를 찾는다. 껍데기를 건너뛰고 `node ./node_modules/typescript/bin/tsc`
   로 부르면 된다. `npx vercel` 처럼 멀쩡히 도는 것도 있어서 npx 전체를 의심하면 헛짚는다

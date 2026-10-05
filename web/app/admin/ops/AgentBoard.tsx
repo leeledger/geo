@@ -1,5 +1,5 @@
 import type { Ops } from "@/lib/ops";
-import { pipeOf, plain } from "@/lib/agents";
+import { pipeOf, plain, type PipeClient } from "@/lib/agents";
 import "./agent-board.css";
 
 type Status = "attention" | "review" | "recorded" | "unknown";
@@ -10,7 +10,7 @@ const stamp = (value: string | null) => value
   ? new Date(value).toLocaleString("ko-KR", { timeZone: "Asia/Seoul", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false })
   : "기록 없음";
 
-export default function AgentBoard({ data: d, clientName, clientId }: { data: Ops; clientName: string; clientId?: number }) {
+export default function AgentBoard({ data: d, clientName, client }: { data: Ops; clientName: string; client?: PipeClient }) {
   const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Seoul" });
   const measurementOld = !d.serp.day || d.serp.day.slice(0, 10) !== today;
   const roles: {
@@ -76,7 +76,7 @@ export default function AgentBoard({ data: d, clientName, clientId }: { data: Op
     },
   ];
   // 글 길이 없는 고객(아이로그·문서딱) — 콘텐츠·유통 카드의 학원 문구(주간 초안·도해·네이버 이관)를 그 고객에 실제로 도는 일로 (Step 34 D49)
-  const pipe = pipeOf(clientId);
+  const pipe = pipeOf(client);
   if (!pipe.posts) {
     for (const a of roles) {
       if (a.id === "content") {

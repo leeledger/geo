@@ -8,23 +8,9 @@
  * 붙여 쓴 한글 글자 사이는 빈칸 하나를 허용한다(\s?) — 「미소치과」가 AI 답의 「미소 치과」에도 걸리게(Step 28 D20).
  * \s? 는 고정 글자 사이에만 들어가 되돌아가기가 글자 수에 비례할 뿐이다(ReDoS 없음). 40자 상한은 그대로.
  */
-const 한글 = /[가-힣]/;
-
-/** 말 안의 한 낱말 → 정규식 조각. 한글 글자끼리 붙은 자리에 \s? */
-function wordPattern(w: string): string {
-  const ch = [...w];
-  return ch.map((c, i) => {
-    const e = c.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&").replace(/&/g, "(?:&|&amp;)");
-    return i > 0 && 한글.test(c) && 한글.test(ch[i - 1]) ? "\\s?" + e : e;
-  }).join("");
-}
-
-export function answerPattern(raw: string): string | null {
-  const terms = [...new Set(raw.split(/[,，]/).map((s) => s.trim().replace(/\s+/g, " ")).filter((s) => s.length >= 2 && s.length <= 40))].slice(0, 10);
-  if (!terms.length) return null;
-  const one = (t: string) => t.split(" ").map(wordPattern).join("\\s*");
-  return terms.map(one).join("|");
-}
+// 구현은 web/lib/client-core.mjs — academy(node)도 같은 함수를 import 해야 해서 .mjs 로 옮겼다(Step 38).
+// answerPattern(raw, exclude="") — exclude(제외 앞말, 쉼표)가 있으면 각 말 앞에 부정 lookbehind. 비면 예전 한 인자 결과 그대로
+export { answerPattern } from "./client-core.mjs";
 
 /**
  * 경쟁사 이름 → geo.pilots.competitors (Step 26 D18). 쉼표로 받은 이름을 다듬어 「A, B」 글자로 둔다.

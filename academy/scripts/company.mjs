@@ -36,6 +36,7 @@ import { 같은질문일감, 세션글키 } from "./session-task.mjs";
 import { 탐침측정DDL } from "./loop-grow.mjs";
 import { MARKETING_DDL } from "../../web/lib/marketing-core.mjs";
 import { GROWTH_DDL } from "../../web/lib/growth-core.mjs";
+import { 세팅재점검 } from "../../web/lib/client-core.mjs";
 import { 오픈라우터, 재시도, 모델들, 공급자들 } from "./writer-common.mjs";
 import { 프로필 } from "./profile.mjs";
 import { PM보고 } from "./pm-report.mjs";
@@ -561,6 +562,8 @@ const 계획 = async (clients, { latest: latestRuns, ok: ghOk }) => {
                 when dedupe_key = 'material-need' then 'material'
                 when dedupe_key like 'login-%' then 'local'
                 when dedupe_key like 'pilot-%' then 'pilot'
+                -- 고객사 세팅 일감(Step 38)은 세팅재점검 이 체크리스트로 열고 닫는다 — 여기서 「신호 사라짐」으로 닫지 않는다
+                when dedupe_key like 'setup-%' then 'setup'
                 else 'scout' end) = any($1)`, [[...읽음]]);
   for (const t of open) {
     if (본키.has(`${t.client_id}:${t.dedupe_key}`)) continue;
@@ -923,6 +926,8 @@ const main = async () => {
   const latest = await 출근기록();
   if (!PLAN_ONLY) await 밀린예약();
   await 계획(clients, latest);
+  // 고객사 세팅 점검(Step 38) — 화면 등록 고객(active) 중 점검 없음·24시간 지난 3곳. 사이트를 열고 체크리스트 사람 칸을 일감으로
+  await 세팅재점검(q, { admin: ADMIN }).catch((e) => console.log("  ⚠ 세팅 점검을 못 돌림", 끝(e.message, 200)));
   const [s] = await q(`select count(*) filter (where status='대기')::int wait, count(*) filter (where status='사람 대기')::int human,
       count(*) filter (where status='로컬 대기')::int local, count(*) filter (where status='관찰')::int watch from geo.agent_tasks`);
   console.log(`  일감: 대기 ${s.wait} · 관찰 ${s.watch} · 사람 대기 ${s.human} · 로컬 대기 ${s.local}`);

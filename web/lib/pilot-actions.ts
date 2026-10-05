@@ -4,9 +4,9 @@ import { redirect } from "next/navigation";
 import { inqPool } from "./inquiries";
 
 import { isAdmin } from "./admin-auth";
-import { answerPattern, competitorNames } from "./answer-pattern";
+import { competitorNames } from "./answer-pattern";
 import { NEEDS_BUILD, PILOT_COLUMNS, pilotTasks, ymd } from "./pilot-plan";
-import { auditFields, auditSources, makeQuestions, nextAlias } from "./pilot-intake";
+import { auditFields, auditSources, makeQuestions } from "./pilot-intake";
 
 /** 서버 동작은 동작 번호만 알면 누구나 부를 수 있다. 화면이 관리자 전용이어도 동작 자체를 막아야 한다(2026-09-23 발견) */
 async function guard() {
@@ -14,39 +14,37 @@ async function guard() {
 }
 
 
+/**
+ * 파일럿 시작 — 고객 상세(/admin/clients/[slug])의 폼에서(Step 38). 고객 행은 /admin/clients 가 만든다 — 여기서는 geo.clients 를 안 만들고 안 고친다.
+ * 이름·도메인·이름 판별 말(answer_pattern)은 고객 행에서 읽는다. 파일럿은 외부 고객만
+ */
 export async function createPilot(form:FormData){await guard();
-  const brand=String(form.get("name")??"").trim(), domain=String(form.get("domain")??"").trim().replace(/^https?:\/\//,"").replace(/\/$/,"");
+  const clientId=Number(form.get("client_id"));
   const district=String(form.get("district")??"").trim(), neighborhood=String(form.get("neighborhood")??"").trim();
   const category=String(form.get("category")??"").trim(), audience=String(form.get("audience")??"").trim();
   const payment=String(form.get("payment_ref")??"").trim();
   const terms=String(form.get("terms_evidence")??"").trim(), contactName=String(form.get("contact_name")??"").trim(), contactEmail=String(form.get("contact_email")??"").trim(), contactPhone=String(form.get("contact_phone")??"").trim(), receiptType=String(form.get("receipt_type")??"").trim();
-  // 답에 이 고객 이름이 나왔는지 가리는 말(쉼표로 여러 개). 없으면 측정이 「측정 설정 없음」으로 멈추니 등록 때 받는다(Step 25 D1)
-  const pattern=answerPattern(String(form.get("answer_terms")??""));
   // Step 26 — 구축·세팅 여부(날짜 계산이 갈린다), 경쟁사(보고서 점유율, 비워도 된다), 신청 때 적는 사업자 유형·환불 절 서면 전달일
   const needsBuild=String(form.get("needs_build")??"");
   const competitors=competitorNames(String(form.get("competitors")??""));
   const bizType=String(form.get("biz_type")??"").trim().slice(0,40), refundTermsOn=ymd(form.get("refund_terms_sent_on")), paidOn=ymd(form.get("paid_on"));
-  // 검증 실패를 조용히 돌려보내지 않는다(Step 28 D23) — 무엇이 빠졌는지 화면이 사람 말로 한 줄 띄운다(문구는 app/admin/pilots/page.tsx)
-  const fail=(err:string,f=""):never=>redirect(`/admin/pilots?err=${err}${f?`&f=${encodeURIComponent(f)}`:""}`);
-  const empty=Object.entries({name:brand,domain,district,neighborhood,category,audience,contact_name:contactName,contact_email:contactEmail,contact_phone:contactPhone,receipt_type:receiptType,payment_ref:payment,terms_evidence:terms,biz_type:bizType,paid_on:paidOn,refund_terms_sent_on:refundTermsOn}).filter(([,v])=>!v).map(([k])=>k);
+  if(!Number.isInteger(clientId)||clientId<=0)redirect("/admin/clients?err=pilot-client");
+  const c=(await inqPool().query(`select id,slug,name,relation,answer_pattern from geo.clients where id=$1`,[clientId])).rows[0];
+  if(!c)redirect("/admin/clients?err=pilot-client");
+  // 검증 실패를 조용히 돌려보내지 않는다(Step 28 D23) — 무엇이 빠졌는지 화면이 사람 말로 한 줄 띄운다(문구는 app/admin/clients/[slug]/page.tsx)
+  const fail=(err:string,f=""):never=>redirect(`/admin/clients/${c.slug}?err=${err}${f?`&f=${encodeURIComponent(f)}`:""}#pilot`);
+  // 학원·아이로그 같은 내부 고객에 파일럿을 붙이면 측정·보고가 섞인다(Step 25 리뷰). 외부 고객만
+  if(c.relation!=="외부")fail("pilot-internal");
+  const empty=Object.entries({district,neighborhood,category,audience,contact_name:contactName,contact_email:contactEmail,contact_phone:contactPhone,receipt_type:receiptType,payment_ref:payment,terms_evidence:terms,biz_type:bizType,paid_on:paidOn,refund_terms_sent_on:refundTermsOn}).filter(([,v])=>!v).map(([k])=>k);
   if(empty.length)fail("missing",empty.join(","));
-  if(!pattern)fail("terms");
+  // 답에 이 고객 이름이 나왔는지 가리는 말 — 고객 등록 때 받았다. 없으면 측정이 「측정 설정 없음」으로 멈춘다(Step 25 D1)
+  if(!String(c.answer_pattern??"").trim())fail("terms");
   if(!NEEDS_BUILD.includes(needsBuild))fail("needs");
-  // 영문 관리명은 고쳐 넣지 않고 되묻는다 — 몰래 글자를 빼면 등록한 이름과 다른 slug 가 생긴다
-  const slug=String(form.get("slug")??"").trim().toLowerCase();
-  if(!/^[a-z0-9-]{1,40}$/.test(slug))fail("slug");
-  // 학원·아이로그 같은 내부 고객 slug 로 등록하면 이름 판별이 덮여 「똑똑한 로봇&코딩학원」 제외가 사라진다(Step 25 리뷰). 외부 고객만 새로 만들거나 고친다
-  const same=(await inqPool().query(`select relation from geo.clients where slug=$1`,[slug])).rows[0];
-  if(same&&same.relation!=="외부")fail("internal");
+  const brand=String(c.name);
   const db=await inqPool().connect(); let pilotId="";
   try{
     await db.query("begin");
-    await db.query(`alter table geo.clients add column if not exists answer_pattern text`);
-    await db.query(`alter table geo.clients add column if not exists measure_active boolean not null default false`);
     for(const s of PILOT_COLUMNS)await db.query(s);
-    // 가림 별칭은 새 고객에만 붙는다 — 이미 있는 고객은 on conflict 가 alias 를 안 고친다(Step 27 D15)
-    const alias=nextAlias((await db.query(`select alias from geo.clients where alias like '고객 %'`)).rows.map((r:{alias:string})=>r.alias));
-    const c=(await db.query(`insert into geo.clients(slug,name,domain,alias,schema_name,started_on,note,relation,answer_pattern) values($1,$2,$3,$4,'academy',(now() at time zone 'Asia/Seoul')::date,'39만원 30일 유료 파일럿','외부',$5) on conflict(slug) do update set name=excluded.name,domain=excluded.domain,answer_pattern=excluded.answer_pattern returning id`,[slug,brand,domain,alias,pattern])).rows[0];
     // 시작·종료는 입금 확인일 포함 30일(신청서 8행 — 고객 승인이 늦어진 기간도 든다). 구축·세팅이면 사이트 연 날이 생길 때 company.mjs 가 고친다(academy/pilot-plan.mjs)
     const p=(await db.query(`insert into geo.pilots(client_id,price,payment_ref,contact_name,contact_email,contact_phone,receipt_type,terms_evidence,paid_at,started_on,ends_on,status,terms_accepted_at,needs_build,competitors,biz_type,refund_terms_sent_on,paid_on) values($1,390000,$2,$3,$4,$5,$6,$7,now(),$12::date,$12::date+29,'진행',now(),$8,$9,$10,$11,$12) on conflict(client_id) do update set payment_ref=excluded.payment_ref,contact_name=excluded.contact_name,contact_email=excluded.contact_email,contact_phone=excluded.contact_phone,receipt_type=excluded.receipt_type,terms_evidence=excluded.terms_evidence,needs_build=excluded.needs_build,competitors=excluded.competitors,biz_type=excluded.biz_type,refund_terms_sent_on=excluded.refund_terms_sent_on,paid_on=excluded.paid_on returning id,started_on::text as started_on`,[c.id,payment,contactName,contactEmail,contactPhone,receiptType,terms,needsBuild,competitors,bizType,refundTermsOn,paidOn])).rows[0];
     const qs=makeQuestions(brand,district,neighborhood,category,audience);
@@ -56,7 +54,7 @@ export async function createPilot(form:FormData){await guard();
     await db.query(`insert into geo.content_approvals(pilot_id) select $1 where not exists(select 1 from geo.content_approvals where pilot_id=$1)`,[p.id]);
     await db.query("commit"); pilotId=p.id;
   }catch(e){await db.query("rollback");throw e}finally{db.release()}
-  revalidatePath("/admin/pilots"); redirect(`/admin/pilots/${pilotId}`);
+  revalidatePath("/admin/pilots"); revalidatePath(`/admin/clients/${c.slug}`); redirect(`/admin/pilots/${pilotId}`);
 }
 export async function updatePilotTask(form:FormData){await guard();const id=Number(form.get("id"));const status=String(form.get("status"));const evidence=String(form.get("evidence")??"").slice(0,500);await inqPool().query(`update geo.pilot_tasks set status=$2,evidence=$3,completed_at=case when $2='완료' then now() else null end where id=$1`,[id,status,evidence]);revalidatePath(String(form.get("path")));}
 export async function updateAudit(form:FormData){await guard();await inqPool().query(`update geo.local_audits set observed=$2,verdict=$3,recommendation=$4,updated_at=now() where id=$1`,[Number(form.get("id")),String(form.get("observed")??"").slice(0,300),String(form.get("verdict")),String(form.get("recommendation")??"").slice(0,500)]);revalidatePath(String(form.get("path")));}

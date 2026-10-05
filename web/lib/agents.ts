@@ -1,4 +1,5 @@
 import { pool } from "./ops";
+import { 파이프 } from "./client-core.mjs";
 
 /**
  * 에이전트 직원 — 지금. 현황판 ② 실시간 줄이 읽는 것.
@@ -54,16 +55,18 @@ export type Agents = {
  *             문서딱은 키가 없어 건너뛴다. geo.clients 에만 있는 고객은 config.indexnow 가 「우리」+키이고 키 파일이 열릴 때만 보낸다(Step 37)
  *   marketing optimize.yml 끝 marketing-draft.mjs --client docttak(Step 35) — clients.mjs marketing 이 있는 곳. 지식iN·카페 매일 1건씩,
  *             블로그 월·목. 블로그는 원장 「읽었어요」 뒤 local-agent 가 올린다
+ * 코드 3곳(id 1·2·3) 밖 고객은 config·derived 로 정한다(client-core.mjs 파이프, Step 38 · KG-37-2)
  */
 export type Pipe = { posts: boolean; indexnow: boolean; marketing: boolean };
+export type PipeClient = { id: number; config?: unknown; derived?: unknown };
 const PIPES: Record<number, Pipe> = {
   1: { posts: true, indexnow: true, marketing: false },
   2: { posts: false, indexnow: true, marketing: false },
   3: { posts: false, indexnow: false, marketing: true },
 };
 /** 고객이 없으면 예전처럼 다 도는 것으로 본다(학원 한 곳이던 때와 같은 화면) */
-export const pipeOf = (clientId: number | null | undefined): Pipe =>
-  clientId == null ? PIPES[1] : PIPES[clientId] ?? { posts: false, indexnow: false, marketing: false };
+export const pipeOf = (client: PipeClient | null | undefined): Pipe =>
+  client == null ? PIPES[1] : PIPES[client.id] ?? 파이프(client.config, client.derived);
 
 /**
  * 오늘(KST) 토큰 합 — 토큰을 읽어 둔 호출만(Step 25 D17). 입력은 캐시 읽기·쓰기를 더한 전체.
@@ -469,9 +472,9 @@ function clientRows(r: Role, c: { id: number; name: string }, pipe: Pipe, acts: 
   return [];
 }
 
-export async function readAgents(now = Date.now(), client: { id: number; name: string } | null = null): Promise<Agents> {
+export async function readAgents(now = Date.now(), client: (PipeClient & { name: string }) | null = null): Promise<Agents> {
   const stamp = new Date(now).toISOString();
-  const pipe = pipeOf(client?.id);
+  const pipe = pipeOf(client);
   const mine = client && !pipe.posts ? client : null;
   // 오류 원문은 서버 로그에만 — 응답·화면에는 「상태를 못 읽었습니다」만 (내부 이름이 샌다)
   const unknown = (): Agents => ({

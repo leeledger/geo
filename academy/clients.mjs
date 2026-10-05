@@ -323,6 +323,10 @@ export function 고객설정(row, env = process.env) {
   const brandWords = 고름("brandRe", 말목록(config.brandWords, "brandWords", 빠짐), undefined, domain ? [domain] : []);
   const brandRe = brandWords.length ? 말정규식(brandWords) : null;
 
+  // 남의 페이지에 「우리가 올라 있나」(who-wins) — 주소 일부·전화 끝자리. 등록 화면이 원문 말로 둔다(Step 38). 없으면 null(이름만 본다)
+  const presence = 고름("presenceRe", 말목록(config.presence, "presence", 빠짐), undefined, []);
+  const presenceRe = presence.length ? 말정규식(presence) : null;
+
   // AI 답 이름 판별 — 등록 화면이 이스케이프해 만든 answer_pattern
   let answerRe = null;
   const 원문 = String(row.answer_pattern ?? "").trim();
@@ -427,7 +431,7 @@ export function 고객설정(row, env = process.env) {
   return {
     id: row.id, slug, name, domain, alias: row.alias ?? null, relation: row.relation ?? null, status: row.status ?? null,
     // brandWords = 사람이 넣은 원문 말. 가림 검사(masks 고객사말)가 정규식 원문 대신 이것을 그대로 쓴다
-    brandRe, brandWords, presenceRe: null, answerRe, queries, llmsTxt, publishes: false, siteLog, gsc, indexnow, indexnowKey, loop, marketing,
+    brandRe, brandWords, presenceRe, answerRe, queries, llmsTxt, publishes: false, siteLog, gsc, indexnow, indexnowKey, loop, marketing,
     출처, 빠짐,
   };
 }
@@ -526,5 +530,5 @@ export const 세션글제목 = (name, question) => `세션에서 ${name} 가이�
 /*
  * AI 답변 측정 설정(이름 판별 answerRe)은 geo.clients.answer_pattern 이 먼저다(Step 25).
  * 여기 answerRe 는 DB 칸이 비었을 때 쓰는 대체값이고, 비어 있는 DB 칸을 처음 채우는 원문이기도 하다.
- * 외부 고객은 여기 덩어리 없이 등록 화면(/admin/pilots)에서 이름 판별 말을 받아 DB 에만 둔다 → academy/measure-targets.mjs
+ * 외부 고객은 여기 덩어리 없이 고객사 화면(/admin/clients)에서 이름 판별 말을 받아 DB 에만 둔다 → academy/measure-targets.mjs
  */

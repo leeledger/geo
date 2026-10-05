@@ -47,14 +47,3 @@ export const auditSources = (category: string) =>
 export const auditFields = (category: string) =>
   ["상호", "주소", "전화", "운영시간", isAcademy(category) ? "과정·대상" : "서비스·대상"];
 
-/** 0 → A, 25 → Z, 26 → AA */
-const letters = (n: number): string => (n < 26 ? "" : letters(Math.floor(n / 26) - 1)) + String.fromCharCode(65 + (n % 26));
-
-/**
- * 가림 별칭 「고객 A」「고객 B」…. 지역·업종을 넣으면 조합으로 특정된다(CLAUDE.md 고객사는 가린다).
- * 이미 쓴 「고객 X」를 피해 가장 앞 글자를 준다.
- */
-export function nextAlias(used: (string | null)[]): string {
-  const taken = new Set(used);
-  for (let n = 0; ; n++) if (!taken.has(`고객 ${letters(n)}`)) return `고객 ${letters(n)}`;
-}

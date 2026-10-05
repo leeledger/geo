@@ -267,7 +267,7 @@ export default async function OpsPage({
               </table>
             </div>
 
-            <AgentBoard data={d} clientName={client?.name ?? "고객사 미선택"} clientId={client?.id} />
+            <AgentBoard data={d} clientName={client?.name ?? "고객사 미선택"} client={client ?? undefined} />
             <Brief />
           </div>
         </details>

@@ -9,6 +9,7 @@ const PAGES = [
   { href: "/admin/inquiry", name: "문의" },
   { href: "/admin", name: "리드" },
   { href: "/admin/outreach", name: "영업판" },
+  { href: "/admin/clients", name: "고객사" },
   { href: "/admin/pilots", name: "파일럿" },
 ] as const;
 

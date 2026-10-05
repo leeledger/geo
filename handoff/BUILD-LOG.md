@@ -1468,3 +1468,23 @@ Known Gaps (26)
 - 원장 몫(38 뒤): 새 고객마다 사람 칸 최대 3개(보낼 글 복사해 전달 · GSC 권한 받고 버튼 · 파일럿 계약 칸 입력)
 
 - 2026-10-05 Step 37 배포: main 2dfb29a · company 37265095212·serp 37265098137 운영 수동 실행 둘 다 성공 · academy 앱은 clients.mjs 를 안 불러 배포 불필요. 다음 Step 38 — 브리프를 ARCHITECT-BRIEF.md 로 옮김
+
+### Step 38 — 고객사 등록 화면 · 세팅 점검 · 체크리스트 · 사람 일감 — BUILT · Richard 대기 (2026-10-05, Bob) · DONE
+- 지음: web/lib/client-core.mjs(+.d.mts) 입력검사·등록·고치기·폼값·세팅점검(robots막힘·ld타입)·점검저장·체크리스트·요약·파일럿상태·일감계획·사람일감맞추기·재점검고르기·점검하고맞추기·세팅재점검·지우기·파이프 · web/lib/client-actions.ts · /admin/clients(목록·등록) · /admin/clients/[slug](체크리스트·다시 점검·권한 받음·점검 근거·고치기·파일럿 시작·지우기) · createPilot(client_id) · /admin/pilots 만들기 폼 → 링크 · company 매시 세팅재점검 · todo-text kind setup · agents.ts pipeOf(DB 고객 config·derived) · clients.mjs presence → presenceRe · AdminNav 「고객사」 · CLAUDE.md 함정 줄 교체 · test-client-core(127) · test-client-screen(--live E2E 32)
+- 결정: answerPattern·nextAlias 구현을 client-core.mjs 로 옮김 — academy(node 22, .ts import 불가)가 같은 함수를 불러야 한다. answer-pattern.ts 는 다시 내보내기만. pilot-intake 의 nextAlias 는 쓰는 곳이 없어져 지움. 한 인자 결과는 옛 구현 베낌과 글자 비교(회귀 시험)
+- 결정: 서버 동작 시간 한도 = 페이지 maxDuration(next/dist/docs …/maxDuration.md 「Server Actions」). /admin/clients·[slug] 에 maxDuration 60 — 점검 전체 20초가 들어가 「점검 중 — 다음 매시에」 길은 안 만들었다. 점검이 실패하면 저장은 남고 ?err=check(다음 매시에 다시)
+- 결정: 등록·고치기 폼은 useActionState 로 오류와 친 값을 돌려준다(?err= 리다이렉트면 열 칸을 다시 쳐야 한다). 나머지 동작(다시 점검·권한 받음·지우기·파일럿 시작)은 ?err= 사람 말 한 줄(D23 그대로)
+- 결정: hitWords(이름 질문 적중 말) = 주소 일부. 전화 끝자리는 답에 우연히 나올 수 있어 안 넣는다. presence = [주소 일부, 전화 끝 4자리]
+- 결정: 사이트 칸(robots·사이트맵·llms·JSON-LD·키 파일)이 빠지면 그 칸은 「기다림」, 빠진 것은 「고객 담당에게 보낼 것」 사람 칸 하나에 복사할 글로. 못 연 칸은 기다림(점검 못 함) — 보낼 것 일감을 켜고 끄지 않는다
+- 결정: 동기화 — 사람=사람 대기 upsert(dedupe setup-<칸>, agent·kind 「setup」) · 됨=완료 · 해당없음=닫힘 · 기다림=그대로. 점검이 닫은 일은 신호가 돌아오면 바로, 원장이 「끝냈어요」로 닫은 일은 24시간 뒤 다시 연다. company 「신호 사라짐」 닫기에서 setup-% 는 뺐다(별도 칸 'setup')
+- 결정: 지우기는 pg_constraint 로 FK 순서(자식부터)를 정해 한 tx, .catch·savepoint 없음. 남은 행 0 아니면 rollback·{err:'left'}, FK 고리면 던짐
+- 결정: createPilot 은 geo.clients 를 안 읽고 쓰지도 않던 alter 2줄(answer_pattern·measure_active)도 지움 — 칸 준비는 등록(고객칸준비). 고객 행 없음·자사·answer_pattern 없음이면 상세로 ?err=
+- 결정: 고치기는 slug·status 를 안 바꾼다(시험→진짜 전환 없음, KG). 자사↔외부를 바꾸면 alias 다시(외부 「고객 X」·자사 이름)
+- 결정: robots 의 Sitemap 줄이 다른 호스트면 따라가지 않고 /sitemap.xml 을 본다(오류 줄 남김). redirect 는 https·같은 호스트(www 차이)만, 5번까지
+- 운영 DB: 스키마 변경 없음(config·derived·answer_pattern·measure_active 는 이미 있음 — 고객칸준비는 add column if not exists 만). E2E 시험 고객 id 7 → 화면 지우기, client_id·pilot_id 표 25칸 남은 행 0
+- 회귀: daily-agent·marketing(--no-claude)·pilot robotncoding·indexnow --list·health 전후 0. pilot ilog·docttak·briefing 은 30분 사이 들어온 측정·크롤러 수로 달라져 바로 붙여 다시(stash 전/후) — 0. check-index 는 문서딱 실시간 검색 3줄만(브랜드 순위·네이버 노출 수, 데이터)
+- KG-38-2 시험 고객 → 진짜 고객 전환(status) 화면 없음. 진짜 고객은 test 체크 없이 새로 등록
+- KG-38-3 robots 는 「Disallow: /」 통째 막힘만 본다. /blog 처럼 일부 경로 막힘은 안 잡는다
+- KG-38-4 사이트맵·홈 본문은 크기 상한 없이 다 읽는다(한 주소 8초가 막는다). 큰 사이트맵이면 앞 300자만 남는다
+- KG-38-5 E2E 가 geo.clients 시퀀스 7 을 씀(다음 8). E2E 중 1분쯤 시험 고객에 「진행」 파일럿이 있었다(측정 대상은 status test 제외라 안 잼)
+- KG-38-6 /admin/pilots 운영 주소 확인은 배포 뒤(로컬 next dev 에서 열림·링크 확인함)

@@ -3,8 +3,6 @@ import Link from "next/link";
 
 import { isAdmin } from "@/lib/admin-auth";
 import { listPilots } from "@/lib/pilots";
-import { createPilot } from "@/lib/pilot-actions";
-import { NEEDS_BUILD, NEEDS_BUILD_LABEL } from "@/lib/pilot-plan";
 import { listClients } from "@/lib/ops";
 import { listHours, hourSums, hm } from "@/lib/hours";
 import { addHours } from "@/lib/hours-actions";
@@ -15,19 +13,14 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 /**
- * 30일 유료 파일럿 — 맨 위는 진행 고객, 결제 고객 등록 폼은 자세히.
- * 등록하면 질문 20개와 신청서 「제공」·SOP 회차 업무 13개(구축·세팅이면 14개)가 생긴다(createPilot, lib/pilot-plan.ts).
+ * 30일 유료 파일럿 — 맨 위는 진행 고객.
+ * 파일럿 시작은 고객 상세(/admin/clients/[slug])의 폼에서(Step 38). 질문 20개와 신청서 「제공」·SOP 회차 업무가 생긴다(createPilot, lib/pilot-plan.ts).
  */
 
 const CSS = `
 .pl-list{display:grid;gap:8px}
 .pl-item{display:block;text-decoration:none}
 .adm .pl-item{color:var(--ink)}
-.pl-form{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px}
-.pl-form label{font-size:14px;color:var(--ink2);display:grid;gap:4px}
-.pl-form input{width:100%}
-.pl-form .adm-btn{grid-column:1/-1;padding:12px;font-size:16px}
-@media(max-width:640px){.pl-form{grid-template-columns:1fr}}
 .hr-clients{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 10px}
 .hr-clients a{border:1px solid var(--line);border-radius:999px;padding:5px 14px;font-size:14px;font-weight:700;color:var(--ink2);text-decoration:none;background:var(--sunk);word-break:keep-all}
 .hr-clients a[aria-current="page"]{border-color:var(--cool);color:var(--ink)}
@@ -43,41 +36,12 @@ const CSS = `
 const kstToday = () => new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(0, 10);
 const md = (d: string) => `${Number(d.slice(5, 7))}/${Number(d.slice(8, 10))}`;
 
-const FIELDS: [string, string][] = [
-  ["name", "상호"], ["slug", "영문 관리명"], ["domain", "홈페이지 도메인"],
-  // AI 답에서 이 고객을 찾는 말. 정규식은 받지 않는다(web/lib/answer-pattern.ts). 흔한 이름이면 도메인·지점명을 넣는다
-  ["answer_terms", "답에서 찾을 이름 (쉼표로 여러 개 · 예: ○○수학학원, example.kr)"],
-  ["district", "구"], ["neighborhood", "동네"],
-  // 학원·교습소·공부방·교실·과외가 들어가면 학원 질문·교육청 점검이 붙는다(lib/pilot-intake.ts)
-  ["category", "업종 (학원이면 「수학학원」처럼 학원까지 · 예: 치과)"], ["audience", "주 고객"], ["contact_name", "담당자"], ["contact_email", "담당자 이메일"],
-  ["contact_phone", "담당자 전화"], ["receipt_type", "증빙 종류"], ["payment_ref", "입금 확인번호"], ["terms_evidence", "신청서·동의 증거 URL"],
-  ["biz_type", "사업자 유형"],
-];
-
-/** 등록 폼 검증 실패(createPilot 의 ?err=) → 사람 말 한 줄(Step 28 D23). 모르는 코드는 안 띄운다 */
-const FIELD_LABEL: Record<string, string> = {
-  ...Object.fromEntries(FIELDS.map(([n, l]) => [n, l.replace(/\s*\(.*$/, "")])),
-  paid_on: "입금 확인일", refund_terms_sent_on: "환불 절 서면 전달일",
-};
-function errText(err?: string, f?: string): string | null {
-  if (err === "missing") {
-    const names = String(f ?? "").split(",").map((k) => FIELD_LABEL[k]).filter(Boolean);
-    return names.length ? `등록 안 됨 — 빈 칸이 있습니다: ${names.join(", ")}` : "등록 안 됨 — 빈 칸이 있습니다";
-  }
-  if (err === "terms") return "등록 안 됨 — 답에서 찾을 이름은 두 글자 이상, 40자 이하로 하나는 넣어야 합니다";
-  if (err === "needs") return "등록 안 됨 — 필요한 준비를 목록에서 골라 주세요";
-  if (err === "slug") return "등록 안 됨 — 영문 관리명은 영문 소문자·숫자·- 만, 40자까지 씁니다 (예: miso-dental)";
-  if (err === "internal") return "등록 안 됨 — 그 영문 관리명은 내부 고객(학원 등)이 쓰고 있습니다. 다른 이름을 넣어 주세요";
-  return null;
-}
-
 const day = (x: unknown) => (x instanceof Date ? x.toISOString().slice(0, 10) : String(x ?? "").slice(0, 10));
 
 type Pilot = { id: string; name: string; started_on: unknown; ends_on: unknown; done: number; total: number; status: string };
 
-export default async function Page({ searchParams }: { searchParams: Promise<{ key?: string; c?: string; err?: string; f?: string }> }) {
-  const { key, c, err, f } = await searchParams;
-  const formErr = errText(err, f);
+export default async function Page({ searchParams }: { searchParams: Promise<{ key?: string; c?: string }> }) {
+  const { key, c } = await searchParams;
   // 옛 열쇠 주소는 쿠키로 바꿔 준다 — 서버 동작(저장 버튼)이 쿠키로만 관리자를 가린다
   if (key) redirect("/admin/enter?key=" + encodeURIComponent(key) + "&to=" + encodeURIComponent("/admin/pilots"));
   if (!(await isAdmin(key))) redirect("/admin/login?to=/admin/pilots");
@@ -105,7 +69,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ k
 
         <section className="adm-todo" aria-labelledby="pl-h">
           <h2 id="pl-h">진행 고객{ps.length > 0 && <span className="n"> {ps.length}곳</span>}</h2>
-          {ps.length === 0 ? <p className="none">없음 — 아직 결제한 고객이 없습니다. 입금을 확인하면 아래 자세히에서 등록합니다</p> : (
+          {ps.length === 0 ? <p className="none">없음 — 아직 결제한 고객이 없습니다. 입금을 확인하면 고객사 화면의 고객 상세에서 시작합니다</p> : (
             <div className="pl-list">
               {ps.map((x) => (
                 <Link className="adm-card pl-item" href={`/admin/pilots/${x.id}`} key={x.id}>
@@ -116,6 +80,10 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ k
             </div>
           )}
         </section>
+
+        <p className="sub" style={{ marginTop: 10 }}>
+          새 고객사는 <Link href="/admin/clients">고객사 화면</Link>에서 등록합니다. 파일럿은 고객 상세의 「파일럿 시작」에서 엽니다.
+        </p>
 
         <h2>투입 시간</h2>
         <p className="sub" style={{ marginBottom: 10 }}>
@@ -154,27 +122,6 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ k
           </ul>
         )}
 
-        <details className="adm-more" open={formErr ? true : undefined}>
-          <summary>자세히 — 결제 고객 등록</summary>
-          <div className="in">
-            <p className="sub">입금 확인 후 등록합니다. 등록하면 질문 20개와 착수·기준선·30일 업무가 생깁니다.</p>
-            {formErr && <p className="sub" role="alert" style={{ color: "var(--crit)", wordBreak: "keep-all" }}>{formErr}</p>}
-            <form className="pl-form" action={createPilot}>
-              {FIELDS.map(([n, l]) => <label key={n}>{l}<input name={n} required /></label>)}
-              {/* 구축 없음이면 30일이 이날부터다(신청서 8행) */}
-              <label>입금 확인일<input type="date" name="paid_on" defaultValue={kstToday()} required /></label>
-              <label>환불 절 서면 전달일<input type="date" name="refund_terms_sent_on" required /></label>
-              <label>필요한 준비
-                <select name="needs_build" defaultValue="none">
-                  {NEEDS_BUILD.map((n) => <option key={n} value={n}>{NEEDS_BUILD_LABEL[n]}</option>)}
-                </select>
-              </label>
-              {/* 비워도 된다 — 보고서 경쟁사 절이 「경쟁사 미설정」이 된다 */}
-              <label>경쟁사 (쉼표로 3~5곳 · 선택)<input name="competitors" maxLength={220} /></label>
-              <SubmitButton className="adm-btn">30일 업무 생성</SubmitButton>
-            </form>
-          </div>
-        </details>
       </div>
     </main>
   );

@@ -169,6 +169,9 @@ export type Client = {
    * 우리가 남에게 하지 말라고 하는 바로 그 짓이다.
    */
   relation: string;
+  /** geo.clients config·derived (Step 37). 현황판 글·유통 줄(agents.ts pipeOf)이 코드 3곳 밖 고객에 읽는다. 칸이 없는 DB 면 null */
+  config: unknown;
+  derived: unknown;
 };
 
 export async function listClients(): Promise<Client[]> {
@@ -178,8 +181,9 @@ export async function listClients(): Promise<Client[]> {
       `select id, slug, name, alias, domain, status,
               started_on::text as started_on, schema_name,
               baseline_score, baseline_on::text as baseline_on, relation,
-              current_score, current_on::text as current_on
-         from geo.clients
+              current_score, current_on::text as current_on,
+              to_jsonb(c)->'config' as config, to_jsonb(c)->'derived' as derived
+         from geo.clients c
         where status <> 'ended'
         order by started_on, id`,
     );
@@ -192,6 +196,7 @@ export async function listClients(): Promise<Client[]> {
       currentScore: r.current_score ?? null,
       currentOn: r.current_on ?? null,
       relation: r.relation ?? "외부",
+      config: r.config ?? null, derived: r.derived ?? null,
     }));
   } catch {
     // 표가 아직 없으면 첫 고객사 하나로 친다. 화면이 빈 채로 뜨는 것보다 낫다.
@@ -199,7 +204,7 @@ export async function listClients(): Promise<Client[]> {
       id: 1, slug: "robotncoding", name: "로봇&코딩학원",
       alias: "수도권의 코딩·로봇 교육 학원", domain: "robotncoding.com",
       status: "active", startedOn: "2026-09-05", schema: "academy",
-      baselineScore: 83, baselineOn: "2026-09-05", currentScore: null, currentOn: null, relation: "자사",
+      baselineScore: 83, baselineOn: "2026-09-05", currentScore: null, currentOn: null, relation: "자사", config: null, derived: null,
     }];
   }
 }
