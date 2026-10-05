@@ -72,3 +72,29 @@ pilot-report dry 비교(HEAD 판 vs 새 판): ilog baseline 같음 · robotncodi
 - KG-36-9 pc-runner 일꾼이 안 떠 있고, local-agent 를 다른 무언가가 12:40 에 띄움(pc-runner 실행은 10/3 부터 「이미 돌고 있습니다」로 0초)
 - KG-36-10 test-visit.mjs ERR_UNKNOWN_FILE_EXTENSION(.ts import, 전부터)
 - KG-36-11 「Cloudflare 토큰(D46)」 원장 할 일은 코드·열린 agent_tasks 에 없다 — 문서에 있으면 Arch 가 지운다
+
+---
+
+# 2차 — Richard 보류 반영 (2026-10-05)
+Ready for Review: YES · Status: DONE_WITH_CONCERNS (KG-36-8 은 세션 결정으로 열어 둔 채 배포 — BUILD-LOG 「미룸」)
+
+## Files Changed
+- .github/workflows/serp.yml:24-25 — 잡 한도 8 → 10분(세션 결정, 최근 실행 5분 37초~6분 8초).
+- .github/workflows/serp.yml:60 — growth-import 단계 `timeout-minutes: 2`. 잡 시간 초과로 커밋 단계가 날아가는 길을 막는다.
+- academy/scripts/growth-import.mjs:22-36 — fetch 마다 `AbortSignal.timeout(20000)`. 토큰은 호스트가 api.github.com·raw.githubusercontent.com 일 때만 싣는다(SF3).
+- academy/scripts/growth-import.mjs:78,110 — 「모양 다름」을 실패 줄에 넣고, 이슈 갱신 날짜는 KST(kstDay)로(SF1·SF2).
+- web/lib/growth-core.mjs:86-91,106-118 (+ .d.mts) — gscShape(range7 두 날짜·last7 네 숫자)·cfShape(until·last7 네 숫자). 하나라도 없으면 그 덩어리만 null, notes 와 `odd` 에 「모양 다름」. `kstDay(iso)` 추가(SF2·SF1).
+- web/app/admin/ops/GrowthReport.tsx:47,91 — 갱신 날짜 KST(SF1).
+- tools/local-agent.mjs:312 — bing-site 일감은 `빙.ok` 일 때만 닫는다(SF4).
+- tools/local-agent.mjs:265-271 — gsc 없는 고객의 gsc-submit 「로컬 대기」 일감은 「닫힘」으로 닫는다. evidence 「해당 없음」 + 활동 줄(SF5). 운영 DB 를 보니 지금은 해당하는 행이 0이다(gsc-submit 로컬 대기는 학원 1건뿐). 같은 조건으로 select 만 돌려 확인했다.
+
+## 시험·tsc
+```
+test-growth-import 59 통과 · 0 실패   (+9: JSON 모양 6 · KST 3)
+test-marketing 38 · test-docttak 32 · test-ilog-loop 33 · test-grow-loop 37 — 0 실패
+web tsc exit 0 · node --check local-agent.mjs 통과
+growth-import --client docttak --dry → 1차와 같은 출력, exit 0
+```
+
+## 기록
+- BUILD-LOG: KG-36-8 「미룸」(세션 결정) · KG-36-9 닫힘(세션이 일꾼을 다시 띄움) · 2차 고친 것 한 줄.

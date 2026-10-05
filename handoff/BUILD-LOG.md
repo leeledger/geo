@@ -1421,7 +1421,8 @@ Known Gaps (26)
 - 결정: 시험 재료는 doc-tools-kr main 의 실 리포트 2026-41 원문(academy/scripts/fixtures/growth-2026-41.md, KG-36-7 닫힘). 변형은 renderReport 가 그 경우 내는 꼴로 원문을 바꾼 것. 이슈는 실물이 없어(41주 후보 0개) issueBody 코드 꼴
 - 운영 DB(오케스트레이터 지시): geo.growth_reports 생성 + 문서딱 2026-41 한 행(서치콘솔 7일 클릭 0·노출 36·순위 18.17, Cloudflare 7일 페이지뷰 6,651·5일) + 활동 줄 1(measure 「문서딱 성장 리포트」 ok). 두 번째 실행은 「받을 주 없음」
 - BLOCKED: 빙 「등록 안 됨」 판정. `bing-submit-urls.mjs --look --client docttak` 실행이 자동 모드 분류기에서 거부됐다(원장 로그인 브라우저 조작). 화면 원문이 없으니 정규식을 안 썼다(추측 금지). local-agent 의 사람 대기 일감(bing-site-<slug>)은 bing-site.mjs 빙미등록 글자를 보고 열리게 지어 뒀다 — 지금은 bing-submit-urls 가 그 글자를 안 찍는다. 문서딱이 빙에 없으면 지금은 「Submit URLs」 버튼 못 찾음 → 종료코드 1 → 활동 줄 「빙 주소 제출」 실패로 보인다(조용하진 않음)
-- KG-36-8 빙 미등록 정규식 + 시험 — 세션이 --look 원문을 받은 뒤(위 BLOCKED)
-- KG-36-9 pc-runner 일꾼이 안 떠 있다(2026-10-05 12:50 --status 「안 떠 있음」). local-agent 는 다른 무언가(옛 작업 스케줄러?)가 12:40 에 띄우고, pc-runner 쪽 실행은 10/3 부터 「이미 돌고 있습니다」로 0초 끝 — 두 군데서 띄운다
+- KG-36-8 빙 미등록 정규식 + 시험 — 세션이 --look 원문을 받은 뒤(위 BLOCKED) · 세션 결정: 열어 둔 채 배포, Acceptance 「빙 --look 원문·원장 할 일 1줄」은 미룸(원장이 원문을 주면 넣는다). 정규식을 넣는 날 local-agent 의 bing-site 일감 닫기는 빙.ok 일 때만(2차에서 고침)
+- KG-36-9 (닫힘, 세션) pc-runner 일꾼이 10:09 ai-web-measure 실패(브라우저 닫힘) 뒤 멈춰 있었다 — 세션이 다시 띄움. local-agent 12:40 실행은 그 사이 다른 경로로 돌았다(local-agent.log)
 - KG-36-10 test-visit.mjs 가 .ts 를 import 해 ERR_UNKNOWN_FILE_EXTENSION(이 Step 전부터, 브리프 회귀 목록 밖)
 - KG-36-11 원장 할 일 「Cloudflare 토큰(D46)」은 코드·agent_tasks(열린 것)에 없다 — 체크포인트·문서 글이면 Arch 가 지운다
+- 2차(Richard 보류 반영, 2026-10-05): serp 잡 한도 8→10분(세션 결정, 최근 6분대) · growth-import 단계 timeout-minutes 2 · fetch 마다 AbortSignal.timeout(20초) · 토큰은 api.github.com·raw.githubusercontent.com 에만 · 이슈 갱신 날짜 KST(kstDay) · gsc·cf JSON 모양 검사(빠지면 그 덩어리 null + notes·실패 줄 「모양 다름」) · bing-site 일감은 빙.ok 일 때만 닫음 · gsc 없는 고객의 gsc-submit 로컬 대기 일감은 local-agent 가 「닫힘」(해당 없음)으로 닫음 — 지금 해당 행 0(학원 로컬 대기 1건뿐)

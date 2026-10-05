@@ -263,6 +263,12 @@ try {
 
   // ── 구글 색인 요청: 하루 한도가 있어 --all 이 남은 주소만 조금씩 넣는다. gsc:true 고객을 학원 먼저 차례로(Step 36)
   // 고객당 20분 — 두 고객이 30분씩이면 pc-runner 한도(90분)를 블로그·Brave 와 나눠 쓰지 못한다
+  // 회사 루프(company.mjs announce)는 글을 내는 고객 누구에게나 gsc-submit 을 만든다. gsc 없는 고객 것은 여기서 아무도 안 도니
+  // 「로컬 대기」로 영영 남지 않게 해당 없음으로 닫는다
+  const 해당없음 = await q(`update geo.agent_tasks set status='닫힘', done_at=now(), updated_at=now(),
+      evidence = left(evidence || E'\n해당 없음 — 이 고객은 PC 구글 색인 요청을 안 돈다(clients.mjs gsc 없음)', 4000)
+      where kind='gsc-submit' and status='로컬 대기' and not (client_id = any($1::int[])) returning id, client_id`, [indexClients().map((c) => c.id)]);
+  for (const t of 해당없음) await 활동("deliver", "구글 색인 요청 해당 없음", true, `gsc-submit 일감 #${t.id} 닫음 — gsc 없는 고객`, t.id, t.client_id);
   for (const c of indexClients()) {
     const gscTasks = await q(`select id from geo.agent_tasks where client_id=$1 and kind='gsc-submit' and status='로컬 대기'`, [c.id]);
     const r = 돌리기("submit-gsc.mjs", ["--all", "--client", c.slug], 20);
@@ -302,7 +308,8 @@ try {
       await 활동("deliver", "빙 주소 제출 멈춤", false, `${c.name} 빙 웹마스터에 등록 안 됨 — 원장 일감`, null, c.id);
       continue;
     }
-    await q(`update geo.agent_tasks set status='완료', done_at=now(), updated_at=now() where client_id=$1 and dedupe_key=$2 and status='사람 대기'`, [c.id, dedupe]);
+    // 제출이 실제로 된 날만 「등록돼 있다」로 본다. 버튼 못 찾음(exit 1) 같은 다른 실패에 일감을 닫으면 헛닫힘이다
+    if (빙.ok) await q(`update geo.agent_tasks set status='완료', done_at=now(), updated_at=now() where client_id=$1 and dedupe_key=$2 and status='사람 대기'`, [c.id, dedupe]);
     await 활동("deliver", "빙 주소 제출", 빙.ok, `${c.name} · ${끝(빙.out, 200)}`, null, c.id);
   }
   기록(`끝 (네이버 ${네이버막힘 ? "로그인 필요" : "정상"})`);

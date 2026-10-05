@@ -9,7 +9,7 @@ import fs from "node:fs";
 import { CLIENTS, indexClients } from "../clients.mjs";
 import { bingClient } from "../../tools/bing-site.mjs";
 import {
-  GROWTH_SLUGS, parseGrowthReport, parseOpportunityIssue, reportStalled, splitRow, weekMonday, weekOfName, weeksToFetch,
+  GROWTH_SLUGS, kstDay, parseGrowthReport, parseOpportunityIssue, reportStalled, splitRow, weekMonday, weekOfName, weeksToFetch,
 } from "../../web/lib/growth-core.mjs";
 
 let 통과 = 0, 실패 = 0;
@@ -50,6 +50,22 @@ const g = parseGrowthReport(gsc없음);
 봄("「> 」 메모 → notes", g.notes === "서치콘솔: GSC_SERVICE_ACCOUNT_JSON 이 없어 건너뜀");
 const cf없음 = parseGrowthReport(원문.replace(/<!-- growth-data .* -->/, `<!-- growth-data ${JSON.stringify({ ...json, cf: null })} -->`));
 봄("cf null → null 그대로, 서치콘솔 살림", cf없음.cf === null && cf없음.gsc.last7.impressions === 36);
+
+// ── JSON 모양 (화면·pilot-report 가 읽는 칸이 빠지면 그 덩어리만 비움)
+const 모양 = (patch) => parseGrowthReport(원문.replace(/<!-- growth-data .* -->/, `<!-- growth-data ${JSON.stringify({ ...json, ...patch })} -->`));
+const gsc빠짐 = 모양({ gsc: { ...json.gsc, range7: undefined } });
+봄("gsc range7 없음 → gsc null·「모양 다름」·cf 살림", gsc빠짐.gsc === null && gsc빠짐.odd.length === 1 && /서치콘솔 JSON 모양 다름/.test(gsc빠짐.notes) && gsc빠짐.cf.last7.pageViews === 6651);
+봄("gsc last7 숫자 아님 → gsc null", 모양({ gsc: { ...json.gsc, last7: { ...json.gsc.last7, impressions: "36" } } }).gsc === null);
+const cf빠짐 = 모양({ cf: { ...json.cf, until: undefined } });
+봄("cf until 없음 → cf null·「모양 다름」·gsc 살림", cf빠짐.cf === null && /Cloudflare JSON 모양 다름/.test(cf빠짐.notes) && cf빠짐.gsc.last7.impressions === 36);
+봄("cf last7.uniques 없음 → cf null", 모양({ cf: { ...json.cf, last7: { ...json.cf.last7, uniques: undefined } } }).cf === null);
+봄("정상 리포트는 odd 없음", r.odd.length === 0);
+봄("null 은 모양 다름이 아님", 모양({ gsc: null }).odd.length === 0);
+
+// ── KST 날짜
+봄("UTC 23:30 → KST 다음 날", kstDay("2026-10-11T23:30:00Z") === "2026-10-12");
+봄("UTC 00:30 → KST 같은 날", kstDay("2026-10-12T00:30:00Z") === "2026-10-12");
+봄("못 읽는 시각 → null", kstDay(null) === null && kstDay("x") === null);
 
 // ── 표
 const 머리바뀜 = 원문.replace("### 상위 쿼리 (28일)\n| 쿼리 | 클릭 | 노출 | CTR | 평균 순위 |", "### 상위 쿼리 (28일)\n| 쿼리 | 클릭 | 노출 | CTR | 순위 |");

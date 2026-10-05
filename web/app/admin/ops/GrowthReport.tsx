@@ -1,4 +1,4 @@
-import { GROWTH_FOOT, type GscRow } from "@/lib/growth-core.mjs";
+import { GROWTH_FOOT, kstDay, type GscRow } from "@/lib/growth-core.mjs";
 import type { GrowthReports, GrowthWeek } from "@/lib/growth-reports";
 import CoverageChart, { type CovSeries } from "./CoverageChart";
 
@@ -43,6 +43,8 @@ function Body({ data, name }: { data: Extract<GrowthReports, { ok: true }>; name
   ];
   const max = Math.max(0, ...withGsc.map((w) => w.gsc.last7.impressions));
   const o = data.opportunity;
+  // GitHub 시각은 UTC — KST 날짜로
+  const 갱신 = kstDay(o?.updatedAt);
 
   return <>
     <p className="d">{name} 저장소가 매주 월요일 내는 성장 리포트를 그대로 옮겼습니다. 서치콘솔은 구글 검색, Cloudflare 는 서버 통계입니다.</p>
@@ -86,7 +88,7 @@ function Body({ data, name }: { data: Extract<GrowthReports, { ok: true }>; name
       {!o || o.none || o.count === 0 ? <>{name} 세션에 넘길 제안 0건(노출 기준 미달)</>
         : o.count == null ? <>{o.url ? <a href={o.url} target="_blank" rel="noopener">건수 못 읽음 — 이슈 열기</a> : "건수 못 읽음"}</>
         : <>{name} 세션에 넘길 제안 {o.count}건 → {o.url ? <a href={o.url} target="_blank" rel="noopener">이슈 열기</a> : "이슈 주소 없음"}
-          {o.updatedAt && <> · 갱신 {md(o.updatedAt.slice(0, 10))}</>}</>}
+          {갱신 && <> · 갱신 {md(갱신)}</>}</>}
     </p>
 
     {GROWTH_FOOT.map((l) => <p key={l} className="gp-foot">{l}</p>)}

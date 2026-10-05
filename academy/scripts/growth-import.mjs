@@ -14,20 +14,22 @@
 import fs from "node:fs";
 import pg from "pg";
 import { selectClients } from "../clients.mjs";
-import { GROWTH_DDL, parseGrowthReport, parseOpportunityIssue, weekOfName, weeksToFetch } from "../../web/lib/growth-core.mjs";
+import { GROWTH_DDL, kstDay, parseGrowthReport, parseOpportunityIssue, weekOfName, weeksToFetch } from "../../web/lib/growth-core.mjs";
 
 const DRY = process.argv.includes("--dry");
 const say = (s) => console.log(s);
 const 앞 = (s, n = 200) => String(s).replace(/\s+/g, " ").trim().slice(0, n);
 
-const 헤더 = {
-  "User-Agent": "cited-growth-import",
-  Accept: "application/vnd.github+json",
-  ...(process.env.GITHUB_TOKEN ? { Authorization: `Bearer ${process.env.GITHUB_TOKEN}` } : {}),
-};
+/** 토큰은 GitHub 이 확인된 호스트에만 싣는다 — 목록이 준 download_url 이 다른 곳을 가리켜도 토큰이 새지 않게 */
+const 토큰호스트 = new Set(["api.github.com", "raw.githubusercontent.com"]);
+/** 응답 하나에 20초. 잡(serp, 10분) 안에서 이 단계는 2분 — 느린 GitHub 이 케이스 리포트 커밋을 날리지 않게 */
+const 시간한도 = 20_000;
+
 /** GitHub 응답. 2xx 가 아니면 상태와 본문 앞부분을 담아 던진다 */
 async function 받기(url, json = true) {
-  const r = await fetch(url, { headers: json ? 헤더 : { "User-Agent": 헤더["User-Agent"], ...(헤더.Authorization ? { Authorization: 헤더.Authorization } : {}) } });
+  const 토큰 = process.env.GITHUB_TOKEN && 토큰호스트.has(new URL(url).host) ? { Authorization: `Bearer ${process.env.GITHUB_TOKEN}` } : {};
+  const headers = { "User-Agent": "cited-growth-import", ...(json ? { Accept: "application/vnd.github+json" } : {}), ...토큰 };
+  const r = await fetch(url, { headers, signal: AbortSignal.timeout(시간한도) });
   const body = await r.text();
   if (!r.ok) {
     const left = r.headers.get("x-ratelimit-remaining");
@@ -73,6 +75,7 @@ async function 가져오기(c, q) {
     let r;
     try { r = parseGrowthReport(md); } catch (e) { 실패.push(`${week} 안 씀(${e.message}) · 원문 앞: ${앞(md)}`); continue; }
     if (r.week !== week) { 실패.push(`${week} 안 씀(파일 이름과 growth-data 주가 다름: ${r.week})`); continue; }
+    for (const x of r.odd) 실패.push(`${week} ${x} — 그 칸만 비우고 씀`);
     const 표 = ["queries7", "queries28", "pages28"].filter((k) => r[k] === null && r.gsc);
     if (표.length) 실패.push(`${week} 표 못 읽음(${표.join(", ")}) — 합계는 씀`);
     say(`  ${week} 생성 ${r.generated ?? "?"} · 서치콘솔 7일 ${r.gsc ? `클릭 ${r.gsc.last7.clicks} · 노출 ${r.gsc.last7.impressions} · 순위 ${r.gsc.last7.position}` : "없음"}`
@@ -105,7 +108,7 @@ async function 가져오기(c, q) {
       const o = parseOpportunityIssue(issues[0]);
       // 그 이슈 제목의 주 행에. 제목을 못 읽었거나 그 주 행이 없으면 최신 주에
       const 주 = o.week && 주들.includes(o.week) ? o.week : 주들[0];
-      제안 = `후보 이슈 ${o.count ?? "건수 못 읽음"}${o.count != null ? "건" : ""} (${o.week ?? "주 못 읽음"}, 갱신 ${String(o.updatedAt).slice(0, 10)}) ${o.url}`;
+      제안 = `후보 이슈 ${o.count ?? "건수 못 읽음"}${o.count != null ? "건" : ""} (${o.week ?? "주 못 읽음"}, 갱신 ${kstDay(o.updatedAt) ?? "날짜 못 읽음"}) ${o.url}`;
       if (o.count == null) 실패.push(`이슈 제목 꼴이 다름: ${앞(issues[0].title, 80)}`);
       if (!DRY && 주) await q(`update geo.growth_reports set opportunity=$3 where client_id=$1 and week=$2`, [c.id, 주, JSON.stringify(o)]);
     }

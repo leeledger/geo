@@ -14,6 +14,8 @@ export type ParsedGrowth = {
   gsc: GrowthGsc | null;
   cf: GrowthCf | null;
   notes: string | null;
+  /** 모양이 달라 비운 덩어리(서치콘솔·Cloudflare) 설명. notes 에도 들어간다 */
+  odd: string[];
   queries7: GscRow[] | null;
   queries28: GscRow[] | null;
   pages28: GscRow[] | null;
@@ -33,5 +35,6 @@ export function parseGrowthReport(md: string): ParsedGrowth;
 export function parseOpportunityIssue(issue: { title?: string; body?: string | null; html_url?: string; updated_at?: string }): Opportunity;
 export function weekOfName(name: string): string | null;
 export function weeksToFetch(listed: string[], stored: Iterable<string>, max?: number): string[];
+export function kstDay(iso: string | null | undefined): string | null;
 export function weekMonday(label: string): string;
 export function reportStalled(latest: { week: string; generated: string | null } | null | undefined, today: string): boolean;

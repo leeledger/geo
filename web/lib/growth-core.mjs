@@ -83,6 +83,13 @@ const gscRow = (c) => {
   return [r.clicks, r.impressions, r.ctr, r.position].includes(undefined) ? null : r;
 };
 
+const 숫자 = (v) => typeof v === "number" && Number.isFinite(v);
+const 날짜 = (v) => typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v);
+/** 화면(GrowthReport.tsx)·pilot-report 가 읽는 칸: range7 두 날짜 · last7 네 숫자 */
+const gscShape = (g) => 날짜(g?.range7?.startDate) && 날짜(g?.range7?.endDate) && ["clicks", "impressions", "ctr", "position"].every((k) => 숫자(g?.last7?.[k]));
+/** until · last7 네 숫자 */
+const cfShape = (c) => 날짜(c?.until) && ["requests", "pageViews", "uniques", "days"].every((k) => 숫자(c?.last7?.[k]));
+
 /**
  * 리포트 마크다운 → 한 주 행.
  * growth-data 표지가 없거나 JSON 이 깨지면 던진다(그 주는 안 쓴다). gsc·cf 는 JSON 값 그대로(null 이면 null).
@@ -96,12 +103,18 @@ export function parseGrowthReport(md) {
   try { data = JSON.parse(m[1]); } catch (e) { throw new Error(`growth-data JSON 깨짐: ${e.message}`); }
   if (!data || typeof data !== "object" || !WEEK.test(String(data.week))) throw new Error(`growth-data 주 표시가 이상함: ${String(data?.week)}`);
   const lines = text.split(/\r?\n/);
+  // 화면·pilot-report 가 읽는 칸이 다 있을 때만 쓴다. 하나라도 빠지면 그 덩어리만 비우고 「모양 다름」을 남긴다
+  const odd = [];
+  const gsc = data.gsc == null ? null : gscShape(data.gsc) ? data.gsc : (odd.push("서치콘솔 JSON 모양 다름(range7·last7 칸)"), null);
+  const cf = data.cf == null ? null : cfShape(data.cf) ? data.cf : (odd.push("Cloudflare JSON 모양 다름(until·last7 칸)"), null);
+  const memo = lines.filter((l) => l.startsWith("> ")).map((l) => l.slice(2).trim());
   const out = {
     week: data.week,
     generated: typeof data.generated === "string" ? data.generated : null,
-    gsc: data.gsc ?? null,
-    cf: data.cf ?? null,
-    notes: lines.filter((l) => l.startsWith("> ")).map((l) => l.slice(2).trim()).join("\n") || null,
+    gsc,
+    cf,
+    notes: [...memo, ...odd].join("\n") || null,
+    odd,
   };
   for (const t of TABLES) out[t.key] = readTable(lines, t, gscRow);
   return out;
@@ -171,6 +184,12 @@ export function weekMonday(label) {
   const jan4 = Date.UTC(y, 0, 4);
   const dayNum = new Date(jan4).getUTCDay() || 7;
   return new Date(jan4 - (dayNum - 1) * 86_400_000 + (w - 1) * 7 * 86_400_000).toISOString().slice(0, 10);
+}
+
+/** GitHub 시각(UTC ISO) → KST 날짜 「YYYY-MM-DD」. KST 00~09시 갱신이 하루 전으로 찍히지 않게. 못 읽으면 null */
+export function kstDay(iso) {
+  const t = Date.parse(String(iso ?? ""));
+  return Number.isNaN(t) ? null : new Date(t).toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" });
 }
 
 /** 리포트가 멈췄나 — 마지막 리포트 생성일(없으면 그 주 월요일)에서 오늘(KST 날짜)까지 9일 넘음 */
