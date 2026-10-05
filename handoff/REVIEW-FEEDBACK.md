@@ -1,6 +1,6 @@
 # Review Feedback — Step 37
 Date: 2026-10-05
-Ready for Builder: NO
+Ready for Builder: YES (2차 — 아래)
 
 ## Must Fix
 - academy/scripts/sales.mjs:80 + academy/clients.mjs:446-447 (confidence: 8) — 영업 자료 가림 말이 status active·test 고객만 본다.
@@ -20,3 +20,20 @@ Ready for Builder: NO
 
 ## Cleared
 lit 이스케이프(.*+?^${}()|[]\ 전부, 말 정규식 i 만·g 없음, pages all lookahead), 고객설정 형 오류 칸별 기본값, loadClients 실패 시 코드 3곳 폴백·strict, 잠깐DB 연결(Pool·sslmode 삭제·rejectUnauthorized = DATABASE_SSL_INSECURE !== "true" — 기존 40여 곳과 같음), company·daily-agent·고객고르기 기본 목록의 'test' 제외, daily-agent brandHit null 분기, indexnow DB 고객 키 형식 검사와 키 파일 본문 확인, marketing-draft 코드 고객 경로 불변, local-agent·submit-gsc·bing-site 코드 3곳 값 동일을 확인했다.
+
+---
+# Review Feedback — Step 37 2차 (31a62f4 · 989e296)
+Date: 2026-10-05
+Ready for Builder: YES
+
+## Must Fix
+- 없음. 닫힘: masks.mjs `DB고객말` — `select name, domain from geo.clients where $1::int is null or id <> $1`(status 조건 없음, 실패하면 던짐). sales.mjs `if (pool) for (const x of await DB고객말(q)) 말.add(x);` · illustrate 도 같은 함수. sales --leak-test 가 운영 DB 로 이 쿼리를 지났다.
+
+## Should Fix
+- 닫힘 ② 고객설정이 brandWords 원문을 돌려주고, 고객사말은 brandWords 가 있으면 brandRe 원문을 안 꺼낸다. 코드 3곳(brandWords 없음)은 예전 길 그대로.
+- 닫힘 ④ measure-targets 의 전체 대상 두 쿼리에 `where coalesce(c.status,'') <> 'test'`. slug 길(:136)은 콕 집기라 시험 고객도 잰다 — 의도대로.
+- 닫힘 ⑥ 가드가 import 꼴과 상관없이 「clients.mjs 를 가져오는 파일 + CLIENTS/selectClients 글자」로 잡는다. 가짜 글 네 꼴 시험. 주석에 쓴 글자도 걸리는 대가는 받아들일 만하다.
+- 닫힘 ① growth-import --dry 전후 차이 0. rescan·company·ai-measure 는 시험(앞 3곳 칸이 같은 객체)으로 덮었고, 실제 확인은 배포 뒤 로그로 한다(Acceptance).
+
+## Cleared
+2차 diff 전부를 읽었고 새로 깨진 곳은 없다. test-clients 를 다시 돌려 99 통과 · 0 실패. Step 37 is clear.
