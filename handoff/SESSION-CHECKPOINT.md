@@ -2,6 +2,15 @@
 *Read this before reading anything else. If it covers current state, skip BUILD-LOG.*
 
 
+## Where We Stopped (2026-10-05 낮) — 문서딱 색인·이름·블로그
+
+- 구글 44쪽 중 32쪽 검사, 11쪽 요청 접수(하루 한도). **남은 12쪽 10-06: node tools/submit-gsc.mjs --all --client docttak**
+- IndexNow 44쪽 빙·네이버 200(손으로 한 번 — 매일 자동은 안 검, 문서딱 배포가 보냄). Brave 홈·/guide/·llms.txt 제출
+- 문서딱 사이트 제안(sameAs 블로그·홈 첫 문장·제출처 표 허브) → deliverables/docttak/2026-10-05-site-proposal.md, 문서딱 세션 몫
+- 네이버 블로그 robohelio 로그인 저장(tools/.browser-profile-docttak, NID_AUT 2027-11-09). 원장이 10-05 에 8편 손으로 올림 — 앞으로 주 2편
+- 결정 대기 KG-36-1: 손으로 올린 8편을 marketing_posts 에 넣어 인용 효과로 셀지
+- 원장 몫: 블로그 소개란에 docttak.com 링크
+
 ## Where We Stopped (2026-10-02 밤) — Step 32~35 배포(b625b69)
 
 - 32·33 문서딱 두 번째 자사 레퍼런스 · 현황판 고객 탭 · 34 자동 일을 고객마다, 화면 「학원」→고객 이름, 이름 질문 따로 · 35 문서딱 바깥 글(지식iN·카페 매일 초안, 블로그 주 2편 원장 확인 뒤 게시, AI 출처 효과)
