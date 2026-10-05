@@ -1426,3 +1426,5 @@ Known Gaps (26)
 - KG-36-10 test-visit.mjs 가 .ts 를 import 해 ERR_UNKNOWN_FILE_EXTENSION(이 Step 전부터, 브리프 회귀 목록 밖)
 - KG-36-11 원장 할 일 「Cloudflare 토큰(D46)」은 코드·agent_tasks(열린 것)에 없다 — 체크포인트·문서 글이면 Arch 가 지운다
 - 2차(Richard 보류 반영, 2026-10-05): serp 잡 한도 8→10분(세션 결정, 최근 6분대) · growth-import 단계 timeout-minutes 2 · fetch 마다 AbortSignal.timeout(20초) · 토큰은 api.github.com·raw.githubusercontent.com 에만 · 이슈 갱신 날짜 KST(kstDay) · gsc·cf JSON 모양 검사(빠지면 그 덩어리 null + notes·실패 줄 「모양 다름」) · bing-site 일감은 빙.ok 일 때만 닫음 · gsc 없는 고객의 gsc-submit 로컬 대기 일감은 local-agent 가 「닫힘」(해당 없음)으로 닫음 — 지금 해당 행 0(학원 로컬 대기 1건뿐)
+
+- 2026-10-05 Step 36 배포: main 4167211 · web 자동 배포 Ready · serp 수동 실행 37262380486 에서 growth-import 정상(문서딱 2026-41 이미 있음). 다음 Step 37 — 브리프를 ARCHITECT-BRIEF.md 로 옮김
