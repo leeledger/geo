@@ -7,3 +7,8 @@
 - client-core.mjs:186 (5/10) — 도메인 중복 검사가 확인 뒤 insert 이고 고유 색인이 없다. 관리자 한 명이라 경합 가능성은 낮다. tx 안에서 pg_advisory_xact_lock 을 잡는다.
 ## Escalate — 없음. 다르게 한 3가지는 타당하다: answerPattern 이전(node 가 .ts 를 못 읽고 재수출로 호출부 불변), maxDuration 60(20초 상한 안), useActionState(열 칸을 다시 치지 않게).
 ## Cleared — guard=isAdmin(기존 actions와 같음)·페이지 인증, 리다이렉트 https·같은 호스트·5홉·8/20초, slug·코드·도메인 거부, 지우기 test·FOR UPDATE·한 tx·남은 0, createPilot 이 geo.clients 를 안 만듦, 공개·리포트 길 0, derived 실측만, CLAUDE.md 는 함정 줄 하나만 바뀜.
+
+## 2차 (f5e0007) — Ready for Builder: YES · Must Fix 없음
+- 4건 모두 반영 확인. DNS 는 요청마다(리다이렉트 뒤 주소 포함) all 로 풀고 하나라도 내부면 거부. IPv4 11대역·169.254·CGNAT·::ffff 점 표기 덮음. 2MB 스트림 끊고 잘림 표시. pilot-exists 는 사전 검사와 23505(client_id 고유) 둘 다. advisory lock 은 tx 안. 새로 깨진 곳 없음.
+- Should Fix (6/10) client-core.mjs 내부주소 — IPv6 에서 64:ff9b::/96(NAT64)·2002::/16(6to4)·::ffff 16진 표기(::ffff:7f00:1)·::a.b.c.d 가 빠져 공개로 본다. getaddrinfo 가 내기 드물고 Vercel 에 NAT64 없음 — 넣거나 KG-38-7 옆에 적는다.
+- KG-38-7(rebinding) Known Gap 으로 받아들임. Step 38 is clear.

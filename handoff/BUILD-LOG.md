@@ -1490,3 +1490,6 @@ Known Gaps (26)
 - KG-38-6 /admin/pilots 운영 주소 확인은 배포 뒤(로컬 next dev 에서 열림·링크 확인함)
 - 2차(Richard Should Fix 4, 2026-10-05): 세팅 점검 요청마다 dns.lookup(all) → 내부 주소면 안 엶(「내부 주소로 풀림」) · 본문 스트림 2MB 끊기(KG-38-4 닫음) · createPilot 파일럿 있으면 pilot-exists(on conflict update 삭제, 23505 도 같은 말) · 등록 tx 에 pg_advisory_xact_lock. 세션 결정: 24시간 다시 열림·hitWords 주소만 그대로. test-client-core 138 · E2E 34(시험 고객 id 8, 남은 행 0)
 - KG-38-7 DNS 확인과 fetch 가 각자 이름을 푼다(rebinding 틈). 고른 주소로 붙는 undici dispatcher 가 있어야 닫힌다 — 위험 낮음(https·관리자 입력)
+
+- KG-38-8 client-core 내부주소 판정이 일부 IPv6 꼴(64:ff9b::/96 NAT64, 2002::/16 6to4, ::ffff:7f00:1 hex, ::a.b.c.d)을 공개로 본다 — getaddrinfo 가 드물게 주고 Vercel 은 NAT64 없음. KG-38-7 과 함께 dispatcher 로 닫을 때 같이(Richard 2차 SF)
+- 2026-10-05 Step 38 배포 결정: Richard 2차 통과(f5e0007)
