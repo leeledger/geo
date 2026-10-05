@@ -1451,3 +1451,20 @@ Known Gaps (26)
 - KG-37-5 submit-gsc DB 고객 찾기가 status active·test 만(옛 D19 는 status 무관)
 - KG-37-6 health 가 DATABASE_URL 없으면 주소 확인 전에 멈춤(Actions 는 늘 있음)
 - 2차(Richard 보류 반영, 2026-10-05): Must Fix — masks `DB고객말`(status 무관 이름·도메인, fail-closed)을 sales·illustrate 가림에 · SF② 고객설정이 brandWords 원문을 돌려주고 고객사말은 그것을 그대로(「C++코딩」 보존) · SF④ 측정대상·고객측정일 전체 쿼리가 status 'test' 제외(이름으로 집을 때만) · SF⑥ 가드를 「clients.mjs 를 가져오는 파일에 CLIENTS·selectClients 글자」로 단순화(import * as·동적 import() 포함) · SF① growth-import --dry 전후 차이 0, rescan·company·ai-measure 는 dry 길이 없어 코드 3곳 값 동일 시험 + 배포 뒤 로그로 확인. test-clients 82 → 99
+
+### 2026-10-05 — Step 38 설계 (원장 「고객사만 등록하는 화면, 넣으면 알아서 세팅」) — Step 38 BRIEFED (handoff/ARCHITECT-BRIEF-STEP38.md, 37 배포 뒤 ARCHITECT-BRIEF.md 로)
+- 쪼갬: 38 = /admin/clients 등록·고치기·상세 · 세팅 점검(실제 fetch → derived) · 체크리스트 · 사람 일감 동기화 · 파일럿을 고객 상세로 · PIPES(KG-37-2) · presence·제외 앞말 칸(KG-37-3·37 설계 KG) · CLAUDE.md 줄. 39 = 바깥 글 범용화(KG-37-1) · 로그인 창 버튼(open-login → pc-runner 2분 작업) · GSC 권한 탐침 · 자사 0원 리허설 화면. 이유: 38 만으로 외부 고객 하나를 CLI 없이 세팅·측정 시작까지 간다. 39 는 각각 원장 로그인 브라우저나 Claude 호출이 걸려 따로 검증해야 한다
+- 결정: 고객사를 만드는 곳은 /admin/clients 하나. createPilot 은 geo.clients 를 안 만든다(client_id 받음). /admin/pilots 만들기 폼은 링크로. 파일럿은 고객 상세의 「파일럿 시작」(외부만)
+- 결정: 등록은 덮어쓰지 않는다 — 코드 slug·DB slug·같은 도메인이면 거부. 옛 on conflict update 는 등록 길에서 없어진다
+- 결정: 점검은 저장 직후 서버에서 바로(각 8초·전체 20초, 등록 commit 뒤라 실패해도 등록은 남음) + company 매시 24시간 지난 active 3곳. 별도 「세팅 점검」 일감은 안 만든다(활동 줄만). 37 설계의 「저장 → 일감 → 매시」보다 원장이 바로 결과를 본다
+- 결정: 점검·체크리스트·동기화·등록·지우기는 web/lib/client-core.mjs 한 곳(growth-core 처럼 academy 도 import). 화면과 company 가 같은 함수
+- 결정: 사람 칸은 최대 3개 — 「고객 담당에게 보낼 것」(robots·사이트맵·llms·JSON-LD·키 파일을 한 묶음, 복사해 보낼 글 포함) · GSC 권한 · 파일럿 시작. 경쟁 검색어·이름 판별 말은 등록 필수 칸이라 일감이 안 생긴다
+- 결정: config 에 answerTerms·answerExclude 원문을 둔다(정규식은 되돌릴 수 없다 — 고치기 폼용)
+- 결정: GSC 「권한 받음」 버튼은 38 의 임시 길(원장 말을 믿음). 39 탐침이 화면 원문으로 확인. 화면 원문 없이 「권한 없음」 정규식을 쓰지 않는다
+- 결정: 지우기는 status test 만, 한 tx 에서 남은 행 0 확인 아니면 rollback. test-new-client 의 .catch(() => {}) 방식은 화면 길에 쓰지 않는다
+- 결정: E2E 시험 도메인은 우리 랜딩 geo-rose-nine.vercel.app(남의 사이트를 시험으로 두드리지 않는다)
+- 사실(Arch 확인): answer_pattern 은 SQL 정규식에서 안 쓰인다(lookbehind 안전). 자사 고객 측정은 0원 리허설 파일럿 + 패널 질문(seed-panel) 방식이라 화면 자사 리허설은 39. todo-text 는 kind 로 문구를 고른다 — setup 분기 필요
+- KG-38-1 진짜 고객 중지·지우기, slug 바꾸기 — 화면에 없음
+- 원장 몫(38 뒤): 새 고객마다 사람 칸 최대 3개(보낼 글 복사해 전달 · GSC 권한 받고 버튼 · 파일럿 계약 칸 입력)
+
+- 2026-10-05 Step 37 배포: main 2dfb29a · company 37265095212·serp 37265098137 운영 수동 실행 둘 다 성공 · academy 앱은 clients.mjs 를 안 불러 배포 불필요. 다음 Step 38 — 브리프를 ARCHITECT-BRIEF.md 로 옮김

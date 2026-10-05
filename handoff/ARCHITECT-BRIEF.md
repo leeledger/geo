@@ -1,130 +1,94 @@
-# Architect Brief — Step 37 (고객 설정을 DB 로 — 새 고객이 코드 수정 없이 돈다)
+# Architect Brief — Step 38 (고객사 등록 화면 · 세팅 점검 · 체크리스트)
 
-> Step 36 리뷰·배포 뒤 이 파일을 ARCHITECT-BRIEF.md 로 옮긴다. Step 36(clients.mjs `gsc`·`indexClients`, local-agent)이 들어간 코드 위에서 짓는다.
-> 원장 지시(2026-10-05): 「고객사만 등록하는 화면을 만들고, 거기에 정보를 넣으면 알아서 세팅되는 시스템으로」.
-> 쪼갬: **37 = 바탕(DB 설정 + 얇은 층 + 모든 스크립트 전환, 기존 3곳은 바뀌는 것 없음)** · 38 = 등록 화면·세팅 점검·체크리스트·로그인 버튼(BUILD-LOG 「2026-10-05 — Step 37 고객 등록 자동 세팅 설계」). 화면은 38 이다 — 37 은 화면 없이 DB 행 하나로 새 고객이 도는 것을 증명한다.
+선행: Step 37(ff9865c) 배포 뒤 시작. 37 리뷰 반영으로 clients.mjs 가 바뀌면 그 위에서.
+Step 39(다음): 바깥 글 범용화(KG-37-1, 확인한 사실 목록) · 로그인 창 버튼(open-login → pc-runner) · GSC 권한 탐침 · 자사 0원 리허설 화면. 38 에서 손대지 않는다.
 
 ## Goal
-geo.clients 행(+ `config` JSONB)만 있는 고객이 clients.mjs 수정 없이 노출 측정·색인 알림·점검·개선 루프·바깥 글 초안·가림 검사에 들어간다. 학원·아이로그·문서딱은 지금과 한 글자도 다르지 않게 돈다.
+원장이 /admin/clients 에서 고객사 정보를 넣으면 행·설정·IndexNow 키가 생기고, 사이트를 실제로 열어 본 결과(derived)가 채워지고, 고객 상세 맨 위 체크리스트가 됨/기다림/사람 몫을 말한다. CLI 는 안 쓴다.
 
-## 왜 (지금 무엇이 틀렸나 — Arch 확인)
-- 스크립트 약 25곳이 `CLIENTS`·`selectClients`·`bySlug` 를 코드에서 바로 읽는다. 등록 화면(/admin/pilots)으로 들어온 고객은 measure-targets·submit-gsc 만 DB 로 대체되고 나머지(check-index·indexnow·health·daily-agent·marketing-draft·who-wins·briefing…)는 안 돈다.
-- **가림 구멍(치명):** `masks.mjs 고객사말(CLIENTS)` 를 sales.mjs·illustrate.mjs 가 쓴다. DB 에만 있는 고객 이름은 영업 자료·도해 가림 검사에서 빠진다. 지금은 DB 고객이 3곳뿐이라 안 터졌다(2026-10-05 조회: geo.clients = id 1·2·3 만, 모두 active·자사).
+## 관계 결정 (/admin/clients ↔ /admin/pilots)
+- 고객사를 만드는 곳은 /admin/clients 하나. createPilot 은 더는 geo.clients 에 insert 하지 않는다.
+- 파일럿은 고객 상세(/admin/clients/[slug])의 「파일럿 시작」 폼에서. 계약 칸(담당자·입금·약관·환불 절·필요한 준비·경쟁사·지역·동네·업종·대상)은 지금 pilots 폼 칸 그대로 옮긴다. 이름·도메인·slug·이름 판별 말은 고객 행에서 읽는다.
+- /admin/pilots 는 진행 목록·관리 그대로. 만들기 폼 자리에 「새 고객사는 고객사 화면에서 등록합니다」 링크 한 줄.
+- 파일럿은 relation 외부 고객만(지금 검사 유지). 자사 리허설은 39.
 
 ## Flow
 ```
-geo.clients (slug,name,domain,answer_pattern,relation,status,config jsonb,derived jsonb)
-        |
-        v
-academy/clients.mjs
-  loadClients(q, {slug?, includeTest?})
-    +- 코드 덩어리(CODE_CLIENTS: 학원·아이로그·문서딱) 있으면 -> 그 덩어리 그대로 (출처 「코드」)
-    +- 없으면 고객설정(row) = 기본값 <- derived <- config (뒤가 이김). 말은 전부 이스케이프해서 정규식으로
-    DB 못 읽음 -> 코드 3곳만 + stderr 「DB 고객을 못 읽어 코드 고객 3곳만 돕니다」
-        |
-        v
-각 스크립트 문: 필요한 칸이 없으면 그 고객만 건너뛰고 한 줄 「<slug>: <칸> 없음 — 건너뜀」 (조용히 빼지 않는다)
-  check-index  도메인 있으면 늘 (색인 site: + 브랜드 기본 이름 + 경쟁 config)
-  indexnow     indexnow.mode="우리" && key && 키 파일 본문=키 (그 자리에서 fetch) 일 때만
-  health       llmsTxt true 일 때만 /llms.txt
-  daily-agent  승인 질문 있는 고객(지금 조건). loop 은 기본값으로 채워져 「loop 설정 없음」 건너뜀이 없어짐
-  marketing    marketing.enabled && pages>=1 && disclosure
-  local-agent  gsc true / 블로그(marketing.enabled && blogId)
-  masks        loadClients 전부 (코드 + DB)
+[등록 폼] --저장--> 등록(core) ─ tx: insert geo.clients(status active|test, config, answer_pattern, alias)
+                                 └ commit (점검 실패해도 등록은 남는다)
+     └-> 세팅점검(domain,key)  실제 fetch 5개 병렬, 각 8초 · 전체 20초
+           home / robots.txt / sitemap(robots 의 Sitemap: 또는 /sitemap.xml) / llms.txt / /<key>.txt
+         -> update derived (근거: 상태코드·content-type·본문 앞 300자)
+     └-> redirect 상세 -> 체크리스트(row, derived, pilot) 순수 -> 칸마다 됨|기다림|사람|해당없음
+
+[company.mjs 매시] active DB 고객 중 derived.checkedAt 없음/24h 지남, 한 번에 3곳 → 세팅점검 → derived
+                   → 체크리스트 → 사람 칸 = agent_tasks 사람 대기 upsert (dedupe setup-<칸>) / 됨 = 완료로 닫음
+[상세 「다시 점검」] → 세팅점검 즉시
+[상세 「지우기」] status test 만 → tx: client_id·pilot_id 칸 표 전부 delete → 같은 tx 에서 남은 행 세기 → 0 아니면 rollback·오류
 ```
 
 ## Build Order
-1. **스키마** — web/db/schema.sql · academy/db/schema.sql: `alter table geo.clients add column if not exists config jsonb not null default '{}'::jsonb;` 와 같은 꼴로 `derived`. 실행 준비는 measure-targets `측정설정준비` 옆에 `고객설정준비(q)` (company.mjs 시작 준비가 부름, 실패해도 계속).
-2. **clients.mjs** — 지금 배열을 `CODE_CLIENTS` 로 이름만 바꾸고 `export const CLIENTS = CODE_CLIENTS` 남김(시험용 — 6의 가드가 스크립트에서 못 쓰게 막는다). 새로:
-   - `lit(word)` — 정규식 특수 글자(마침표·별표·더하기·물음표·꺾쇠·달러·중괄호·괄호·세로줄·대괄호·역슬래시) 전부 이스케이프. 말 하나 40자, 목록 20개 상한. 넘으면 자르지 말고 `빠짐`에 「말이 너무 김」.
-   - `고객설정(row)` 순수 함수 -> 코드 덩어리와 **같은 모양**(brandRe·answerRe·queries·llmsTxt·publishes·siteLog·gsc·indexnowKey·loop·marketing) + `출처`{칸:'코드'|'입력'|'점검'|'기본'} + `빠짐`[칸]. 아래 표대로.
-   - `async loadClients(q, {slug, includeTest})` — DB `status='active'`(includeTest 면 'test' 도) 행을 읽어 코드 덩어리 있는 slug 는 덩어리, 없는 slug 는 고객설정. 순서 = 코드 3곳(지금 순서, 학원 먼저) -> DB 고객 id 순. 코드 id 와 DB id 가 다르면 코드 쓰고 stderr 경고.
-   - `async 고객고르기(argv, q)` = selectClients 의 비동기판(--client slug / CLIENT_ID / 전부). DB 고객도 찾는다. 없으면 지금 오류 문구 + DB 고객 slug 도 나열.
-   - `indexClients`·`bySlug` 는 목록을 인자로 받게(기본값 CLIENTS 제거).
-   - Flag: DB 연결은 스크립트들이 이미 쓰는 연결 도구를 grep 해서 재사용. 새 연결 방식 만들지 말 것.
-3. **config 모양(v1) — 사람 입력은 말(글자)만. 정규식 원문은 DB 에 두지 않는다** (예외: 기존 answer_pattern — 등록 화면 answerPattern() 이 이미 이스케이프해 만든다)
-   ```
-   { v:1,
-     brandWords?: string[]        // 검색 결과에서 우리로 셀 말. 기본 [domain] (아이로그 교훈: 이름 글자는 남과 겹친다)
-     hitWords?: string[]          // loop.brandHit. 없으면 null -> 이름 질문은 인용(도메인)으로만 적중
-     queries?: { compete: string[], brand?: string[] }   // 색인 site:<domain> 은 자동, brand 기본 [name]
-     llmsTxt?: boolean, gsc?: boolean, siteLog?: string
-     indexnow?: { mode: "우리"|"고객 배포"|"안 씀", key?: string }   // 기본 {mode:"우리"} — 키 없으면 안 보냄
-     loop?: { draftWhere?, homeLdFix?, seeds?: string[], offsite?: [string,string] }
-     marketing?: { enabled: boolean, pages: [{ all: string[][], guide, tool, also?: string[] }],
-                   blogDays?: number[], disclosure?: string, blogId?: string } }
-   ```
-   - `pages[].all` = 모두 들어 있어야 하는 묶음들, 묶음 안은 하나만: `[["pdf"],["합치","병합"]]`. 순서 무관·대소문자 무시. 정규식은 lit 로만.
-   - config 칸 형이 틀리면(배열 자리에 글자 등) 그 칸만 기본값 + `빠짐`에 「config.<칸> 형이 틀림」. 고객 전체를 죽이지 않는다.
-   - `derived`(38 이 채운다): 37 은 `derived.llmsTxt.ok`·`derived.homeLdTypes` 가 있으면 읽기만. 없으면 기본값.
-4. **기본값(새 고객)** — brandRe = lit(brandWords) 를 세로줄로 · answerRe = answer_pattern(i) · presenceRe null · publishes false · siteLog 「방문 기록 장치 없음」 · gsc false · loop: homeLd = [`"@type"`, lit(domain)] (+ derived.homeLdTypes 에 Organization·LocalBusiness·SoftwareApplication·WebSite 중 첫 것이 있으면 `"<그것>"` 추가), homeLdMissing 「홈 JSON-LD 에 @type 또는 <domain> 없음」, homeLdFix 「고객 사이트는 우리 저장소에서 고치지 않습니다. 고객 담당에게 넘깁니다.」, draft "session", draftWhere `deliverables/<slug>/guide/ 제안`, probes "variants", probeVariants {forms:["{기능} 추천","{기능} 무료"], strip: 추천·무료·방법·사이트·앱·프로그램, seeds: config 것}, offsite = 문서딱 두 줄에서 고객 고유 말을 뺀 일반 문장(Bob 이 문장 확정, 사실 지어내지 않게) · marketing: blogDays [1,4], blogProfile `.browser-profile-<slug>`, blogId = config.blogId ?? env NAVER_BLOG_ID_<SLUG>.
-5. **스크립트 전환** — `grep -rln "clients.mjs" academy tools web` 전부(2026-10-05 Arch 목록: masks·measure-targets·ai-measure·briefing·check-index·company·daily-agent·health·illustrate·indexnow·log-intervention·loop-review·marketing-draft·pilot-report·rescan·sales·scout·session-task·verdict·who-wins·submit-gsc·bing-submit-urls·local-agent·ai-web-measure). `CLIENTS`/`selectClients`/`bySlug(` 직접 쓰기 -> `await loadClients(q)` / `await 고객고르기(argv, q)`. 각 문은 Flow 표대로, 건너뛸 때 한 줄.
-   - measure-targets `측정설정`: 덩어리 대신 loadClients 결과의 domain·answerRe. submit-gsc D19 DB 대체 분기는 loadClients 로 흡수(지움).
-   - indexnow.mjs: 코드 고객은 지금 그대로(indexnowKeyFile·indexnowKey). DB 고객은 mode "우리" + key 일 때 `https://<domain>/<key>.txt` 본문이 key 와 같을 때만 보낸다. 아니면 「<slug>: 키 파일 확인 안 됨(<상태코드>) — 안 보냄」.
-   - masks `고객사말` 은 brandRe·presenceRe 없어도 이름·도메인을 넣는다(지금도 optional — 시험으로 고정). sales·illustrate 는 loadClients 결과를 넘긴다.
-   - web/lib/agents.ts 설명 글 중 「clients.mjs 에 없는 고객은 아예 안 돈다」처럼 거짓이 되는 문장만 고침.
-   - Flag: daily-agent·loop-review 가 brandHit 를 RegExp 로 가정하는 곳(`.test(`) — null 이면 인용만 보는 분기. 코드 3곳 경로는 안 바뀌게.
-   - Flag: 모듈 맨 위 top-level await 로 DB 를 열지 말 것(시험이 DB 없이 import 한다). main 안에서 부른다.
-6. **가드 시험(함정 없애기)** — academy/scripts/test-clients.mjs 에 「clients.mjs 와 test-*.mjs 밖에서 `CLIENTS`·`selectClients` 를 import 하면 실패」 검사(파일 grep). 앞으로 누가 코드 목록을 바로 읽으면 시험이 깨진다.
-7. clients.mjs 머리 주석에 「새 고객은 덩어리 말고 geo.clients.config」 한 줄. CLAUDE.md 함정 줄 교체는 38(화면이 생긴 뒤).
-
-## 칸 전수 표 (새 고객 기준. 코드 3곳은 덩어리 그대로)
-(a) 등록 화면 입력 · (b) 사이트를 읽어 도출 · (c) 기본값 · (d) 사람만
-| 칸 | 쓰는 곳 | 새 고객 | 37 출처 | 38 |
-|---|---|---|---|---|
-| id·slug·name·domain·relation·alias | 전부 | (a) | geo.clients | 등록 화면 |
-| answerRe | ai-measure·ai-web-measure | (a) 이름 판별 말 | answer_pattern | + 「앞에 붙으면 남」 제외 앞말 |
-| brandRe | check-index·masks | (c) 도메인 | config.brandWords | 고급 칸 |
-| presenceRe | who-wins·masks | (c) 없음 | — | (a) 주소 일부·전화 끝 4자리(말 -> lit) |
-| queries | check-index | (c) site:·이름 + (a) 경쟁 3~8 | config.queries | 필수, 비면 원장 차례 |
-| llmsTxt | health | (b) /llms.txt 200·text/plain·HTML 아님 | config/derived | 세팅 점검 |
-| indexnowKey | indexnow | (a)+(d) 키 생성, 고객이 파일 올림 | config.indexnow | 등록 때 생성, 파일 확인되면 「됨」 |
-| indexnowKeyFile·publishes·학원 presenceRe | 학원만 | 코드 전용 | 코드 | — |
-| siteLog | briefing·Visits | (c) | 기본 문구 | — |
-| gsc | local-agent | (d) 고객 GSC 에 우리 계정 권한 | config.gsc | PC 탐침 확인 뒤 켬 |
-| loop.brandHit | daily-agent | (a) 우리만의 말 | config.hitWords | 화면 |
-| loop.homeLd·Missing·Fix | daily-agent | (b) 홈 JSON-LD @type | 기본 + derived | 세팅 점검 |
-| loop.draft·draftWhere·probes·probeVariants·offsite | daily-agent·loop-review·company | (c) | 기본 | — |
-| marketing.pages | marketing-draft | (a) 검색어 말 -> 사이트맵 주소 | config | 사이트맵 주소 고르기 |
-| marketing.blogDays·blogProfile | marketing-draft·local-agent | (c) | 기본 | — |
-| marketing.disclosure | marketing-draft | (a) 사람이 확인한 문구 | config | 필수 |
-| blogId (옛 NAVER_BLOG_ID_<SLUG>) | local-agent | (a) | config ?? env | 화면 |
-| 블로그 개설·로그인·GSC 권한·캡차 | — | (d) | — | 원장 차례 줄 + 로그인 버튼 |
-
-## Out of Scope (38 또는 Known Gaps)
-- 등록 화면·고객 상세 체크리스트·세팅 점검(setup-check)·원장 차례 줄·로그인 버튼·GSC 권한 탐침 -> Step 38
-- 코드 3곳을 DB 로 옮기기 — 안 한다. 손으로 다듬은 정규식(「똑똑한」「(주)아이로그」 제외)은 코드에 남는다. 38 화면은 「코드 설정(고칠 때는 세션)」으로 보여 준다
-- web 화면 변경(agents.ts 설명 문장 빼고) · CLAUDE.md 함정 줄 -> 38
+1. **web/lib/client-core.mjs (+ .d.mts)** — growth-core 처럼 academy 도 import 하는 순수·DB 주입 모듈. 담는 것:
+   - `입력검사(form값)` → {ok, 칸, 오류[]}. 이름 2~40 · slug `^[a-z0-9-]{1,40}$` · 도메인: 스킴·경로·포트 떼고 호스트만, IP 글자·localhost·점 없는 호스트 거부 · 이름 판별 말(쉼표, 2~40자, 1~10개) 필수 · 경쟁 검색어 3~8 필수 · 브랜드 검색어(선택, 기본 [이름]) · 제외 앞말(선택) · 주소 일부·전화 끝 4자리(선택) · relation 자사/외부 · 시험 고객 체크 · GSC 쓰기 체크(기본 켬).
+   - `등록(q, 입력)` — slug 가 코드덩어리(1·2·3) 또는 DB 에 있으면 거부(덮어쓰지 않는다 — 지금 createPilot 의 on conflict update 는 등록에서 안 씀). 같은 도메인 고객이 있으면 거부. alias: 외부는 nextAlias, 자사는 이름. IndexNow 키 = randomUUID 하이픈 뺀 32자, mode 「우리」. config = {v:1, brandWords?, hitWords, queries{compete,brand}, presence[], answerTerms[], answerExclude[], indexnow{mode,key}, gsc:false, wantGsc}. answer_pattern = answerPattern(말, 제외앞말). answerTerms·answerExclude 원문을 config 에 두는 이유: 정규식은 되돌릴 수 없어 고치기 폼이 원래 말을 보여 줘야 한다.
+   - `고치기(q, slug, 입력)` — slug 불변. 도메인이 바뀌면 derived 를 {} 로. answer_pattern 다시 만듦.
+   - `세팅점검(domain, key, {fetch})` → derived. 키 이름은 37 고객설정이 읽는 것과 맞춘다: `llmsTxt.ok`(200 · text/plain|text/markdown · 본문이 `<` 로 시작 안 함), `homeLdTypes`(ld+json 전부, @graph·배열 재귀). 더해: `checkedAt`, `home{status}`, `robots{status, blocked[], head}`(AI 봇 이름 또는 * 묶음에 `Disallow: /` 이고 `Allow: /` 없음 → 막힘), `sitemap{status,url,pages}`(sitemapindex 면 자식 5개까지 loc 셈), `indexnowFile{status, ok}`(본문 trim === 키), `errors[]`. 추측 값 금지 — 못 열면 그 칸은 status 와 오류만.
+   - AI 봇 목록은 web/lib/crawler-class.ts AI_BOTS 와 같게 — 시험이 둘을 맞춰 본다(GROWTH_SLUGS 방식).
+   - `체크리스트(row, derived, {pilot, approvedQuestions})` 순수 → [{칸, 상태, 사람말, 할일}]. 칸:
+     사이트 열림 · AI 크롤러 허용(robots) · 사이트맵 · llms.txt · 홈 JSON-LD · IndexNow 키 파일 · 구글 서치콘솔 권한 · AI 측정(파일럿·질문 승인) · 바깥 글(39 전까지 늘 「해당없음 — 꺼짐」).
+     「고객 담당에게 보낼 것」(robots·사이트맵·llms·JSON-LD·키 파일 중 빠진 것)은 사람 칸 **하나**로 묶고, 할일에 그대로 복사해 보낼 글(파일 이름·내용 포함)을 만든다. 원장 몫 칸은 최대 3개(전달·GSC·파일럿) — 원장 할 일 최소.
+   - `지우기(q, slug)` — status 「test」 아니면 거부. information_schema 로 geo·academy 의 client_id·pilot_id 칸 표 전부(test-new-client.mjs 46~63행 방식). **.catch 로 삼키지 않는다** — 한 tx, 끝에 남은 행 세서 0 아니면 rollback·던짐.
+2. **web/lib/answer-pattern.ts** — `answerPattern(raw, exclude="")` 제외 앞말이 있으면 각 말 앞에 부정 lookbehind `(?<!앞말\s*)`. 기존 한 인자 호출 결과 글자 그대로(회귀 시험). answer_pattern 은 JS 에서만 쓰인다(Arch grep: SQL 정규식 사용 0) — Bob 이 한 번 더 grep.
+3. **academy/clients.mjs 고객설정** — `config.presence` 말 → presenceRe(lit, 없으면 null 그대로). KG-37-3 닫음. 그 밖 칸 손대지 않음.
+4. **web/lib/client-actions.ts** (server actions, guard 는 pilot-actions 와 같은 isAdmin) — 등록·고치기·다시점검·GSC 받음(config.gsc=true)·지우기. 등록은 commit 뒤 점검(실패해도 상세로). 실패는 `?err=` 사람 말 한 줄(Step 28 D23 방식).
+   - Flag: 이 Next 버전 server action 시간 한도를 node_modules/next/dist/docs 에서 확인. 점검 20초가 넘을 수 있으면 저장만 하고 「점검 중 — 다음 매시에」로 돌린다. 추측 금지.
+   - GSC 받음 버튼은 원장 말을 믿는 임시 길이다. 39 의 탐침이 화면 원문으로 확인한다. submit-gsc 실패는 지금도 활동 줄에 보인다(조용하지 않음).
+5. **web/app/admin/clients/page.tsx** — 목록(이름·도메인·자사/외부·시험·체크리스트 요약 「사람 n · 기다림 n」) + 등록 폼. **[slug]/page.tsx** — 맨 위 체크리스트, 그 아래 고치기 폼, 점검 근거(상태코드·본문 앞부분), 「파일럿 시작」(외부·파일럿 없음일 때), 지우기(시험만). 코드 고객 3곳은 목록에 「코드 설정 — 화면에서 안 고침」으로만.
+   - 한글 `word-break: keep-all`. 문구는 사람 말(메모리 「현황판은 사람 말로」). 로그 조각 금지.
+6. **web/lib/pilot-actions.ts createPilot** — `client_id` 를 받아 고객 행을 읽는다. geo.clients insert/upsert 줄 삭제. 나머지(질문·과업·감사·승인 행) 그대로. pilots/page.tsx 만들기 폼 → 링크. 폼 칸은 상세로 옮김.
+7. **academy/scripts/company.mjs** — 매시 재점검(active, 24h, 3곳, 고객당 20초) + 체크리스트 사람 칸 동기화(함수는 client-core, company 는 부르기만 — E2E 가 같은 함수를 부른다). title 은 사람 말: 「<이름>: 고객 담당에게 보낼 것이 있습니다」「<이름>: 구글 서치콘솔 권한을 받아 주세요」「<이름>: 파일럿을 시작해 주세요」. 활동 줄 agent 「setup」.
+   - Flag: todo-text.ts 가 kind 로 문구를 고르니 kind 「setup」 분기를 추가해 할일 글(링크 /admin/clients/<slug>)을 띄운다.
+8. **web/lib/agents.ts PIPES**(KG-37-2) — id 1·2·3 밖은 config 로: indexnow = mode 「우리」 && key && derived.indexnowFile.ok, marketing = config.marketing.enabled === true. posts false.
+9. **AdminNav** 「고객사」 추가. **CLAUDE.md** 함정 줄 「고객사를 추가하면 clients.mjs 에 한 덩어리…」 → 「고객사는 /admin/clients 에서 등록한다. 빈 칸은 상세 체크리스트가 말한다. 코드 3곳(학원·아이로그·문서딱)만 clients.mjs」.
+- Flag: 고객 이름·도메인은 관리 화면·DB 에만. 공개 페이지·케이스 리포트·공개 로그에 새 길 0. derived 에 남는 본문 앞부분도 관리 화면에서만.
+- Flag: 사이트 fetch 는 등록한 도메인 https 만, redirect 는 같은 호스트(www 차이 허용)까지. 다른 호스트로 가면 따라가지 않고 그 상태 기록.
 
 ## Failure modes
-| 새 경로 | 실제로 터질 일 | 처리 | 보이나 |
+| 경로 | 실제로 날 일 | 처리 | 사람이 보나 |
 |---|---|---|---|
-| loadClients DB 읽기 | Actions 에서 DB 일시 끊김 | 코드 3곳만 + stderr 한 줄 | 로그. 학원 레퍼런스는 안 멈춤 [시험] |
-| config 형 오류 | 38 화면 버그로 compete 가 글자 | 그 칸 기본값 + 빠짐 | 건너뜀 줄 [시험] |
-| 사람 말 -> 정규식 | 「C++ 학원」「a.b」「(주)」 | lit 이스케이프, 길이 상한 | [시험] |
-| 코드·DB id 어긋남 | 누가 DB id 를 바꿈 | 코드 쓰고 경고 | stderr [시험] |
-| 시험 고객이 운영에 섞임 | E2E 중 매시 company 가 돎 | status 'test' 는 includeTest 없이 안 읽음 · finally 에서 지움 · 지워졌는지 확인 | [시험] |
-| DB 고객 가림 | 영업 자료·도해에 고객 이름 | masks 가 loadClients 전부 | [시험] — 지금 구멍 |
-| indexnow DB 고객 | 키만 넣고 파일 안 올림 -> 빙 403 누적 | 보내기 전 키 파일 확인 | 「키 파일 확인 안 됨」 줄 [시험] |
-| brandHit null | `.test` on null -> 크래시 | 인용만 분기 | [시험] |
-| 전환 하나 빠짐 | 새 고객만 조용히 안 잼(아이로그 사고 재발) | 가드 시험 6 | 시험 실패 [시험] |
+| 저장 시 점검 | 고객 사이트가 느림·죽음 | 8초/20초 한도, 등록은 이미 commit, 칸 「점검 못 함(코드/시간 초과)」=기다림, 매시 재시도 | 보임 |
+| 도메인 입력 | `http://10.0.0.1:3000/x` 같은 값 | 입력검사 거부, 오류 한 줄 | 보임 |
+| 중복 | 문서딱 slug·docttak.com 을 다시 등록 | 거부(덮어쓰기 없음) | 보임 |
+| robots 파서 | 묶음 해석이 틀려 막힘을 놓침 | 픽스처 시험(봇 막힘·* 막힘·Allow 예외·빈 파일·404) | 시험 |
+| 매시 동기화 | 사람 일감이 매시 새로 생김 | dedupe setup-<칸>, upsert, 됨이면 완료 | 시험 |
+| 지우기 | FK 순서·빠진 표로 행이 남음 | 한 tx, 남은 행 0 확인 아니면 rollback+오류 | 보임 |
+| 지우기 | 진짜 고객을 지움 | status test 만, 서버에서 다시 검사 | 보임 |
+| createPilot 변경 | 옛 pilots 폼 경로가 고객 행을 안 만들어 깨짐 | 폼 제거·링크, client_id 없으면 오류 | 보임 |
+| 가림 | 새 외부 고객 이름이 영업 자료로 샘 | 37 strict 가림 그대로 + E2E 에서 고객사말에 새 이름 확인 | 시험 |
+| 시험 고객 | 매시 루프·할 일 목록에 섞임 | company 재점검·동기화는 active 만 | 시험 |
+| 점검 근거 | 고객 사이트 본문이 DB 에 커짐 | 칸마다 앞 300자만 | 시험 |
 
 ## Test map
-- [GAP->TESTED] test-clients.mjs(새, DB 없이): lit · 고객설정 기본값 전 칸 · config 형 오류 · pages `all` 매칭(문서딱 11줄을 all 로 옮긴 가짜 config 가 문서딱 승인 검색어에 코드 정규식과 같은 페이지를 고르는지 — 다르면 표로 찍고 Arch 판단) · loadClients(가짜 q: 정상/던짐/id 어긋남/test 행) · 고객고르기 · 가드(6) · 고객사말에 DB 고객 이름·도메인
-- [TESTED] 기존 test-ilog-loop·test-grow-loop·test-docttak·test-marketing 그대로 통과
-- [GAP->TESTED] 회귀(기존 3곳 diff 0): 전환 전 출력을 scratchpad 에 떠 두고 전환 뒤 diff — `daily-agent --dry`(학원·아이로그·문서딱), `check-index --dry`, `marketing-draft --dry --client docttak`, `pilot-report --dry`, `pm-report --dry`, health.mjs 확인 줄 목록
-- [GAP->TESTED] 끝에서 끝 `test-new-client.mjs --live`(운영 DB): geo.clients 에 slug `e2e-test`·name 「시험고객」·domain docttak.com·status 'test'·measure_active false·config{queries:{compete:["pdf 합치기 무료"]}, indexnow:{mode:"우리"}(키 없음), marketing:{enabled:true, pages:[{all:[["pdf"],["합치","병합"]],guide:"/guide/pdf-merge/",tool:"/pdf-merge/"}], disclosure:"시험"}} 를 넣고 clients.mjs 수정 없이
-  1. `check-index --dry --client e2e-test` 가 site:·「시험고객」·경쟁 1개를 잰다
-  2. `indexnow --client e2e-test` 가 「키 없음 — 안 보냄」 (실제로 안 보냄)
-  3. daily-agent 고객 하루가 기본 loop 로 끝까지 돈다(승인 질문이 있어야 돌면 시험 고객 파일럿·승인 질문 행을 넣고 끝에 지움 — Bob 판단, REVIEW-REQUEST 에 적음)
-  4. `marketing-draft --dry --client e2e-test` 가 검색어·페이지·근거까지 고르고 Claude 를 안 부른다 (Flag: --dry 가 Claude 를 부르면 부르기 직전까지만 확인하는 길을 만들고 적는다)
-  5. 고객사말(loadClients(includeTest)) 에 「시험고객」
-  6. ai-measure 가 이 고객을 안 잰다(measure_active false·승인 0 — 돈·한도 안 씀)
-  7. finally 에서 자식 행부터 지우고 남은 행 0 확인
+- 입력검사: 각 칸 빈 값·길이·도메인 정리(스킴/경로/포트/IP/localhost) [GAP → 새 시험]
+- 등록: 새 고객 · 코드 slug 거부 · DB slug 거부 · 같은 도메인 거부 · 외부 alias · 키 형식 [GAP]
+- answerPattern 두 인자 · 한 인자 기존 글자 그대로 [기존 일부 TESTED, 제외 앞말 GAP]
+- 세팅점검 가짜 fetch: robots 5꼴 · sitemap/sitemapindex · llms(HTML 대체 페이지) · ld+json(@graph·배열·깨진 JSON) · 키 파일 일치/불일치/404 · 시간 초과 · 다른 호스트 redirect [GAP]
+- 체크리스트: 모든 칸 됨 · 전달 묶음 하나 · wantGsc 꺼짐=해당없음 · 파일럿 없음/질문 미승인 · 자사는 파일럿 칸 해당없음 [GAP]
+- AI_BOTS 목록 일치 [GAP]
+- 고객설정 presence → presenceRe [GAP]; 37 test-clients 82 전부 [TESTED, 회귀]
+- 동기화: 생성·중복 없음·완료로 닫힘·test 제외 [GAP]
+- 지우기: test 아님 거부 · 남은 행 0 [GAP]
+- createPilot(client_id): 기존 외부 고객에 파일럿·질문 20·과업 생성, geo.clients 행 수 그대로 [GAP]
+- PIPES DB 고객 [GAP]
+
+## Out of Scope
+- 바깥 글 범용화·확인한 사실 칸(KG-37-1) · 로그인 창 버튼 · GSC 권한 탐침 · 자사 리허설 화면 → Step 39
+- 진짜 고객 지우기/중지 · slug 바꾸기 → Known Gaps
+- 학원·아이로그·문서딱 코드 덩어리 이전 — 하지 않음(37 결정)
 
 ## Acceptance
-- 위 시험 전부 통과 · web tsc 0 (`node ./node_modules/typescript/bin/tsc` — `&` 경로 함정)
-- 기존 3곳 회귀 diff 0 (diff 원문을 REVIEW-REQUEST 에)
-- 가드: 스크립트에서 CLIENTS·selectClients 직접 import 0
-- E2E 로그 원문을 REVIEW-REQUEST 에. 시험 고객 행이 운영 DB 에 안 남음
-- 배포: Actions 스크립트라 git push(gh auth switch --user leeledger). web 은 agents.ts 문장 바뀌면 같이. 배포 뒤 다음 매시 company·03:23 snapshot·12:40 local-agent 가 3곳을 전과 같이 돌았는지 로그로 확인
+- 새 시험 `academy/scripts/test-client-core.mjs`(Test map 전부, DB·네트워크 없이) 통과. test-clients 82 · test-docttak · test-marketing · test-growth-import 기존 통과 그대로. web tsc exit 0(`node ./node_modules/typescript/bin/tsc --noEmit -p .`).
+- 끝에서 끝 `academy/scripts/test-client-screen.mjs --live`: 로컬 `next dev`(운영 DB) → `/admin/enter?key=` 로 세션 → Playwright 로 **화면 폼에서** 시험 고객 등록(시험 체크. 도메인은 우리 것인 `geo-rose-nine.vercel.app`. docttak.com 도 한 번 넣어 중복 거부 확인) → 상세에 체크리스트가 뜨고 derived.checkedAt·robots.status·sitemap.pages·homeLdTypes 가 실제 값 → 체크리스트 기대값(키 파일 없음 → 「고객 담당에게 보낼 것」 사람 칸에 키 파일 이름 포함) → 동기화 함수를 그 id 로 돌려 사람 대기 일감 확인 → 화면 「지우기」 → client_id·pilot_id 표 전부 0 · slug 0. 로그 원문을 REVIEW-REQUEST 에.
+- 회귀(37 과 같은 묶음, 전/후 diff 0): daily-agent --dry · check-index --dry · marketing-draft --no-claude --client docttak · pilot-report --dry 3곳 · indexnow --list · briefing · health.
+- /admin/pilots 기존 진행 고객 화면 그대로 열림(운영 주소 확인).
+- CLAUDE.md 함정 줄 교체. BUILD-LOG 에 지은 것·결정·KG.
