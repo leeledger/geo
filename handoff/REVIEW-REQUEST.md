@@ -142,13 +142,13 @@ E2E 뒤(config·derived 칸이 운영 DB 에 생긴 뒤) 빠른 묶음을 한 �
 Status: DONE — 시험 99/99 외 기존 5개 그대로 통과, web tsc 0
 
 ### Must Fix
-- academy/masks.mjs:117-129 — `DB고객말(q, 빼기)`: `select name, domain from geo.clients`(status 무관 — paused·ended 도), 실패하면 던짐(fail-closed).
+- academy/masks.mjs:109-121 — `DB고객말(q, 빼기)`: `select name, domain from geo.clients`(status 무관 — paused·ended 도), 실패하면 던짐(fail-closed).
 - academy/scripts/sales.mjs:31,80-82 — 가릴말이 DB 가 열려 있으면 DB고객말 을 더한다(쉬는·끝난 고객 이름·도메인).
 - academy/scripts/illustrate.mjs:25,415 — 같은 select 를 DB고객말 로 바꿈(같은 줄, 같은 동작).
 - 시험(test-clients): paused·ended 행이 들어감 · SQL 에 status 조건 없음 · 한 글자 이름 뺌 · 빼기 id · 읽기 실패면 던짐 · sales·illustrate 가 이것을 씀.
 
 ### Should Fix
-- ② academy/clients.mjs:432-433 · masks.mjs:96-99 — 고객설정이 `brandWords`(원문 말)를 같이 돌려주고, 고객사말은 있으면 그대로 넣고 brandRe 원문에서는 안 꺼낸다. 코드 3곳은 brandWords 가 없어 예전 길 그대로. 시험: 「C++코딩」「a.b(주)」 원문이 들어가고 「C코딩」·역슬래시 든 말은 없음 · 학원 「로봇앤코딩」은 그대로.
+- ② academy/clients.mjs:429-430 · masks.mjs:96-99 — 고객설정이 `brandWords`(원문 말)를 같이 돌려주고, 고객사말은 있으면 그대로 넣고 brandRe 원문에서는 안 꺼낸다. 코드 3곳은 brandWords 가 없어 예전 길 그대로. 시험: 「C++코딩」「a.b(주)」 원문이 들어가고 「C코딩」·역슬래시 든 말은 없음 · 학원 「로봇앤코딩」은 그대로.
 - ④ academy/measure-targets.mjs:100-101,109,140 — 측정대상(전체)·고객측정일 쿼리에 `coalesce(c.status,'') <> 'test'`. --client 로 이름을 주면(slug 길) 시험 고객도. 시험: 가짜 q 로 SQL 확인.
 - ⑥ academy/scripts/test-clients.mjs 가드 — clients.mjs 를 가져오는 파일(정적·`import * as`·동적 `import()`)에 `CLIENTS`·`selectClients` 글자가 하나라도 있으면 실패. 가짜 글 네 꼴(as · `{…} = await import` · `import * as C … C.CLIENTS` · `(await import(…)).CLIENTS`)을 다 잡는지 + CODE_CLIENTS 는 measure-targets 만 + loadClients 만 쓰면 통과.
 - ① Actions 가 부르는 rescan·growth-import·company·ai-measure 비교
