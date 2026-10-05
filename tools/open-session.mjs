@@ -97,6 +97,21 @@ while (Date.now() - started < LIMIT) {
     if (p.isClosed()) continue;
     const u = p.url();
     if (u && !s.isOut(u) && !/^about:/.test(u)) {
+      /**
+       * 주소만 보면 안 된다. 2026-10-05 문서딱 블로그 로그인은 두 번 「확인」으로 닫혔는데 다시 열면 NID_AUT 가 없었다.
+       * 네이버는 NID_AUT 쿠키가 만료일을 가져야(로그인 상태 유지) 창을 닫은 뒤에도 남는다 — 그걸 보고 닫는다
+       */
+      if (s.key === "naver") {
+        const aut = (await ctx.cookies("https://nid.naver.com").catch(() => [])).find((c) => c.name === "NID_AUT");
+        if (!aut) continue;
+        if (!(aut.expires > 0)) {
+          if (!s.warned) {
+            s.warned = true;
+            console.log(`  ! ${s.name}: 로그인은 됐지만 「로그인 상태 유지」가 꺼져 있어 창을 닫으면 사라집니다.\n    오른쪽 위에서 로그아웃하고, 로그인 화면에서 「로그인 상태 유지」를 켠 뒤 다시 로그인해 주세요.`);
+          }
+          continue;
+        }
+      }
       done[s.key] = true;
       console.log(`  ✓ ${s.name} 로그인 확인`);
     }
@@ -115,6 +130,6 @@ if (!done.google || !done.naver) {
 
 // 정상 종료 — 이래야 쿠키가 디스크에 남는다
 console.log("창을 닫고 세션을 저장합니다…");
-await new Promise((r) => setTimeout(r, 2000));
+await new Promise((r) => setTimeout(r, 5000)); // 쿠키 파일에 쓰일 틈
 await ctx.close();
 console.log("저장 완료. 이제 check-session.mjs 로 확인할 수 있습니다.");
