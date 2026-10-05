@@ -4,7 +4,7 @@ import fs from "node:fs";
 import { CODE_CLIENTS, 고객설정 } from "../clients.mjs";
 import {
   AI_BOTS, CODE_SLUGS, answerPattern, nextAlias, 입력검사, 등록, 고치기, 폼값, robots막힘, ld타입, 세팅점검,
-  체크리스트, 요약, 일감계획, 재점검고르기, 지우기, 파이프, 오류말,
+  체크리스트, 요약, 일감계획, 재점검고르기, 지우기, 파이프, 오류말, 내부주소, 본문상한,
 } from "../../web/lib/client-core.mjs";
 
 let 통과 = 0, 실패 = 0;
@@ -95,7 +95,7 @@ function 가짜DB({ clients = [], fk = [], 표 = [], 남김 = 0 } = {}) {
   db.q = async (s, p = []) => {
     const sql = s.replace(/\s+/g, " ").trim();
     로그.push(sql);
-    if (/^(begin|commit|rollback)$/.test(sql) || sql.startsWith("alter table")) return [];
+    if (/^(begin|commit|rollback)$/.test(sql) || sql.startsWith("alter table") || sql.startsWith("select pg_advisory_xact_lock")) return [];
     if (sql.startsWith("select 1 from geo.clients where slug")) return db.clients.filter((c) => c.slug === p[0]).map(() => ({ "?column?": 1 }));
     if (sql.startsWith("select id, slug, domain from geo.clients")) return db.clients.map(({ id, slug, domain }) => ({ id, slug, domain }));
     if (sql.startsWith("select alias from geo.clients")) return db.clients.filter((c) => String(c.alias ?? "").startsWith("고객 ")).map((c) => ({ alias: c.alias }));
@@ -142,6 +142,8 @@ const 칸 = 입력검사(좋은폼).칸;
     && Array.isArray(c.config.answerExclude) && Array.isArray(c.config.presence) && !("hitWords" in c.config));
   봄("등록 — answer_pattern = answerPattern(말, 제외)", c?.answer_pattern === answerPattern("미소치과,miso-dental.co.kr", ""));
   봄("등록 — 덮어쓰기 없음(on conflict 없음)", !db.로그.some((s) => s.includes("on conflict")));
+  const 잠금 = db.로그.findIndex((s) => s.startsWith("select pg_advisory_xact_lock"));
+  봄("등록 — tx 안에서 잠금 뒤 중복 검사·insert", 잠금 > db.로그.indexOf("begin") && 잠금 < db.로그.findIndex((s) => s.startsWith("select id, slug, domain")) && 잠금 < db.로그.findIndex((s) => s.startsWith("insert into geo.clients")));
   봄("등록 — 고객설정이 읽음", (() => { const x = 고객설정({ ...c, derived: {} }, {}); return x.빠짐.length === 0 && x.indexnowKey === c.config.indexnow.key && x.queries.filter((y) => y.kind === "경쟁").length === 3; })(),
     JSON.stringify(고객설정({ ...c, derived: {} }, {}).빠짐));
 }
@@ -205,9 +207,12 @@ const 칸 = 입력검사(좋은폼).칸;
 }
 
 // ─────────────────────────────────────────── 세팅점검 — 가짜 fetch
-const 응답 = (status, body = "", type = "text/plain", headers = {}) => ({
-  status, headers: { get: (k) => (k.toLowerCase() === "content-type" ? type : headers[k.toLowerCase()] ?? null) }, text: async () => body,
-});
+/** 진짜 Response — 본문을 스트림으로 읽는 길을 그대로 지난다 */
+const 응답 = (status, body = "", type = "text/plain", headers = {}) => new Response(body, { status, headers: { "content-type": type, ...headers } });
+/** 가짜 DNS — 기본은 공인 주소. 표에 있으면 그 주소 */
+const 공인 = "93.184.216.34";
+const 가짜dns = (표 = {}) => async (host) => { const a = 표[host] ?? 공인; if (a instanceof Error) throw a; return [].concat(a).map((address) => ({ address })); };
+const 점검 = (d, k, o) => 세팅점검(d, k, { lookup: 가짜dns(), ...o });
 const 가짜fetch = (표) => async (url, init) => {
   const h = 표[url];
   if (h === undefined) return 응답(404, "Not Found", "text/html");
@@ -219,7 +224,7 @@ const KEY = "a".repeat(32);
 const D = "miso.kr", B = `https://${D}`;
 const 홈html = `<html><head><script type="application/ld+json">{"@type":"Dentist"}</script></head>${"x".repeat(5000)}</html>`;
 {
-  const d = await 세팅점검(D, KEY, { fetch: 가짜fetch({
+  const d = await 점검(D, KEY, { fetch: 가짜fetch({
     [`${B}/`]: 응답(200, 홈html, "text/html"),
     [`${B}/robots.txt`]: 응답(200, `User-agent: *\nAllow: /\nSitemap: ${B}/sm.xml`),
     [`${B}/sm.xml`]: 응답(200, `<?xml version="1.0"?><urlset><url><loc>${B}/a</loc></url><url><loc>${B}/b</loc></url><url><loc>${B}/c</loc></url></urlset>`, "application/xml"),
@@ -242,7 +247,7 @@ const 홈html = `<html><head><script type="application/ld+json">{"@type":"Dentis
 }
 {
   // 빠진 것 투성이: robots 가 GPTBot 막음 · /sitemap.xml 404 · llms 가 HTML 대체 페이지 · JSON-LD 없음 · 키 파일 404
-  const d = await 세팅점검(D, KEY, { fetch: 가짜fetch({
+  const d = await 점검(D, KEY, { fetch: 가짜fetch({
     [`${B}/`]: 응답(200, "<html>홈</html>", "text/html"),
     [`${B}/robots.txt`]: 응답(200, "User-agent: GPTBot\nDisallow: /"),
     [`${B}/llms.txt`]: 응답(200, "<!doctype html><html>대체</html>", "text/html"),
@@ -288,7 +293,7 @@ const 홈html = `<html><head><script type="application/ld+json">{"@type":"Dentis
     [`${B}/sitemap.xml`]: 응답(200, `<sitemapindex><sitemap><loc>https://cdn.other.com/x.xml</loc></sitemap>${자식.map((u) => `<sitemap><loc>${u}</loc></sitemap>`).join("")}</sitemapindex>`, "application/xml"),
   };
   for (const u of 자식) 표[u] = () => { 열린.push(u); return 응답(200, "<urlset><url><loc>a</loc></url><url><loc>b</loc></url></urlset>", "application/xml"); };
-  const d = await 세팅점검(D, null, { fetch: 가짜fetch(표) });
+  const d = await 점검(D, null, { fetch: 가짜fetch(표) });
   봄("점검 — 다른 호스트 Sitemap 줄 → /sitemap.xml", d.sitemap.url === `${B}/sitemap.xml` && d.errors.some((e) => e.includes("다른 호스트")));
   봄("점검 — sitemapindex 자식 5개까지·loc 셈", d.sitemap.kind === "index" && d.sitemap.children === 8 && d.sitemap.counted === 5 && d.sitemap.pages === 10 && 열린.length === 5);
   봄("점검 — 키 없으면 키 파일 안 엶", d.indexnowFile === undefined);
@@ -297,7 +302,7 @@ const 홈html = `<html><head><script type="application/ld+json">{"@type":"Dentis
 {
   // 시간 초과 · 다른 호스트 redirect · www redirect · 연결 오류 · 깨진 JSON-LD
   const 시작 = Date.now();
-  const d = await 세팅점검(D, KEY, { 한도: 60, 전체: 200, fetch: 가짜fetch({
+  const d = await 점검(D, KEY, { 한도: 60, 전체: 200, fetch: 가짜fetch({
     [`${B}/`]: 응답(301, "", "text/html", { location: "https://www.miso.kr/home" }),
     "https://www.miso.kr/home": 응답(200, `<script type="application/ld+json">{깨짐}</script>`, "text/html"),
     [`${B}/robots.txt`]: "멈춤",
@@ -316,6 +321,35 @@ const 홈html = `<html><head><script type="application/ld+json">{"@type":"Dentis
   봄("체크리스트 — 못 연 robots·키 파일 = 기다림(점검 못 함)", 줄.find((x) => x.id === "robots").상태 === "기다림" && /못 열었습니다/.test(줄.find((x) => x.id === "robots").사람말)
     && 줄.find((x) => x.id === "keyfile").상태 === "기다림");
   봄("체크리스트 — 점검 전 = 기다림", 체크리스트({ slug: "m", name: "미", domain: D, relation: "외부", config: {} }, {}).find((x) => x.id === "site").사람말.includes("점검 전"));
+}
+
+// ─────────────────────────────────────────── 내부 주소 거부 · 본문 2MB 끊기 (리뷰 2차)
+봄("내부주소 — 사설·루프백·링크로컬·CGNAT·메타데이터", ["10.1.2.3", "127.0.0.1", "169.254.169.254", "172.16.0.1", "172.31.255.255", "192.168.0.10", "100.64.0.1", "0.0.0.0",
+  "::1", "::", "fd00::1", "fe80::1", "::ffff:10.0.0.1", "::ffff:169.254.169.254", "224.0.0.1", "not-an-ip"].every(내부주소));
+봄("내부주소 — 공인은 통과", ["93.184.216.34", "172.32.0.1", "100.128.0.1", "8.8.8.8", "2606:4700::1111", "::ffff:8.8.8.8"].every((ip) => !내부주소(ip)));
+{
+  let 열림 = 0;
+  const f = async () => { 열림++; return 응답(200, "열면 안 됨"); };
+  const d = await 세팅점검(D, KEY, { fetch: f, lookup: 가짜dns({ [D]: "169.254.169.254" }) });
+  봄("점검 — 메타데이터 주소로 풀리면 아무것도 안 엶", 열림 === 0 && d.home.status === null && /내부 주소로 풀림/.test(d.home.error) && d.robots.blocked === undefined && d.llmsTxt.ok === undefined);
+  봄("점검 — 근거 줄에 「내부 주소로 풀림」", d.errors.some((e) => e.includes("내부 주소로 풀림")));
+  const d2 = await 세팅점검(D, null, { fetch: 가짜fetch({}), lookup: 가짜dns({ [D]: ["93.184.216.34", "10.0.0.5"] }) });
+  봄("점검 — 주소 여럿 중 하나라도 내부면 거부", /내부 주소로 풀림/.test(d2.home.error ?? ""));
+  // 넘겨받은 주소(www)가 내부로 풀리면 거기서 멈춤
+  const d3 = await 세팅점검(D, null, { lookup: 가짜dns({ [`www.${D}`]: "127.0.0.1" }), fetch: 가짜fetch({ [`${B}/`]: 응답(301, "", "text/html", { location: `https://www.${D}/` }) }) });
+  봄("점검 — 리다이렉트 뒤 주소도 DNS 검사", d3.home.status === null && /내부 주소로 풀림\(127\.0\.0\.1\)/.test(d3.home.error ?? ""));
+  const d4 = await 세팅점검(D, null, { lookup: 가짜dns({ [D]: Object.assign(new Error("x"), { code: "ENOTFOUND" }) }), fetch: 가짜fetch({}) });
+  봄("점검 — DNS 실패 = 못 찾음", d4.home.status === null && /도메인을 못 찾음\(ENOTFOUND\)/.test(d4.home.error ?? ""));
+}
+{
+  // 끝없이 나오는 본문 — 상한에서 끊고 앞만 쓴다
+  let 보냄 = 0;
+  const 끝없음 = () => new Response(new ReadableStream({ pull(c) { 보냄 += 65536; c.enqueue(new TextEncoder().encode("<url><loc>x</loc></url>".padEnd(65536, " "))); } }), { status: 200, headers: { "content-type": "application/xml" } });
+  const d = await 점검(D, null, { 상한: 256 * 1024, fetch: 가짜fetch({ [`${B}/`]: () => 응답(200, "<html></html>", "text/html"), [`${B}/robots.txt`]: () => 응답(404, ""), [`${B}/sitemap.xml`]: () => 끝없음() }) });
+  봄("본문 상한 — 끊고 잘림 표시", d.sitemap.잘림 === true && d.sitemap.status === 200 && 보냄 < 1024 * 1024 && d.errors.some((e) => e.includes("2MB")), `보냄 ${보냄}`);
+  봄("본문 상한 기본 2MB", 본문상한 === 2 * 1024 * 1024);
+  const 작음 = await 점검(D, null, { fetch: 가짜fetch({ [`${B}/`]: () => 응답(200, "가".repeat(1000), "text/html") }) });
+  봄("본문 상한 — 작은 본문은 그대로(한글 깨짐 없음)", 작음.home.잘림 === undefined && 작음.home.head === "가".repeat(300));
 }
 
 // ─────────────────────────────────────────── 재점검 고르기
@@ -354,7 +388,9 @@ const 홈html = `<html><head><script type="application/ld+json">{"@type":"Dentis
   let 던짐 = null;
   try { await 지우기(db4.q, "t4"); } catch (e) { 던짐 = e; }
   봄("지우기 — FK 고리면 던지고 rollback", 던짐 && /돌고 돌아/.test(던짐.message) && db4.로그.includes("rollback"));
-  봄("지우기 — .catch 로 안 삼킴(소스)", !/\.catch\(\(\) => \{\}\)/.test(fs.readFileSync(new URL("../../web/lib/client-core.mjs", import.meta.url), "utf8")));
+  const 원문 = fs.readFileSync(new URL("../../web/lib/client-core.mjs", import.meta.url), "utf8");
+  const 지우기원문 = 원문.slice(원문.indexOf("export async function 지우기"), 원문.indexOf("\n}\n", 원문.indexOf("export async function 지우기")));
+  봄("지우기 — .catch 로 안 삼킴(소스)", 지우기원문.length > 500 && !지우기원문.includes(".catch("));
 }
 
 // ─────────────────────────────────────────── 고객설정 presence → presenceRe (KG-37-3)

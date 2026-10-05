@@ -114,3 +114,60 @@ next dev http://localhost:3077 뜸
 
 ## Out of Scope (logged in BUILD-LOG)
 - KG-38-2 시험 → 진짜 고객 전환 화면 없음 · KG-38-3 robots 일부 경로 막힘 안 봄 · KG-38-4 본문 크기 상한 없음(8초가 막음) · KG-38-5 E2E 시퀀스 7 · KG-38-6 /admin/pilots 운영 주소 확인은 배포 뒤
+
+## 2차 — Richard Should Fix 4건 (2026-10-05)
+- web/lib/client-core.mjs 내부주소·기본lookup·열기 — 요청마다(리다이렉트 뒤 주소 포함) dns.lookup(all) 먼저. 주소 하나라도 사설·루프백·링크로컬(169.254.169.254)·CGNAT·0/8·멀티캐스트·예약·fc00::/7·fe80::/10·IPv4 매핑이면 열지 않고 근거에 「내부 주소로 풀림(…)」. DNS 실패는 「도메인을 못 찾음(코드)」.
+- web/lib/client-core.mjs 본문읽기·본문상한 — 본문을 스트림으로 2MB 까지만 읽고 reader.cancel(). 칸에 잘림:true + 오류 줄. 하위 사이트맵도 같음. KG-38-4 닫음.
+- web/lib/pilot-actions.ts createPilot — 파일럿 행이 있으면 fail("pilot-exists"). on conflict update 삭제. 동시에 두 번이면 고유 색인 23505 → 같은 pilot-exists.
+- web/lib/client-core.mjs 등록 — begin 바로 뒤 pg_advisory_xact_lock(hashtext('geo.clients 등록')). 이후 slug·도메인 검사와 insert 가 잠금 안에서 돈다.
+- 세션 결정 반영: 원장이 닫은 setup 일감 24시간 뒤 다시 열림 · hitWords 주소만 — 그대로.
+- 남은 위험(KG-38-7): DNS 확인과 fetch 가 각자 이름을 푼다(DNS rebinding 틈). https·관리자 입력·8초라 낮음. 막으려면 고른 주소로 직접 붙는 dispatcher(undici) 가 필요하다.
+
+시험: test-client-core 127 → 138 통과 · 0 실패(내부 주소 표 2 · 메타데이터 거부·안 엶 2 · 주소 여럿 · 리다이렉트 뒤 DNS · DNS 실패 · 본문 끊기·2MB·한글 그대로 3 · 등록 잠금 순서 1). 지우기 소스 검사는 지우기 함수 몸통만 보게 좁혔다(본문읽기의 reader.cancel().catch 때문). test-clients 99 · test-docttak 32 · test-marketing 38 · test-growth-import 59 그대로. web tsc exit 0.
+E2E 다시(진짜 DNS·스트림 길 + 두 탭 파일럿 중복) — `node scripts/test-client-screen.mjs --live` exit 0:
+```
+next dev http://localhost:3077 뜸
+  ✓ 관리자 쿠키 → /admin/clients
+  ✓ docttak.com 중복 거부 — 사람 말
+  ✓ 거부 뒤 친 값이 남음
+  ✓ 거부는 행을 안 만듦
+  등록 → 상세 2.6초 (/admin/clients/e2e-screen)
+  ✓ 행 생김 — status test · 외부 · alias 「고객 …」
+  ✓ IndexNow 키 32자 · mode 우리
+  ✓ answer_pattern 만들어짐
+  derived: checkedAt 2026-10-05T05:24:32.217Z · home 200 · robots 200 막힘 [] · sitemap 200 https://geo-rose-nine.vercel.app/sitemap.xml 주소 13 · llms 200 ok true · homeLdTypes [Organization,Service,FAQPage] · 키 파일 404 ok false · 오류 []
+  ✓ derived.checkedAt 방금
+  ✓ derived.robots.status 실제 코드
+  ✓ derived.sitemap.pages 실제 수
+  ✓ derived.homeLdTypes 배열
+  ✓ 본문 앞부분 300자 이하
+  ✓ 키 파일 없음(우리 랜딩에 이 키 파일은 없다)
+  ✓ 체크리스트 뜸
+  ✓ 사이트 열림 = 됨
+  ✓ 「고객 담당에게 보낼 것」 = 사람
+  ✓ 보낼 글에 키 파일 이름·내용
+  ✓ GSC = 사람 · 파일럿 = 사람
+  ✓ 바깥 글 = 해당없음
+  ✓ 사람 칸 셋까지
+  동기화 1차 엶 [setup-send,setup-gsc,setup-measure] · 2차 엶 []
+     setup-gsc · 사람 대기 · 화면시험고객: 구글 서치콘솔 권한을 받아 주세요
+     setup-measure · 사람 대기 · 화면시험고객: 파일럿을 시작해 주세요
+     setup-send · 사람 대기 · 화면시험고객: 고객 담당에게 보낼 것이 있습니다
+  ✓ 사람 대기 일감 셋(setup-send·gsc·measure)
+  ✓ 두 번 돌려도 중복 없음
+  ✓ 제목 사람 말 · 링크 고객 화면
+  ✓ 고객사말에 새 이름·도메인
+  ✓ 권한 받음 → GSC 됨
+  ✓ 됨이면 일감 완료로 닫힘
+  ✓ 두 번째 파일럿 시작 거부 — 사람 말
+  ✓ 파일럿 하나 그대로 · 담당자 안 덮임
+  파일럿 51e8ec72-fa49-472b-aa8f-15de4ada3397 · 질문 20 · 과업 13 · 고객 행 4 → 4
+  ✓ 파일럿 하나·질문 20·과업 생김
+  ✓ createPilot 이 geo.clients 를 안 만듦
+  ✓ 파일럿 뒤 AI 측정 = 기다림(질문 승인 전)
+  ✓ /admin/pilots 열림 · 고객사 화면 링크
+  ✓ 지우기 → 목록(지웠습니다)
+  ✓ client_id·pilot_id 표 25칸 전부 0 · slug 0 (id 8)
+
+34 통과 · 0 실패
+```

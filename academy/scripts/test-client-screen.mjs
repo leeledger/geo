@@ -177,15 +177,28 @@ try {
 
   // 9. 파일럿 시작 — 상세 폼. geo.clients 행 수는 그대로
   const [{ n: 고객수중 }] = await q(`select count(*)::int as n from geo.clients`);
-  await page.goto(`${BASE}/admin/clients/${SLUG}#pilot`);
-  await page.locator("#pilot > summary").click();
-  const pf = page.locator("#pilot form");
+  // 같은 폼을 두 탭에 열어 둔다 — 하나로 만들고, 낡은 다른 탭으로 한 번 더 누르면 거부돼야 한다(덮어쓰기 없음)
+  const 둘째 = await page.context().newPage();
+  둘째.setDefaultTimeout(90000);
+  const 폼열기 = async (pg) => { await pg.goto(`${BASE}/admin/clients/${SLUG}#pilot`); await pg.locator("#pilot > summary").click(); return pg.locator("#pilot form"); };
+  const pf = await 폼열기(page);
+  const pf2 = await 폼열기(둘째);
   const 계약 = { district: "송파구", neighborhood: "석촌동", category: "치과", audience: "직장인", contact_name: "시험", contact_email: "e2e@example.invalid",
     contact_phone: "010-0000-0000", receipt_type: "없음", payment_ref: "E2E", terms_evidence: "https://example.invalid/terms", biz_type: "개인" };
-  for (const [k, v] of Object.entries(계약)) await pf.locator(`[name="${k}"]`).fill(v);
-  await pf.locator('[name="refund_terms_sent_on"]').fill(new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10));
+  const 오늘 = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10);
+  for (const 폼 of [pf, pf2]) {
+    for (const [k, v] of Object.entries(계약)) await 폼.locator(`[name="${k}"]`).fill(v);
+    await 폼.locator('[name="refund_terms_sent_on"]').fill(오늘);
+  }
   await pf.locator('button[type="submit"]').click();
   await page.waitForURL("**/admin/pilots/**", { timeout: 90000 });
+  await pf2.locator('[name="contact_name"]').fill("덮어쓰기 시도");
+  await pf2.locator('button[type="submit"]').click();
+  await 둘째.waitForURL("**err=pilot-exists**", { timeout: 90000 });
+  봄("두 번째 파일럿 시작 거부 — 사람 말", (await 둘째.locator(".cl-err").innerText()).includes("이미 파일럿이 있습니다"));
+  const [담당] = await q(`select count(*)::int as n, max(contact_name) as who from geo.pilots where client_id = $1`, [id]);
+  봄("파일럿 하나 그대로 · 담당자 안 덮임", 담당.n === 1 && 담당.who === "시험", JSON.stringify(담당));
+  await 둘째.close();
   파일럿들 = (await q(`select id::text as id from geo.pilots where client_id = $1`, [id])).map((r) => r.id);
   const [pn] = 파일럿들.length ? await q(`select (select count(*) from geo.pilot_questions where pilot_id = $1)::int as qs, (select count(*) from geo.pilot_tasks where pilot_id = $1)::int as ts`, [파일럿들[0]]) : [{ qs: 0, ts: 0 }];
   const [{ n: 고객수후 }] = await q(`select count(*)::int as n from geo.clients`);

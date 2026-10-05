@@ -40,20 +40,25 @@ export async function createPilot(form:FormData){await guard();
   // 답에 이 고객 이름이 나왔는지 가리는 말 — 고객 등록 때 받았다. 없으면 측정이 「측정 설정 없음」으로 멈춘다(Step 25 D1)
   if(!String(c.answer_pattern??"").trim())fail("terms");
   if(!NEEDS_BUILD.includes(needsBuild))fail("needs");
+  // 파일럿은 고객당 하나. 있으면 덮어쓰지 않고 되돌린다(두 번 누름·옛 화면) — 계약 칸 고치기는 파일럿 화면에서
+  if((await inqPool().query(`select 1 from geo.pilots where client_id=$1`,[c.id])).rows.length)fail("pilot-exists");
   const brand=String(c.name);
   const db=await inqPool().connect(); let pilotId="";
   try{
     await db.query("begin");
     for(const s of PILOT_COLUMNS)await db.query(s);
     // 시작·종료는 입금 확인일 포함 30일(신청서 8행 — 고객 승인이 늦어진 기간도 든다). 구축·세팅이면 사이트 연 날이 생길 때 company.mjs 가 고친다(academy/pilot-plan.mjs)
-    const p=(await db.query(`insert into geo.pilots(client_id,price,payment_ref,contact_name,contact_email,contact_phone,receipt_type,terms_evidence,paid_at,started_on,ends_on,status,terms_accepted_at,needs_build,competitors,biz_type,refund_terms_sent_on,paid_on) values($1,390000,$2,$3,$4,$5,$6,$7,now(),$12::date,$12::date+29,'진행',now(),$8,$9,$10,$11,$12) on conflict(client_id) do update set payment_ref=excluded.payment_ref,contact_name=excluded.contact_name,contact_email=excluded.contact_email,contact_phone=excluded.contact_phone,receipt_type=excluded.receipt_type,terms_evidence=excluded.terms_evidence,needs_build=excluded.needs_build,competitors=excluded.competitors,biz_type=excluded.biz_type,refund_terms_sent_on=excluded.refund_terms_sent_on,paid_on=excluded.paid_on returning id,started_on::text as started_on`,[c.id,payment,contactName,contactEmail,contactPhone,receiptType,terms,needsBuild,competitors,bizType,refundTermsOn,paidOn])).rows[0];
+    const p=(await db.query(`insert into geo.pilots(client_id,price,payment_ref,contact_name,contact_email,contact_phone,receipt_type,terms_evidence,paid_at,started_on,ends_on,status,terms_accepted_at,needs_build,competitors,biz_type,refund_terms_sent_on,paid_on) values($1,390000,$2,$3,$4,$5,$6,$7,now(),$12::date,$12::date+29,'진행',now(),$8,$9,$10,$11,$12) returning id,started_on::text as started_on`,[c.id,payment,contactName,contactEmail,contactPhone,receiptType,terms,needsBuild,competitors,bizType,refundTermsOn,paidOn])).rows[0];
     const qs=makeQuestions(brand,district,neighborhood,category,audience);
     for(let i=0;i<qs.length;i++)await db.query(`insert into geo.pilot_questions(pilot_id,position,stage,text) values($1,$2,$3,$4) on conflict(pilot_id,position) do update set text=excluded.text`,[p.id,i+1,i<8?'지역':i<13?'문제':i<17?'비교':'브랜드',qs[i]]);
     for(const t of pilotTasks(needsBuild))await db.query(`insert into geo.pilot_tasks(pilot_id,code,title,due_on,owner,anchor,offset_days) values($1,$2,$3,$4::date+$5::int,$6,$7,$8) on conflict(pilot_id,code) do nothing`,[p.id,t.code,t.title,p.started_on,t.provisional,t.owner,t.anchor,t.offset]);
     for(const source of auditSources(category))for(const field of auditFields(category))await db.query(`insert into geo.local_audits(pilot_id,source,field) values($1,$2,$3) on conflict do nothing`,[p.id,source,field]);
     await db.query(`insert into geo.content_approvals(pilot_id) select $1 where not exists(select 1 from geo.content_approvals where pilot_id=$1)`,[p.id]);
     await db.query("commit"); pilotId=p.id;
-  }catch(e){await db.query("rollback");throw e}finally{db.release()}
+  }catch(e){await db.query("rollback");
+    // 위 검사와 insert 사이에 같은 고객 파일럿이 먼저 들어갔으면(동시에 두 번) 고객당 하나 고유 색인이 막는다 — 같은 말로
+    if((e as {code?:string})?.code==="23505")fail("pilot-exists");
+    throw e}finally{db.release()}
   revalidatePath("/admin/pilots"); revalidatePath(`/admin/clients/${c.slug}`); redirect(`/admin/pilots/${pilotId}`);
 }
 export async function updatePilotTask(form:FormData){await guard();const id=Number(form.get("id"));const status=String(form.get("status"));const evidence=String(form.get("evidence")??"").slice(0,500);await inqPool().query(`update geo.pilot_tasks set status=$2,evidence=$3,completed_at=case when $2='완료' then now() else null end where id=$1`,[id,status,evidence]);revalidatePath(String(form.get("path")));}

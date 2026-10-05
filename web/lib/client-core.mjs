@@ -182,6 +182,8 @@ export async function 등록(q, 칸) {
   await 고객칸준비(q);
   await q("begin");
   try {
+    // 등록끼리 줄 세움 — slug·도메인 검사와 insert 사이에 다른 등록이 끼지 못하게(도메인엔 고유 색인이 없다). tx 가 끝나면 풀린다
+    await q(`select pg_advisory_xact_lock(hashtext('geo.clients 등록'))`);
     if ((await q(`select 1 from geo.clients where slug = $1`, [칸.slug])).length) { await q("rollback"); return { ok: false, err: "slug-taken" }; }
     if (await 다른도메인고객(q, 칸.domain)) { await q("rollback"); return { ok: false, err: "domain-taken" }; }
     const alias = 칸.relation === "외부"
@@ -242,16 +244,76 @@ export function 폼값(row) {
 const 앞 = (s, n = 300) => String(s ?? "").slice(0, n);
 const 같은호스트 = (a, b) => a.replace(/^www\./, "") === b.replace(/^www\./, "");
 const UA = "Mozilla/5.0 (compatible; CitedSetupCheck/1.0; +https://geo-rose-nine.vercel.app)";
+/** 본문은 2MB 까지만 읽는다(큰 사이트맵·홈이 서버 메모리를 먹지 않게). 넘으면 앞만 쓰고 잘림 표시 */
+export const 본문상한 = 2 * 1024 * 1024;
+
+/** IPv4 글자 → 32비트 수. 모양이 아니면 null */
+const v4수 = (ip) => {
+  const m = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(ip);
+  if (!m || m.slice(1).some((x) => Number(x) > 255)) return null;
+  return m.slice(1).reduce((n, x) => n * 256 + Number(x), 0);
+};
+const v4안 = (n, 앞, 비트) => { const a = v4수(앞); return Math.floor(n / 2 ** (32 - 비트)) === Math.floor(a / 2 ** (32 - 비트)); };
+/**
+ * 고객 도메인이 풀린 주소가 우리 쪽 내부를 가리키나 — 사설·루프백·링크로컬(클라우드 메타데이터 169.254.169.254 포함)·CGNAT·
+ * 0/8·멀티캐스트·예약. IPv6 는 ::·::1·fc00::/7·fe80::/10·멀티캐스트, IPv4 매핑(::ffff:a.b.c.d)은 IPv4 로 본다
+ */
+export function 내부주소(ip) {
+  const s = String(ip ?? "").trim().toLowerCase().replace(/^\[|\]$/g, "");
+  const 매핑 = /^::ffff:(\d{1,3}(?:\.\d{1,3}){3})$/.exec(s);
+  const n = v4수(매핑 ? 매핑[1] : s);
+  if (n !== null) {
+    return [["0.0.0.0", 8], ["10.0.0.0", 8], ["100.64.0.0", 10], ["127.0.0.0", 8], ["169.254.0.0", 16], ["172.16.0.0", 12],
+      ["192.0.0.0", 24], ["192.168.0.0", 16], ["198.18.0.0", 15], ["224.0.0.0", 4], ["240.0.0.0", 4]].some(([a, b]) => v4안(n, a, b));
+  }
+  if (!s.includes(":")) return true; // 주소 모양이 아니면 안전하다고 보지 않는다
+  if (s === "::" || s === "::1") return true;
+  const 첫 = parseInt(s.split(":")[0] || "0", 16);
+  return (첫 & 0xfe00) === 0xfc00 || (첫 & 0xffc0) === 0xfe80 || (첫 & 0xff00) === 0xff00;
+}
+
+/** 기본 DNS — 주소 전부(all). 시험은 가짜 lookup 을 넣는다 */
+const 기본lookup = async (host) => (await import("node:dns/promises")).lookup(host, { all: true, verbatim: true });
+
+/** 본문을 스트림으로 상한까지만 → { body, 잘림 } */
+async function 본문읽기(r, 상한) {
+  if (!r.body || typeof r.body.getReader !== "function") return { body: "", 잘림: false };
+  const reader = r.body.getReader();
+  const 조각 = [];
+  let 길이 = 0, 잘림 = false;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    if (길이 + value.byteLength > 상한) {
+      조각.push(value.subarray(0, 상한 - 길이));
+      길이 = 상한; 잘림 = true;
+      await reader.cancel().catch(() => {}); // 끊기만 한다 — 이미 읽은 앞부분은 쓴다
+      break;
+    }
+    조각.push(value); 길이 += value.byteLength;
+  }
+  const 합 = new Uint8Array(길이);
+  let i = 0;
+  for (const c of 조각) { 합.set(c, i); i += c.byteLength; }
+  return { body: new TextDecoder("utf-8").decode(합), 잘림 };
+}
 
 /**
  * 한 주소를 연다. redirect 는 손으로 따라가되 같은 호스트(www 차이 허용)의 https 까지만.
  * → { status, type, body, url, error? }. 못 열면 status null + error
  */
-async function 열기(url, domain, { fetch, 마감, 한도 }) {
+async function 열기(url, domain, { fetch, lookup, 마감, 한도, 상한 }) {
   let 지금 = url;
   for (let 홉 = 0; 홉 < 5; 홉++) {
     const 남음 = Math.min(한도, 마감 - Date.now());
     if (남음 <= 0) return { status: null, url: 지금, error: "시간 초과(전체 20초)" };
+    // 요청마다(넘겨받은 주소 포함) 먼저 DNS — 내부 주소로 풀리면 열지 않는다
+    const host = new URL(지금).hostname;
+    let 주소들;
+    try { 주소들 = (await lookup(host)).map((x) => x.address); } catch (e) {
+      return { status: null, url: 지금, error: `도메인을 못 찾음(${앞(e?.code ?? e?.message ?? e, 40)})` };
+    }
+    if (!주소들.length || 주소들.some(내부주소)) return { status: null, url: 지금, error: `내부 주소로 풀림(${앞(주소들.join(", "), 80)}) — 열지 않음` };
     const ac = new AbortController();
     const t = setTimeout(() => ac.abort(), 남음);
     let r;
@@ -274,13 +336,13 @@ async function 열기(url, domain, { fetch, 마감, 한도 }) {
       지금 = 다음.toString();
       continue;
     }
-    let body = "";
-    try { body = await r.text(); } catch (e) {
+    let 읽음;
+    try { 읽음 = await 본문읽기(r, 상한); } catch (e) {
       clearTimeout(t);
       return { status, url: 지금, type: r.headers.get("content-type") ?? "", error: ac.signal.aborted ? "본문 읽다 시간 초과" : "본문을 못 읽음" };
     }
     clearTimeout(t);
-    return { status, url: 지금, type: r.headers.get("content-type") ?? "", body };
+    return { status, url: 지금, type: r.headers.get("content-type") ?? "", body: 읽음.body, ...(읽음.잘림 ? { 잘림: true } : {}) };
   }
   return { status: null, url: 지금, error: "넘겨주기가 5번 넘게 이어짐" };
 }
@@ -341,13 +403,16 @@ const loc들 = (body) => [...String(body).matchAll(/<loc>\s*([^<\s]+)\s*<\/loc>/
  *   homeLdTypes[] · indexnowFile{status,ok,head} · checkedAt · errors[]
  * 한 주소 8초 · 전체 20초. 못 연 칸은 status 와 error 만(추측 값 없음). 본문은 칸마다 앞 300자만 남긴다
  */
-export async function 세팅점검(domain, key, { fetch = globalThis.fetch, 한도 = 8000, 전체 = 20000, now = () => new Date() } = {}) {
+export async function 세팅점검(domain, key, { fetch = globalThis.fetch, lookup = 기본lookup, 한도 = 8000, 전체 = 20000, 상한 = 본문상한, now = () => new Date() } = {}) {
   const d = 도메인정리(domain);
   const 마감 = Date.now() + 전체;
-  const o = { fetch, 마감, 한도 };
+  const o = { fetch, lookup, 마감, 한도, 상한 };
   const base = `https://${d}`;
   const errors = [];
-  const 칸 = (r) => ({ status: r.status, ...(r.type !== undefined ? { type: 앞(r.type, 80) } : {}), ...(r.error ? { error: r.error } : {}) });
+  const 칸 = (r) => {
+    if (r.잘림) errors.push(`${r.url}: 본문이 2MB 를 넘어 앞 2MB 만 읽음`);
+    return { status: r.status, ...(r.type !== undefined ? { type: 앞(r.type, 80) } : {}), ...(r.error ? { error: r.error } : {}), ...(r.잘림 ? { 잘림: true } : {}) };
+  };
 
   const [home, rob, llms, kf] = await Promise.all([
     열기(`${base}/`, d, o), 열기(`${base}/robots.txt`, d, o), 열기(`${base}/llms.txt`, d, o),
@@ -388,7 +453,10 @@ export async function 세팅점검(domain, key, { fetch = globalThis.fetch, 한�
       out.sitemap.children = 자식.length;
       out.sitemap.counted = 결과.filter((r) => r.status === 200).length;
       out.sitemap.pages = 결과.reduce((n, r) => n + (r.status === 200 && r.body !== undefined ? loc들(r.body).length : 0), 0);
-      결과.forEach((r, i) => { if (r.status !== 200) errors.push(`하위 사이트맵 ${셀것[i]}: ${r.error ?? r.status}`); });
+      결과.forEach((r, i) => {
+        if (r.status !== 200) errors.push(`하위 사이트맵 ${셀것[i]}: ${r.error ?? r.status}`);
+        if (r.잘림) { errors.push(`하위 사이트맵 ${셀것[i]}: 본문이 2MB 를 넘어 앞 2MB 만 셈`); out.sitemap.잘림 = true; }
+      });
     } else {
       out.sitemap.head = 앞(sm.body);
       out.sitemap.pages = 0;

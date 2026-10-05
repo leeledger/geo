@@ -1,5 +1,5 @@
 type Q = (sql: string, params?: unknown[]) => Promise<any[]>;
-type FetchLike = (url: string, init?: any) => Promise<{ status: number; headers: { get(k: string): string | null }; text(): Promise<string> }>;
+type FetchLike = (url: string, init?: any) => Promise<{ status: number; headers: { get(k: string): string | null }; body: ReadableStream<Uint8Array> | null }>;
 
 export const CODE_SLUGS: string[];
 export const AI_BOTS: string[];
@@ -38,7 +38,10 @@ export type Derived = {
 };
 export function robots막힘(text: string): string[];
 export function ld타입(html: string): { types: string[]; 깨짐: number };
-export function 세팅점검(domain: string, key: string | null, opts?: { fetch?: FetchLike; 한도?: number; 전체?: number; now?: () => Date }): Promise<Derived>;
+type LookupLike = (host: string) => Promise<{ address: string; family?: number }[]>;
+export const 본문상한: number;
+export function 내부주소(ip: string): boolean;
+export function 세팅점검(domain: string, key: string | null, opts?: { fetch?: FetchLike; lookup?: LookupLike; 한도?: number; 전체?: number; 상한?: number; now?: () => Date }): Promise<Derived>;
 export function 점검저장(q: Q, row: Record<string, any>, opts?: { fetch?: FetchLike }): Promise<Derived>;
 
 export type 상태 = "됨" | "기다림" | "사람" | "해당없음";

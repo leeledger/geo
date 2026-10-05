@@ -1488,3 +1488,5 @@ Known Gaps (26)
 - KG-38-4 사이트맵·홈 본문은 크기 상한 없이 다 읽는다(한 주소 8초가 막는다). 큰 사이트맵이면 앞 300자만 남는다
 - KG-38-5 E2E 가 geo.clients 시퀀스 7 을 씀(다음 8). E2E 중 1분쯤 시험 고객에 「진행」 파일럿이 있었다(측정 대상은 status test 제외라 안 잼)
 - KG-38-6 /admin/pilots 운영 주소 확인은 배포 뒤(로컬 next dev 에서 열림·링크 확인함)
+- 2차(Richard Should Fix 4, 2026-10-05): 세팅 점검 요청마다 dns.lookup(all) → 내부 주소면 안 엶(「내부 주소로 풀림」) · 본문 스트림 2MB 끊기(KG-38-4 닫음) · createPilot 파일럿 있으면 pilot-exists(on conflict update 삭제, 23505 도 같은 말) · 등록 tx 에 pg_advisory_xact_lock. 세션 결정: 24시간 다시 열림·hitWords 주소만 그대로. test-client-core 138 · E2E 34(시험 고객 id 8, 남은 행 0)
+- KG-38-7 DNS 확인과 fetch 가 각자 이름을 푼다(rebinding 틈). 고른 주소로 붙는 undici dispatcher 가 있어야 닫힌다 — 위험 낮음(https·관리자 입력)
