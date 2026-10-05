@@ -1450,3 +1450,4 @@ Known Gaps (26)
 - KG-37-4 E2E 가 geo.clients 시퀀스 6 을 씀(다음 7)
 - KG-37-5 submit-gsc DB 고객 찾기가 status active·test 만(옛 D19 는 status 무관)
 - KG-37-6 health 가 DATABASE_URL 없으면 주소 확인 전에 멈춤(Actions 는 늘 있음)
+- 2차(Richard 보류 반영, 2026-10-05): Must Fix — masks `DB고객말`(status 무관 이름·도메인, fail-closed)을 sales·illustrate 가림에 · SF② 고객설정이 brandWords 원문을 돌려주고 고객사말은 그것을 그대로(「C++코딩」 보존) · SF④ 측정대상·고객측정일 전체 쿼리가 status 'test' 제외(이름으로 집을 때만) · SF⑥ 가드를 「clients.mjs 를 가져오는 파일에 CLIENTS·selectClients 글자」로 단순화(import * as·동적 import() 포함) · SF① growth-import --dry 전후 차이 0, rescan·company·ai-measure 는 dry 길이 없어 코드 3곳 값 동일 시험 + 배포 뒤 로그로 확인. test-clients 82 → 99

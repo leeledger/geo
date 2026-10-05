@@ -95,12 +95,28 @@ export const 고객사말 = (clients) => {
       const 줄기 = c.name.replace(/학원$/, "");
       for (const x of [c.name, 줄기]) { 말.add(x.replace("&", "&amp;")); 말.add(x.replace("&", "앤")); 말.add(x); }
     }
-    for (const p of [String(c.brandRe?.source ?? ""), String(c.presenceRe?.source ?? "")].join("|").split("|")) {
+    // DB 고객(고객설정)은 사람이 넣은 원문 말을 그대로 — brandRe 원문에서 꺼내면 「C++코딩」이 「C코딩」이 된다
+    if (Array.isArray(c.brandWords)) for (const w of c.brandWords) 말.add(w);
+    const 원문들 = [Array.isArray(c.brandWords) ? "" : String(c.brandRe?.source ?? ""), String(c.presenceRe?.source ?? "")];
+    for (const p of 원문들.join("|").split("|")) {
       const t = p.replace(/\\s\*/g, " ").replace(/-\?/g, "-").replace(/[\\^$()?*+[\]{}]/g, "").trim();
       if (t.length >= 4) 말.add(t);
     }
   }
   return [...말].filter(Boolean);
+};
+
+/**
+ * geo.clients 의 이름·도메인 — status 무관(쉬는·끝난 고객도 비밀유지 대상). loadClients 는 active·test 만 읽으니 가림 검사는 이것을 더한다.
+ * 못 읽으면 던진다(fail-closed). 빼기 = 이 글의 고객 id(도해는 자기 고객 이름은 써도 된다)
+ */
+export const DB고객말 = async (q, 빼기 = null) => {
+  const 말 = [];
+  for (const r of await q(`select name, domain from geo.clients where $1::int is null or id <> $1`, [빼기])) {
+    if (r.name?.length >= 2) 말.push(r.name);
+    if (r.domain) 말.push(r.domain);
+  }
+  return 말;
 };
 
 /**

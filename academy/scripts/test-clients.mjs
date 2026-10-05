@@ -4,8 +4,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { CLIENTS, lit, 고객설정, loadClients, 고객고르기, bySlug, indexClients } from "../clients.mjs";
-import { 고객사말 } from "../masks.mjs";
-import { 측정설정 } from "../measure-targets.mjs";
+import { 고객사말, DB고객말 } from "../masks.mjs";
+import { 측정설정, 측정대상, 고객측정일 } from "../measure-targets.mjs";
 
 let 통과 = 0, 실패 = 0;
 const 봄 = (이름, 참) => { if (참) 통과++; else { 실패++; console.log(`✗ ${이름}`); } };
@@ -174,6 +174,55 @@ const 가짜q = (행들) => async (sql, p) => 행들.filter((r) => p[0].includes
   봄("고객사말에 DB 고객 이름·도메인", ["제타", "zeta.kr", "이타", "eta.kr", "시험", "x.kr"].every((x) => 말.includes(x)));
   봄("고객사말에 코드 고객 그대로", ["로봇&코딩학원", "robotncoding.com", "아이로그", "docttak.com"].every((x) => 말.includes(x)));
   봄("brandRe·presenceRe 없어도 이름·도메인", 고객사말([{ name: "무명", domain: "mu.kr" }]).join() === "무명,mu.kr");
+  // 2차 SF②: 특수 글자 든 brandWords 는 원문 그대로 — 정규식 원문에서 꺼내면 「C++코딩」이 「C코딩」이 된다
+  const 씨 = 고객설정({ id: 50, slug: "cpp", name: "씨쁠", domain: "cpp.kr", config: { brandWords: ["C++코딩", "a.b(주)"] } }, {});
+  const 씨말 = 고객사말([씨]);
+  봄("고객사말에 brandWords 원문 「C++코딩」·「a.b(주)」", 씨말.includes("C++코딩") && 씨말.includes("a.b(주)"));
+  봄("고객사말에 망가진 말(「C코딩」) 없음", !씨말.includes("C코딩") && !씨말.some((x) => x.includes("\\")));
+  봄("코드 고객은 brandRe 원문에서 그대로(학원 표기)", 고객사말([CLIENTS[0]]).includes("로봇앤코딩"));
+}
+
+// ─────────────────────────────────────────── 2차 Must Fix: 가림 검사의 DB 이름은 status 무관(쉬는·끝난 고객도)
+{
+  const 표 = [
+    { id: 1, name: "로봇&코딩학원", domain: "robotncoding.com", status: "active" },
+    { id: 40, name: "쉬는고객", domain: "paused.kr", status: "paused" },
+    { id: 41, name: "끝난고객", domain: "ended.kr", status: "ended" },
+    { id: 42, name: "가", domain: null, status: "ended" },
+  ];
+  let 본sql = "";
+  const q = async (sql, p) => { 본sql = sql; return 표.filter((r) => p[0] === null || r.id !== p[0]); };
+  const 말 = await DB고객말(q);
+  봄("DB고객말에 paused·ended 이름·도메인", ["쉬는고객", "paused.kr", "끝난고객", "ended.kr"].every((x) => 말.includes(x)));
+  봄("DB고객말 status 로 안 거름", !/status/.test(본sql));
+  봄("DB고객말 한 글자 이름은 뺌", !말.includes("가"));
+  봄("DB고객말 빼기 id", !(await DB고객말(q, 40)).includes("쉬는고객"));
+  봄("DB고객말 읽기 실패 → 던짐(fail-closed)", (await 던짐(() => DB고객말(async () => { throw new Error("db down"); })))?.message === "db down");
+  봄("sales·illustrate 가 DB고객말을 쓴다", ["sales.mjs", "illustrate.mjs"].every((f) => /DB고객말\(q/.test(fs.readFileSync(new URL(`./${f}`, import.meta.url), "utf8"))));
+}
+
+// ─────────────────────────────────────────── 2차 SF④: 측정 대상은 시험 고객을 이름으로 집을 때만
+{
+  const 본 = [];
+  const q = async (sql, p = []) => { 본.push({ sql, p }); return /^\s*select/i.test(sql) ? [] : []; };
+  await 측정대상(q, "2026-10-05");
+  await 고객측정일(q, "2026-10-05");
+  await 측정대상(q, "2026-10-05", "e2e-test");
+  const 고른 = 본.filter((x) => /from geo\.clients c left join geo\.pilots/.test(x.sql));
+  봄("측정대상·고객측정일 전체는 test 를 거름", 고른.length === 3 && 고른.slice(0, 2).every((x) => /<> 'test'/.test(x.sql)));
+  봄("이름으로 집으면 test 도", !/<> 'test'/.test(고른[2].sql) && 고른[2].p[0] === "e2e-test");
+}
+
+// ─────────────────────────────────────────── 2차 SF①: Actions 가 부르는 rescan·company·ai-measure 의 코드 3곳 값이 전과 같다
+{
+  // DB 가 코드 3곳 + 다른 고객을 줄 때도 앞 3곳은 옛 CLIENTS 의 칸이 같은 값(같은 정규식 객체)
+  const l = await loadClients(가짜q(DB행));
+  const 같다 = CLIENTS.every((c, i) => Object.keys(c).every((k) => l[i][k] === c[k]));
+  봄("loadClients 앞 3곳 = 옛 CLIENTS 칸 그대로(company conf·rescan 목록·ai-measure 탐침)", 같다 && l.slice(0, 3).map((c) => c.id).join() === "1,2,3");
+  // company 는 id 로 conf 를 붙인다 · ai-measure 는 slug 로 loop.probes 를 본다
+  봄("company conf(id) 의 loop·publishes 같음", CLIENTS.every((c) => l.find((x) => x.id === c.id).loop === c.loop && l.find((x) => x.id === c.id).publishes === c.publishes));
+  봄("ai-measure 탐침(probes) 같음", CLIENTS.every((c) => bySlug(c.slug, l).loop.probes === c.loop.probes));
+  봄("rescan(고객고르기, 인자 없음)은 active 전부 — 코드 3곳 먼저", (await 고객고르기(["n", "x"], 가짜q(DB행))).slice(0, 3).map((c) => c.slug).join() === CLIENTS.map((c) => c.slug).join());
 }
 
 // ─────────────────────────────────────────── 가드 — 코드 목록을 바로 읽는 스크립트
@@ -189,24 +238,37 @@ const 돌기 = (d) => {
   }
 };
 for (const d of 볼곳) if (fs.existsSync(path.join(뿌리, d))) 돌기(path.join(뿌리, d));
-// import { … CLIENTS … } from "…clients.mjs" 또는 const { CLIENTS } = await import("…clients.mjs")
-const 가져옴 = /(?:import\s*\{([^}]*)\}\s*from|\{([^}]*)\}\s*=\s*await\s+import\s*\()\s*["'][^"']*clients\.mjs["']/g;
+/**
+ * 꼴을 가리지 않는다 — clients.mjs 를 가져오는 파일(정적 import·import * as·동적 import())에 CLIENTS·selectClients 글자가
+ * 하나라도 있으면 걸린다(CODE_CLIENTS 는 \b 에 안 걸린다 — 따로 measure-targets 만 허용). 주석에 쓴 글자도 걸리니 주석에는 쓰지 않는다
+ */
+const 가져옴 = /(?:\bfrom\s*|\bimport\s*\(\s*)["'][^"']*clients\.mjs["']/;
+const 가드검사 = (글, 상대) => {
+  if (!가져옴.test(글)) return [];
+  const 걸 = [];
+  if (/\b(?:CLIENTS|selectClients)\b/.test(글)) 걸.push(`${상대} — CLIENTS·selectClients`);
+  if (/\bCODE_CLIENTS\b/.test(글) && 상대 !== "academy/measure-targets.mjs") 걸.push(`${상대} — CODE_CLIENTS(measure-targets 만)`);
+  return 걸;
+};
 const 걸림 = [];
 for (const f of 파일들) {
   const 이름 = path.basename(f), 상대 = path.relative(뿌리, f).replace(/\\/g, "/");
   if (상대 === "academy/clients.mjs" || /^test-.*\.mjs$/.test(이름)) continue;
-  const 글 = fs.readFileSync(f, "utf8");
-  for (const m of 글.matchAll(가져옴)) {
-    const 이름들 = (m[1] ?? m[2]).split(",").map((s) => s.trim().split(/\s+as\s+/)[0]);
-    if (이름들.some((x) => x === "CLIENTS" || x === "selectClients")) 걸림.push(`${상대} — CLIENTS·selectClients`);
-    if (이름들.includes("CODE_CLIENTS") && 상대 !== "academy/measure-targets.mjs") 걸림.push(`${상대} — CODE_CLIENTS(measure-targets 만)`);
-  }
+  걸림.push(...가드검사(fs.readFileSync(f, "utf8"), 상대));
 }
 if (걸림.length) for (const x of 걸림) console.log(`  가드 | ${x}`);
-봄(`가드: 스크립트에서 코드 목록 직접 import 0 (본 파일 ${파일들.length})`, 걸림.length === 0 && 파일들.length > 50);
-// 가드 자체가 잡는지 — 가짜 글
-const 가짜글 = 'import { CLIENTS as X, 세션글제목 } from "../clients.mjs";\nconst { selectClients } = await import("../academy/clients.mjs");';
-봄("가드가 as·동적 import 도 잡음", [...가짜글.matchAll(가져옴)].length === 2);
+봄(`가드: 스크립트에서 코드 목록 직접 읽기 0 (본 파일 ${파일들.length})`, 걸림.length === 0 && 파일들.length > 50);
+// 가드 자체가 잡는지 — 가짜 글 네 꼴
+const 가짜 = [
+  'import { CLIENTS as X, 세션글제목 } from "../clients.mjs";',
+  'const { selectClients } = await import("../academy/clients.mjs");',
+  'import * as C from "../clients.mjs";\nfor (const c of C.CLIENTS) {}',
+  'const n = (await import("../academy/clients.mjs")).CLIENTS.length;',
+];
+봄("가드가 as·동적·import * as·(await import()).X 를 다 잡음", 가짜.every((g) => 가드검사(g, "x.mjs").length === 1));
+봄("가드: CODE_CLIENTS 는 measure-targets 만", 가드검사('import { CODE_CLIENTS } from "./clients.mjs";', "academy/measure-targets.mjs").length === 0
+  && 가드검사('import { CODE_CLIENTS } from "./clients.mjs";', "academy/x.mjs").length === 1);
+봄("가드: loadClients 만 쓰면 통과", 가드검사('import { loadClients } from "../clients.mjs";', "x.mjs").length === 0);
 
 console.log(`\n${통과} 통과 · ${실패} 실패`);
 if (실패) process.exitCode = 1;

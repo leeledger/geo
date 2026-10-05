@@ -22,7 +22,7 @@
 import fs from "node:fs";
 import { Pool } from "pg";
 import { loadClients } from "../clients.mjs";
-import { 가림검사, 고객사말, 수검사, 풀기 } from "../masks.mjs";
+import { 가림검사, 고객사말, DB고객말, 수검사, 풀기 } from "../masks.mjs";
 import { 클로드코드, 클로드코드있음, 클로드기록연결 } from "./claude-code.mjs";
 import { 프로필 } from "./profile.mjs";
 
@@ -412,10 +412,7 @@ const 답읽기 = (text) => {
 /** 이 글의 고객사가 아닌 고객사 — clients.mjs + DB 의 고객사 표 + 영업 후보. 못 읽으면 멈춘다(fail-closed) */
 const 남의말 = async (clientId) => {
   const 말 = new Set(고객사말((await loadClients(q, { includeTest: true, strict: true })).filter((c) => c.id !== clientId)));
-  for (const r of await q(`select name, domain from geo.clients where id <> $1`, [clientId])) {
-    if (r.name?.length >= 2) 말.add(r.name);
-    if (r.domain) 말.add(r.domain);
-  }
+  for (const x of await DB고객말(q, clientId)) 말.add(x);
   for (const r of await q(`select name from geo.outreach_targets`)) if (r.name?.length >= 2) 말.add(r.name);
   return [...말];
 };

@@ -28,7 +28,7 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { Pool } from "pg";
 import { loadClients } from "../clients.mjs";
-import { 가릴원문, 같은지역구, 가림검사, 고객사말, 수검사, 풀기 } from "../masks.mjs";
+import { 가릴원문, 같은지역구, 가림검사, 고객사말, DB고객말, 수검사, 풀기 } from "../masks.mjs";
 import { 클로드코드, 클로드코드있음, 클로드기록연결 } from "./claude-code.mjs";
 import { 프로필 } from "./profile.mjs";
 
@@ -78,6 +78,8 @@ const 이번주 = () => {
 const 가릴말 = async ({ 후보 = true } = {}) => {
   // 코드 3곳 + DB 고객(시험 고객 포함). DB 가 열려 있으면 못 읽을 때 멈춘다(fail-closed) — DB 고객 이름이 빠진 채 통과하지 않게
   const 말 = new Set([...가릴원문, ...고객사말(await loadClients(pool ? q : null, { includeTest: true, strict: Boolean(pool) }))]);
+  // 쉬는·끝난 고객(status paused·ended)도 가린다 — loadClients 는 active·test 만 읽는다. 실패하면 throw — fail-closed
+  if (pool) for (const x of await DB고객말(q)) 말.add(x);
   if (후보) {
     const rows = await q(`select name from geo.outreach_targets`); // 실패하면 throw — fail-closed
     for (const r of rows) if (r.name?.length >= 2) 말.add(r.name);

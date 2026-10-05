@@ -97,6 +97,8 @@ const 고객행 = `select c.id, c.slug, c.name, c.domain, c.answer_pattern, c.me
     p.kickoff_on::text as kickoff_on, p.needs_build, p.site_launch_on::text as site_launch_on, p.cancelled_on::text as cancelled_on,
     (select count(*) from geo.pilot_questions pq where pq.pilot_id = p.id and pq.approved)::int as approved_n
   from geo.clients c left join geo.pilots p on p.client_id = c.id`;
+// 시험 고객(status test, Step 37)은 이름으로 콕 집을 때만 잰다 — company·daily-agent 와 같은 규칙. 돈 쓰는 길이라 구조로 막는다
+const 시험빼고 = " where coalesce(c.status, '') <> 'test'";
 
 /**
  * 오늘 학원 밖 측정 대상 고객 수 k(고객수). 모든 실행기(claude-code.mjs·ai-measure·ai-web-measure)가
@@ -104,7 +106,7 @@ const 고객행 = `select c.id, c.slug, c.name, c.domain, c.answer_pattern, c.me
  * 칸 준비(ALTER)는 하지 않는다. 못 읽으면 0 — 가장 작은 상한으로 돈다
  */
 export async function 고객측정일(q, 오늘) {
-  try { return 고객수(대상고르기(await q(고객행), 오늘)); } catch { return 0; }
+  try { return 고객수(대상고르기(await q(고객행 + 시험빼고), 오늘)); } catch { return 0; }
 }
 
 /**
@@ -135,7 +137,7 @@ export async function 측정대상(q, 오늘, slug = null) {
     const row = r ?? { id: null, slug, name: slug };
     return [{ ...row, 묶음: slug === HOUSE ? "학원" : "지정", conf: r ? 측정설정(r) : null }];
   }
-  return 대상고르기(await q(고객행), 오늘);
+  return 대상고르기(await q(고객행 + 시험빼고), 오늘);
 }
 
 /**

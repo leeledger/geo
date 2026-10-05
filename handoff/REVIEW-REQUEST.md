@@ -137,3 +137,36 @@ E2E 뒤(config·derived 칸이 운영 DB 에 생긴 뒤) 빠른 묶음을 한 �
 - KG-37-4 E2E 가 geo.clients 시퀀스 6 을 썼다(다음 고객은 7부터)
 - KG-37-5 submit-gsc 의 DB 고객 찾기가 status active·test 만(옛 D19 는 status 무관)
 - KG-37-6 health 는 이제 DATABASE_URL 이 없으면 주소 확인 전에 멈춘다(전에는 주소 확인 뒤). Actions 는 늘 있다
+
+## 2차 (Richard 보류 반영, 2026-10-05)
+Status: DONE — 시험 99/99 외 기존 5개 그대로 통과, web tsc 0
+
+### Must Fix
+- academy/masks.mjs:117-129 — `DB고객말(q, 빼기)`: `select name, domain from geo.clients`(status 무관 — paused·ended 도), 실패하면 던짐(fail-closed).
+- academy/scripts/sales.mjs:31,80-82 — 가릴말이 DB 가 열려 있으면 DB고객말 을 더한다(쉬는·끝난 고객 이름·도메인).
+- academy/scripts/illustrate.mjs:25,415 — 같은 select 를 DB고객말 로 바꿈(같은 줄, 같은 동작).
+- 시험(test-clients): paused·ended 행이 들어감 · SQL 에 status 조건 없음 · 한 글자 이름 뺌 · 빼기 id · 읽기 실패면 던짐 · sales·illustrate 가 이것을 씀.
+
+### Should Fix
+- ② academy/clients.mjs:432-433 · masks.mjs:96-99 — 고객설정이 `brandWords`(원문 말)를 같이 돌려주고, 고객사말은 있으면 그대로 넣고 brandRe 원문에서는 안 꺼낸다. 코드 3곳은 brandWords 가 없어 예전 길 그대로. 시험: 「C++코딩」「a.b(주)」 원문이 들어가고 「C코딩」·역슬래시 든 말은 없음 · 학원 「로봇앤코딩」은 그대로.
+- ④ academy/measure-targets.mjs:100-101,109,140 — 측정대상(전체)·고객측정일 쿼리에 `coalesce(c.status,'') <> 'test'`. --client 로 이름을 주면(slug 길) 시험 고객도. 시험: 가짜 q 로 SQL 확인.
+- ⑥ academy/scripts/test-clients.mjs 가드 — clients.mjs 를 가져오는 파일(정적·`import * as`·동적 `import()`)에 `CLIENTS`·`selectClients` 글자가 하나라도 있으면 실패. 가짜 글 네 꼴(as · `{…} = await import` · `import * as C … C.CLIENTS` · `(await import(…)).CLIENTS`)을 다 잡는지 + CODE_CLIENTS 는 measure-targets 만 + loadClients 만 쓰면 통과.
+- ① Actions 가 부르는 rescan·growth-import·company·ai-measure 비교
+  - growth-import `--dry`(DB 안 엶, 공개 저장소 GitHub 읽기만): 88305f7 의 clients.mjs·growth-import.mjs 로 잠깐 바꿔 「전」, 지금 코드로 「후」 → 차이 0
+    ```
+    문서딱: 저장소 리포트 1개 · DB (dry — 안 읽음) · 받을 주 2026-41
+      2026-41 생성 2026-10-05 · 서치콘솔 7일 클릭 0 · 노출 36 · 순위 18.166666666666668 · Cloudflare 7일 요청 44596 · 페이지뷰 6651 · 5일 · 표 11/11/16
+      열린 후보 이슈 없음(0건)
+    문서딱: 정상 · 받은 주 2026-41 · 열린 후보 이슈 없음(0건)
+    ```
+  - rescan(dry 없음 — probe 스캔을 돌리고 DB 에 씀) · company(`--plan` 도 일감·활동을 씀) · ai-measure(dry 없음 — Claude 호출) — 실행 비교 안 함. 대신 시험으로: DB 가 코드 3곳 + 다른 고객을 줄 때 loadClients 앞 3곳이 옛 CLIENTS 의 모든 칸과 같은 값(같은 객체) · company conf(id)의 loop·publishes · ai-measure 탐침 loop.probes · rescan(고객고르기 인자 없음) 순서가 같다. **배포 뒤 로그로 확인**: serp.yml 07:41 의 rescan·growth-import, company.yml 매시, optimize.yml 의 ai-measure 가 3곳을 전과 같이 돌았는지.
+  - 2차 뒤 빠른 묶음 다시: daily-agent·marketing(--no-claude)·pilot robotncoding·docttak·indexnow --list·health 줄 차이 0. pilot ilog(표본 86→100, 새 측정)·briefing(크롤러 989→990회)은 그사이 들어온 데이터.
+
+### 시험·tsc (2차)
+```
+test-clients: 99 통과 · 0 실패
+test-docttak: 32 · test-grow-loop: 37 · test-growth-import: 59 · test-ilog-loop: 33 · test-marketing: 38 — 모두 0 실패
+illustrate --test 전부 맞음 · sales --leak-test 「지금 web/public/case/academy.html — 걸림 없음」 · sales --draft-test 통과
+web tsc exit 0
+```
+E2E(--live)는 다시 안 돌렸다 — 바뀐 곳(가림 말·측정 대상 SQL)은 단위 시험이 덮고, 다시 돌리면 운영 시퀀스를 하나 더 쓴다.

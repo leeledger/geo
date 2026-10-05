@@ -426,7 +426,8 @@ export function 고객설정(row, env = process.env) {
 
   return {
     id: row.id, slug, name, domain, alias: row.alias ?? null, relation: row.relation ?? null, status: row.status ?? null,
-    brandRe, presenceRe: null, answerRe, queries, llmsTxt, publishes: false, siteLog, gsc, indexnow, indexnowKey, loop, marketing,
+    // brandWords = 사람이 넣은 원문 말. 가림 검사(masks 고객사말)가 정규식 원문 대신 이것을 그대로 쓴다
+    brandRe, brandWords, presenceRe: null, answerRe, queries, llmsTxt, publishes: false, siteLog, gsc, indexnow, indexnowKey, loop, marketing,
     출처, 빠짐,
   };
 }
