@@ -9,12 +9,15 @@
  *
  *   node bing-submit-urls.mjs --look        화면만 읽고 찍는다
  *   node bing-submit-urls.mjs               사이트맵 주소 중 아직 안 낸 것을 한도 안에서 낸다
+ *   node bing-submit-urls.mjs --client docttak   다른 고객사 (인자 없으면 학원)
  */
 import { chromium } from "playwright";
 import fs from "node:fs";
 import path from "node:path";
+import { bingClient } from "./bing-site.mjs";
 
-const SITE = "https://robotncoding.com/";
+const CLIENT = bingClient();
+const SITE = `https://${CLIENT.domain}/`;
 const LOOK = process.argv.includes("--look");
 const DONE = path.join(process.cwd(), "bing-done.json");
 const say = (s) => console.log(`  ${s}`);
@@ -26,7 +29,7 @@ const ctx = await chromium.launchPersistentContext(path.join(process.cwd(), ".br
 const page = ctx.pages()[0] ?? (await ctx.newPage());
 await page.goto(`https://www.bing.com/webmasters/submiturl?siteUrl=${encodeURIComponent(SITE)}`, { waitUntil: "domcontentloaded" });
 await page.waitForTimeout(9000);
-say(`주소 ${page.url()}`);
+say(`${CLIENT.name} · 주소 ${page.url()}`);
 if (/login|signin/i.test(page.url())) { say("로그인이 풀렸습니다 — node open-session.mjs 로 로그인"); await ctx.close(); process.exit(1); }
 
 const 글 = (await page.evaluate(() => document.body.innerText)).replace(/\n{2,}/g, "\n");

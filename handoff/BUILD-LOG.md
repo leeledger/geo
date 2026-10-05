@@ -1363,3 +1363,65 @@ Known Gaps (26)
 - 블로그 쓰임(결정): ① 네이버 AI 브리핑·네이버 검색의 출처 자리 ② 이름의 두 번째 자리(사이트 sameAs ↔ 블로그 프로필 링크) ③ 상황 글 — 사이트는 「규격이 뭔가」, 블로그는 「반려됐을 때·마감 직전·폰만 있을 때」 ④ 공식 규격이 바뀌면 한 편. 주 2편(월·목, 이미 marketing.blogDays). 한꺼번에 여러 편 올리지 않는다. 전문 복사·서로이웃 품앗이·댓글 품앗이 안 함
 - KG-36-1(닫힘, 원장 「성과 기록에 넣고」) 손으로 올린 8편을 geo.marketing_posts #10~17 로 넣음(blog·올림·posted_url·올린 시각). 7편은 지식iN·카페 초안 #1~5·7·8 을 블로그로 옮긴 것이라 그 초안은 「버림」(note 에 블로그 주소) — 같은 글을 지식iN·카페에 또 올리지 않게. 소개 글은 target_query 「문서딱」·source 홈
 - KG-36-2(닫힘) 블로그 로그인 tools/.browser-profile-docttak — NID_AUT 유지 2027-11-09. open-session 이 주소만 보고 「확인」해 두 번 세션 쿠키로 닫혔던 것을 NID_AUT 만료일로 판정하게 고침
+
+### 2026-10-05 — Step 36·37 설계 (원장 「문서딱 트래픽이 모이게, 말하지 않아도 에이전트를 운영」) — Step 36 BRIEFED
+- 쪼갬: Step 36 = G1 문서딱 구글·빙 색인 매일 + G2 서치콘솔 실적 수집·표시. Step 37 = G3 수요 → 글 제안(36 배포·실데이터 뒤). 브리프는 36 만
+- 결정 G1: clients.mjs `gsc: true`(학원·문서딱)를 local-agent 가 돈다. 학원 먼저, submit-gsc 고객당 20분, local-agent 한도 60→90. 빙은 bing-submit-urls `--client`, 문서딱 빙 등록 여부는 `--look --client docttak` 화면 원문으로 판정(추측 정규식 금지). 미등록이면 원장 일감 1건(서치콘솔 가져오기 동의). 아이로그는 서치콘솔 권한 모름 → 탐침 결과만 보고. IndexNow 매일 안 보냄(기존 결정 유지)
+- 결정 G2: 공식 API 안 씀 — 문서 「Your application must use OAuth 2.0 to authorize requests. No other authorization protocols are supported.」(developers.google.com/webmaster-tools/v1/how-tos/authorizing, 2026-10-05 확인). OAuth·서비스 계정은 원장 손(클라우드 프로젝트·동의)이 든다. 대신 로그인 프로필로 실적 화면 「내보내기 CSV」를 하루씩(기간 D~D) — 탐침(gsc-perf-probe.mjs)이 통과해야 짓는다. 안 되면 Arch 재결정
+- 결정 G2: 표 geo.search_console_daily(client_id, day, dim total|query|page, key, clicks, impressions, ctr, position, source, fetched_at), 고객 공용. day = 구글 날짜(태평양 시간) 그대로. 합계는 total 행만(검색어 합 금지). 실패한 날 안 씀, 성공한 빈 날은 0. PC 08:30 새 작업, 한 번에 고객당 14일, lag 3일. 현황판 고객 탭 카드 + case-report(학원)·pilot-report(고객) 절은 행 있을 때만
+- 결정 G3(Step 37 설계, 아직 안 지음): 주 1회(월) PC 수집 뒤 academy/scripts/demand-proposals.mjs --client docttak. Claude 호출 0 — 숫자·현재 제목·첫 문장 근거 묶음만 만들고 글은 문서딱 세션이 쓴다(지어낼 자리를 안 만든다). 고르기: 최근 28 구글날 노출 ≥10(첫 실데이터 보고 Arch 확정) 중 ① 평균 순위 8~30 → 보강·새 글 ② 순위 ≤7·노출 ≥20 인데 CTR 이 같은 사이트 순위 ≤7 검색어 CTR 중앙값의 절반 밑 → 제목·첫 문장(바깥 기준값을 지어내지 않고 사이트 안 상대값) ③ marketing.pages·사이트맵에 맞는 페이지 없음 → 새 안내 글 후보. 주 최대 5건(대량 생성 금지). 규격 출처는 기존 안내 페이지에 있는 공식 주소만, 없으면 「출처 확인 필요」. 산출: deliverables/docttak/demand/YYYY-MM-DD.md + agent_tasks kind demand-proposal 「세션 대기」 dedupe demand-<client>-<검색어> 28일 쿨다운, 현황판 「문서딱 세션에 넘길 제안 n건」(question-draft 세션 글 수와 따로 셈)
+- 결정 G3: marketing-draft 검색어는 승인 17 밖으로 안 넓힌다(기존 규칙 우선). 승인 17 안에서 서치콘솔 노출로 정렬을 보탤지는 실데이터 4주 뒤 판단
+- 원장 몫(새로): 문서딱이 빙에 없을 때만 「서치콘솔 가져오기 동의」 한 번. Cloudflare 토큰(D46)은 그대로 대기
+- KG-36-3 빙 검색 실적(Bing Webmaster API — 키 방식이라 OAuth 없음)은 이 Step 밖. 빙 클릭·노출도 같은 표(source 'bing')로 넣을 수 있는지 Step 37 뒤
+- KG-36-4 아이로그 서치콘솔 권한 — 탐침 (c) 결과로 gsc:true 여부 결정
+- KG-36-5 pm-report 아침 보고·health.mjs 에 서치콘솔 줄·수집 멈춤 경보 없음(현황판 카드 빨간 줄만)
+
+### 2026-10-05 — Step 36 G2 재결정 (세션 새 사실: doc-tools-kr A-5·A-6 가 이미 있음) — Step 36 BRIEFED(고쳐 씀)
+- 사실(세션 확인, origin/main 코드 Arch 읽음): leeledger/doc-tools-kr ops-weekly.yml 월 09:23 KST → growth.mjs(서비스 계정 JWT 로 searchAnalytics, Cloudflare GraphQL) → reports/growth/YYYY-WW.md 커밋. 리포트 끝 growth-data JSON 에는 합계(range7·28, last7·28)·cf 만, 쿼리 7일 15·28일 25·페이지 28일 25 는 마크다운 표에만(반올림 값). opportunities.mjs(A-6) = 노출 ≥50·CTR <2% / 안내 없음·노출 ≥10 → 이슈 ops:opportunity. dry_run(run 37260559219) 서치콘솔 7일 클릭 0·노출 36·순위 18.2, Cloudflare 요청 44,596·페이지뷰 6,651(봇 포함). 커밋된 리포트 아직 없음 — 첫 정기 실행 10-12
+- 정정: 앞 결정 「공식 API 는 OAuth 라 원장 손이 든다」는 서비스 계정을 빠뜨린 판단이었다. 서비스 계정은 서버 간 OAuth 2.0 이고 문서딱 저장소에 이미 있다
+- 결정: 문서딱 숫자는 그 리포트를 읽어 geo.growth_reports(client_id, week, gsc·cf JSON 그대로, 표 3개, A-6 이슈) 에 쌓는다. 화면 CSV 긁기(gsc-perf-probe)·우리 쪽 새 키는 버림(메모리 「API 키는 하나로」). 매일 한 번 Actions 에서 읽고 Claude 호출 없음
+- 결정: 주 단위로 충분 — 레퍼런스는 「기간과 함께 잰 숫자」면 되고 문서딱 노출이 아직 작다(7일 36). 일별 배열·JSON 에 표 원자료·A-6 순위 8~30 구간은 deliverables/docttak/2026-10-05-growth-data-proposal.md 로 문서딱 세션에 부탁(1번만 「필요」 — 우리가 마크다운 표를 안 읽게)
+- 결정: 학원·아이로그 서치콘솔은 이번 Step 밖(KG-36-6). 학원은 첫 레퍼런스라 가치가 있지만 수집기가 따로 필요하다 — 같은 서비스 계정을 학원 속성 사용자로 더하는 길이 가장 싸 보이나 키 원문을 GitHub 에서 못 읽어 새 키가 든다. 그때 따로 판단
+- 결정: 옛 Step 37(우리 쪽 수요 → 글 제안)은 접는다. A-6 이 「노출 많고 CTR 낮음」「안내 없음」을 이미 하고 출처·도구 딥링크까지 붙인다. 우리는 현황판에 「문서딱 세션에 넘길 제안 n건 → 이슈」로 보여만 준다. 빠진 「순위 8~30」은 제안서 3번으로 넘김
+- 결정: D46(Cloudflare 토큰, 원장 몫) 지움 — 문서딱 저장소에 CF_API_TOKEN 이 있고 그 숫자를 리포트로 받는다. 화면에 「봇 포함·일별 순방문자 합」을 고정 문구로, 「방문자」라 쓰지 않음
+- G1(구글·빙 색인 고객별)은 그대로
+- KG-36-6 학원·아이로그 서치콘솔 실적 수집 없음(학원 케이스 리포트에 구글 검색 숫자 없음)
+- KG-36-7 첫 실 리포트(10-12) 전 시험 재료는 renderReport 코드에서 만든 모양 — 첫 리포트로 바꿔야 한다
+- KG-36-3·4·5 는 그대로(빙 검색 실적, 아이로그 권한, pm-report·health 줄). 앞 절의 G2·G3 결정은 이 절로 대체
+
+### 2026-10-05 — Step 37 고객 등록 자동 세팅 설계 (원장 「고객사만 등록하는 화면, 정보를 넣으면 알아서 세팅」) — Step 37 BRIEFED (handoff/ARCHITECT-BRIEF-STEP37.md, 36 배포 뒤 ARCHITECT-BRIEF.md 로)
+- 쪼갬: Step 37 = 바탕(geo.clients.config·derived JSONB + clients.mjs 얇은 층 loadClients + 스크립트 약 25곳 전환 + 가드 시험 + 시험 고객 끝에서 끝). Step 38 = 등록 화면·세팅 점검·체크리스트·원장 차례·로그인 버튼·GSC 권한 탐침. 바꾸기 쉽게 먼저(37, 기존 3곳 diff 0), 그다음 바꾸기(38)
+- 사실(Arch 확인): 운영 geo.clients 는 id 1·2·3 뿐(모두 active·자사) — 로더가 옛 행을 갑자기 돌릴 일 없음. clients.mjs 를 읽는 곳 grep 36파일(시험·seed 포함). 세 사이트 robots·sitemap·llms.txt 모두 200, 사이트맵 쪽수 학원 50·아이로그 10·문서딱 44, 홈 JSON-LD @type 은 실제 fetch 로 뽑힘(문서딱 Organization·WebSite·WebApplication, 아이로그 Organization·FAQPage…, 학원 Organization·Course…). IndexNow 키 파일은 키를 알아야 찾는다 — 사이트에서 도출 불가, 키는 우리가 만들어 고객에게 넘기는 일(사람 몫)
+- 발견(치명, 37 이 고침): masks.mjs 고객사말(CLIENTS) 를 sales·illustrate 가 쓴다 — 등록 화면으로만 들어온 고객 이름은 영업 자료·도해 가림 검사에서 빠진다. 지금 DB 고객이 3곳뿐이라 안 터짐
+- 결정: 코드 3곳(학원·아이로그·문서딱)은 코드 덩어리 그대로 둔다(옮기지 않음). 손으로 다듬은 정규식(「똑똑한」「(주)아이로그」 제외)을 DB 로 옮기면 사람 입력을 정규식으로 쓰는 길이 생긴다. 고객 한 곳 = 한 출처(코드 덩어리가 있으면 그 고객은 전부 코드), 칸별로 섞지 않음 — 새벽 3시에 어디를 고칠지 헷갈리지 않게
+- 결정: DB config 에는 말(글자)만. 정규식은 clients.mjs 가 lit 이스케이프로만 만든다. 바깥 글 검색어→페이지 표는 정규식 대신 all(묶음들, 묶음 안은 하나) 꼴. 예외는 기존 answer_pattern(등록 화면이 이미 이스케이프)
+- 결정: 새 고객 기본값 — brandRe 는 도메인(이름 글자는 남과 겹친다, 아이로그 교훈), brandHit 없으면 인용만 적중, homeLd 는 「@type + 도메인」(+ 점검이 찾은 Organization 류), 글 길은 세션, 탐침은 변형, IndexNow 기본 mode 「우리」지만 키 파일이 확인될 때만 보냄(문서딱처럼 고객 배포가 보내면 mode 「고객 배포」)
+- 결정: NAVER_BLOG_ID_<SLUG> env 는 config.marketing.blogId 로(블로그 주소에 드러나는 값이라 비밀 아님). env 는 대체값으로 남김
+- 결정: 시험 고객은 status 'test' — 로더는 includeTest 없이 안 읽음. 매시 company 와 겹쳐도 운영에 안 섞임
+- Step 38 설계(브리프는 37 배포 뒤):
+  - /admin/clients: 목록 + 「고객 등록」(이름·도메인·자사/외부·이름 판별 말·제외 앞말·경쟁 검색어 3~8·우리만의 말·주소 일부/전화 끝 4자리(선택)·바깥 글 켜기·공개 문구·블로그 아이디). 파일럿은 고객 상세에서 「파일럿 시작」 — 기존 createPilot 이 고객 행을 다시 만들지 않고 붙게. 등록 때 IndexNow 키 생성
+  - 세팅 점검 academy/scripts/setup-check.mjs: 저장 즉시 company.mjs 「세팅 점검」 일감(대기) + 매시 derived 가 24시간 지난 고객. 실제 fetch 만 — robots(AI 크롤러 막힘), sitemap 쪽수, llms.txt(200·text/plain·HTML 아님), 홈 JSON-LD @type 목록, IndexNow 키 파일 본문=키. 상태코드·본문 앞부분을 derived 에 근거로 남김(추측 금지)
+  - 체크리스트 순수 함수 세팅상태(client) → 칸마다 됨/기다림/사람. 고객 상세 화면 맨 위. 사람 몫은 agent_tasks 「사람 대기」 한 줄씩(dedupe setup-<slug>-<칸>, 채워지면 저절로 완료): 고객 GSC 에 우리 계정 권한 받기 · 키 파일 전달(파일 이름·내용 화면에) · 블로그 개설·로그인 · 경쟁 검색어 넣기 · 공개 문구 확인 · 홈 JSON-LD 없음 → 고객 담당에 전달. 원장 차례 문구는 사람 말로(메모리 「현황판은 사람 말로」)
+  - 로그인 버튼(판단: 된다): 현황판 「PC 에서 로그인 창 열기」 → agent_tasks kind open-login 「로컬 대기」(30분 지나면 버림) → pc-runner 에 2분마다 도는 작업을 하나 더해 open-session --blog .browser-profile-<slug> 를 띄움. 로그인 판정은 Step 36 의 NID_AUT 만료일. 비번·캡차는 사람. PC 가 꺼져 있으면 30분 뒤 「PC 가 안 켜져 있었습니다」로 닫음. local-agent(12:40·19:10)에 얹지 않는 이유: 버튼 누르고 몇 시간 뒤 창이 뜨면 사람이 없다
+  - GSC 권한 탐침: 로그인 프로필로 sc-domain 속성 화면을 열어 화면 원문으로 판정. 「권한 없음」 문구는 탐침으로 먼저 받은 원문만(추측 정규식 금지). 통과하면 config.gsc true
+  - 끝에서 끝: 화면으로 시험 고객 등록 → 점검 → 체크리스트 → 측정·색인·초안 dry → 지움. CLAUDE.md 함정 줄 「clients.mjs 에 한 덩어리」 → 「/admin/clients 로 등록, 체크리스트가 빈 칸을 말한다」
+- KG-37-1 answerRe 제외 앞말(동명 회사)은 38 화면 칸. 그 전에 동명 고객이 오면 세션이 코드 덩어리로
+- KG-37-2 지역 고객의 넓힘 탐침(probes true, 동네 사슬)은 학원 코드에만 있다. 새 지역 고객은 변형 탐침으로 돈다
+- KG-37-3 presenceRe(주소·전화) 없는 새 고객은 who-wins 가 이름만으로 「우리있음」을 센다 — 38 입력칸 전까지 동명 업체 오탐 가능
+- 원장 몫(37): 없음. 38 뒤: 새 고객마다 체크리스트 「사람」 칸(GSC 권한·블로그 로그인·키 파일 전달·공개 문구 확인)
+
+### Step 36 — 문서딱 색인 매일 · 문서딱 성장 리포트를 DB·현황판으로 — BUILT(빙 미등록 판정만 BLOCKED) · Richard 대기 (2026-10-05, Bob)
+- 지음: clients.mjs gsc:true(학원·문서딱)·growthReports·siteLog 문구·indexClients · tools/bing-site.mjs(빙미등록 글자·bingClient) · bing-submit-urls --client · local-agent 구글·빙 고객 루프 · pc-runner 한도 90 · web/lib/growth-core.mjs(+d.mts)·growth-reports.ts · app/admin/ops/GrowthReport.tsx·page.tsx · growth-import.mjs · serp.yml 단계 · schema.sql 2곳·company.mjs 표 준비 · pilot-report 절 · Visits·briefing 문구 · test-growth-import(50) · test-docttak siteLog 기대값
+- 결정: 돌리는 자리는 serp.yml(07:41 KST, 케이스 리포트 뒤·커밋 앞, continue-on-error). snapshot.yml 은 DB 를 안 연다(pg 설치·DATABASE_URL 없음) — 브리프 1순위가 사실과 달라 serp 로. 리포트가 월 09:23 이라 다음 날 아침에 들어온다
+- 결정: agent_activity run_url 은 'growth-import'. serp 실행 주소를 넣으면 wake.mjs 가 「이미 기록됨」으로 보고 「자동 작업 serp」 줄을 안 남긴다
+- 결정: weeksToFetch 는 최근 주부터 8개. 현황판·9일 멈춤 판정이 최신 주를 먼저 봐야 한다. 남은 옛 주는 다음 날
+- 결정: 후보 이슈는 제목의 주 행에(그 행이 없거나 제목을 못 읽으면 최신 주). 열린 이슈가 없으면 최신 주에 {none:true,count:0} — 그쪽은 후보 0개면 이슈를 안 만든다(opportunities.mjs). 카드는 opportunity 가 있는 가장 최근 행을 본다
+- 결정: 표는 행 하나라도 못 읽으면 통째로 null(반쯤 읽은 표는 틀린 표). CTR 은 비율로 저장(JSON gsc.ctr 과 같은 단위)
+- 결정: 웹은 clients.mjs 를 안 읽어 GROWTH_SLUGS(["docttak"])를 growth-core 에 둠 — 시험이 growthReports 슬러그와 맞춰 본다. 이 탭엔 행이 없어도 카드(「첫 리포트 전」)
+- 결정: 시험 재료는 doc-tools-kr main 의 실 리포트 2026-41 원문(academy/scripts/fixtures/growth-2026-41.md, KG-36-7 닫힘). 변형은 renderReport 가 그 경우 내는 꼴로 원문을 바꾼 것. 이슈는 실물이 없어(41주 후보 0개) issueBody 코드 꼴
+- 운영 DB(오케스트레이터 지시): geo.growth_reports 생성 + 문서딱 2026-41 한 행(서치콘솔 7일 클릭 0·노출 36·순위 18.17, Cloudflare 7일 페이지뷰 6,651·5일) + 활동 줄 1(measure 「문서딱 성장 리포트」 ok). 두 번째 실행은 「받을 주 없음」
+- BLOCKED: 빙 「등록 안 됨」 판정. `bing-submit-urls.mjs --look --client docttak` 실행이 자동 모드 분류기에서 거부됐다(원장 로그인 브라우저 조작). 화면 원문이 없으니 정규식을 안 썼다(추측 금지). local-agent 의 사람 대기 일감(bing-site-<slug>)은 bing-site.mjs 빙미등록 글자를 보고 열리게 지어 뒀다 — 지금은 bing-submit-urls 가 그 글자를 안 찍는다. 문서딱이 빙에 없으면 지금은 「Submit URLs」 버튼 못 찾음 → 종료코드 1 → 활동 줄 「빙 주소 제출」 실패로 보인다(조용하진 않음)
+- KG-36-8 빙 미등록 정규식 + 시험 — 세션이 --look 원문을 받은 뒤(위 BLOCKED)
+- KG-36-9 pc-runner 일꾼이 안 떠 있다(2026-10-05 12:50 --status 「안 떠 있음」). local-agent 는 다른 무언가(옛 작업 스케줄러?)가 12:40 에 띄우고, pc-runner 쪽 실행은 10/3 부터 「이미 돌고 있습니다」로 0초 끝 — 두 군데서 띄운다
+- KG-36-10 test-visit.mjs 가 .ts 를 import 해 ERR_UNKNOWN_FILE_EXTENSION(이 Step 전부터, 브리프 회귀 목록 밖)
+- KG-36-11 원장 할 일 「Cloudflare 토큰(D46)」은 코드·agent_tasks(열린 것)에 없다 — 체크포인트·문서 글이면 Arch 가 지운다

@@ -34,6 +34,8 @@ export const CLIENTS = [
     // health.mjs 가 /llms.txt 가 열리는지 본다. 안 둔 고객은 빼 둔다
     llmsTxt: true,
     publishes: true,
+    // PC 로컬 에이전트가 매일 구글 색인 요청(submit-gsc.mjs)·빙 주소 제출(bing-submit-urls.mjs)을 도는 고객(Step 36)
+    gsc: true,
     // 개선 루프(daily-agent.mjs) 설정 — Step 30 전까지 코드에 박혀 있던 값 그대로
     loop: {
       // 이름 질문은 질문에 이름이 들어 있어 답이 따라 말한다. 인용이나 이 말이 나와야 적중
@@ -151,9 +153,16 @@ export const CLIENTS = [
     publishes: false,
     /**
      * 사람 방문·크롤러 기록 장치를 달지 않는다. 정적 사이트(Cloudflare Pages)이고 추적·제3자 스크립트를 넣지 않기로 했다(브리프 「하지 말 것」).
-     * 숫자는 Cloudflare 통계를 연결한 뒤(D46)부터 — 브리핑·현황판은 그 전까지 「Cloudflare 통계 연결 전」으로 적는다
+     * 서버 숫자는 문서딱 저장소가 매주 내는 성장 리포트의 Cloudflare 합계로 본다(Step 36) — 봇이 섞인 숫자다
      */
-    siteLog: "Cloudflare 통계 연결 전",
+    siteLog: "Cloudflare 주간 합계는 문서딱 성장 리포트(봇 포함)",
+    // 구글 색인 요청·빙 주소 제출을 PC 에서 매일(Step 36)
+    gsc: true,
+    /**
+     * 문서딱 저장소(공개)의 주간 성장 리포트(A-5 서치콘솔·Cloudflare)와 새 안내 페이지 후보 이슈(A-6).
+     * academy/scripts/growth-import.mjs 가 매일 한 번 읽어 geo.growth_reports 에 쌓는다. 그쪽 코드는 우리가 안 고친다
+     */
+    growthReports: { repo: "leeledger/doc-tools-kr", dir: "reports/growth", opportunityLabel: "ops:opportunity" },
     loop: {
       // 이름 질문 3개는 도구 이름을 안 담는다. 답이 도구 이름을 대면 문서딱을 아는 답이다
       brandHit: /PDF\s?합치|PDF\s?용량|사진\s?용량|증명사진|여권\s?사진|HWP/i,
@@ -246,6 +255,9 @@ export function selectClients(argv = process.argv) {
   }
   return CLIENTS;
 }
+
+/** PC 로컬 에이전트가 구글 색인 요청·빙 주소 제출을 도는 고객(gsc: true). 학원 먼저 — 한도가 먼저 차도 레퍼런스는 돈다 */
+export const indexClients = (list = CLIENTS) => list.filter((c) => c.gsc).sort((a, b) => (b.id === 1) - (a.id === 1));
 
 export const bySlug = (slug) => CLIENTS.find((x) => x.slug === slug);
 

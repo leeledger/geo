@@ -1,185 +1,74 @@
-# Review Request — Step 35 (D52 · D53 · D54 · D55 · D56)
-Date: 2026-10-02
+# Review Request — Step 36
+Date: 2026-10-05
 Ready for Review: YES
-Status: DONE_WITH_CONCERNS — web tsc 0 · test-marketing 31 · test-docttak 32 · ilog 33 · grow 37 통과 · `marketing-draft --dry` 실제 초안 3종(Claude 3회, purpose marketing). DB 쓰기·푸시·배포·실게시 없음. 걱정: geo.marketing_posts 가 아직 없어 현황판 카드·효과 줄·로컬 에이전트 블로그 경로는 실DB로 못 돌려 봄(코드·tsc·가짜 행 시험만)
-
-## 2판 — Arch 배포 전 고침 5건 (2026-10-02)
-- marketing-draft.mjs: 프롬프트 「숫자 없는 문장도 원문을 바꿔 말한 것만, 원문에 없는 조언·원인·일반론 금지」 · 대안말(원문 대안 있으면 그중 하나, 없으면 「제출처 공고에서 확인」) · 관문 「다른 방법」(지식iN·카페) · 대안찾기(본론만, 브라우저·파일 앱 제외) · 낯선문장 → note 「읽을 자리: …」(marketing-core spotsNote/readSpots)
-- web/lib/marketing.ts·Marketing.tsx: 초안마다 「읽을 자리 — 원문에 없을 수 있는 문장 n개」 상자
-- optimize.yml: 바깥 글 단계 continue-on-error · 측정 실패 표시 `always() &&` 측정 결과만
-- web/lib/agents.ts: PIPES marketing(문서딱) — 콘텐츠 줄 「매일 지식iN·카페 초안 1건씩, 블로그 주 2편(원장 확인 뒤 게시) · 세션에서 쓸 글 …」
-- company.mjs: 시작 준비에 MARKETING_DDL(실패해도 계속). schema.sql 양쪽 확인
-- 같은 dry 초안 3종에 돌린 읽을 자리: 지식iN 「이 한도를 넘으면 나눠서 합쳐야 해요」 46% · 「가입도 설치도 없이 무료예요」 20% · 「…그 기관 공고에서 확인해 주세요」 43% / 카페 「대학·기관 제출 한도는 그 기관 공고에서 확인」 25% / 블로그 「원인은 대부분 용량입니다」 8% · 「그래서 그 숫자는 쓰지 않겠습니다」 8% 외 3. 새 관문(다른 방법)도 셋 다 통과(지식iN·카페 Gmail)
-- 시험: test-marketing 38 · docttak 32 · ilog 33 · grow 37 · tsc 0
+Status: DONE_WITH_CONCERNS — 빙 「등록 안 됨」 판정만 BLOCKED(아래)
 
 ## Files Changed
-- web/lib/marketing-core.mjs(새) + .d.mts — MARKETING_DDL(스키마와 같은 줄) · searchLink(지식iN where=kin · 카페 where=article) · normUrl(m.·www.·끝 / · 지식iN docId · 블로그 PostView→/id/logNo) · countUsed(올린 날 이후 측정만, 곳별)
-- academy/db/schema.sql 끝 · web/db/schema.sql 「영업용 뷰」 앞 — geo.marketing_posts(설계서 칸 그대로) + (client_id, created_on) 색인 + RLS
-- academy/clients.mjs:182-211 — 문서딱 `marketing`: 검색어→안내(guide)·도구(tool) 페이지 11줄, blogDays [1,4], 공개 문장, blogProfile
-- academy/scripts/marketing-draft.mjs(새) — 63 본문글 · 97 대상고르기 · 146 프롬프트 · 184 관문 · 226 대조표 · 246 main
-- academy/scripts/test-marketing.mjs(새) — 31개, DB·네트워크·Claude 없음
-- .github/workflows/optimize.yml:89-99 — 측정·판정 뒤 「바깥 글 초안 (문서딱)」 단계(`!cancelled()`)
-- web/lib/marketing.ts(새) · marketing-actions.ts(새: markPosted·discardDraft·approveBlog, 모두 guard)
-- web/app/admin/ops/Marketing.tsx(새) · CopyButton.tsx(새) · page.tsx:11,20,147,167,198,200 · Todo.tsx:51,78-86
-- tools/naver-blog-post.mjs:27-30,59-67,86-102,176,192,512-533 — `--marketing <id> --profile <dir>`, NAVER_BLOG_ID 필수, 학원 꼬리 안 붙임, 끝나면 marketing_posts 올림
-- tools/open-session.mjs:12-36,70-75,88-89,113 — `--blog <프로필>` 네이버 로그인만
-- tools/local-agent.mjs:10,71-81,144-198 — 고객 블로그 게시(시도 기록·로그인 일감·발행했을수도 = 사람 확인)
-- academy/scripts/pilot-report.mjs:22,303-323 — 「바깥 글 — AI 답 출처로 쓰였나」 절(올린 글 있을 때만)
-- .gitignore · tools/.gitignore — `.browser-profile-*`
+- academy/clients.mjs:37-38 — 학원 `gsc: true`.
+- academy/clients.mjs:156-165 — 문서딱 siteLog 문구(「연결 전」 지움)·`gsc: true`·`growthReports`.
+- academy/clients.mjs:259-261 — `indexClients()` gsc:true 만, 학원 먼저(local-agent 고르기, 시험 대상).
+- tools/bing-site.mjs (새) — `빙미등록` 글자(bing-submit-urls·local-agent 공용), `bingClient(argv)` 인자 없으면 학원.
+- tools/bing-submit-urls.mjs:11,17-20,33 — `--client <slug>`, SITE = 고객 도메인. 인자 없으면 robotncoding.com 그대로.
+- tools/local-agent.mjs:23-24,264-305 — 구글 색인·빙 제출을 `indexClients()` 차례로. submit-gsc 고객당 20분, 활동 줄 clientId = 그 고객, gsc-submit 일감 닫기를 고객별로. 구글·빙 로그인 막힘이면 한 번 알리고 멈춤(로그인을 고객이 같이 씀). 빙 미등록이면 사람 대기 `bing-site-<slug>`, 다음 실행에 등록돼 있으면 닫음.
+- tools/pc-runner.mjs:35-37 — local-agent limitMin 60 → 90.
+- web/lib/growth-core.mjs + .d.mts (새) — GROWTH_DDL, parseGrowthReport, parseOpportunityIssue, weeksToFetch, weekOfName, weekMonday, reportStalled, GROWTH_FOOT, GROWTH_SLUGS.
+- academy/db/schema.sql:221-238 · web/db/schema.sql:251-268 — geo.growth_reports + RLS(GROWTH_DDL 과 같은 줄).
+- academy/scripts/company.mjs:37,201-202 — 시작 준비에서 GROWTH_DDL(실패해도 계속).
+- academy/scripts/growth-import.mjs (새) — 목록 → 없는 주만 원문 → upsert, 후보 이슈 → opportunity 갱신, agent_activity 한 줄. `--dry` 는 DB 안 엶.
+- .github/workflows/serp.yml:54-62 — 케이스 리포트 뒤·커밋 앞에 growth-import 단계(continue-on-error, GITHUB_TOKEN = 기본 토큰).
+- web/lib/growth-reports.ts (새) — readGrowthReports(clientId): 최근 12주, 멈춤 판정, 최신 opportunity. 표 없음(42P01)이면 빈 결과.
+- web/app/admin/ops/GrowthReport.tsx (새) — 카드. 주별 표·그래프(서치콘솔 주 2개 이상)·쿼리 28일 상위 10·페이지 28일 상위 5·제안 줄·꼬리 두 줄·「첫 리포트 전」·빨간 「리포트 멈춤」.
+- web/app/admin/ops/page.tsx:10-11,22,150,171-172,209 — 읽기 추가, GROWTH_SLUGS 탭이나 행이 있는 탭에만 카드(Visits 바로 아래).
+- web/app/admin/ops/Visits.tsx:25,28 — 문서딱 문구만(「연결 전」 → 아래 카드 안내). 학원·아이로그 문구 그대로.
+- academy/scripts/briefing.mjs:206 — 「크롤러 기록  장치 없음(일부러) · {siteLog}」.
+- academy/scripts/pilot-report.mjs:23,325-349 — 그 고객 행이 있을 때만 「구글 검색·서버 통계 ({이름} 성장 리포트)」 절. 기간 안 = 생성일이 파일럿 범위 안.
+- academy/scripts/test-growth-import.mjs (새) + fixtures/growth-2026-41.md (실 리포트 원문) — 50개.
+- academy/scripts/test-docttak.mjs:84 — siteLog 기대값을 새 문구로.
 
-## 돌리는 곳 — optimize.yml 끝 (D53)
-측정 직후라 「최근 7일 이름 안 나온 검색어」에 오늘 결과가 든다. 하루 한 번 도는 워크플로라 날짜 잠금이 따로 필요 없다. company.mjs 는 매시간 두 번이라 하루 한 번 장치를 또 만들어야 한다. 다시 돌려도 오늘 쓴 채널은 건너뛰고, 관문 탈락도 「버림」으로 남겨 같은 날 호출을 또 안 쓴다. 호출은 최대 5회(--max-calls), 측정 아닌 몫 18 을 같이 쓴다.
+## 돌리는 자리 — serp.yml 인 이유
+snapshot.yml 은 DB 를 안 연다(pg 설치도 DATABASE_URL 도 없음). DB 를 이미 열고 매일 한 번 돌며 Claude 를 안 부르는 곳은 serp(07:41)·scout(06:37)다. serp 는 측정 일이고 `.env.local` 을 이미 만든다. 커밋 단계 앞에 둬야 그 단계가 `.env.local` 을 지우기 전에 돈다. 실패해도 케이스 리포트 커밋은 간다.
 
-## 설계서와 다르게 한 것 — Arch 확인
-1. **블로그 자동 게시를 원장 확인 뒤로.** D55 는 「local-agent 가 블로그 초안을 올리게」인데 CLAUDE.md 「사람만 할 수 있는 일 — 발행 전 사실 확인」과 부딪친다. 그래서 카드에 「읽었어요 · 올려 주세요」를 두고, 누르면 note 가 「게시 승인 MM-DD HH:MI」가 되며 로컬 에이전트는 그 표시가 있는 블로그 초안만 올린다. 게시 손일은 여전히 자동. 승인 칸을 따로 만들지 않고 note 앞머리로 했다(설계서 스키마 그대로) — 칸으로 바꿀지 결정 필요
-2. 대상 질문은 keyword 17개만. 이름 질문 3개(「문서딱 어떤 사이트야?」 등)는 지식iN·카페 글감이 아니다
-3. 14일 반복 금지는 채널별. 전체로 걸면 17개를 하루 2~3편이 6~8일에 다 써서 블로그·카페가 선다
-4. 블로그 아이디를 clients.mjs 에 박지 않고 원장 PC `academy/.env.local` NAVER_BLOG_ID_DOCTTAK 로. 문서딱 블로그가 아직 없다
+## pc-runner 90분 근거
+- 차례로 도는지 코드로 확인함: `tick()` 이 `busy` 로 막고 JOBS 를 `await 돌리기(job)` 로 하나씩 돈다. ai-web-measure(10:00, 180분)가 12:40 을 넘기면 local-agent 는 기다렸다가 따라잡는다(`차례()` = 오늘 지난 시각 뒤 미실행). 같은 `.browser-profile` 을 동시에 안 연다.
+- 평소 local-agent 는 71~500초(pc-runner.log 9/29~10/2). 색인 고객이 둘이 되며 구글 20분·빙 10분 상한이 고객마다 붙어 그것만 60분이다. 60분 한도면 둘 다 막힌 날 네이버 이관·블로그·Brave 몫이 없다. 모든 상한의 합(약 135분)보다 작다 — 그런 날은 pc-runner 가 끊고 다음 실행이 이어 간다(gsc-done·bing-done 에 쌓여서 중복 없음).
 
-## 문서딱 세션 지시 반영
-- 색인 알림(IndexNow·네이버·GSC) 코드 안 넣음
-- /remove-background/ — 오늘 사이트맵에 없는 문서딱 주소는 근거로도 링크로도 안 씀 + 본문에 「remove-background」「배경 지우기 도구」 말 금지(시험 2개)
-- 고정 사실은 「안내 글 31편(그날 사이트맵에서 셈) · 모든 도구 무료·가입 없음 · 파일은 기기 안에서 처리, 어디로도 안 보냄」만. 나머지는 그날 가져온 페이지 원문
-
-## --dry 실제 초안 3종 (2026-10-02 금, `--channels jisikin,cafe,blog --max-calls 4`, Claude 3회 · 3종 모두 1판에 관문 통과)
-명령: `CLAUDE_CODE_LOCAL=1 node scripts/marketing-draft.mjs --client docttak --dry --channels jisikin,cafe,blog --max-calls 4`
-대상 고르기: 오늘 문서딱 측정에서 17개 모두 이름 0 → 순번대로, 같은 날 다른 페이지 → 지식iN 「pdf 합치기 무료」(pdf-merge) · 카페 「pdf 용량 줄이기」(pdf-compress) · 블로그 「정부24 pdf 용량」(upload-limits). (블로그는 원래 월·목 — 금요일이라 `--channels` 로 강제)
-
-아래 대조표는 초안을 만든 뒤 고친 대조표 함수(숫자 바로 뒤 단위까지 보고 그 꼴이 든 원문 줄을 먼저 찾게)와 한 자리 규격 관문을 붙인 최종 코드로 같은 본문을 다시 돌린 것이다(Claude 재호출 없이 — 상한 3~4회). 최종 관문도 셋 다 통과.
-
-### 1. 지식iN — 「pdf 합치기 무료」 · 근거 /guide/pdf-merge/ · /pdf-merge/
-제목(답할 질문 예): pdf 여러 개를 하나로 합치고 싶은데 무료로 할 수 있는 방법 없을까요? 폰에서도 되면 좋겠어요
-
+## 실제 실행 결과
+`node scripts/growth-import.mjs --client docttak --dry`
 ```
-문서딱 PDF 합치기에서 파일을 고르고 순서를 정한 뒤 합치기를 누르면 한 파일로 저장돼요. 가입도 설치도 없이 무료예요. 주소는 https://docttak.com/pdf-merge/ 예요.
-
-방법은 세 단계예요. 「PDF 파일 선택」으로 합칠 파일을 두 개 이상 골라요. 위로·아래로 버튼이나 왼쪽 손잡이를 끌어서 순서를 바꿔요. 합치기를 누르고 「내려받기」로 저장해요. 아이폰, 갤럭시, PC 모두 같은 방법이고 합친 파일은 「다운로드」 폴더에 저장돼요.
-
-한 번에 50개 파일까지 합칠 수 있어요. 합계는 PC가 500 MB, 휴대폰이 150 MB까지예요. 이 한도를 넘으면 나눠서 합쳐야 해요. 비밀번호가 걸린 파일은 열 때 쓰는 비밀번호를 넣으면 합칠 수 있어요. 파일은 이 기기 안에서만 처리되고 밖으로 나가지 않아요.
-
-합친 파일을 메일로 보낼 거라면 Gmail 고객센터의 「Gmail에서 첨부파일 보내기」 안내를 확인해 보세요. 개인 지메일은 첨부파일 합계가 25 MB를 넘을 수 없어요. 합친 파일이 크면 문서딱 PDF 용량 줄이기로 줄일 수 있어요. 제출처에 따라 규격이 다르면 그 기관 공고에서 확인해 주세요.
-
-제가 만든 무료 도구입니다(가입·업로드 없음).
+문서딱: 저장소 리포트 1개 · DB (dry — 안 읽음) · 받을 주 2026-41
+  2026-41 생성 2026-10-05 · 서치콘솔 7일 클릭 0 · 노출 36 · 순위 18.166666666666668 · Cloudflare 7일 요청 44596 · 페이지뷰 6651 · 5일 · 표 11/11/16
+  열린 후보 이슈 없음(0건)
+문서딱: 정상 · 받은 주 2026-41 · 열린 후보 이슈 없음(0건)
 ```
+운영 DB 실행(오케스트레이터 지시) → geo.growth_reports 생성, 행 (3, 2026-41): gsc.last7 {clicks 0, impressions 36, ctr 0, position 18.1667}, cf.last7.pageViews 6651·days 5, 표 11/11/16, opportunity {none:true,count:0}, source_url raw 주소. agent_activity measure 「문서딱 성장 리포트」 ok 「받은 주 2026-41 · 열린 후보 이슈 없음(0건)」. 두 번째 실행 「받을 주 없음」 exit 0.
+행 수: 학원 0 · 아이로그 0 · 문서딱 1 → 학원·아이로그 탭에는 카드가 안 뜬다(GROWTH_SLUGS 에도 없음).
 
-| 본문 숫자 | 원문 줄 | 페이지 |
-|---|---|---|
-| 50 개 | 50개까지 (표: 파일 수) | /guide/pdf-merge/ |
-| 500 MB | 500 MB까지 (표: PC 파일 합계) | /guide/pdf-merge/ |
-| 150 MB | 150 MB까지 (표: 휴대폰 파일 합계) | /guide/pdf-merge/ |
-| 25 MB | 개인 지메일은 첨부파일 합계가 25 MB를 넘을 수 없어요. | /guide/pdf-merge/ |
-
-대조 메모: 「이 한도를 넘으면 나눠서 합쳐야 해요」는 숫자는 없지만 원문에 없는 말이다(원문은 PC 200 MB·1,500쪽 넘으면 「먼저 확인을 요청」). 관문은 숫자만 본다 — 원장이 올리기 전 읽을 자리.
-
-### 2. 카페 — 「pdf 용량 줄이기」 · 근거 /guide/pdf-compress/ · /pdf-compress/
-제목: PDF 용량 줄이기 정리
-
+## 시험·tsc
 ```
-PDF 용량은 품질 단계나 목표 용량, 둘 중 하나로 줄입니다.
-글자와 선은 그대로 두고 스캔·사진 같은 이미지만 줄입니다.
-
-**줄이는 방법**
-품질 단계: 고화질·권장·강력 중 선택. 처음이면 권장
-목표 용량: 제출처 한도를 MB로 입력. 0.5–100 MB 사이에서 정할 수 있음
-
-**단계별 선명도**
-고화질: 약 200 ppi, 인쇄용
-권장: 약 150 ppi, 제출용
-강력: 약 110 ppi, 화면용. 확대하면 흐려질 수 있음
-
-**얼마나 줄어드나**
-스캔하거나 사진이 들어간 PDF: 권장 단계에서 85–96% 줄었음(시험한 파일 기준)
-글자 위주 문서: 4–25% 줄었음
-이미 작게 저장된 파일은 더 줄지 않을 수 있고, 그땐 원본을 그대로 둡니다.
-
-**메일로 보낼 때**
-Gmail 고객센터(Gmail에서 첨부파일 보내기, 확인일 2026-09-30)에 따르면 개인 지메일 첨부 한도는 25 MB입니다.
-목표 용량은 한도보다 조금 작게 잡는 편이 안전합니다.
-대학·기관 제출 한도는 그 기관 공고에서 확인.
-
-**안 맞는 경우**
-전자서명이 든 PDF는 줄이면 서명이 더 이상 유효하지 않습니다.
-발급받은 증명서처럼 서명이 필요한 문서는 원본을 내세요.
-
-**처리 범위**
-줄일 수 있는 크기: PC 100 MB까지, 휴대폰 50 MB까지
-처리 위치: 파일은 이 기기 안에서만 처리되고 밖으로 나가지 않음
-
-도구: https://docttak.com/pdf-compress/
-방법 자세히: https://docttak.com/guide/pdf-compress/
-
-제가 만든 무료 도구입니다(가입·업로드 없음).
+test-growth-import 50 통과 · 0 실패
+test-marketing     38 통과 · 0 실패
+test-docttak       32 통과 · 0 실패
+test-ilog-loop     33 통과 · 0 실패
+test-grow-loop     37 통과 · 0 실패
+web: node ./node_modules/typescript/bin/tsc --noEmit -p .  → exit 0
+node --check local-agent.mjs · bing-submit-urls.mjs · pc-runner.mjs → 통과
 ```
+pilot-report dry 비교(HEAD 판 vs 새 판): ilog baseline 같음 · robotncoding baseline 같음 · docttak final 같음 · docttak baseline 은 새 절 11줄만 늘어남(행이 생겼으므로). 행 없을 때 diff 0.
 
-| 본문 숫자 | 원문 줄 | 페이지 |
-|---|---|---|
-| 2026-09-30 | 출처: Gmail 고객센터 — Gmail에서 첨부파일 보내기 · 확인일 2026-09-30 | /guide/pdf-compress/ |
-| 0.5 · 100 MB | 0.5–100 MB 사이에서 정할 수 있어요. | /guide/pdf-compress/ |
-| 200 ppi | 인쇄용 선명도 (약 200 ppi) | /pdf-compress/ |
-| 150 ppi | 제출용 선명도 (약 150 ppi) | /pdf-compress/ |
-| 110 ppi | 화면용 선명도 (약 110 ppi) | /pdf-compress/ |
-| 85 · 96 % · 4 · 25 % | 스캔하거나 사진이 들어간 PDF는 권장 단계에서 85–96% 줄었고, 글자 위주 문서는 4–25% 줄었습니다. | /pdf-compress/ |
-| 25 MB | 개인 지메일은 첨부 한도가 25 MB예요. | /guide/pdf-compress/ |
-| 100 MB · 50 MB | PC에서는 100 MB, 휴대폰에서는 50 MB까지 줄일 수 있습니다. | /pdf-compress/ |
-
-### 3. 블로그 — 「정부24 pdf 용량」 · 근거 /guide/upload-limits/ · /pdf-compress/ · /guide/pdf-compress/
-제목: 정부24 PDF 용량이 커서 안 올라갈 때, 한도는 어디서 확인하고 어떻게 줄이나요?
-
-```
-정부24에서 받은 PDF를 어딘가에 올리다가 막혔다면, 한도가 정부24에 있는지 올리는 곳에 있는지부터 가려야 합니다. 제가 확인한 안내 중에는 정부24 PDF 용량 한도라고 적힌 숫자가 없습니다. 그래서 그 숫자는 쓰지 않겠습니다.
-
-## 정부24 PDF 용량 한도는 몇 MB인가요?
-
-정부24에서 내려받은 서류를 학교, 회사, 법원 같은 곳에 다시 올리는 경우라면 한도는 대개 올리는 쪽이 정합니다. 그 기관의 모집요강이나 공고, 첨부 안내에서 확인해야 하는 값입니다. 제가 가진 근거로는 기관마다 다른 값을 대신 말해 드릴 수 없습니다.
-
-정부24 이름이 붙은 값은 하나 있습니다. 여권 사진을 온라인으로 신청하는 경우입니다. 권장 크기가 413×531 픽셀이고, 파일은 500KB 이하 JPG·JPEG입니다. PDF가 아니라 사진 이야기입니다.
-
-참고로 다른 곳의 값도 확인된 것만 적습니다. 전자소송은 첨부 파일 하나가 20MB까지이고 총용량은 100M 이하입니다. 개인 Gmail과 Outlook.com 첨부는 각각 25MB입니다. 이 값들은 정부24의 한도가 아니라 해당 서비스의 한도입니다. 표로 모아 둔 페이지는 여기 있습니다: https://docttak.com/guide/upload-limits/
-
-## 제출 마감 직전에 파일이 안 올라갈 때
-
-마감이 코앞인데 업로드가 계속 실패하면 원인은 대부분 용량입니다. 올리는 곳의 한도 숫자를 확인한 뒤, 그 숫자보다 작게 파일을 줄이면 됩니다. 제가 만든 문서딱의 PDF 용량 줄이기에서는 품질 단계(고화질·권장·강력)를 고르거나 목표 용량을 직접 정할 수 있습니다. 목표는 3 MB, 5 MB, 10 MB, 20 MB 중에서 고르거나 0.5–100 MB 사이에서 직접 입력합니다. 제출용 서류라면 「권장」 단계가 맞습니다.
-
-세 단계 모두 글자와 선은 그대로 두고 스캔이나 사진 같은 이미지만 줄입니다. 줄인 뒤에도 글자를 선택하고 검색할 수 있습니다. 시험한 파일 기준으로 스캔하거나 사진이 들어간 PDF는 권장 단계에서 85–96% 줄었고, 글자 위주 문서는 4–25% 줄었습니다. 이미 작게 저장된 파일은 더 줄지 않을 수 있고, 그럴 때는 원본을 그대로 둡니다.
-
-한도가 「이하」인지 「미만」인지도 봐야 합니다. 이하는 그 값까지 되고, 미만은 그 값이 되면 안 됩니다. 350 KB 미만이면 350 KB보다 조금이라도 작아야 합니다. 마감 직전에는 한도에 딱 맞추기보다 조금 작게 잡는 편이 안전합니다.
-
-## 휴대폰만 있을 때, 그리고 줄이면 안 되는 파일
-
-휴대폰만 있어도 같은 순서로 됩니다. 설치나 가입이 필요 없고, 휴대폰에서는 50 MB까지의 파일을 줄일 수 있습니다. PC는 100 MB까지입니다. 휴대폰에서 20 MB가 넘는 파일은 시간이 걸릴 수 있어 먼저 확인을 묻습니다. 파일은 기기 안에서만 처리되고 밖으로 나가지 않습니다. 못 믿겠다면 한 번 줄여 본 뒤 비행기 모드로 바꾸고 다시 줄여 보면 됩니다. 인터넷 없이도 되면 밖으로 안 나간다는 뜻입니다.
-
-문서딱이 맞지 않는 경우도 있습니다. 전자서명이 들어 있는 PDF는 줄이면 파일이 새로 저장되어 서명이 더 이상 유효하지 않습니다. 발급받은 증명서처럼 서명이 필요한 문서는 줄이지 말고 원본을 내야 합니다. 서명이 들어 있으면 결과 화면에서도 알려 줍니다.
-
-목표 용량까지 줄지 않으면 가장 작게 줄인 결과를 보여 줍니다. 이때는 「이미지로 변환」을 켜거나 파일을 나눠서 낼 수 있습니다. 이미지로 변환하면 글자를 선택하거나 검색할 수 없고 입력 칸·링크·책갈피가 사라집니다. 올리는 곳이 글자 검색을 요구하는지는 그 기관 공고에서 확인해야 합니다.
-
-제가 만든 무료 도구입니다(가입·업로드 없음).
-```
-
-| 본문 숫자 | 원문 줄 | 페이지 |
-|---|---|---|
-| 24 (정부24, 7곳) | 여권 사진 (온라인 신청·정부24, 권장 크기) — 이름의 일부 | /guide/upload-limits/ |
-| 413 · 531 픽셀 | 413×531 픽셀 | /guide/upload-limits/ |
-| 500 KB | 500KB 이하 | /guide/upload-limits/ |
-| 20 MB | 20MB까지 (전자소송 파일 하나) | /guide/upload-limits/ |
-| 100 | 100M 이하 (전자소송 총용량) | /guide/upload-limits/ |
-| 25 MB | 25MB (Gmail·Outlook.com) | /guide/upload-limits/ |
-| 3 MB · 5 MB · 10 MB · 20 MB | 3 MB 5 MB 10 MB 20 MB 직접 입력 (목표 용량 버튼) | /pdf-compress/ |
-| 0.5 · 100 MB | 0.5–100 MB 사이에서 정할 수 있어요. | /guide/pdf-compress/ |
-| 85 · 96 % · 4 · 25 % | 85–96% 줄었고 … 4–25% 줄었습니다. | /pdf-compress/ |
-| 350 KB | 350KB 미만 | /guide/upload-limits/ |
-| 50 MB · 100 MB | PC에서는 100 MB, 휴대폰에서는 50 MB까지 줄일 수 있습니다. | /pdf-compress/ |
-| 20 MB (휴대폰 확인) | 휴대폰에서 20 MB 또는 300쪽을 넘으면 … 먼저 확인을 요청합니다. | /pdf-compress/ |
-
-대조 메모: 숫자는 전부 원문에 있다. 「서명이 들어 있으면 결과 화면에서도 알려 줍니다」도 /guide/pdf-compress/ 원문에 있다. 다만 ① 첫 문단 「그래서 그 숫자는 쓰지 않겠습니다」「제가 가진 근거로는」은 글쓴이 자기 이야기라 어색하다 ② 「원인은 대부분 용량입니다」는 근거 없는 일반화다(관문은 숫자만 본다). 블로그를 원장 확인 뒤 게시로 바꾼 이유가 이것이다.
+## BLOCKED — 빙 「등록 안 됨」
+`node tools/bing-submit-urls.mjs --look --client docttak` 를 자동 모드 분류기가 거부했다(원장 로그인 브라우저를 여는 일). 화면 원문이 없어 정규식을 쓰지 않았다(브리프: 추측 금지). 그래서:
+- bing-submit-urls 는 아직 `빙 웹마스터에 등록 안 됨` 을 안 찍는다. 문서딱이 빙에 없으면 지금은 「Submit URLs」 버튼 못 찾음 → exit 1 → 활동 줄 「빙 주소 제출」 실패(문서딱 client_id)로 보인다. 조용하진 않다.
+- local-agent 쪽 사람 대기 일감은 지어 뒀다. 글자는 tools/bing-site.mjs 한 군데.
+- 남은 일(KG-36-8): 세션이 `--look --client docttak`(그리고 학원 `--look`)을 돌려 60줄 원문을 받고, 그 원문으로만 정규식 + 「맞음 / 학원 화면 안 맞음」 시험 두 개를 넣는다.
 
 ## Open Questions
-- 블로그 원장 확인 단계(위 1) 유지 여부, 승인을 note 앞머리로 둘지 칸을 만들지
-- 관문은 숫자·주소·말만 본다. 숫자 없는 지어낸 설명(지식iN 「나눠서 합쳐야」, 블로그 「원인은 대부분 용량」)은 못 잡는다 — 지식iN·카페는 원장이 손으로 올리니 그 자리에서 읽는다
-- `--dry` 는 geo.claude_calls 에 기록을 안 남긴다(DB 쓰기 금지) → 사람이 dry 를 돌리면 하루 상한에 안 잡힌다
-- 현황판 카드는 표가 생기고 첫 초안이 들어간 뒤에야 뜬다(그 고객 초안이 0이면 숨김) — 첫 optimize 실행 뒤 화면 확인 필요
+- 후보 이슈를 「제목의 주 행」에 붙이고, 이슈가 없으면 최신 주에 {none:true}. 카드는 opportunity 가 있는 가장 최근 행을 본다 — 이슈가 남아 있는데 새 주에 후보가 0이면 옛 이슈(옛 주 표시)가 계속 보인다. 그쪽이 이슈를 안 닫는 한 이게 사실이라 그대로 뒀다.
+- 「0건(노출 기준 미달)」은 열린 이슈가 없을 때 뜬다. 서치콘솔 비밀값이 빠진 주도 이슈가 안 생겨 같은 말이 뜬다 — 그 주는 카드 위 「리포트 메모」와 「리포트에 없음」 칸이 같이 보인다.
+- 표 행 하나라도 못 읽으면 그 표를 통째로 null 로 했다(브리프는 머리줄만 말함).
+- web 이 clients.mjs 를 안 읽어 GROWTH_SLUGS 를 따로 뒀다. 시험이 growthReports 슬러그와 같은지 본다.
 
 ## Out of Scope (logged in BUILD-LOG)
-- KG-35-1 Step 34 콘텐츠·유통 줄(web/lib/agents.ts:443·450)이 바깥 글 자동 초안·블로그 게시를 모른다
-- KG-35-2 optimize 「측정 실패 표시」가 바깥 글 단계 실패 때 안 찍힘
-- KG-35-3 optimize timeout 80분에 바깥 글 최악 20분
-- KG-35-4 pc-runner 60분 한도 안에 블로그 한 편(최대 15분) — 로그인 뒤 첫 실행에서 확인
+- KG-36-8 빙 미등록 정규식·시험(위)
+- KG-36-9 pc-runner 일꾼이 안 떠 있고, local-agent 를 다른 무언가가 12:40 에 띄움(pc-runner 실행은 10/3 부터 「이미 돌고 있습니다」로 0초)
+- KG-36-10 test-visit.mjs ERR_UNKNOWN_FILE_EXTENSION(.ts import, 전부터)
+- KG-36-11 「Cloudflare 토큰(D46)」 원장 할 일은 코드·열린 agent_tasks 에 없다 — 문서에 있으면 Arch 가 지운다

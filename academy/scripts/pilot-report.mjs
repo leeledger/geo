@@ -20,6 +20,7 @@ import {
   곳비교, 판정, 창겹침, 최소잰날,
 } from "../pilot-report-core.mjs";
 import { countUsed } from "../../web/lib/marketing-core.mjs";
+import { GROWTH_FOOT } from "../../web/lib/growth-core.mjs";
 
 for (const l of fs.readFileSync(new URL("../.env.local", import.meta.url), "utf8").split(/\r?\n/)) {
   const m = /^([A-Z_]+)=(.*)$/.exec(l); if (m && !process.env[m[1]]) process.env[m[1]] = m[2];
@@ -318,6 +319,31 @@ async function main() {
     for (const [곳, n] of Object.entries(셈결과.perEngine)) w(`- ${곳이름(곳)} ${n}개`);
     w();
     w("출처 목록에 올린 주소가 나온 것만 셌다. 이 글 덕에 이름이 나왔다는 기여는 추정하지 않았다.");
+    w();
+  }
+
+  /**
+   * 고객 저장소 주간 성장 리포트(Step 36) — 그 고객 행이 있을 때만. 숫자는 리포트 값 그대로, 주 단위.
+   * 기간 안 = 리포트 생성일이 파일럿 범위 안. 표가 없거나 행이 없으면 절을 안 쓴다
+   */
+  const 성장 = await q(`select week, generated::text as generated, source_url, gsc, cf from geo.growth_reports
+      where client_id = $1 and generated between $2::date and $3::date order by week`, [p.cid, 범위.from, 범위.to]).catch(() => []);
+  if (성장.length) {
+    w(`## 구글 검색·서버 통계 (${p.name} 성장 리포트)`);
+    w();
+    w("| 주 | 서치콘솔 7일 기간 | 클릭 | 노출 | CTR | 평균 순위 | Cloudflare 7일 | 요청 | 페이지뷰 | 일별 순방문자 합 |");
+    w("|---|---|---:|---:|---:|---:|---|---:|---:|---:|");
+    const 수 = (v) => Math.round(v).toLocaleString("ko-KR");
+    for (const r of 성장) {
+      const g = r.gsc, c = r.cf;
+      const 구글 = g ? `${g.range7.startDate}~${g.range7.endDate} | ${수(g.last7.clicks)} | ${수(g.last7.impressions)} | ${(g.last7.ctr * 100).toFixed(1)}% | ${g.last7.position ? g.last7.position.toFixed(1) : "-"}` : "리포트에 없음 | | | |";
+      const 서버 = c ? `~${c.until}, ${c.last7.days}일 | ${수(c.last7.requests)} | ${수(c.last7.pageViews)} | ${수(c.last7.uniques)}` : "리포트에 없음 | | |";
+      w(`| ${r.week} | ${구글} | ${서버} |`);
+    }
+    w();
+    w(`출처: ${성장.map((r) => r.source_url).join(" · ")}`);
+    w();
+    for (const l of GROWTH_FOOT) w(`${l}  `);
     w();
   }
 

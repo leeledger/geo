@@ -34,6 +34,7 @@ import { CLIENTS as CLIENT_CONF, 세션글제목 } from "../clients.mjs";
 import { 같은질문일감, 세션글키 } from "./session-task.mjs";
 import { 탐침측정DDL } from "./loop-grow.mjs";
 import { MARKETING_DDL } from "../../web/lib/marketing-core.mjs";
+import { GROWTH_DDL } from "../../web/lib/growth-core.mjs";
 import { 오픈라우터, 재시도, 모델들, 공급자들 } from "./writer-common.mjs";
 import { 프로필 } from "./profile.mjs";
 import { PM보고 } from "./pm-report.mjs";
@@ -197,6 +198,8 @@ const ensure = async () => {
   await q(탐침측정DDL).catch((e) => console.log("  ⚠ ai_probe_measurements 표 준비 실패", 끝(e.message, 200)));
   // 바깥 글 표(Step 35 D52) — 현황판 카드가 첫 초안 전에도 읽는다. web/lib/marketing-core.mjs 와 같은 줄. 실패해도 계속
   for (const s of MARKETING_DDL) await q(s).catch((e) => console.log("  ⚠ marketing_posts 표 준비 실패", 끝(e.message, 200)));
+  // 문서딱 성장 리포트 표(Step 36) — 현황판 카드가 첫 가져오기 전에도 읽는다. web/lib/growth-core.mjs 와 같은 줄. 실패해도 계속
+  for (const s of GROWTH_DDL) await q(s).catch((e) => console.log("  ⚠ growth_reports 표 준비 실패", 끝(e.message, 200)));
 };
 
 const 본키 = new Set(); // 이번 계획에서 신호가 살아 있는 일감

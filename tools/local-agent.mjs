@@ -20,6 +20,8 @@ import path from "node:path";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
+import { indexClients } from "../academy/clients.mjs";
+import { 빙미등록 } from "./bing-site.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const LOCK = path.join(HERE, ".local-agent.lock");
@@ -259,15 +261,19 @@ try {
     await 활동("deliver", "Brave 색인 확인", true, `${요약}${없음.length ? ` · 제출 필요 ${없음.length}편` : ""}`, t.id);
   }
 
-  // ── 구글 색인 요청: 하루 한도가 있어 --all 이 남은 주소만 조금씩 넣는다
-  const gscTasks = await q(`select id from geo.agent_tasks where kind='gsc-submit' and status='로컬 대기'`);
-  const r = 돌리기("submit-gsc.mjs", ["--all"], 30);
-  if (/로그인이 안 돼 있습니다/.test(r.out)) {
-    await 사람로그인("google", "구글 서치콘솔");
-    await 활동("deliver", "구글 색인 요청 멈춤", false, "로그인 필요");
-  } else {
+  // ── 구글 색인 요청: 하루 한도가 있어 --all 이 남은 주소만 조금씩 넣는다. gsc:true 고객을 학원 먼저 차례로(Step 36)
+  // 고객당 20분 — 두 고객이 30분씩이면 pc-runner 한도(90분)를 블로그·Brave 와 나눠 쓰지 못한다
+  for (const c of indexClients()) {
+    const gscTasks = await q(`select id from geo.agent_tasks where client_id=$1 and kind='gsc-submit' and status='로컬 대기'`, [c.id]);
+    const r = 돌리기("submit-gsc.mjs", ["--all", "--client", c.slug], 20);
+    if (/로그인이 안 돼 있습니다/.test(r.out)) {
+      // 구글 로그인은 고객이 같이 쓴다. 다음 고객도 같은 데서 막히니 여기서 멈춘다
+      await 사람로그인("google", "구글 서치콘솔");
+      await 활동("deliver", "구글 색인 요청 멈춤", false, "로그인 필요", null, c.id);
+      break;
+    }
     const done = new Set(JSON.parse(fs.readFileSync(path.join(HERE, "gsc-done.json"), "utf8")));
-    const waiting = await q(`select id, payload->>'url' url from geo.agent_tasks where kind='gsc-submit' and status='로컬 대기'`);
+    const waiting = await q(`select id, payload->>'url' url from geo.agent_tasks where client_id=$1 and kind='gsc-submit' and status='로컬 대기'`, [c.id]);
     let closed = 0;
     for (const t of waiting) {
       if (!done.has(t.url)) continue;
@@ -275,16 +281,29 @@ try {
       closed++;
     }
     if (r.ok) await 로그인됨("google");
-    await 활동("deliver", "구글 색인 요청", r.ok,`${끝(r.out, 200)} · 로컬 일감 ${closed}/${gscTasks.length} 완료`);
+    await 활동("deliver", "구글 색인 요청", r.ok, `${c.name} · ${끝(r.out, 200)} · 로컬 일감 ${closed}/${gscTasks.length} 완료`, null, c.id);
   }
   // ── 빙 주소 제출: 하루 100개 한도. 사이트맵에서 아직 안 낸 주소만 낸다(bing-done.json).
   // 사이트맵은 「Success」인데 Bingbot 이 47쪽 중 5쪽만 읽었다(2026-09-22) — 빙이 ChatGPT 검색·Copilot 의 색인이다
-  const 빙 = 돌리기("bing-submit-urls.mjs", [], 10);
-  if (/로그인이 풀렸습니다/.test(빙.out)) {
-    await 사람로그인("microsoft", "빙 웹마스터");
-    await 활동("deliver", "빙 주소 제출 멈춤", false, "로그인 필요");
-  } else {
-    await 활동("deliver", "빙 주소 제출", 빙.ok, 끝(빙.out, 200));
+  for (const c of indexClients()) {
+    const 빙 = 돌리기("bing-submit-urls.mjs", ["--client", c.slug], 10);
+    if (/로그인이 풀렸습니다/.test(빙.out)) {
+      await 사람로그인("microsoft", "빙 웹마스터");
+      await 활동("deliver", "빙 주소 제출 멈춤", false, "로그인 필요", null, c.id);
+      break;
+    }
+    const dedupe = `bing-site-${c.slug}`;
+    if (빙.out.includes(빙미등록)) {
+      // 사이트를 빙에 더하는 건 원장 동의 한 번이다(서치콘솔 가져오기). 같은 일감을 매번 새로 만들지 않는다
+      await q(`insert into geo.agent_tasks (client_id, agent, kind, dedupe_key, title, detail, status, priority, payload)
+               values ($1, 'deliver', 'human', $2, $3, $4, '사람 대기', 5, '{"sticky":true}'::jsonb)
+               on conflict (client_id, dedupe_key) do update set status='사람 대기', updated_at=now()`,
+        [c.id, dedupe, `빙 웹마스터에 ${c.name} 추가`, "구글 서치콘솔 가져오기 동의 한 번(node tools/bing-import.mjs 가 창을 엽니다)"]);
+      await 활동("deliver", "빙 주소 제출 멈춤", false, `${c.name} 빙 웹마스터에 등록 안 됨 — 원장 일감`, null, c.id);
+      continue;
+    }
+    await q(`update geo.agent_tasks set status='완료', done_at=now(), updated_at=now() where client_id=$1 and dedupe_key=$2 and status='사람 대기'`, [c.id, dedupe]);
+    await 활동("deliver", "빙 주소 제출", 빙.ok, `${c.name} · ${끝(빙.out, 200)}`, null, c.id);
   }
   기록(`끝 (네이버 ${네이버막힘 ? "로그인 필요" : "정상"})`);
 } catch (e) {

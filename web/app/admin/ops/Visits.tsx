@@ -22,10 +22,10 @@ const AI_NAME: Record<string, string> = {
 
 /**
  * 사이트 안 기록 장치를 일부러 달지 않는 고객(academy/clients.mjs siteLog — Step 32 D44). 기록이 없을 때 이 말로 적는다.
- * 문서딱은 정적 사이트이고 추적·제3자 스크립트를 넣지 않기로 했다. 숫자는 Cloudflare 통계(D46)를 연결한 날부터다
+ * 문서딱은 정적 사이트이고 추적·제3자 스크립트를 넣지 않기로 했다. 서버 숫자는 문서딱 저장소의 주간 성장 리포트(Step 36, 아래 카드)에서 본다
  */
 const NO_SITE_LOG: Record<string, string> = {
-  docttak: "Cloudflare 통계 연결 전 — 문서딱은 사이트에 방문 기록 장치를 달지 않습니다(정적 사이트·추적 스크립트 없음). 숫자는 Cloudflare 통계를 연결한 날부터 셉니다.",
+  docttak: "문서딱은 사이트에 방문 기록 장치를 달지 않습니다(정적 사이트·추적 스크립트 없음). Cloudflare 주간 합계는 아래 「문서딱 주간 성장」 카드에 있습니다 — 봇이 섞인 서버 숫자입니다.",
 };
 
 const CSS = `

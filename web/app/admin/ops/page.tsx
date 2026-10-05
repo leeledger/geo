@@ -7,6 +7,8 @@ import { readGrowth, type Growth as GrowthData } from "@/lib/growth";
 import { readAgents } from "@/lib/agents";
 import { readPmReport } from "@/lib/pm-report";
 import { readVisits, type Visits as VisitsData } from "@/lib/visits";
+import { readGrowthReports, type GrowthReports } from "@/lib/growth-reports";
+import { GROWTH_SLUGS } from "@/lib/growth-core.mjs";
 import { readAnswerTable, type AnswerTable } from "@/lib/asks";
 import { readMarketing, type Marketing as MarketingData } from "@/lib/marketing";
 import Todo from "./Todo";
@@ -17,6 +19,7 @@ import Brief from "./Brief";
 import PmReport, { PM_CSS } from "./PmReport";
 import AskLog from "./AskLog";
 import Visits from "./Visits";
+import GrowthReport from "./GrowthReport";
 import Marketing, { MK_CSS } from "./Marketing";
 
 /** 로그인 뒤 돌아올 자리 */
@@ -144,7 +147,7 @@ export default async function OpsPage({
   const clients = await listClients();
   const client = clients.find((x) => x.slug === want) ?? clients[0] ?? null;
 
-  const [d, gr, agents, pm, vis, ans, mk] = await Promise.all([
+  const [d, gr, agents, pm, vis, ans, mk, gp] = await Promise.all([
     readOps(client ?? undefined),
     // 통째로 실패하면 섹션에 이유 한 줄. 조각 실패는 readGrowth 안에서 null 로 잡힌다
     client
@@ -165,6 +168,8 @@ export default async function OpsPage({
     client ? readAnswerTable(client) : Promise.resolve<AnswerTable>({ ok: true, rows: [], empty: "고객사가 없습니다" }),
     // 바깥 글 초안(Step 35 D54) — 초안이 있는 고객 탭에만 카드가 뜬다
     client ? readMarketing(client.id) : Promise.resolve<MarketingData>({ ok: true, enabled: false, drafts: [], todo: 0, used: null, firstPosted: null }),
+    // 고객 저장소 주간 성장 리포트(Step 36) — 리포트를 읽는 고객(GROWTH_SLUGS) 탭이나 행이 있는 탭에만 카드
+    client ? readGrowthReports(client.id) : Promise.resolve<GrowthReports>({ ok: true, weeks: [], today: "", stalled: false, opportunity: null }),
   ]);
 
   return (
@@ -201,6 +206,7 @@ export default async function OpsPage({
         <AgentStrip key={client?.slug ?? "-"} initial={agents} slug={client?.slug} />
         <Growth g={gr.g} err={gr.err} name={client?.name ?? null} />
         <Visits v={vis.v} err={vis.err} name={client?.name ?? "고객사 미선택"} slug={client?.slug} />
+        {client && (GROWTH_SLUGS.includes(client.slug) || (gp.ok && gp.weeks.length > 0)) && <GrowthReport data={gp} name={client.name} />}
         <AskLog client={client} />
 
         <details className="ops-more">

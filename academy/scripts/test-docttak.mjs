@@ -81,7 +81,7 @@ t("글은 세션 · 쓸 곳은 이 저장소의 제안 자리 · 바깥 행동 2
   assert.match(문서딱.loop.draftWhere, /^deliverables\/docttak\//);
   assert.equal(문서딱.loop.offsite.length, 2);
 });
-t("방문·크롤러 기록 장치 안 닮 — Cloudflare 통계 연결 전", () => assert.equal(문서딱.siteLog, "Cloudflare 통계 연결 전"));
+t("방문·크롤러 기록 장치 안 닮 — 서버 숫자는 문서딱 성장 리포트(Step 36)", () => assert.equal(문서딱.siteLog, "Cloudflare 주간 합계는 문서딱 성장 리포트(봇 포함)"));
 // 2026-10-01 curl https://docttak.com/ 의 JSON-LD 앞부분, /pdf-merge/ 의 WebApplication
 const LD_홈 = '[{"@context":"https://schema.org","@type":"WebSite","name":"문서딱","url":"https://docttak.com/"},{"@context":"https://schema.org","@type":"Organization","name":"문서딱","url":"https://docttak.com/"}]';
 const LD_도구 = '{"@context":"https://schema.org","@type":"WebApplication","name":"PDF 합치기","url":"https://docttak.com/pdf-merge/"}';

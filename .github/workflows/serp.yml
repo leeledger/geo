@@ -51,6 +51,15 @@ jobs:
         working-directory: academy
         run: node scripts/case-report.mjs --out ../web/public/case/academy.html
 
+      # 문서딱 저장소 주간 성장 리포트(서치콘솔·Cloudflare)·후보 이슈를 DB 로(Step 36). 하루 한 번이면 된다 —
+      # 리포트는 주 1회(월 09:23 KST)다. 기본 토큰은 공개 저장소 읽기 한도용(새 키 아님). 실패해도 케이스 리포트 커밋은 간다
+      - name: 문서딱 성장 리포트 가져오기
+        working-directory: academy
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/growth-import.mjs
+
       - name: 바뀐 게 있으면 커밋
         run: |
           set -euo pipefail

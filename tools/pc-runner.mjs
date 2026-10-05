@@ -32,7 +32,9 @@ const NODE = process.execPath;
 
 const JOBS = [
   { id: "heartbeat", script: "heartbeat.mjs", everyMin: 60, limitMin: 5 },
-  { id: "local-agent", script: "local-agent.mjs", at: ["12:40", "19:10"], limitMin: 60 },
+  // 90분(Step 36): 평소 1~9분(pc-runner.log 9/29~10/2). 색인 고객이 둘이 되며 구글 20분·빙 10분 상한이 고객마다 붙어
+  // 구글·빙만 상한 60분이다. 60분 한도면 둘 다 막힌 날 블로그·Brave 몫이 안 남는다
+  { id: "local-agent", script: "local-agent.mjs", at: ["12:40", "19:10"], limitMin: 90 },
   { id: "ai-web-measure", script: "ai-web-measure.mjs", at: ["10:00"], limitMin: 180 },
 ];
 const OLD_TASKS = ["Cited Heartbeat", "Cited Local Agent", "Cited AI Measure"];

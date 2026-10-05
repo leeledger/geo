@@ -248,6 +248,24 @@ create table if not exists geo.marketing_posts (
 );
 create index if not exists marketing_posts_client_day_idx on geo.marketing_posts (client_id, created_on);
 alter table geo.marketing_posts enable row level security;
+-- 문서딱 저장소 주간 성장 리포트(Step 36) — academy/scripts/growth-import.mjs 가 매일 한 번 쌓는다.
+-- gsc·cf 는 리포트 growth-data JSON 그대로, 표 3칸은 리포트가 반올림한 값. web/lib/growth-core.mjs GROWTH_DDL 과 같은 줄
+create table if not exists geo.growth_reports (
+  client_id int not null references geo.clients(id),
+  week text not null,
+  generated date,
+  source_url text not null,
+  gsc jsonb,
+  gsc_queries7 jsonb,
+  gsc_queries28 jsonb,
+  gsc_pages28 jsonb,
+  cf jsonb,
+  notes text,
+  opportunity jsonb,
+  fetched_at timestamptz not null default now(),
+  primary key (client_id, week)
+);
+alter table geo.growth_reports enable row level security;
 
 -- 영업용 뷰 — 점수가 낮을수록 후킹이 강하다
 create or replace view geo.lead_queue as
