@@ -2,6 +2,12 @@
 *Read this before reading anything else. If it covers current state, skip BUILD-LOG.*
 
 
+## Where We Stopped (2026-10-05 오후) — Step 36 브리프
+
+- handoff/ARCHITECT-BRIEF.md = Step 36(문서딱 구글·빙 색인 매일 + doc-tools-kr 주간 성장 리포트·A-6 이슈를 geo.growth_reports·현황판으로). 다음: Bob(builder)
+- 옛 Step 37(수요 제안)은 접음 — A-6 와 겹침. 제안서 deliverables/docttak/2026-10-05-growth-data-proposal.md 는 문서딱 세션 몫. D46 원장 몫 지움
+- 남은 문서딱 구글 12쪽 10-06 은 Step 36 배포 전이면 손으로 (submit-gsc --all --client docttak)
+
 ## Where We Stopped (2026-10-05 낮) — 문서딱 색인·이름·블로그
 
 - 구글 44쪽 중 32쪽 검사, 11쪽 요청 접수(하루 한도). **남은 12쪽 10-06: node tools/submit-gsc.mjs --all --client docttak**

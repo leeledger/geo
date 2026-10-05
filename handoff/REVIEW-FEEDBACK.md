@@ -1,22 +1,49 @@
-# Review Feedback — Step 35 (D52~D56) + 2판
-Date: 2026-10-02
-Ready for Builder: YES
+# Review Feedback — Step 36
+Date: 2026-10-05
+Ready for Builder: NO
 
-범위: git diff 130c47c..5e54bec. 확인: test-marketing 38 통과 · web tsc 0. DB 쓰기·Claude 호출·게시 없음.
+## Must Fix
+- .github/workflows/serp.yml:24,54-62 (confidence: 7/10) — 잡 전체가 `timeout-minutes: 8` 인데 최근 serp 실행이 5분 37초~6분 8초다(gh run list 10/2~10/5). 새 단계에는 단계 시간 한도가 없고, growth-import.mjs:30 의 `fetch(url, { headers: ... })` 에는 AbortSignal 이 없다(undici 기본값은 헤더·본문 각각 300초). GitHub 응답이 느리면 잡이 8분에서 취소된다. 잡 시간 초과에는 `continue-on-error` 가 듣지 않는다. 그러면 「바뀐 게 있으면 커밋」이 안 돌고 학원 케이스 리포트 커밋이 날아간다. 브리프가 「실패해도 기존 단계는 산다」고 했는데 시간 초과 길에서는 이게 깨진다. — 고칠 것: 새 단계에 `timeout-minutes: 2` 를 단다. 받기() 의 fetch 에 `signal: AbortSignal.timeout(20000)` 을 준다. 잡 한도를 10분으로 올릴지 정한다(지금 여유가 2분뿐이다).
+
+## Should Fix
+- web/app/admin/ops/GrowthReport.tsx:141 · academy/scripts/growth-import.mjs:108 (confidence: 8/10) — `o.updatedAt.slice(0, 10)`. GitHub 의 updated_at 은 UTC ISO 문자열이다. KST 00:00~08:59 에 갱신된 이슈는 하루 전 날짜로 찍힌다. 정기 실행(월 09:23 KST = 00:23 UTC)에서는 날짜가 우연히 맞는다. 수동 재실행이면 틀린다. CLAUDE.md 함정 「DB 시각은 UTC」와 같은 종류다. — `new Date(o.updatedAt).toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" })` 로 바꾼다.
+- web/lib/growth-core.mjs:102-103 (confidence: 6/10, 확인할 것) — gsc·cf JSON 은 `week` 말고는 모양을 안 본다. growth-import 의 say 줄이 `last7` 은 우연히 걸러 준다. 그런데 `gsc.range7`·`cf.until`·`cf.last7.uniques` 가 빠진 리포트는 DB 에 그대로 들어간다. 그러면 GrowthReport.tsx:112·119 의 `md(undefined)` → `.slice` TypeError 로 문서딱 /admin/ops 페이지가 통째로 깨지고, pilot-report 는 `NaN` 을 찍는다. — parseGrowthReport 에서 gsc 는 range7.startDate/endDate·last7 네 숫자, cf 는 until·last7 네 숫자를 확인한다. 하나라도 없으면 그 칸만 null 로 두고 notes 에 「모양 다름」을 남긴다. 시험 2개를 더한다.
+- academy/scripts/growth-import.mjs:30,72 (confidence: 6/10) — `f.url`(목록 API 의 download_url)에 Authorization 헤더를 실어 보낸다. 호스트는 확인하지 않는다. 지금은 GitHub 이 주는 값이라 위험이 작다. 그래도 토큰은 확인한 호스트에만 보내는 게 맞다. — `new URL(f.url).host === "raw.githubusercontent.com"` 이 아니면 그 주를 실패로 넘긴다.
+- tools/local-agent.mjs:300-301 (confidence: 6/10) — `bing-site-<slug>` 일감을 닫는 update 가 `빙.ok` 와 상관없이 돈다. 미등록 문구가 아닌 실패(버튼 못 찾음, exit 1)에서도 닫힌다. 지금은 빙미등록 문구를 아무도 안 찍어서 해가 없다. KG-36-8 로 정규식을 넣는 날 바로 헛닫힘이 된다. — `if (빙.ok)` 일 때만 닫는다. KG-36-8 에 같이 적는다.
+- tools/local-agent.mjs:267,276 (confidence: 5/10, 확인할 것) — gsc-submit 일감을 이제 gsc:true 고객 것만 본다. company.mjs:830 의 announce 는 글을 내는 고객이면 누구에게나 gsc-submit 을 만든다. 그래서 아이로그 같은 gsc:false 고객의 「로컬 대기」 일감이 생기면 영영 안 닫힌다. 지금 열린 아이로그 gsc-submit 행이 있는지 한 번 본다. 있으면 Known Gaps 에 적는다.
+
+## Escalate to Architect
+- 빙 「등록 안 됨」 판정(브리프 A-2·Acceptance 의 --look 원문)이 빠졌다. 원장 로그인 브라우저를 여는 일을 분류기가 거부했다. Bob 은 추측 정규식을 안 썼고 KG-36-8 로 남겼다. 맞는 처리다. 지금 문서딱이 빙에 없으면 매일 「빙 주소 제출」 실패 줄로 보이고, 원장 일감은 안 생긴다. 브리프 Acceptance 「원장 할 일 새 줄: 빙 미등록일 때 1줄」은 아직 못 지켰다. 이대로 배포할지, --look 을 먼저 받을지 Arch 가 정한다.
+- Open Question 「옛 이슈가 남아 있으면 옛 주 표시가 계속 보인다」·「표 한 행이라도 못 읽으면 표 전체 null」 — 둘 다 사실대로 보이는 쪽이라 코드상 문제는 없다. 제품 판단으로 확인만 바란다.
+
+## Cleared
+아래는 확인했고 통과다. clients.mjs 색인 고객 고르기(학원 먼저), 인자 없는 bing-submit-urls·submit-gsc 가 학원으로 도는 것, local-agent 고객별 활동 줄·로그인 막힘에서 멈춤, pc-runner 순차 실행(busy)과 90분 한도, growth-core 파서와 weeksToFetch, growth-import 의 매개변수 SQL·dry 모드, 양쪽 schema·company DDL, 현황판 카드(문서딱 탭에만, 「방문자」 단독 표현 없음, 꼬리 두 줄, 없는 주를 0 으로 안 채움, 멈춤 판정 KST), pilot-report 절(행 있을 때만), Visits·briefing 문구. test-growth-import 50·test-docttak 32 는 다시 돌려서 통과를 확인했다.
+
+---
+
+# Review Feedback — Step 36 2차 (6989c9e)
+Date: 2026-10-05
+Ready for Builder: YES
 
 ## Must Fix
 없음.
 
+## 1차 항목 확인
+- MF serp 시간 한도 — 닫힘. 잡 10분(세션 결정), 단계 `timeout-minutes: 2`, 받기()는 fetch 마다 `AbortSignal.timeout(20_000)`. 단계 한도에 걸려도 continue-on-error 가 커밋 단계를 살린다.
+- SF1 KST 날짜 — 닫힘. `kstDay()` 가 sv-SE·Asia/Seoul 을 쓰고, 못 읽으면 null 이다(빈 값·undefined 도 null). 카드와 growth-import 요약 둘 다 바꿨다.
+- SF2 JSON 모양 — 닫힘. gscShape·cfShape 가 화면·pilot-report 가 읽는 칸을 다 본다. 하나라도 빠지면 그 덩어리만 null 이 되고, notes·실패 줄에 「모양 다름」이 남는다. 카드의 null 길은 이미 「리포트에 없음」이라 페이지가 깨지지 않는다.
+- SF3 토큰 호스트 — 닫힘. api.github.com·raw.githubusercontent.com 에만 싣는다.
+- SF4 빙 일감 헛닫힘 — 닫힘. `빙.ok` 일 때만 닫는다.
+- SF5 gsc 없는 고객 일감 — 닫힘. 「닫힘」은 audit·company 가 이미 쓰는 상태 값이다. evidence 칸은 `not null default ''` 라 `||` 가 null 로 지워지지 않는다.
+
 ## Should Fix
-- web/lib/marketing.ts:66 vs academy/scripts/pilot-report.mjs:311 (confidence: 7/10) — 같은 「AI 답 출처로 쓰였나」를 다른 칸으로 묶는다. 현황판은 `select m.engine, …`(모델별), 리포트는 `m.collection_method as engine`(곳별). 한 모델을 두 곳에서 재면 카드와 리포트의 「곳별 n개」가 달라진다. 영업에 나갈 숫자다. 둘 중 하나로 맞추기 — 리포트 관례(곳 = collection_method, 곳이름)를 따르는 쪽을 권한다. 합계 used/posted 는 같으니 지금은 고장이 아니다.
-- academy/scripts/marketing-draft.mjs:220 (confidence: 5/10, verify) — 바깥 주소 관문 `p.바깥.some((h) => h.startsWith(u) || u.startsWith(h))`. 근거 페이지의 바깥 링크가 도메인 뿌리(예: https://www.gov.kr)면 그 도메인의 어떤 경로든 통과한다. 지어낸 깊은 주소가 새는 길이다. 정확히 같거나 끝 `/` 차이만 허용하도록 normUrl 비교로 좁히기.
-- web/lib/marketing-actions.ts:47 (confidence: 6/10) — approveBlog 가 note 를 통째로 「게시 승인 …」으로 바꿔 「읽을 자리」 기록이 사라진다(marketing-core 주석상 의도). 나중에 「무엇을 읽고 승인했나」를 되짚을 수 없다. `'게시 승인 ' || to_char(…) || ' · ' || note` 로 앞에 붙이면 local-agent·naver-blog-post 의 `like '게시 승인%'` 는 그대로 돈다. 단 readSpots 가 SPOT_HEAD 로 시작할 때만 읽으니 카드 표시는 바꿀 필요 없음.
-- tools/local-agent.mjs:191-194 (confidence: 6/10) — 「발행 전에 멈춤」은 시도를 닫힘으로 두어 다음 실행에 다시 시도한다. 원인이 고정(본문 서식 오류 등)이면 하루 두 번, 끝없이 실패 활동이 쌓인다. 같은 초안 닫힘 n회(예: 3) 넘으면 사람 대기로 올리기. BUILD-LOG 로 미뤄도 된다.
-- tools/local-agent.mjs:186-188 (confidence: 5/10) — 사람이 확인 뒤 SQL 로 marketing_posts 를 「올림」으로 고치면 시도 일감이 「사람 대기」로 영영 남는다(sticky). 다음 실행에서 `status='올림'` 인 초안의 열린 marketing-attempt 를 완료로 닫는 한 줄이면 된다.
+없음.
+
+## 덧붙임 (확신도 4, 막지 않음)
+- tools/local-agent.mjs:268 — company.mjs 의 일감() upsert 는 「닫힘」 행을 다시 연다(`when geo.agent_tasks.status = '닫힘' then $9`). gsc-submit 은 announce 에서 글당 한 번 만들어지니 지금은 열고 닫기를 반복하지 않는다. announce 가 같은 글에 다시 돌게 되면 매일 「해당 없음」 활동 줄이 생긴다. 그런 일이 보이면 그때 Known Gaps 에 적는다.
 
 ## Escalate to Architect
-- 블로그 게시 승인을 note 앞머리로 둘지, 칸(approved_at)으로 둘지 — Bob 이 열어 둔 질문. 코드상 안전은 확인했다: 승인 표시를 쓰는 길은 approveBlog(guard + `status='초안' and channel='blog'`) 하나뿐이고, 초안 스크립트의 note 는 「읽을 자리: 」 또는 「자동 관문 탈락: 」로만 시작해 모델 출력이 승인으로 둔갑할 길이 없다. 그래도 note 는 자유 글 칸이라 사람이 손으로 고칠 때 우연히 승인이 될 수 있다. 칸으로 바꿀지는 Arch 결정.
-- 「읽었어요 · 올려 주세요」 버튼이 본문 펼치지 않고도 눌린다. 사실 확인을 강제할지(펼친 뒤에만 활성) 제품 판단.
+- KG-36-8(빙 미등록 판정) — 세션이 미루고 배포하기로 정했다. 더 볼 것 없다.
 
 ## Cleared
-관문(숫자·규격 단위·사이트맵·바깥 주소·다른 방법·공개 문장)과 읽을 자리, 블로그 자동 게시의 이중 승인 확인(local-agent 선택 쿼리 + naver-blog-post 읽기 쿼리 둘 다 `note like '게시 승인%' and status='초안'`), NAVER_BLOG_ID 없으면 멈춤(.env.local 로딩 전에 검사해 학원 블로그 force11 로 새지 않음)·학원 꼬리 미부착·별도 프로필, 발행 버튼 뒤 실패는 사람 확인으로, marketing-actions 세 동작 모두 guard, optimize.yml 의 continue-on-error 와 `always() &&` 측정 실패 표시, KST 처리(오늘·created_on·posted_day·승인 시각), ai_measurements 는 읽기만(학원·아이로그 리포트는 올린 글이 없어 절이 안 생김, case-report 무변경), PIPES 3=docttak, dry 가 insert/create/alter 를 막고 claude-code 기록은 insert 뿐인 것까지 확인했고 통과다.
+2차 diff 전체(serp.yml, growth-import, growth-core + .d.mts, GrowthReport.tsx, local-agent)를 봤다. 1차 Must Fix 1건과 Should Fix 5건이 닫혔고 새로 깨진 곳은 없다. test-growth-import 59개를 다시 돌려 통과를 확인했다.
