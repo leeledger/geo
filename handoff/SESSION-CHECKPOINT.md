@@ -2,6 +2,15 @@
 *Read this before reading anything else. If it covers current state, skip BUILD-LOG.*
 
 
+## Where We Stopped (2026-10-05 저녁) — Step 36·37·38 배포
+
+- 36 문서딱 매일 구글·빙 색인(local-agent 고객별) · doc-tools-kr 주간 성장 리포트 → geo.growth_reports → 문서딱 탭 카드(첫 행 2026-41: GSC 7일 클릭 0·노출 36, CF 페이지뷰 6,651 봇 포함)
+- 37 고객 설정 DB 로(config/derived) · loadClients · 가림 검사가 DB 고객(status 무관) · import 가드
+- 38 /admin/clients 등록·상세·세팅 점검·체크리스트·사람 일감 · createPilot 은 client_id 만 · CLAUDE.md 함정 줄 교체
+- 다음: Step 39(바깥 글 범용화 KG-37-1, 로그인 창 버튼, GSC 권한 탐침, 0원 리허설) — 원장 브라우저·Claude 호출 검증 필요
+- 원장 몫: `node tools/bing-submit-urls.mjs --look --client docttak` 원문(KG-36-8) · 블로그 소개란 docttak.com · pc-runner 10:09 멈춤 → 13:03 세션이 다시 띄움
+- 열린 KG: 36-8, 38-7(DNS rebinding), 38-8(IPv6 꼴)
+
 ## Where We Stopped (2026-10-05 오후) — Step 36 브리프
 
 - handoff/ARCHITECT-BRIEF.md = Step 36(문서딱 구글·빙 색인 매일 + doc-tools-kr 주간 성장 리포트·A-6 이슈를 geo.growth_reports·현황판으로). 다음: Bob(builder)
