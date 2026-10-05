@@ -20,7 +20,7 @@ import path from "node:path";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
-import { indexClients } from "../academy/clients.mjs";
+import { indexClients, loadClients } from "../academy/clients.mjs";
 import { 빙미등록 } from "./bing-site.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -91,6 +91,8 @@ const 로그인됨 = (kind) =>
 
 try {
   기록("시작");
+  // 코드 3곳 + DB 고객(Step 37). DB 를 못 읽으면 코드 3곳(stderr 한 줄)
+  const 고객들 = await loadClients(q);
   await 활동("deliver", "로컬 에이전트 출근", true, "네이버 이관·구글 색인 요청 확인");
 
   // ── 네이버 이관: 최근 2주 발행했는데 네이버에 없는 글 (정찰 신호와 같은 기준) + 발행 알림이 넘긴 글
@@ -148,8 +150,9 @@ try {
    * 지식iN·카페는 자동으로 올리지 않는다(스팸·계정 정지 위험). 학원 블로그 세션과 섞이지 않게 고객마다 따로 둔 프로필로.
    * 프로필이나 블로그 아이디가 없으면 로그인 일감 한 건(고객별 dedupe)만 올리고 건너뛴다. 중복 게시 막기는 학원 이관과 같은 시도 기록으로
    */
-  const { CLIENTS } = await import("../academy/clients.mjs");
-  for (const c of CLIENTS.filter((x) => x.marketing?.blogProfile)) {
+  // 코드 고객은 blogProfile 이 있으면, DB 고객은 바깥 글을 켜고(enabled) 블로그 아이디가 있을 때만
+  for (const c of 고객들.filter((x) => x.출처 !== "코드" && x.marketing?.enabled && !x.marketing.blogId)) 기록(`${c.slug}: marketing.blogId 없음 — 블로그 건너뜀`);
+  for (const c of 고객들.filter((x) => x.marketing?.blogProfile && (x.출처 === "코드" || (x.marketing.enabled && x.marketing.blogId)))) {
     const 대기 = await q(`select m.id, m.title from geo.marketing_posts m
         where m.client_id = $1 and m.channel = 'blog' and m.status = '초안' and m.note like '게시 승인%'
           and not exists (select 1 from geo.agent_tasks a where a.client_id = $1 and a.dedupe_key = 'marketing-attempt-' || m.id
@@ -157,7 +160,7 @@ try {
         order by m.id limit 1`, [c.id]).catch(() => []);
     if (!대기.length) continue;
     const 프로필 = path.join(HERE, c.marketing.blogProfile);
-    const 아이디 = process.env[`NAVER_BLOG_ID_${c.slug.toUpperCase()}`];
+    const 아이디 = c.marketing.blogId ?? process.env[`NAVER_BLOG_ID_${c.slug.toUpperCase()}`];
     const 로그인일감 = (why) => q(`insert into geo.agent_tasks (client_id, agent, kind, dedupe_key, title, detail, status, priority, payload)
         values ($1, 'deliver', 'human', $2, $3, $4, '사람 대기', 5, '{"sticky":true}'::jsonb)
         on conflict (client_id, dedupe_key) do update set status='사람 대기', updated_at=now()`,
@@ -267,9 +270,9 @@ try {
   // 「로컬 대기」로 영영 남지 않게 해당 없음으로 닫는다
   const 해당없음 = await q(`update geo.agent_tasks set status='닫힘', done_at=now(), updated_at=now(),
       evidence = left(evidence || E'\n해당 없음 — 이 고객은 PC 구글 색인 요청을 안 돈다(clients.mjs gsc 없음)', 4000)
-      where kind='gsc-submit' and status='로컬 대기' and not (client_id = any($1::int[])) returning id, client_id`, [indexClients().map((c) => c.id)]);
+      where kind='gsc-submit' and status='로컬 대기' and not (client_id = any($1::int[])) returning id, client_id`, [indexClients(고객들).map((c) => c.id)]);
   for (const t of 해당없음) await 활동("deliver", "구글 색인 요청 해당 없음", true, `gsc-submit 일감 #${t.id} 닫음 — gsc 없는 고객`, t.id, t.client_id);
-  for (const c of indexClients()) {
+  for (const c of indexClients(고객들)) {
     const gscTasks = await q(`select id from geo.agent_tasks where client_id=$1 and kind='gsc-submit' and status='로컬 대기'`, [c.id]);
     const r = 돌리기("submit-gsc.mjs", ["--all", "--client", c.slug], 20);
     if (/로그인이 안 돼 있습니다/.test(r.out)) {
@@ -291,7 +294,7 @@ try {
   }
   // ── 빙 주소 제출: 하루 100개 한도. 사이트맵에서 아직 안 낸 주소만 낸다(bing-done.json).
   // 사이트맵은 「Success」인데 Bingbot 이 47쪽 중 5쪽만 읽었다(2026-09-22) — 빙이 ChatGPT 검색·Copilot 의 색인이다
-  for (const c of indexClients()) {
+  for (const c of indexClients(고객들)) {
     const 빙 = 돌리기("bing-submit-urls.mjs", ["--client", c.slug], 10);
     if (/로그인이 풀렸습니다/.test(빙.out)) {
       await 사람로그인("microsoft", "빙 웹마스터");

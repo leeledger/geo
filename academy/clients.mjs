@@ -6,8 +6,9 @@
  * 로봇&코딩학원으로 박힌 채였다. 그래서 아이로그는 하루가 넘도록 한 번도 안 쟀다.
  * 사람 직원이면 착수 첫날 했을 일이다.
  *
- * 이제 스크립트는 전부 이 목록을 돈다. 고객사를 받으면 여기 한 덩어리를 추가한다.
- * id 는 geo.clients.id 와 같아야 한다.
+ * 이제 스크립트는 전부 loadClients(q) 를 돈다 — 아래 코드 덩어리 3곳 + geo.clients 에만 있는 고객(Step 37).
+ * 새 고객은 덩어리 말고 geo.clients.config 에 넣는다(말만 — 정규식은 고객설정 이 lit 로 만든다).
+ * 코드 덩어리 id 는 geo.clients.id 와 같아야 한다.
  *
  * 검색어 종류
  *   경쟁   이름 없이 찾는 말. 살 사람이 실제로 치는 말. 이것만 성과로 센다
@@ -15,7 +16,7 @@
  *   색인   site: 검색. 올라갔는지 보는 것이지 순위가 아니다
  */
 
-export const CLIENTS = [
+export const CODE_CLIENTS = [
   {
     id: 1,
     slug: "robotncoding",
@@ -236,30 +237,288 @@ export const CLIENTS = [
 ];
 
 /**
- * 어느 고객사를 돌지 고른다.
- *   --client ilog      슬러그로 한 곳
- *   CLIENT_ID=2        번호로 한 곳 (옛 호출 방식)
- *   아무것도 없으면     전부
+ * 시험만 쓴다. 스크립트가 이걸 바로 읽으면 DB 고객이 조용히 빠진다(아이로그 사고) — test-clients.mjs 가드가 막는다.
+ * 스크립트는 loadClients(q) / 고객고르기(argv, q)
  */
-export function selectClients(argv = process.argv) {
+export const CLIENTS = CODE_CLIENTS;
+
+/** 코드 덩어리 하나 — 그 고객 전용 스크립트(seed-*-panel)만. 고객 목록을 도는 데 쓰지 않는다 */
+export const 코드덩어리 = (slug) => CODE_CLIENTS.find((x) => x.slug === slug) ?? null;
+
+export const 도메인정리 = (d) => String(d ?? "").trim().toLowerCase()
+  .replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/[/?#].*$/, "");
+
+// ─────────────────────────────────────────── DB 고객 설정 (Step 37)
+const 말상한 = 40, 목록상한 = 20;
+
+/** 사람이 넣은 말 하나를 정규식 조각으로 — 특수 글자는 전부 글자 그대로 */
+export const lit = (word) => String(word).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+const 글자인가 = (v) => typeof v === "string" && v.trim().length > 0;
+const 객체인가 = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
+
+/**
+ * config 칸 하나를 읽는다. 없으면 undefined(기본값), 형이 틀리면 빠짐에 적고 undefined.
+ * 말 목록은 40자·20개까지 — 넘으면 자르지 않고 칸 전체를 기본값으로 둔다(잘린 말로 세면 남의 것을 센다)
+ */
+const 말목록 = (v, 칸, 빠짐) => {
+  if (v === undefined || v === null) return undefined;
+  if (!Array.isArray(v) || !v.every(글자인가)) { 빠짐.push(`config.${칸} 형이 틀림`); return undefined; }
+  if (v.length > 목록상한 || v.some((x) => x.trim().length > 말상한)) { 빠짐.push(`config.${칸} 말이 너무 김`); return undefined; }
+  return v.map((x) => x.trim());
+};
+const 참거짓 = (v, 칸, 빠짐) => {
+  if (v === undefined || v === null) return undefined;
+  if (typeof v !== "boolean") { 빠짐.push(`config.${칸} 형이 틀림`); return undefined; }
+  return v;
+};
+const 한글자 = (v, 칸, 빠짐, 상한 = 300) => {
+  if (v === undefined || v === null) return undefined;
+  if (!글자인가(v)) { 빠짐.push(`config.${칸} 형이 틀림`); return undefined; }
+  if (v.length > 상한) { 빠짐.push(`config.${칸} 말이 너무 김`); return undefined; }
+  return v.trim();
+};
+const 말정규식 = (words, flags = "i") => new RegExp(words.map(lit).join("|"), flags);
+
+/** 안내 페이지 줄 — all 은 묶음들, 묶음 안 말 하나만 있으면 된다. 순서 무관·대소문자 무시 */
+const 페이지줄 = (p) => {
+  if (!객체인가(p) || !Array.isArray(p.all) || !p.all.length || !글자인가(p.guide) || !글자인가(p.tool)) return null;
+  const 묶음들 = p.all.map((g) => (Array.isArray(g) && g.length && g.every(글자인가) && g.length <= 목록상한 && g.every((x) => x.trim().length <= 말상한) ? g.map((x) => x.trim()) : null));
+  if (묶음들.some((g) => !g) || 묶음들.length > 목록상한) return null;
+  if (p.also !== undefined && !(Array.isArray(p.also) && p.also.every(글자인가))) return null;
+  const 경로 = (s) => s.trim().startsWith("/");
+  if (![p.guide, p.tool, ...(p.also ?? [])].every(경로)) return null;
+  return {
+    re: new RegExp(`^${묶음들.map((g) => `(?=[\\s\\S]*(?:${g.map(lit).join("|")}))`).join("")}`, "i"),
+    all: 묶음들, guide: p.guide.trim(), tool: p.tool.trim(), ...(p.also ? { also: p.also.map((x) => x.trim()) } : {}),
+  };
+};
+
+const JSONLD_TYPES = ["Organization", "LocalBusiness", "SoftwareApplication", "WebSite"];
+const 블로그환경 = (slug) => `NAVER_BLOG_ID_${String(slug).toUpperCase().replace(/[^A-Z0-9]/g, "_")}`;
+
+/**
+ * geo.clients 행 하나 → 코드 덩어리와 같은 모양의 설정. 순수 함수 — 가짜 행으로 시험한다.
+ *   값 = 기본 ← derived ← config (뒤가 이김)
+ *   출처 { 칸: '입력'|'점검'|'기본' }   빠짐 [ 「config.<칸> 형이 틀림」·「<칸> 없음」 … ]
+ * 칸이 틀려도 고객 전체를 죽이지 않는다 — 그 칸만 기본값. 스크립트가 빠짐을 보고 그 고객의 그 일만 건너뛴다
+ */
+export function 고객설정(row, env = process.env) {
+  const 빠짐 = [], 출처 = {};
+  let config = row.config ?? {};
+  if (!객체인가(config)) { 빠짐.push("config 형이 틀림"); config = {}; }
+  if (config.v !== undefined && config.v !== 1) 빠짐.push(`config.v ${config.v} 모름 — v1 로 읽음`);
+  const derived = 객체인가(row.derived) ? row.derived : {};
+  const slug = String(row.slug), name = String(row.name ?? slug);
+  const domain = 도메인정리(row.domain);
+  if (!domain) 빠짐.push("domain 없음");
+  const 고름 = (칸, 입력값, 점검값, 기본값) => {
+    if (입력값 !== undefined) { 출처[칸] = "입력"; return 입력값; }
+    if (점검값 !== undefined) { 출처[칸] = "점검"; return 점검값; }
+    출처[칸] = "기본"; return 기본값;
+  };
+  for (const 칸 of ["id", "slug", "name", "domain"]) 출처[칸] = "입력";
+
+  // 검색 결과 화면에서 우리로 셀 말 — 기본은 도메인(이름 글자는 남과 겹친다, 아이로그)
+  const brandWords = 고름("brandRe", 말목록(config.brandWords, "brandWords", 빠짐), undefined, domain ? [domain] : []);
+  const brandRe = brandWords.length ? 말정규식(brandWords) : null;
+
+  // AI 답 이름 판별 — 등록 화면이 이스케이프해 만든 answer_pattern
+  let answerRe = null;
+  const 원문 = String(row.answer_pattern ?? "").trim();
+  if (원문) { try { answerRe = new RegExp(원문, "i"); } catch { 빠짐.push("answer_pattern 정규식이 틀림"); } }
+  else 빠짐.push("answerRe 없음");
+  출처.answerRe = "입력";
+
+  // 검색어 — 색인(site:)은 자동, 브랜드 기본 [이름], 경쟁은 사람이 넣는다
+  let 경쟁 = [], 브랜드 = [name];
+  출처.queries = "기본";
+  if (config.queries !== undefined) {
+    if (!객체인가(config.queries)) 빠짐.push("config.queries 형이 틀림");
+    else {
+      경쟁 = 말목록(config.queries.compete, "queries.compete", 빠짐) ?? [];
+      브랜드 = 말목록(config.queries.brand, "queries.brand", 빠짐) ?? 브랜드;
+      출처.queries = "입력";
+    }
+  }
+  if (!경쟁.length) 빠짐.push("queries.compete 없음");
+  const queries = [
+    ...(domain ? [{ id: "idx", q: `site:${domain}`, kind: "색인" }] : []),
+    ...경쟁.map((q, i) => ({ id: `c${i + 1}`, q, kind: "경쟁" })),
+    ...브랜드.map((q, i) => ({ id: `b${i + 1}`, q, kind: "브랜드" })),
+  ];
+
+  const llmsTxt = 고름("llmsTxt", 참거짓(config.llmsTxt, "llmsTxt", 빠짐),
+    typeof derived.llmsTxt?.ok === "boolean" ? derived.llmsTxt.ok : undefined, false);
+  const gsc = 고름("gsc", 참거짓(config.gsc, "gsc", 빠짐), undefined, false);
+  const siteLog = 고름("siteLog", 한글자(config.siteLog, "siteLog", 빠짐), undefined, "방문 기록 장치 없음");
+
+  // IndexNow — 키가 있고 「우리」가 보낼 때만. 키 파일은 보내기 전에 indexnow.mjs 가 확인한다
+  let indexnow = { mode: "우리" };
+  출처.indexnow = "기본";
+  if (config.indexnow !== undefined) {
+    const x = config.indexnow;
+    if (!객체인가(x) || !["우리", "고객 배포", "안 씀"].includes(x.mode)) 빠짐.push("config.indexnow 형이 틀림");
+    else if (x.key !== undefined && !(typeof x.key === "string" && /^[A-Za-z0-9-]{8,128}$/.test(x.key))) {
+      빠짐.push("config.indexnow.key 형이 틀림");
+      indexnow = { mode: x.mode };
+      출처.indexnow = "입력";
+    } else { indexnow = { mode: x.mode, ...(x.key ? { key: x.key } : {}) }; 출처.indexnow = "입력"; }
+  }
+  const indexnowKey = indexnow.mode === "우리" && indexnow.key ? indexnow.key : undefined;
+
+  // 개선 루프
+  let 루프 = config.loop ?? {};
+  if (!객체인가(루프)) { 빠짐.push("config.loop 형이 틀림"); 루프 = {}; }
+  const hitWords = 고름("loop.brandHit", 말목록(config.hitWords, "hitWords", 빠짐), undefined, null);
+  const 홈타입 = Array.isArray(derived.homeLdTypes) ? JSONLD_TYPES.find((t) => derived.homeLdTypes.includes(t)) : undefined;
+  출처["loop.homeLd"] = 홈타입 ? "점검" : "기본";
+  const homeLd = [/"@type"/, ...(domain ? [new RegExp(lit(domain), "i")] : []), ...(홈타입 ? [new RegExp(`"${홈타입}"`)] : [])];
+  let offsite = 루프.offsite;
+  if (offsite !== undefined && !(Array.isArray(offsite) && offsite.length === 2 && offsite.every(글자인가))) {
+    빠짐.push("config.loop.offsite 형이 틀림"); offsite = undefined;
+  }
+  const loop = {
+    brandHit: hitWords ? 말정규식(hitWords) : null,
+    homeLd,
+    homeLdMissing: `홈 JSON-LD 에 @type${홈타입 ? `·${홈타입}` : ""} 또는 ${domain} 없음`,
+    homeLdFix: 고름("loop.homeLdFix", 한글자(루프.homeLdFix, "loop.homeLdFix", 빠짐), undefined,
+      "고객 사이트는 우리 저장소에서 고치지 않습니다. 고객 담당에게 넘깁니다."),
+    draft: "session",
+    draftWhere: 고름("loop.draftWhere", 한글자(루프.draftWhere, "loop.draftWhere", 빠짐), undefined, `deliverables/${slug}/guide/ 제안`),
+    probes: "variants",
+    probeVariants: {
+      forms: ["{기능} 추천", "{기능} 무료"],
+      strip: /추천|무료|방법|사이트|앱|프로그램/g,
+      seeds: 고름("loop.seeds", 말목록(루프.seeds, "loop.seeds", 빠짐), undefined, []),
+    },
+    // 문서딱 두 줄에서 문서딱 고유 말을 뺀 문장. 사실 주장이 없다 — 확인할 곳과 하지 않을 것만
+    offsite: 고름("loop.offsite", offsite, undefined, [
+      `사이트 글과 검색 색인으로도 안 움직였습니다. 답이 인용한 바깥 글(블로그·카페·지식iN·비교 글)에 ${name} 사실이 맞게 올라 있는지 확인하고, 정당한 소개와 사용 후기만 확보합니다(대가성이면 표시).`,
+      "사이트 글로는 안 움직였고, 답에 출처가 안 잡혀 확인할 곳을 고르지 못했습니다.",
+    ]),
+  };
+
+  // 바깥 글 — enabled·페이지 1줄 이상·공개 문구가 다 있어야 marketing-draft 가 돈다
+  let 마케팅 = config.marketing ?? {};
+  if (!객체인가(마케팅)) { 빠짐.push("config.marketing 형이 틀림"); 마케팅 = {}; }
+  let pages = [];
+  if (마케팅.pages !== undefined) {
+    if (!Array.isArray(마케팅.pages)) 빠짐.push("config.marketing.pages 형이 틀림");
+    else {
+      pages = 마케팅.pages.map(페이지줄);
+      if (pages.some((p) => !p)) { 빠짐.push("config.marketing.pages 형이 틀림"); pages = pages.filter(Boolean); }
+    }
+  }
+  let blogDays = 마케팅.blogDays;
+  if (blogDays !== undefined && !(Array.isArray(blogDays) && blogDays.every((d) => Number.isInteger(d) && d >= 0 && d <= 6))) {
+    빠짐.push("config.marketing.blogDays 형이 틀림"); blogDays = undefined;
+  }
+  const marketing = {
+    enabled: 참거짓(마케팅.enabled, "marketing.enabled", 빠짐) ?? false,
+    pages,
+    blogDays: 고름("marketing.blogDays", blogDays, undefined, [1, 4]),
+    disclosure: 고름("marketing.disclosure", 한글자(마케팅.disclosure, "marketing.disclosure", 빠짐), undefined, null),
+    blogProfile: `.browser-profile-${slug}`,
+    blogId: 고름("marketing.blogId", 한글자(마케팅.blogId, "marketing.blogId", 빠짐, 60), undefined, env[블로그환경(slug)] || null),
+  };
+  출처["marketing.pages"] = pages.length ? "입력" : "기본";
+
+  return {
+    id: row.id, slug, name, domain, alias: row.alias ?? null, relation: row.relation ?? null, status: row.status ?? null,
+    brandRe, presenceRe: null, answerRe, queries, llmsTxt, publishes: false, siteLog, gsc, indexnow, indexnowKey, loop, marketing,
+    출처, 빠짐,
+  };
+}
+
+/**
+ * 코드 3곳 + geo.clients 에만 있는 고객. 순서 = 코드 3곳(학원 먼저, 지금 순서) → DB 고객 id 순.
+ *   slug          그 고객 하나만
+ *   includeTest   status 'test' 행도 (E2E·가림 검사·--client 로 콕 집을 때). 없으면 'active' 만
+ *   strict        DB 를 못 읽으면 멈춘다(가림 검사 — 조용히 빼고 통과하면 안 된다)
+ * q 가 없으면(일부러 DB 없이 — 시험·오프라인 모드) 코드 3곳만. DB 를 못 읽으면 코드 3곳만 + stderr 한 줄 — 학원 레퍼런스는 안 멈춘다
+ * 행은 to_jsonb 로 읽는다 — config·derived 칸이 아직 없는 DB(고객설정준비 전)에서도 실패하지 않게
+ */
+export async function loadClients(q, { slug = null, includeTest = false, strict = false } = {}) {
+  let rows = [];
+  if (q) {
+    try {
+      rows = (await q(`select to_jsonb(c) as r from geo.clients c where c.status = any($1::text[]) order by c.id`,
+        [includeTest ? ["active", "test"] : ["active"]])).map((x) => x.r);
+    } catch (e) {
+      if (strict) throw e;
+      console.error(`DB 고객을 못 읽어 코드 고객 ${CODE_CLIENTS.length}곳만 돕니다 — ${String(e.message).slice(0, 120)}`);
+      rows = [];
+    }
+  }
+  const 코드slug = new Set(CODE_CLIENTS.map((c) => c.slug));
+  for (const r of rows) {
+    const c = 코드덩어리(r.slug);
+    if (c && c.id !== r.id) console.error(`⚠ ${r.slug}: 코드 id ${c.id} ≠ DB id ${r.id} — 코드 설정을 씁니다`);
+  }
+  const 목록 = [
+    ...CODE_CLIENTS.map((c) => ({ ...c, 출처: "코드", 빠짐: [] })),
+    ...rows.filter((r) => !코드slug.has(r.slug)).map((r) => 고객설정(r)),
+  ];
+  return slug ? 목록.filter((c) => c.slug === slug) : 목록;
+}
+
+/**
+ * 어느 고객사를 돌지 고른다 (옛 selectClients 의 DB 판).
+ *   --client ilog      슬러그로 한 곳 (콕 집으면 status 'test' 고객도 찾는다 — E2E)
+ *   CLIENT_ID=2        번호로 한 곳 (옛 호출 방식)
+ *   아무것도 없으면     전부 (active 만)
+ */
+export async function 고객고르기(argv, q) {
   const i = argv.indexOf("--client");
   if (i > 0 && argv[i + 1]) {
-    const c = CLIENTS.find((x) => x.slug === argv[i + 1]);
-    if (!c) throw new Error(`고객사 없음: ${argv[i + 1]} (있는 것: ${CLIENTS.map((x) => x.slug).join(", ")})`);
+    const 전부 = await loadClients(q, { includeTest: true });
+    const c = 전부.find((x) => x.slug === argv[i + 1]);
+    if (!c) throw new Error(`고객사 없음: ${argv[i + 1]} (있는 것: ${전부.map((x) => x.slug).join(", ")})`);
     return [c];
   }
   if (process.env.CLIENT_ID) {
-    const c = CLIENTS.find((x) => x.id === Number(process.env.CLIENT_ID));
-    if (!c) throw new Error(`고객사 없음: CLIENT_ID=${process.env.CLIENT_ID}`);
+    const 전부 = await loadClients(q, { includeTest: true });
+    const c = 전부.find((x) => x.id === Number(process.env.CLIENT_ID));
+    if (!c) throw new Error(`고객사 없음: CLIENT_ID=${process.env.CLIENT_ID} (있는 것: ${전부.map((x) => `${x.id} ${x.slug}`).join(", ")})`);
     return [c];
   }
-  return CLIENTS;
+  return loadClients(q);
+}
+
+/**
+ * DB 를 잠깐 열어 fn(q) 를 돌리고 닫는다 — DB 연결이 없던 스크립트(who-wins·indexnow·health 앞부분·tools)가 고객 목록만 읽을 때.
+ * 연결은 스크립트들이 쓰던 그대로(pg Pool · sslmode 지움 · DATABASE_SSL_INSECURE). DATABASE_URL 이 없으면 academy/.env.local 을 읽는다.
+ * 열지 못하면 q 없이 fn(null) — loadClients 가 코드 3곳으로 돈다(stderr 한 줄)
+ */
+export async function 잠깐DB(fn) {
+  if (!process.env.DATABASE_URL) {
+    const fs = await import("node:fs");
+    try {
+      for (const l of fs.readFileSync(new URL("./.env.local", import.meta.url), "utf8").split(/\r?\n/)) {
+        const m = /^([A-Z_0-9]+)=(.*)$/.exec(l);
+        if (m && !process.env[m[1]]) process.env[m[1]] = m[2];
+      }
+    } catch { /* 파일 없음 — Actions 는 환경변수로 준다 */ }
+  }
+  let pool = null;
+  try {
+    const { default: pg } = await import("pg");
+    const u = new URL(process.env.DATABASE_URL);
+    u.searchParams.delete("sslmode");
+    pool = new pg.Pool({ connectionString: u.toString(), ssl: { rejectUnauthorized: process.env.DATABASE_SSL_INSECURE !== "true" }, max: 1 });
+  } catch (e) {
+    console.error(`DB 고객을 못 읽어 코드 고객 ${CODE_CLIENTS.length}곳만 돕니다 — ${String(e.message).slice(0, 120)}`);
+    return fn(null);
+  }
+  const q = (s, p = []) => pool.query(s, p).then((r) => r.rows);
+  try { return await fn(q); } finally { await pool.end().catch(() => {}); }
 }
 
 /** PC 로컬 에이전트가 구글 색인 요청·빙 주소 제출을 도는 고객(gsc: true). 학원 먼저 — 한도가 먼저 차도 레퍼런스는 돈다 */
-export const indexClients = (list = CLIENTS) => list.filter((c) => c.gsc).sort((a, b) => (b.id === 1) - (a.id === 1));
+export const indexClients = (list) => list.filter((c) => c.gsc).sort((a, b) => (b.id === 1) - (a.id === 1));
 
-export const bySlug = (slug) => CLIENTS.find((x) => x.slug === slug);
+export const bySlug = (slug, list) => list.find((x) => x.slug === slug);
 
 /** 글 쓰는 길이 세션인 고객(loop.draft = "session")의 글 일감 제목. 개선 루프와 회사 루프가 같은 제목을 쓴다 */
 export const 세션글제목 = (name, question) => `세션에서 ${name} 가이드 초안: 「${question}」`;

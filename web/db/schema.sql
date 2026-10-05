@@ -88,6 +88,9 @@ alter table geo.clients add column if not exists relation text not null default 
 -- AI 답에서 이 고객 이름을 가리는 정규식 원문(등록 화면이 말을 escape 해 만든다) · 파일럿 밖에서도 매일 잴지 (Step 25)
 alter table geo.clients add column if not exists answer_pattern text;
 alter table geo.clients add column if not exists measure_active boolean not null default false;
+-- Step 37 고객 설정 — 사람이 넣은 말(config v1)과 사이트를 읽어 얻은 값(derived, Step 38 세팅 점검이 채운다). academy/clients.mjs 고객설정 이 읽는다
+alter table geo.clients add column if not exists config jsonb not null default '{}'::jsonb;
+alter table geo.clients add column if not exists derived jsonb not null default '{}'::jsonb;
 create table if not exists geo.pilots (
   id uuid primary key default gen_random_uuid(),
   client_id int not null references geo.clients(id),

@@ -15,7 +15,7 @@
  */
 import fs from "node:fs";
 import path from "node:path";
-import { selectClients } from "../clients.mjs";
+import { 고객고르기, 잠깐DB } from "../clients.mjs";
 
 const UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0 Safari/537.36";
@@ -45,8 +45,9 @@ const mdOut = (() => {
 })();
 const md = [];
 
-for (const c of selectClients()) {
+for (const c of await 잠깐DB((q) => 고객고르기(process.argv, q))) {
   const queries = c.queries.filter((x) => x.kind === "경쟁").map((x) => x.q);
+  if (!queries.length) { console.log(`${c.slug}: queries.compete 없음 — 건너뜀`); continue; }
   console.log(`\n══ ${c.name} · ${c.domain} ══`);
   md.push(`## ${c.name} — 경쟁 검색어에서 이기고 있는 지면`, "");
 

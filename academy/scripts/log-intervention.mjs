@@ -13,7 +13,7 @@
  */
 import fs from "node:fs";
 import { Pool } from "pg";
-import { CLIENTS, bySlug } from "../clients.mjs";
+import { loadClients, bySlug } from "../clients.mjs";
 
 for (const l of fs.readFileSync(new URL("../.env.local", import.meta.url), "utf8").split(/\r?\n/)) {
   const m = /^([A-Z_]+)=(.*)$/.exec(l);
@@ -40,11 +40,12 @@ await pool.query(`alter table academy.interventions add column if not exists cli
 // Neon 세션은 UTC다. 오전 실행을 전날 작업으로 기록하지 않도록 DB 기본값도 KST로 고정한다.
 await pool.query(`alter table academy.interventions alter column day set default ((now() at time zone 'Asia/Seoul')::date)`);
 
+const 고객들 = await loadClients((s, p = []) => pool.query(s, p).then((r) => r.rows), { includeTest: true });
 let args = process.argv.slice(2);
 let client = null;
 const ci = args.indexOf("--client");
 if (ci >= 0) {
-  client = bySlug(args[ci + 1]);
+  client = bySlug(args[ci + 1], 고객들);
   if (!client) throw new Error(`고객사 없음: ${args[ci + 1]}`);
   args = args.filter((_, i) => i !== ci && i !== ci + 1);
 }
@@ -57,7 +58,7 @@ if (args[0] === "--list" || !args.length) {
   );
   if (!rows.length) console.log("  기록 없음");
   for (const r of rows) {
-    const name = CLIENTS.find((c) => c.id === r.client_id)?.name ?? `#${r.client_id}`;
+    const name = 고객들.find((c) => c.id === r.client_id)?.name ?? `#${r.client_id}`;
     console.log(`\n  ${r.day}  [${name}] ${r.what}`);
     if (r.why) console.log(`     왜   ${r.why}`);
     if (r.expect) console.log(`     기대 ${r.expect}`);
@@ -72,5 +73,5 @@ await pool.query(
   `insert into academy.interventions (day, client_id, what, why, expect) values ($1::date,$2,$3,$4,$5)`,
   [day, client?.id ?? 1, what, why ?? null, expect ?? null],
 );
-console.log(`  기록했습니다 — [${(client ?? CLIENTS[0]).name}] ${what}`);
+console.log(`  기록했습니다 — [${(client ?? 고객들[0]).name}] ${what}`);
 await pool.end();

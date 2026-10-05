@@ -30,7 +30,7 @@ import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { Pool } from "pg";
 import { 자기점검, 점검요약, 겹침, 곳 as 곳이름 } from "./loop-review.mjs";
-import { CLIENTS } from "../clients.mjs";
+import { loadClients, bySlug } from "../clients.mjs";
 import { 세션일감열기, 세션완료찾기, 세션일감닫기, 세션끝냄, 탐침글일감 } from "./session-task.mjs";
 import { 전파찾기, 전파칸, 사다리짓기, 경쟁우세, 후보고르기, 불리던글, 승격일감, 확장넣기 } from "./loop-grow.mjs";
 import { 경쟁사목록 } from "../pilot-report-core.mjs";
@@ -153,7 +153,8 @@ const 돌기 = async (c, 설정) => {
 
   const stageOf = Object.fromEntries(questions.map((x) => [x.prompt_id, x.stage]));
   // 브랜드 질문은 질문에 이름이 들어 있어 답이 따라 말한다. 인용이나 고객 설정 말(학원은 실제 위치 석촌)이 나와야 적중이다
-  const 적중 = (r) => r.cited || (stageOf[r.prompt_id] === "brand" ? 설정.brandHit.test(r.answer) : r.mentioned);
+  // 적중 말이 없는 DB 고객(config.hitWords 없음)은 인용으로만 적중
+  const 적중 = (r) => r.cited || (stageOf[r.prompt_id] === "brand" ? (설정.brandHit ? 설정.brandHit.test(r.answer) : false) : r.mentioned);
   const 창 = (pid, from, to) => rows.filter((r) => r.prompt_id === pid && r.day >= from && (!to || r.day < to));
   const 기록 = [];
 
@@ -622,16 +623,18 @@ const main = async () => {
   const 대상 = 지정 || process.argv.includes("--complete")
     ? await q(`select id, slug, name, domain from geo.clients where slug=$1`, [지정 ?? HOUSE])
     : await q(`select c.id, c.slug, c.name, c.domain from geo.clients c
-                where c.slug=$1 or exists (select 1 from geo.pilot_questions pq join geo.pilots p on p.id=pq.pilot_id
-                                            where p.client_id=c.id and pq.approved)
+                where coalesce(c.status, '') <> 'test' and (c.slug=$1 or exists (select 1 from geo.pilot_questions pq join geo.pilots p on p.id=pq.pilot_id
+                                            where p.client_id=c.id and pq.approved))
                 order by c.slug <> $1, c.id`, [HOUSE]);
+  // 코드 3곳 + DB 고객 설정(Step 37). 콕 집은 고객은 시험 고객도
+  const 고객들 = await loadClients(q, { includeTest: Boolean(지정) });
   if (!대상.length) throw new Error(`${지정 ?? HOUSE} 없음`);
   for (const [n, c] of 대상.entries()) {
     if (n) console.log(`\n────────────────`);
-    const 설정 = CLIENTS.find((x) => x.slug === c.slug)?.loop;
+    const 설정 = bySlug(c.slug, 고객들)?.loop;
     if (!설정) {
-      // 사다리의 고객별 칸(이름 질문 적중 말·홈 검사·글 쓰는 길)을 지어낼 수 없다. 조용히 빼지 않고 적는다
-      console.log(`${c.name}: academy/clients.mjs 에 loop 설정이 없어 개선 루프를 건너뜁니다`);
+      // DB 에 없거나(코드 3곳만 읽힌 날) 시험 고객을 콕 집지 않은 경우. 조용히 빼지 않고 적는다
+      console.log(`${c.slug}: loop 없음 — 건너뜀`);
       continue;
     }
     // 한 고객이 실패해도 다음 고객은 돈다

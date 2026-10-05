@@ -11,6 +11,8 @@ import { bingClient } from "../../tools/bing-site.mjs";
 import {
   GROWTH_SLUGS, kstDay, parseGrowthReport, parseOpportunityIssue, reportStalled, splitRow, weekMonday, weekOfName, weeksToFetch,
 } from "../../web/lib/growth-core.mjs";
+// DB 없이 — 코드 3곳만으로 고른다(bingClient 가 DB 를 여는 자리에 null)
+const 오프라인 = (fn) => fn(null);
 
 let 통과 = 0, 실패 = 0;
 const 봄 = (이름, 참) => { if (참) 통과++; else { 실패++; console.log(`✗ ${이름}`); } };
@@ -129,14 +131,14 @@ const 많음 = Array.from({ length: 12 }, (_, i) => `2026-${String(30 + i).padSt
 봄("문서딱 growthReports", JSON.stringify(CLIENTS.find((c) => c.slug === "docttak").growthReports) === JSON.stringify({ repo: "leeledger/doc-tools-kr", dir: "reports/growth", opportunityLabel: "ops:opportunity" }));
 
 // ── 색인 고객 (local-agent)
-봄("gsc:true 만 — 학원·문서딱, 아이로그 안 함", JSON.stringify(indexClients().map((c) => c.slug)) === JSON.stringify(["robotncoding", "docttak"]));
+봄("gsc:true 만 — 학원·문서딱, 아이로그 안 함", JSON.stringify(indexClients(CLIENTS).map((c) => c.slug)) === JSON.stringify(["robotncoding", "docttak"]));
 봄("학원 먼저 — 목록 순서가 바뀌어도", indexClients([...CLIENTS].reverse())[0].slug === "robotncoding");
 봄("gsc 없는 목록 → 빈", indexClients([{ id: 9, slug: "x" }]).length === 0);
 
 // ── 빙 제출 고객 (bing-submit-urls)
-봄("인자 없음 = 학원(robotncoding.com)", bingClient(["node", "bing-submit-urls.mjs"]).domain === "robotncoding.com");
-봄("--look 만 = 학원", bingClient(["node", "x", "--look"]).domain === "robotncoding.com");
-봄("--client docttak = docttak.com", bingClient(["node", "x", "--look", "--client", "docttak"]).domain === "docttak.com");
+봄("인자 없음 = 학원(robotncoding.com)", (await bingClient(["node", "bing-submit-urls.mjs"], 오프라인)).domain === "robotncoding.com");
+봄("--look 만 = 학원", (await bingClient(["node", "x", "--look"], 오프라인)).domain === "robotncoding.com");
+봄("--client docttak = docttak.com", (await bingClient(["node", "x", "--look", "--client", "docttak"], 오프라인)).domain === "docttak.com");
 
 console.log(`\n${통과} 통과 · ${실패} 실패`);
 if (실패) process.exitCode = 1;

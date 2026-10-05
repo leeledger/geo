@@ -1,13 +1,13 @@
 // 바깥 글 초안(Step 35 D53·D56) 단위 시험 — 가짜 행·글자만, DB·네트워크·Claude 없음.
 //   node scripts/test-marketing.mjs
-import { bySlug } from "../clients.mjs";
+import { CLIENTS, bySlug } from "../clients.mjs";
 import { 대상고르기, 관문, 대조표, 본문글, 대안찾기, 낯선문장 } from "./marketing-draft.mjs";
 import { countUsed, normUrl, searchLink, spotsNote, readSpots } from "../../web/lib/marketing-core.mjs";
 
 let 통과 = 0, 실패 = 0;
 const 봄 = (이름, 참) => { if (참) 통과++; else { 실패++; console.log(`✗ ${이름}`); } };
 
-const c = bySlug("docttak");
+const c = bySlug("docttak", CLIENTS);
 const 맞는페이지 = (t) => c.marketing.pages.find((x) => x.re.test(t)) ?? null;
 
 // 검색어 17개가 모두 페이지에 맞는다 — 맞는 줄이 없으면 그 질문은 영영 안 쓰인다

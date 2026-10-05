@@ -51,7 +51,7 @@ export type Agents = {
  *   posts     write.yml(write-draft·write-news 가 CLIENT=1 고정) · 삽화(illustrate.mjs 가 academy.posts 를 돈다 — 글이 있는 곳은 학원뿐) ·
  *             원장 PC(local-agent.mjs 네이버 옮기기 client_id=1, submit-gsc --all 기본 학원)
  *   indexnow  snapshot.yml 03:23 이 indexnow.mjs 로 academy/clients.mjs 에서 키가 있는 곳만 돈다 — 학원·아이로그(키 파일 200, 2026-10-02 확인).
- *             문서딱은 키가 없어 건너뛰고, clients.mjs 에 없는 고객(등록 화면으로만 들어온 곳)은 아예 안 돈다
+ *             문서딱은 키가 없어 건너뛴다. geo.clients 에만 있는 고객은 config.indexnow 가 「우리」+키이고 키 파일이 열릴 때만 보낸다(Step 37)
  *   marketing optimize.yml 끝 marketing-draft.mjs --client docttak(Step 35) — clients.mjs marketing 이 있는 곳. 지식iN·카페 매일 1건씩,
  *             블로그 월·목. 블로그는 원장 「읽었어요」 뒤 local-agent 가 올린다
  */

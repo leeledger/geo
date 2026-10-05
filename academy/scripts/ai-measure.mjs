@@ -20,7 +20,7 @@ import { Pool } from "pg";
 import { 오픈라우터, 재시도, 모델들 } from "./writer-common.mjs";
 import { 클로드코드, 클로드코드있음 } from "./claude-code.mjs";
 import { 측정대상, HOUSE, 예산부족알림, 예산부족닫기, 측정상한, 고객측정일 } from "../measure-targets.mjs";
-import { bySlug } from "../clients.mjs";
+import { loadClients, bySlug } from "../clients.mjs";
 import { 탐침측정DDL } from "./loop-grow.mjs";
 
 for (const l of fs.readFileSync(new URL("../.env.local", import.meta.url), "utf8").split(/\r?\n/)) {
@@ -227,6 +227,8 @@ const q = (s, p = []) => pool.query(s, p).then((r) => r.rows);
 const main = async () => {
   // 누구를 잴지 — --client 가 없으면 진행 중 파일럿·측정 켠 고객·학원을 순서대로(academy/measure-targets.mjs)
   const 대상 = await 측정대상(q, 오늘, CLIENT);
+  // 탐침 설정(loop.probes)을 읽을 고객 목록 — 코드 3곳 + DB 고객(Step 37)
+  const 고객들 = await loadClients(q, { includeTest: Boolean(CLIENT) });
   const 나눔 = 대상.length > 1;   // 학원만 있으면 나누지 않는다 — 지금과 같게
   const 유료있음 = 대상.some((t) => t.묶음 === "유료");
   const 집 = 대상.find((t) => t.slug === HOUSE) ?? 대상[0];
@@ -485,7 +487,7 @@ const main = async () => {
         // 탐침은 모든 대상 뒤 — 순서 「유료 → 학원 → 자사 → 탐침」(Step 30 Arch). 학원 승인 질문을 다 잰 날만 차례를 잡는다.
         // 유료 파일럿 고객이 있는 날은 끈다(그 몫은 고객 기준선에 쓴다)
         // 탐침을 도는 고객(clients.mjs loop.probes — 학원 넓힘, 아이로그 검색어 변형 Step 31 D43)은 고객마다 같은 하루 탐침 몫
-        if (탐침수 > 0 && !LIMIT && (t.slug === HOUSE || !나눔 || Boolean(bySlug(t.slug)?.loop?.probes))) {
+        if (탐침수 > 0 && !LIMIT && (t.slug === HOUSE || !나눔 || Boolean(bySlug(t.slug, 고객들)?.loop?.probes))) {
           if (유료있음) 요약.push(`${e.engine} 탐침: 유료 파일럿 고객이 있는 날이라 끔`);
           else 나중탐침.push(() => 탐침재기(client, e));
         }

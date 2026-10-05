@@ -30,7 +30,8 @@ import crypto from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { Pool } from "pg";
-import { CLIENTS as CLIENT_CONF, 세션글제목 } from "../clients.mjs";
+import { loadClients, 세션글제목 } from "../clients.mjs";
+import { 고객설정준비 } from "../measure-targets.mjs";
 import { 같은질문일감, 세션글키 } from "./session-task.mjs";
 import { 탐침측정DDL } from "./loop-grow.mjs";
 import { MARKETING_DDL } from "../../web/lib/marketing-core.mjs";
@@ -200,6 +201,8 @@ const ensure = async () => {
   for (const s of MARKETING_DDL) await q(s).catch((e) => console.log("  ⚠ marketing_posts 표 준비 실패", 끝(e.message, 200)));
   // 문서딱 성장 리포트 표(Step 36) — 현황판 카드가 첫 가져오기 전에도 읽는다. web/lib/growth-core.mjs 와 같은 줄. 실패해도 계속
   for (const s of GROWTH_DDL) await q(s).catch((e) => console.log("  ⚠ growth_reports 표 준비 실패", 끝(e.message, 200)));
+  // 고객 설정 칸(Step 37). 실패해도 계속 — 고객 목록은 칸 없이도 읽힌다
+  await 고객설정준비(q).catch((e) => console.log("  ⚠ 고객 설정 칸 준비 실패", 끝(e.message, 200)));
 };
 
 const 본키 = new Set(); // 이번 계획에서 신호가 살아 있는 일감
@@ -908,9 +911,11 @@ const 근무 = async (clients) => {
 
 const main = async () => {
   await ensure();
-  const clients = (await q(`select id, slug, name, domain from geo.clients where coalesce(status,'') <> 'ended' order by id`)
+  // 설정은 코드 3곳 + DB 고객(Step 37). 시험 고객(status test)은 매시 루프에 안 섞는다
+  const 고객들 = await loadClients(q);
+  const clients = (await q(`select id, slug, name, domain from geo.clients where coalesce(status,'') not in ('ended', 'test') order by id`)
     .catch(() => q(`select id, slug, name, domain from geo.clients order by id`)))
-    .map((c) => ({ ...c, conf: CLIENT_CONF.find((x) => x.id === c.id) }));
+    .map((c) => ({ ...c, conf: 고객들.find((x) => x.id === c.id) }));
 
   console.log(`에이전트 회사 · ${오늘()} KST`);
   // 한 번 도는 데 수십 분 걸린다. 끝에만 적으면 도는 동안 현황판이 「2시간 넘게 안 돌았다」로 뜬다(2026-09-24) — 시작도 적는다

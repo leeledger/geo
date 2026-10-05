@@ -27,7 +27,7 @@ import path from "node:path";
 import { execFileSync, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { Pool } from "pg";
-import { CLIENTS } from "../clients.mjs";
+import { loadClients } from "../clients.mjs";
 import { 가릴원문, 같은지역구, 가림검사, 고객사말, 수검사, 풀기 } from "../masks.mjs";
 import { 클로드코드, 클로드코드있음, 클로드기록연결 } from "./claude-code.mjs";
 import { 프로필 } from "./profile.mjs";
@@ -76,7 +76,8 @@ const 이번주 = () => {
  * 검사 함수(가림검사·수검사)는 masks.mjs 에 있다 — 도해 담당(illustrate.mjs)이 같이 쓴다(Step 12)
  */
 const 가릴말 = async ({ 후보 = true } = {}) => {
-  const 말 = new Set([...가릴원문, ...고객사말(CLIENTS)]);
+  // 코드 3곳 + DB 고객(시험 고객 포함). DB 가 열려 있으면 못 읽을 때 멈춘다(fail-closed) — DB 고객 이름이 빠진 채 통과하지 않게
+  const 말 = new Set([...가릴원문, ...고객사말(await loadClients(pool ? q : null, { includeTest: true, strict: Boolean(pool) }))]);
   if (후보) {
     const rows = await q(`select name from geo.outreach_targets`); // 실패하면 throw — fail-closed
     for (const r of rows) if (r.name?.length >= 2) 말.add(r.name);

@@ -84,7 +84,7 @@ export const 가림검사 = (text, 말들) => {
 
 /**
  * 고객사를 알아보게 하는 말 — 이름·도메인·표기(brandRe)·주소·전화 끝자리(presenceRe). 정규식 원문에서 글자만 꺼낸다.
- * clients 는 clients.mjs 의 CLIENTS 모양
+ * clients 는 clients.mjs loadClients 결과(코드 덩어리·고객설정 모양 — brandRe·presenceRe 는 없어도 된다)
  */
 export const 고객사말 = (clients) => {
   const 말 = new Set();

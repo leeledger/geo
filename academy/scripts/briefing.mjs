@@ -18,7 +18,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { Pool } from "pg";
-import { CLIENTS } from "../clients.mjs";
+import { loadClients } from "../clients.mjs";
 
 for (const l of fs.readFileSync(new URL("../.env.local", import.meta.url), "utf8").split(/\r?\n/)) {
   const m = /^([A-Z_]+)=(.*)$/.exec(l);
@@ -38,7 +38,8 @@ const days = (d) => Math.floor((Date.now() - new Date(d)) / 86400000);
 const todo = [];
 const line = (s = "") => console.log(s);
 const ENG = { bing: "Bing", naver: "네이버웹", naver_all: "네이버통합" };
-const HOME = CLIENTS[0]; // 레퍼런스 학원
+const 고객들 = await loadClients(q); // 코드 3곳 + DB 고객
+const HOME = 고객들[0]; // 레퍼런스 학원
 
 line("═".repeat(60));
 line(`  브리핑 · ${new Date().toLocaleDateString("ko-KR", { dateStyle: "long", timeZone: "Asia/Seoul" })}`);
@@ -174,7 +175,7 @@ try {
 
 // ── 다른 고객사 ──────────────────────────────────
 // 받은 곳마다 「기준선이 있나 · 다시 쟀나 · 크롤러 기록이 도나 · 손댄 날이 남나」를 본다.
-for (const c of CLIENTS.slice(1)) {
+for (const c of 고객들.slice(1)) {
   line(`\n━━ ${c.name} · ${c.domain} ━━`);
 
   const [cl] = await q(`
@@ -201,7 +202,8 @@ for (const c of CLIENTS.slice(1)) {
   const [ch] = await q(`
     select count(*)::int n, count(*) filter (where seen_at > now() - interval '24 hours')::int d
       from academy.crawl_hits where client_id = $1`, [c.id]);
-  if (ch.n === 0 && c.siteLog) {
+  // DB 고객의 기본 문구(「방문 기록 장치 없음」)는 일부러가 아니다 — 장치 일감을 그대로 올린다
+  if (ch.n === 0 && c.siteLog && c.출처?.siteLog !== "기본") {
     // 기록 장치를 일부러 안 다는 곳(문서딱 — 정적 사이트·추적 금지). 장치 일감을 올리면 헛일이다
     line(`  크롤러 기록  장치 없음(일부러) · ${c.siteLog}`);
   } else if (ch.n === 0) {

@@ -5,7 +5,7 @@
 // 7) 「세션 대기」 생애주기(열기·재사용·끝냄·판정 찾기·14일 닫기·dry) — 가짜 q
 // 하나라도 틀리면 종료코드 1.
 import assert from "node:assert/strict";
-import { bySlug, 세션글제목 } from "../clients.mjs";
+import { CLIENTS, bySlug, 세션글제목 } from "../clients.mjs";
 import { 패널, 이름말 } from "./seed-ilog-panel.mjs";
 import { 자기점검 } from "./loop-review.mjs";
 import { 대상고르기, 고객수, 측정상한 } from "../measure-targets.mjs";
@@ -18,7 +18,7 @@ const t = (name, f) => {
 const tt = async (name, f) => {
   try { await f(); pass++; } catch (e) { fail++; console.log(`✗ ${name}\n   ${e.message.split("\n")[0]}`); }
 };
-const 학원 = bySlug("robotncoding"), 아이로그 = bySlug("ilog");
+const 학원 = bySlug("robotncoding", CLIENTS), 아이로그 = bySlug("ilog", CLIENTS);
 
 // ── 1. 패널
 t("질문 20개", () => assert.equal(패널.length, 20));

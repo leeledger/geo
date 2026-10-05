@@ -209,7 +209,7 @@ for (const c of clients) {
     report(`nomeasure-${c.slug}`, "막힘",
       `${c.name} — 검색 노출을 한 번도 안 쟀습니다`,
       "기준선이 없으면 나중에 좋아져도 증명을 못 합니다. 고객사를 받은 첫날 할 일입니다.",
-      `academy/clients.mjs 에 검색어를 넣고 node scripts/check-index.mjs --client ${c.slug}`);
+      `geo.clients.config 의 queries.compete 에 검색어를 넣고(코드 3곳은 academy/clients.mjs) node scripts/check-index.mjs --client ${c.slug}`);
   }
 }
 

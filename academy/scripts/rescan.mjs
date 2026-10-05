@@ -16,7 +16,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
 import { Pool } from "pg";
-import { selectClients } from "../clients.mjs";
+import { 고객고르기 } from "../clients.mjs";
 
 for (const l of fs.readFileSync(new URL("../.env.local", import.meta.url), "utf8").split(/\r?\n/)) {
   const m = /^([A-Z_]+)=(.*)$/.exec(l);
@@ -42,7 +42,7 @@ const norm = (loc) => {
 };
 
 let failed = 0;
-for (const c of selectClients()) {
+for (const c of await 고객고르기(process.argv, q)) {
   console.log(`\n══ ${c.name} · ${c.domain} ══`);
 
   // ── 1. 진단

@@ -11,7 +11,7 @@
  *
  * 설정이 없는 고객도 목록에 남는다(conf=null). 실행기가 그 고객 id 로 「측정 설정 없음」 일감을 올린다 — 조용히 빼지 않는다.
  */
-import { bySlug, CLIENTS } from "./clients.mjs";
+import { CODE_CLIENTS, 코드덩어리, 고객설정, 도메인정리 } from "./clients.mjs";
 import { 더하기, 구축있음, 구축대기한도, 파일럿칸준비 } from "./pilot-plan.mjs";
 
 export const HOUSE = "robotncoding";
@@ -20,21 +20,30 @@ export const HOUSE = "robotncoding";
 export async function 측정설정준비(q) {
   await q(`alter table geo.clients add column if not exists answer_pattern text`);
   await q(`alter table geo.clients add column if not exists measure_active boolean not null default false`);
-  for (const c of CLIENTS) {
+  for (const c of CODE_CLIENTS) {
     if (!(c.answerRe instanceof RegExp)) continue;
     await q(`update geo.clients set answer_pattern = $2 where slug = $1 and coalesce(answer_pattern, '') = ''`, [c.slug, c.answerRe.source]);
   }
 }
 
-export const 도메인정리 = (d) => String(d ?? "").trim().toLowerCase()
-  .replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/[/?#].*$/, "");
+export { 도메인정리 };
+
+/**
+ * 고객 설정 칸(Step 37) — 사람이 넣은 말(config)과 사이트를 읽어 얻은 값(derived). 지우거나 바꾸지 않고 더하기만.
+ * company.mjs 시작 준비가 부른다. 실패해도 계속 — loadClients 는 to_jsonb 로 읽어 칸이 없어도 돈다
+ */
+export async function 고객설정준비(q) {
+  await q(`alter table geo.clients add column if not exists config jsonb not null default '{}'::jsonb`);
+  await q(`alter table geo.clients add column if not exists derived jsonb not null default '{}'::jsonb`);
+}
 
 /**
  * 한 고객의 측정 설정. 이름 정규식과 도메인이 둘 다 있어야 잰다. 없으면 null.
  * 정규식은 늘 대소문자 무시(i) — clients.mjs 의 두 덩어리가 다 i 였다.
  */
 export function 측정설정(row) {
-  const 덩어리 = bySlug(row.slug);
+  // loadClients 와 같은 설정 — 코드 덩어리가 있으면 그것, 없으면 고객설정(row). 동기라 DB 를 다시 읽지 않는다
+  const 덩어리 = 코드덩어리(row.slug) ?? 고객설정(row);
   let answerRe = null;
   const 원문 = String(row.answer_pattern ?? "").trim();
   if (원문) {

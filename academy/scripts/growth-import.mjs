@@ -13,7 +13,7 @@
  */
 import fs from "node:fs";
 import pg from "pg";
-import { selectClients } from "../clients.mjs";
+import { 고객고르기, 잠깐DB } from "../clients.mjs";
 import { GROWTH_DDL, kstDay, parseGrowthReport, parseOpportunityIssue, weekOfName, weeksToFetch } from "../../web/lib/growth-core.mjs";
 
 const DRY = process.argv.includes("--dry");
@@ -121,7 +121,8 @@ async function 가져오기(c, q) {
   return { ok: !실패.length, summary: `${앞말} · ${제안}${실패.length ? ` · 실패: ${실패.join(" / ")}` : ""}` };
 }
 
-const 고객 = selectClients().filter((c) => c.growthReports);
+// growthReports 는 문서딱 저장소 전용 칸(코드 덩어리)이다 — DB 고객에는 없다
+const 고객 = (await 잠깐DB((q) => 고객고르기(process.argv, q))).filter((c) => c.growthReports);
 if (!고객.length) { say("성장 리포트를 읽을 고객이 없습니다 (clients.mjs growthReports)"); process.exit(0); }
 
 const client = DRY ? null : await db();

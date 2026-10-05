@@ -12,6 +12,7 @@
  *   node scripts/marketing-draft.mjs --client docttak                 오늘 몫을 써서 geo.marketing_posts 에 넣는다
  *   node scripts/marketing-draft.mjs --client docttak --dry           쓰고 표준출력만(숫자 대조표 포함). DB 는 읽기만
  *   node scripts/marketing-draft.mjs --client docttak --channels jisikin,cafe,blog   요일 규칙 대신 이 채널만
+ *   node scripts/marketing-draft.mjs --client docttak --no-claude     --dry 처럼 읽기만 하고 Claude 는 안 부른다. 검색어·페이지·근거까지만 찍는다(Step 37 회귀·시험)
  *   --max-calls N   이번 실행의 Claude 호출 상한(기본 5 — 채널 셋 + 다시 쓰기 둘). 측정 아닌 몫(하루 18)을 같이 쓴다
  *
  * 끝 코드: 0 정상(한도로 건너뛴 것 포함) · 1 실패
@@ -21,7 +22,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
 
-import { bySlug } from "../clients.mjs";
+import { loadClients } from "../clients.mjs";
 import { 클로드코드, 클로드기록연결 } from "./claude-code.mjs";
 import { 검사, 숫자뽑기, 최소길이, 문장들 } from "./slop-rules.mjs";
 import { 금지, 파싱, 공통짜임새 } from "./writer-common.mjs";
@@ -33,7 +34,8 @@ for (const l of fs.readFileSync(new URL("../.env.local", import.meta.url), "utf8
 }
 
 const arg = (k) => { const i = process.argv.indexOf(k); return i >= 0 ? process.argv[i + 1] : null; };
-const DRY = process.argv.includes("--dry");
+const 안부름 = process.argv.includes("--no-claude");
+const DRY = process.argv.includes("--dry") || 안부름;
 const SLUG = arg("--client");
 const 지정채널 = arg("--channels")?.split(",").map((s) => s.trim()).filter(Boolean) ?? null;
 const 호출상한 = Number(arg("--max-calls") ?? 5);
@@ -287,14 +289,24 @@ export function 대조표(text, p) {
 
 // ─────────────────────────────────────────── 실행
 async function main() {
-  const c = SLUG ? bySlug(SLUG) : null;
-  if (!c) { console.log("사용법: node scripts/marketing-draft.mjs --client <slug> [--dry] [--channels jisikin,cafe,blog]"); process.exitCode = 1; return; }
-  if (!c.marketing) { console.log(`${c.name}: 바깥 글 설정(clients.mjs marketing)이 없습니다 — 건너뜀`); return; }
+  if (!SLUG) { console.log("사용법: node scripts/marketing-draft.mjs --client <slug> [--dry] [--channels jisikin,cafe,blog]"); process.exitCode = 1; return; }
 
   const u = new URL(process.env.DATABASE_URL);
   u.searchParams.delete("sslmode");
   const db = new pg.Pool({ connectionString: u.toString(), ssl: { rejectUnauthorized: process.env.DATABASE_SSL_INSECURE !== "true" }, max: 2 });
   const q = (s, v = []) => db.query(s, v).then((r) => r.rows);
+  // 코드 3곳 + DB 고객(Step 37). 콕 집어 부르니 시험 고객도 찾는다
+  const [c] = await loadClients(q, { slug: SLUG, includeTest: true });
+  const 빠진칸 = !c ? null
+    : c.출처 === "코드" ? (c.marketing ? null : "marketing")
+    : !c.marketing.enabled ? "marketing.enabled" : !c.marketing.pages.length ? "marketing.pages" : !c.marketing.disclosure ? "marketing.disclosure" : null;
+  if (!c || 빠진칸) {
+    console.log(!c ? `고객사 없음: ${SLUG}`
+      : c.출처 === "코드" ? `${c.name}: 바깥 글 설정(clients.mjs marketing)이 없습니다 — 건너뜀` : `${c.slug}: ${빠진칸} 없음 — 건너뜀`);
+    if (!c) process.exitCode = 1;
+    await db.end().catch(() => {});
+    return;
+  }
   // --dry 는 DB 를 안 바꾼다 — 호출 기록(geo.claude_calls)도 안 남기고 상한은 읽기만 한다. 사람이 손으로 돌릴 때만 쓴다
   클로드기록연결(DRY ? (s, v) => (/^\s*(insert|create|alter)/i.test(s) ? Promise.resolve([]) : q(s, v)) : q);
   try {
@@ -324,7 +336,12 @@ async function main() {
     if (!사이트맵.size) throw new Error("사이트맵이 비었습니다");
     const 안내수 = [...사이트맵].filter((s) => /^\/guide\/[^/]+\/$/.test(s)).length;
     // 날짜를 넣지 않는다 — 근거 글의 「2026-10-02」가 본문의 「10」「02」를 숫자 게이트에서 통과시킨다
-    const 사실 = `${c.name} 고정 사실(오늘 사이트맵 기준): 안내 글 ${안내수}편, 모든 도구 무료·가입 없음, 파일은 기기 안에서 처리하고 어디로도 보내지 않음.`;
+    // 「무료·가입 없음·기기 안 처리」는 문서딱(코드 덩어리) 사실이다. DB 고객에게 붙이면 지어낸 사실이 된다 — 사이트맵에서 센 것만
+    const 사실 = c.출처 === "코드"
+      ? `${c.name} 고정 사실(오늘 사이트맵 기준): 안내 글 ${안내수}편, 모든 도구 무료·가입 없음, 파일은 기기 안에서 처리하고 어디로도 보내지 않음.`
+      : `${c.name} 고정 사실(오늘 사이트맵 기준): 안내 글 ${안내수}편.`;
+    // 프롬프트·관문 문장이 아직 문서딱 전용이다(「문서딱 말고」「직접 만든 무료 도구」). DB 고객은 Claude 를 부르기 직전까지만 — Step 38 에서 일반화
+    const 부르기전멈춤 = 안부름 || c.출처 !== "코드";
 
     let 호출 = 0;
     let 실패 = 0, 오류 = 0;
@@ -354,6 +371,10 @@ async function main() {
         근거: [사실, ...페이지.map((x) => x.글)].join("\n"),
       };
       p.대안 = 대안찾기(페이지.map((x) => x.글), p.기관);
+      if (부르기전멈춤) {
+        console.log(`\n[${CHANNEL_NAME[ch]}] 「${query}」 · 근거 ${페이지.map((x) => x.url.replace(/^https?:\/\/[^/]+/, "")).join(" · ")} · 근거 ${p.근거.length}자 — Claude 안 부름(${안부름 ? "--no-claude" : "프롬프트가 문서딱 전용 — Step 38 전"})`);
+        continue;
+      }
 
       let post = null, 이유 = [], 판 = 0;
       while (판 < 2 && 호출 < 호출상한) {

@@ -16,7 +16,7 @@ let fail = 0, pass = 0;
 const t = (name, f) => {
   try { f(); pass++; } catch (e) { fail++; console.log(`✗ ${name}\n   ${e.message.split("\n")[0]}`); }
 };
-const 문서딱 = bySlug("docttak"), 아이로그 = bySlug("ilog"), 학원 = bySlug("robotncoding");
+const 문서딱 = bySlug("docttak", CLIENTS), 아이로그 = bySlug("ilog", CLIENTS), 학원 = bySlug("robotncoding", CLIENTS);
 const { 패널, 이름말, 파일럿 } = 문서딱패널;
 
 // ── 1. 패널 — 브리프 「측정 요청」 목록에서만

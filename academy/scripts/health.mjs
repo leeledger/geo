@@ -14,7 +14,7 @@
  */
 import fs from "node:fs";
 import { Pool } from "pg";
-import { CLIENTS } from "../clients.mjs";
+import { loadClients } from "../clients.mjs";
 
 for (const l of fs.readFileSync(new URL("../.env.local", import.meta.url), "utf8").split(/\r?\n/)) {
   const m = /^([A-Z_]+)=(.*)$/.exec(l);
@@ -27,9 +27,22 @@ const fail = (s) => { console.log(`  ✗    ${s}`); bad.push(s); };
 
 const CITED = "https://geo-rose-nine.vercel.app";
 
+// 크롤러 확인에 쓰는 DB 를 먼저 연다 — 고객 목록(코드 3곳 + DB 고객)도 여기서. 못 읽으면 코드 3곳(stderr 한 줄)
+const u = new URL(process.env.DATABASE_URL);
+u.searchParams.delete("sslmode");
+const pool = new Pool({
+  connectionString: u.toString(),
+  ssl: { rejectUnauthorized: process.env.DATABASE_SSL_INSECURE !== "true" },
+});
+const 고객들 = (await loadClients((s, p = []) => pool.query(s, p).then((r) => r.rows))).filter((c) => {
+  if (c.domain) return true;
+  console.log(`  ${c.slug}: domain 없음 — 건너뜀`);
+  return false;
+});
+
 /** 열려야 하는 주소들. 하나라도 막히면 색인이 끊긴다. */
 const URLS = [
-  ...CLIENTS.flatMap((c) => [
+  ...고객들.flatMap((c) => [
     [`${c.name} 홈`, `https://${c.domain}/`],
     [`${c.name} 사이트맵`, `https://${c.domain}/sitemap.xml`],
     // llms.txt 는 있다고 설정한 고객만 본다. 없는 곳을 실패로 치면 매번 헛경보다
@@ -53,7 +66,7 @@ for (const [name, url] of URLS) {
 
 /** robots.txt 가 전부 막고 있으면 사고다. 한 번 그렇게 나가 있었다. */
 console.log("\n── robots ──");
-for (const [name, base] of [...CLIENTS.map((c) => [c.name, `https://${c.domain}`]), ["사이티드", CITED]]) {
+for (const [name, base] of [...고객들.map((c) => [c.name, `https://${c.domain}`]), ["사이티드", CITED]]) {
   try {
     const t = await (await fetch(`${base}/robots.txt`)).text();
     const blocksAll = /^\s*User-Agent:\s*\*\s*$[\s\S]{0,80}?^\s*Disallow:\s*\/\s*$/im.test(t);
@@ -66,15 +79,9 @@ for (const [name, base] of [...CLIENTS.map((c) => [c.name, `https://${c.domain}`
 
 // ── 크롤러가 오고 있는가
 console.log("\n── 크롤러 ──");
-const u = new URL(process.env.DATABASE_URL);
-u.searchParams.delete("sslmode");
-const pool = new Pool({
-  connectionString: u.toString(),
-  ssl: { rejectUnauthorized: process.env.DATABASE_SSL_INSECURE !== "true" },
-});
 
 try {
-  for (const c of CLIENTS) {
+  for (const c of 고객들) {
     const { rows: [ever] } = await pool.query(
       `select count(*)::int n from academy.crawl_hits where client_id = $1`, [c.id]);
     // 기록 장치를 아직 안 단 곳을 「끊겼다」고 실패시키면 헛경보다. 정찰(scout)이 따로 이슈로 연다.
@@ -87,7 +94,7 @@ try {
     else ok(`${c.name} 36시간 크롤러 ${d.n}회`);
   }
 
-  for (const c of CLIENTS.filter((x) => x.publishes)) {
+  for (const c of 고객들.filter((x) => x.publishes)) {
     const { rows: [p] } = await pool.query(
       `select max(published_at) last from academy.posts where published and client_id = $1`, [c.id]);
     const days = p.last ? Math.floor((Date.now() - new Date(p.last)) / 86400000) : 999;

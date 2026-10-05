@@ -14,7 +14,7 @@
  */
 import fs from "node:fs";
 import { Pool } from "pg";
-import { selectClients } from "../clients.mjs";
+import { 고객고르기, 잠깐DB } from "../clients.mjs";
 
 for (const l of fs.readFileSync(new URL("../.env.local", import.meta.url), "utf8").split(/\r?\n/)) {
   const m = /^([A-Z_]+)=(.*)$/.exec(l);
@@ -135,10 +135,12 @@ const ENGINES = [
   { id: "naver_all", name: "네이버 통합검색", run: naverAll },
 ];
 
-const clients = selectClients();
+const clients = await 잠깐DB((q) => 고객고르기(process.argv, q));
 const rows = [];
 
 for (const c of clients) {
+  // 도메인이 없으면 색인도 이름도 못 센다 — 조용히 빼지 않고 한 줄
+  if (!c.domain || !c.brandRe) { console.log(`\n${c.slug}: domain 없음 — 건너뜀`); continue; }
   console.log(`\n══ ${c.name} · ${c.domain} ══`);
   const mine = [];
   for (const e of ENGINES) {

@@ -14,7 +14,7 @@
  *
  * 승인은 원장이 /admin/pilots 에서 한다. 여기서는 approved=false 로만 넣는다. 이미 있는 칸은 덮어쓰지 않는다.
  */
-import { bySlug } from "../clients.mjs";
+import { 코드덩어리 } from "../clients.mjs";
 
 export const SLUG = "ilog";
 
@@ -43,7 +43,7 @@ export const 패널 = [
 ];
 
 /** AI 답에서 이름을 세는 말 — clients.mjs 가 원문이다(한 곳) */
-export const 이름말 = () => bySlug(SLUG).answerRe.source;
+export const 이름말 = () => 코드덩어리(SLUG).answerRe.source;
 
 export const 파일럿 = {
   price: 0, payment_ref: "자사 실증", contact_name: "원장",

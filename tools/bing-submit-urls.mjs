@@ -16,7 +16,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { bingClient } from "./bing-site.mjs";
 
-const CLIENT = bingClient();
+const CLIENT = await bingClient();
 const SITE = `https://${CLIENT.domain}/`;
 const LOOK = process.argv.includes("--look");
 const DONE = path.join(process.cwd(), "bing-done.json");

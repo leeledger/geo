@@ -1,20 +1,19 @@
 /** 로봇&코딩학원 자사 실증 사례가 어디까지 증명됐는지 한 장으로 판정한다. */
 import fs from "node:fs";
 import { Pool } from "pg";
-import { bySlug } from "../clients.mjs";
+import { 고객고르기 } from "../clients.mjs";
 
 for (const l of fs.readFileSync(new URL("../.env.local", import.meta.url), "utf8").split(/\r?\n/)) {
   const m = /^([A-Z_]+)=(.*)$/.exec(l);
   if (m && !process.env[m[1]]) process.env[m[1]] = m[2];
 }
-const ci = process.argv.indexOf("--client");
-const selected = bySlug(ci >= 0 ? process.argv[ci + 1] : "robotncoding");
-if (!selected) throw new Error(`고객사 없음: ${process.argv[ci + 1]}`);
-const CLIENT_ID = selected.id;
 const u = new URL(process.env.DATABASE_URL);
 u.searchParams.delete("sslmode");
 const pool = new Pool({ connectionString: u.toString(), ssl: { rejectUnauthorized: process.env.DATABASE_SSL_INSECURE !== "true" } });
 const q = async (s, p = []) => (await pool.query(s, p)).rows;
+// 지정이 없으면 학원 — 예전 기본값 그대로. 없는 고객이면 고객고르기 가 있는 것을 나열하며 멈춘다
+const [selected] = await 고객고르기(process.argv.includes("--client") ? process.argv : ["", "", "--client", "robotncoding"], q);
+const CLIENT_ID = selected.id;
 const has = async (t) => (await q(`select to_regclass('academy.${t}') r`))[0].r !== null;
 
 console.log("════════════════════════════════════════════════");

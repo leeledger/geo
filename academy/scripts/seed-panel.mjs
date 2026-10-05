@@ -12,7 +12,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { bySlug } from "../clients.mjs";
+import { 코드덩어리 } from "../clients.mjs";
 
 const 패널파일 = {
   ilog: () => import("./seed-ilog-panel.mjs"),
@@ -23,7 +23,7 @@ const 패널파일 = {
 export function 패널점검(m) {
   if (m.패널.length !== 20) return `질문이 ${m.패널.length}개`;
   if (new Set(m.패널.map(([, x]) => x)).size !== 20) return "같은 질문이 있음";
-  const 덩어리 = bySlug(m.SLUG);
+  const 덩어리 = 코드덩어리(m.SLUG);
   if (!덩어리) return `clients.mjs 에 ${m.SLUG} 덩어리 없음`;
   if (m.이름말() !== 덩어리.answerRe.source) return "이름 판별 말이 clients.mjs 와 다름";
   return null;
@@ -39,7 +39,7 @@ if (직접) {
   }
   const APPLY = process.argv.includes("--apply") && !process.argv.includes("--dry");
   const m = await 패널파일[SLUG]();
-  const 덩어리 = bySlug(SLUG);
+  const 덩어리 = 코드덩어리(SLUG);
   const { 패널, 이름말, 파일럿 } = m;
 
   const { Pool } = await import("pg");

@@ -3,7 +3,7 @@
 // D38 효과 전파 · D39 후퇴 · D40 불린 탐침 → 확장 질문 · D41 안 불린 반경 → 세션 글 · D42 경쟁사 우세 정렬 · D43 아이로그 변형 탐침
 // 각각 걸리는 경우 · 안 걸리는 경우 · 표본 부족 · 엔진(곳) 바뀜. 하나라도 틀리면 종료코드 1.
 import assert from "node:assert/strict";
-import { bySlug } from "../clients.mjs";
+import { CLIENTS, bySlug } from "../clients.mjs";
 import { 패널 } from "./seed-ilog-panel.mjs";
 import { 자기점검, 변형후보, 꼬리뺀 } from "./loop-review.mjs";
 import { 전파찾기, 전파칸, 사다리짓기, 경쟁우세, 후보고르기, 불리던글, 확장줄, 승격일감, 확장넣기 } from "./loop-grow.mjs";
@@ -217,36 +217,36 @@ const 칸 = { prompt_id: "p8", text: "서울 코딩학원 어디가 좋아?", ra
 const 학원 = { id: 1, name: "로봇&코딩학원" };
 await tt("D41 일감 — 열린 세션 글이 있으면 안 연다", async () => {
   const w = 가짜q([[/status='세션 대기' order by id limit 1/, [{ id: 40 }]]]);
-  const r = await 탐침글일감(w.q, { c: 학원, 설정: bySlug("robotncoding").loop, gap: 칸, 곳이름: "Claude", 오늘, DRY: false });
+  const r = await 탐침글일감(w.q, { c: 학원, 설정: bySlug("robotncoding", CLIENTS).loop, gap: 칸, 곳이름: "Claude", 오늘, DRY: false });
   assert.equal(r.id, null);
   assert.match(r.말, /#40/);
   assert.equal(w.부름.some((c) => /insert/.test(c.sql)), false);
 });
 await tt("D41 일감 — 재료 없으면 「재료 필요」, 있으면 재료로만", async () => {
   const w = 가짜q([[/academy.materials/, [{ n: 0 }]], [/insert into geo.agent_tasks/, [{ id: 61 }]]]);
-  const r = await 탐침글일감(w.q, { c: 학원, 설정: bySlug("robotncoding").loop, gap: 칸, 곳이름: "Claude", 오늘, DRY: false });
+  const r = await 탐침글일감(w.q, { c: 학원, 설정: bySlug("robotncoding", CLIENTS).loop, gap: 칸, 곳이름: "Claude", 오늘, DRY: false });
   assert.equal(r.id, 61);
   const 넣음 = w.부름.find((c) => /insert into geo.agent_tasks/.test(c.sql));
   assert.equal(넣음.p[2], "세션에서 로봇&코딩학원 글 초안: 「서울 코딩학원 어디가 좋아?」 — 재료 필요");
   assert.match(넣음.p[3], /재료 필요/);
   assert.equal(JSON.parse(넣음.p[5]).probe, "p8");
   const m = 가짜q([[/academy.materials/, [{ n: 2 }]], [/insert into geo.agent_tasks/, [{ id: 62 }]]]);
-  await 탐침글일감(m.q, { c: 학원, 설정: bySlug("robotncoding").loop, gap: 칸, 곳이름: "Claude", 오늘, DRY: false });
+  await 탐침글일감(m.q, { c: 학원, 설정: bySlug("robotncoding", CLIENTS).loop, gap: 칸, 곳이름: "Claude", 오늘, DRY: false });
   assert.doesNotMatch(m.부름.find((c) => /insert into geo.agent_tasks/.test(c.sql)).p[2], /재료 필요/);
 });
 await tt("D41 일감 — dry 는 닫기·쓰기 없음, 같은 문장 일감이 있으면 안 연다", async () => {
   const d = 가짜q([[/academy.materials/, [{ n: 0 }]]]);
-  const r = await 탐침글일감(d.q, { c: 학원, 설정: bySlug("robotncoding").loop, gap: 칸, 곳이름: "Claude", 오늘, DRY: true });
+  const r = await 탐침글일감(d.q, { c: 학원, 설정: bySlug("robotncoding", CLIENTS).loop, gap: 칸, 곳이름: "Claude", 오늘, DRY: true });
   assert.match(r.말, /^\(dry\)/);
   assert.equal(d.부름.some((c) => /^\s*(update|insert)/.test(c.sql)), false);
   const s = 가짜q([[/kind='question-draft' and regexp_replace/, [{ id: 12, status: "완료" }]]]);
-  const r2 = await 탐침글일감(s.q, { c: 학원, 설정: bySlug("robotncoding").loop, gap: 칸, 곳이름: "Claude", 오늘, DRY: false });
+  const r2 = await 탐침글일감(s.q, { c: 학원, 설정: bySlug("robotncoding", CLIENTS).loop, gap: 칸, 곳이름: "Claude", 오늘, DRY: false });
   assert.match(r2.말, /#12\(완료\)/);
 });
 
 // ── D42 경쟁사 우세
 const 답 = (s) => ({ answer: s });
-const 우리 = bySlug("robotncoding").answerRe;
+const 우리 = bySlug("robotncoding", CLIENTS).answerRe;
 t("D42 걸림 — 경쟁사 3번 − 우리 1번 = 2, 같은 단계에서 먼저", () => {
   const rows = [답("코딩나라 추천"), 답("코딩나라, 로봇앤코딩학원"), 답("코딩 나라가 좋아요"), 답("없음")];
   assert.equal(경쟁우세(rows, 우리, ["코딩나라"]), 2);
@@ -265,7 +265,7 @@ t("D42 표본 부족 — 답 원문이 없으면 0", () => {
 });
 
 // ── D43 아이로그 변형 탐침
-const 아이로그 = bySlug("ilog");
+const 아이로그 = bySlug("ilog", CLIENTS);
 const 승인 = 패널.map(([stage, text], i) => ({ prompt_id: `q${i + 1}`, stage, text }));
 t("D43 기능 말은 승인 검색어에서만 — 새 말 없음", () => {
   const v = 변형후보(승인, 아이로그.loop.probeVariants);
@@ -316,7 +316,7 @@ t("꼬리뺀 — 띄어쓰기·꼬리말", () => {
   assert.equal(꼬리뺀("추천 학원"), "추천학원");
 });
 t("D43 학원은 그대로 넓힘(변형 안 만듦)", () => {
-  const r = 자기점검({ ...기본, 탐침: bySlug("robotncoding").loop.probes, questions: [], rows: [] });
+  const r = 자기점검({ ...기본, 탐침: bySlug("robotncoding", CLIENTS).loop.probes, questions: [], rows: [] });
   assert.equal(r.probes.length, 3);
   assert.ok(r.probes.every((p) => p.seed));
 });

@@ -1428,3 +1428,25 @@ Known Gaps (26)
 - 2차(Richard 보류 반영, 2026-10-05): serp 잡 한도 8→10분(세션 결정, 최근 6분대) · growth-import 단계 timeout-minutes 2 · fetch 마다 AbortSignal.timeout(20초) · 토큰은 api.github.com·raw.githubusercontent.com 에만 · 이슈 갱신 날짜 KST(kstDay) · gsc·cf JSON 모양 검사(빠지면 그 덩어리 null + notes·실패 줄 「모양 다름」) · bing-site 일감은 빙.ok 일 때만 닫음 · gsc 없는 고객의 gsc-submit 로컬 대기 일감은 local-agent 가 「닫힘」(해당 없음)으로 닫음 — 지금 해당 행 0(학원 로컬 대기 1건뿐)
 
 - 2026-10-05 Step 36 배포: main 4167211 · web 자동 배포 Ready · serp 수동 실행 37262380486 에서 growth-import 정상(문서딱 2026-41 이미 있음). 다음 Step 37 — 브리프를 ARCHITECT-BRIEF.md 로 옮김
+
+### Step 37 — 고객 설정을 DB 로(config/derived · loadClients · 스크립트 전환 · 가드 · E2E) — BUILT · Richard 대기 (2026-10-05, Bob)
+- 지음: geo.clients config·derived jsonb(schema.sql 2곳 · measure-targets 고객설정준비 ← company 시작 준비) · clients.mjs CODE_CLIENTS·lit·고객설정·loadClients·고객고르기·잠깐DB·코드덩어리 · 스크립트 전환(check-index·indexnow·health·briefing·daily-agent·company·who-wins·rescan·growth-import·verdict·log-intervention·sales·illustrate·ai-measure·marketing-draft·seed 3·scout 문구 · tools submit-gsc·bing-site·bing-submit-urls·local-agent) · agents.ts 문장 1 · test-clients(82)·test-new-client(--live E2E 16)
+- 결정: loadClients 는 `to_jsonb(c)` 로 읽는다 — config 칸이 생기기 전 DB(배포 직후 첫 company 전)에서도 실패하지 않는다
+- 결정: --client·CLIENT_ID 로 콕 집으면 status 'test' 도 찾는다. 그 밖(전체·company·daily-agent 전체)은 active 만 — 시험 고객이 매시 루프에 안 섞인다. company·daily-agent 의 DB 고객 질의에도 status 'test' 제외를 넣었다
+- 결정: DB 를 안 열던 스크립트는 `잠깐DB(fn)` — 연결 설정은 기존 스크립트와 같은 줄(새 방식 아님). 못 열면 fn(null) → 코드 3곳 + stderr
+- 결정: 가드 = CLIENTS·selectClients import 0(clients.mjs·test-* 밖, as·동적 import 포함) + CODE_CLIENTS 는 measure-targets(answer_pattern 씨앗)만. seed-*-panel 은 `코드덩어리(slug)`
+- 결정: 측정설정(row) = `코드덩어리(slug) ?? 고객설정(row)` — loadClients 와 같은 설정을 동기로. DB 고객 값은 예전(row.domain 정리·answer_pattern)과 같다
+- 결정: brandHit null(hitWords 없음)이면 이름 질문은 인용으로만 적중. 코드 3곳 경로 그대로
+- 결정: offsite 기본 두 줄 = 문서딱 두 줄에서 「문서딱」을 고객 이름으로, 사실 주장 없음. homeLd 는 derived.homeLdTypes 첫 타입이 있으면 그 줄과 Missing 문구에 더한다
+- 결정: indexnow 키는 `[A-Za-z0-9-]{8,128}` 만(주소에 들어간다). DB 고객 blogId env 이름은 slug 의 영숫자 밖 글자를 `_` 로
+- 결정: briefing — DB 고객의 기본 siteLog(「방문 기록 장치 없음」)는 「일부러」로 안 본다. 장치 일감을 그대로 올린다
+- 결정: 가림(sales·illustrate)은 DB 가 열려 있으면 strict — DB 고객 이름을 못 읽은 채 통과하지 않는다. includeTest 로 시험 고객까지 가린다
+- 결정(Escalate): marketing-draft 프롬프트·관문·고정 사실이 문서딱 전용이라 DB 고객은 Claude 직전에 멈추고, 사실 줄에서 문서딱 사실을 뺐다. `--no-claude` 플래그(브리프 Flag — --dry 가 Claude 를 부른다)를 먼저 넣고 회귀 「전」을 떴다
+- 운영 DB: geo.clients config·derived 칸 추가(E2E 의 고객설정준비, add column if not exists 만). E2E 시험 고객 id 6 → 끝에서 지움, 남은 행 0(client_id·pilot_id 칸 있는 표 전부 확인)
+- 회귀: daily-agent·check-index·marketing(--no-claude)·pilot-report 3곳·indexnow --list·briefing·health 줄 차이 0. pm-report 는 데이터 변화(바뀐 파일을 import 안 함)
+- KG-37-1 바깥 글 프롬프트·관문·고정 사실 일반화 — DB 고객이 바깥 글을 쓰려면 필요(Step 38)
+- KG-37-2 web/lib/agents.ts PIPES 가 id 1·2·3 고정 — DB 고객은 화면에서 indexnow·marketing false(Step 38 화면)
+- KG-37-3 local-agent·bing-submit-urls·submit-gsc 실행 확인 안 함(원장 로그인 브라우저) — 배포 뒤 12:40 local-agent 로그로
+- KG-37-4 E2E 가 geo.clients 시퀀스 6 을 씀(다음 7)
+- KG-37-5 submit-gsc DB 고객 찾기가 status active·test 만(옛 D19 는 status 무관)
+- KG-37-6 health 가 DATABASE_URL 없으면 주소 확인 전에 멈춤(Actions 는 늘 있음)

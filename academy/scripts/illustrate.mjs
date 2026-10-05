@@ -21,7 +21,7 @@
  */
 import fs from "node:fs";
 import { Pool } from "pg";
-import { CLIENTS } from "../clients.mjs";
+import { loadClients } from "../clients.mjs";
 import { 가림검사, 고객사말, 수검사, 풀기 } from "../masks.mjs";
 import { 클로드코드, 클로드코드있음, 클로드기록연결 } from "./claude-code.mjs";
 import { 프로필 } from "./profile.mjs";
@@ -411,7 +411,7 @@ const 답읽기 = (text) => {
 // ─────────────────────────────────────────── 가릴 말
 /** 이 글의 고객사가 아닌 고객사 — clients.mjs + DB 의 고객사 표 + 영업 후보. 못 읽으면 멈춘다(fail-closed) */
 const 남의말 = async (clientId) => {
-  const 말 = new Set(고객사말(CLIENTS.filter((c) => c.id !== clientId)));
+  const 말 = new Set(고객사말((await loadClients(q, { includeTest: true, strict: true })).filter((c) => c.id !== clientId)));
   for (const r of await q(`select name, domain from geo.clients where id <> $1`, [clientId])) {
     if (r.name?.length >= 2) 말.add(r.name);
     if (r.domain) 말.add(r.domain);
@@ -512,7 +512,7 @@ const 살펴보기 = async () => {
 // ─────────────────────────────────────────── --test
 const 시험 = async () => {
   const 본문 = "## 두 단계로 봅니다\n\n1단계는 블록 코딩이다. 2단계는 파이썬이다. 30분 수업에서 로봇&코딩 도구를 쓴다.\n\n## 넘어가는 기준\n\n설명할 수 있으면 넘어간다.";
-  const 말들 = 고객사말(CLIENTS.filter((c) => c.id !== 1));
+  const 말들 = 고객사말((await loadClients(null)).filter((c) => c.id !== 1));
   const 틀 = (글자, { 머리 = "", 속 = "" } = {}) =>
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 360" width="960" height="360" role="img" aria-label="두 단계로 본다. 1단계 블록 코딩, 2단계 파이썬."${머리}>` +
     `<defs><linearGradient id="g"><stop offset="0" stop-color="#0B0F16"/></linearGradient></defs><rect width="960" height="360" fill="url(#g)"/>${속}` +

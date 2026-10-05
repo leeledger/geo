@@ -134,6 +134,10 @@ alter table academy.snapshots add column if not exists coverage_pct  numeric(5,1
 alter table academy.snapshots add column if not exists engines       int;
 alter table academy.snapshots add column if not exists lead_hours    int;
 
+-- geo.clients 는 web/db/schema.sql 에서 만든다. 학원 스크립트가 읽는 Step 37 칸을 같은 줄로 적어 둔다 (academy/measure-targets.mjs 고객설정준비)
+alter table geo.clients add column if not exists config jsonb not null default '{}'::jsonb;
+alter table geo.clients add column if not exists derived jsonb not null default '{}'::jsonb;
+
 -- geo.pilots 는 web/db/schema.sql 에서 만든다. 학원 스크립트(company.mjs · measure-targets · pilot-report)가 읽는 Step 26 칸을 같은 줄로 적어 둔다
 -- Step 26 파일럿 생애주기 — academy/pilot-plan.mjs 파일럿칸준비 · web/lib/pilot-plan.ts PILOT_COLUMNS 와 같은 줄
 -- 착수(질문 승인 뒤 첫 측정일, KST) · 기준선 보고 보낸 때 · 구축·세팅(none|setup|build)과 사이트 연 날 · 경쟁사(쉼표 이름) · 계약 칸

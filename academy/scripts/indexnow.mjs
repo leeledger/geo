@@ -23,7 +23,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { selectClients } from "../clients.mjs";
+import { 고객고르기, 잠깐DB } from "../clients.mjs";
 
 const ACADEMY_ROOT = fileURLToPath(new URL("../", import.meta.url));
 
@@ -75,7 +75,7 @@ const ENDPOINTS = [
   { name: "Naver", url: "https://searchadvisor.naver.com/indexnow" },
 ];
 
-const clients = selectClients();
+const clients = await 잠깐DB((q) => 고객고르기(process.argv, q));
 const given = process.argv.slice(2).filter((a, i, all) => !a.startsWith("--") && all[i - 1] !== "--client");
 if (given.length && clients.length > 1) {
   throw new Error("주소를 직접 줄 때는 --client 로 한 곳을 고르세요.");
@@ -84,6 +84,20 @@ if (given.length && clients.length > 1) {
 let failed = 0;
 for (const c of clients) {
   console.log(`\n══ ${c.name} · ${c.domain} ══`);
+  /**
+   * DB 고객(Step 37): 「우리」가 보내고 키가 있을 때만. 키만 넣고 고객이 파일을 안 올리면 빙이 403 을 쌓는다 —
+   * 보내기 전에 키 파일 본문이 키와 같은지 그 자리에서 본다. 코드 고객은 아래 예전 길 그대로
+   */
+  if (c.출처 !== "코드") {
+    const mode = c.indexnow?.mode ?? "우리";
+    if (!c.domain) { console.log(`  ${c.slug}: domain 없음 — 건너뜀`); continue; }
+    if (mode !== "우리") { console.log(`  ${c.slug}: IndexNow 「${mode}」 — 안 보냄`); continue; }
+    if (!c.indexnowKey) { console.log(`  ${c.slug}: 키 없음 — 안 보냄`); continue; }
+    const 확인 = await fetch(`https://${c.domain}/${c.indexnowKey}.txt`, { redirect: "follow" })
+      .then(async (r) => ({ ok: r.ok && (await r.text()).trim() === c.indexnowKey, code: r.ok ? "본문 다름" : r.status }))
+      .catch((e) => ({ ok: false, code: String(e.message).slice(0, 40) }));
+    if (!확인.ok) { console.log(`  ${c.slug}: 키 파일 확인 안 됨(${확인.code}) — 안 보냄`); continue; }
+  }
   const key = keyFor(c);
   if (!key) { console.log("  키 설정이 없습니다. 건너뜁니다."); continue; }
 

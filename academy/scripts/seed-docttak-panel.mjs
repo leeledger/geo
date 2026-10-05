@@ -9,7 +9,7 @@
  *
  * 승인은 원장이 /admin/pilots 에서 한다. 여기서는 approved=false 로만 넣는다.
  */
-import { bySlug } from "../clients.mjs";
+import { 코드덩어리 } from "../clients.mjs";
 
 export const SLUG = "docttak";
 
@@ -38,7 +38,7 @@ export const 패널 = [
 ];
 
 /** AI 답에서 이름을 세는 말 — clients.mjs 가 원문이다(한 곳) */
-export const 이름말 = () => bySlug(SLUG).answerRe.source;
+export const 이름말 = () => 코드덩어리(SLUG).answerRe.source;
 
 /** 고객사 칸이 아직 없다 — seed-panel 이 clients.mjs 의 id·이름·도메인으로 새로 넣는다 */
 export const 새고객 = { relation: "자사", note: "자사 실증 — 두 번째 레퍼런스(무료 웹 도구)" };
