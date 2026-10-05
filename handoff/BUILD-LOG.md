@@ -1361,5 +1361,5 @@ Known Gaps (26)
 - 결정: 문서딱 사이트 변경(홈 Organization sameAs 에 블로그, 홈 첫 문장 「문서딱은 …」, 제출처 표 허브)은 deliverables/docttak/2026-10-05-site-proposal.md 로 넘김. doc-tools-kr 에 커밋 안 된 변경이 있어 손대지 않음
 - 네이버 블로그 https://blog.naver.com/robohelio 개설(원장). NAVER_BLOG_ID_DOCTTAK=robohelio 를 academy/.env.local 에 넣음. 10-05 11:49~12:04 에 원장이 8편을 손으로 올림 — 안내 글 복사가 아니라 다시 쓴 글, 원문 /guide/ 와 도구 딥링크로 이어짐(큐넷·소개 2편 확인)
 - 블로그 쓰임(결정): ① 네이버 AI 브리핑·네이버 검색의 출처 자리 ② 이름의 두 번째 자리(사이트 sameAs ↔ 블로그 프로필 링크) ③ 상황 글 — 사이트는 「규격이 뭔가」, 블로그는 「반려됐을 때·마감 직전·폰만 있을 때」 ④ 공식 규격이 바뀌면 한 편. 주 2편(월·목, 이미 marketing.blogDays). 한꺼번에 여러 편 올리지 않는다. 전문 복사·서로이웃 품앗이·댓글 품앗이 안 함
-- KG-36-1 원장이 손으로 올린 8편은 geo.marketing_posts 에 없다 — Step 35 「AI 출처 효과」가 이 글들의 인용을 안 센다. 주소를 넣어 「올림」으로 적을지 결정 필요(KG-35-6: SQL 로 「올림」을 적으면 시도 일감이 사람 대기로 남는다)
+- KG-36-1(닫힘, 원장 「성과 기록에 넣고」) 손으로 올린 8편을 geo.marketing_posts #10~17 로 넣음(blog·올림·posted_url·올린 시각). 7편은 지식iN·카페 초안 #1~5·7·8 을 블로그로 옮긴 것이라 그 초안은 「버림」(note 에 블로그 주소) — 같은 글을 지식iN·카페에 또 올리지 않게. 소개 글은 target_query 「문서딱」·source 홈
 - KG-36-2(닫힘) 블로그 로그인 tools/.browser-profile-docttak — NID_AUT 유지 2027-11-09. open-session 이 주소만 보고 「확인」해 두 번 세션 쿠키로 닫혔던 것을 NID_AUT 만료일로 판정하게 고침

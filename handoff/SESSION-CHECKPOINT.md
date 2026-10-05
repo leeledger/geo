@@ -8,7 +8,7 @@
 - IndexNow 44쪽 빙·네이버 200(손으로 한 번 — 매일 자동은 안 검, 문서딱 배포가 보냄). Brave 홈·/guide/·llms.txt 제출
 - 문서딱 사이트 제안(sameAs 블로그·홈 첫 문장·제출처 표 허브) → deliverables/docttak/2026-10-05-site-proposal.md, 문서딱 세션 몫
 - 네이버 블로그 robohelio 로그인 저장(tools/.browser-profile-docttak, NID_AUT 2027-11-09). 원장이 10-05 에 8편 손으로 올림 — 앞으로 주 2편
-- 결정 대기 KG-36-1: 손으로 올린 8편을 marketing_posts 에 넣어 인용 효과로 셀지
+- KG-36-1 닫힘: 8편 marketing_posts #10~17 「올림」, 원래 지식iN·카페 초안 7건은 버림(같은 글 중복 방지)
 - 원장 몫: 블로그 소개란에 docttak.com 링크
 
 ## Where We Stopped (2026-10-02 밤) — Step 32~35 배포(b625b69)
