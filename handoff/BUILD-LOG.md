@@ -1354,3 +1354,12 @@ Known Gaps (26)
 - Arch 결정: 승인 표시는 note 앞머리 그대로(칸 안 늘림 — 두 곳이 같은 like 로 거른다). 「읽었어요」를 본문 펼친 뒤로 막지 않음 — 버튼으로 읽기를 강제할 수 없고, 읽을 자리 상자가 펼치지 않아도 보인다
 - KG-35-5 local-agent 블로그 게시가 발행 전 실패를 거듭하면 하루 두 번 끝없이 다시 시도한다 — n회 넘으면 사람 확인으로 올리기(Richard SF4)
 - KG-35-6 SQL 로 「올림」을 적으면 그 글의 시도 일감이 사람 대기로 남는다(Richard SF5)
+
+### 2026-10-05 — 문서딱 색인·이름·네이버 블로그 (세션, 원장 「순서대로 진행」)
+- 잰 것: 구글 사이트맵 44쪽 중 앞쪽은 대부분 이미 색인(첫 16쪽 13 색인·3 요청 접수). IndexNow 44쪽 빙·네이버 200(손으로 한 번). Brave 는 자동 조회 429·캡차라 못 잼 — 제출 창은 원장 캡차
+- 결정: 문서딱 indexnowKey 는 clients.mjs 에 안 넣는다(snapshot.yml 이 매일 사이트맵 전체를 보내 문서딱 배포 알림과 겹침. Step 35 「색인 알림 코드 안 넣음」 유지). 한 번 넣었다가 되돌림
+- 결정: 문서딱 사이트 변경(홈 Organization sameAs 에 블로그, 홈 첫 문장 「문서딱은 …」, 제출처 표 허브)은 deliverables/docttak/2026-10-05-site-proposal.md 로 넘김. doc-tools-kr 에 커밋 안 된 변경이 있어 손대지 않음
+- 네이버 블로그 https://blog.naver.com/robohelio 개설(원장). NAVER_BLOG_ID_DOCTTAK=robohelio 를 academy/.env.local 에 넣음. 10-05 11:49~12:04 에 원장이 8편을 손으로 올림 — 안내 글 복사가 아니라 다시 쓴 글, 원문 /guide/ 와 도구 딥링크로 이어짐(큐넷·소개 2편 확인)
+- 블로그 쓰임(결정): ① 네이버 AI 브리핑·네이버 검색의 출처 자리 ② 이름의 두 번째 자리(사이트 sameAs ↔ 블로그 프로필 링크) ③ 상황 글 — 사이트는 「규격이 뭔가」, 블로그는 「반려됐을 때·마감 직전·폰만 있을 때」 ④ 공식 규격이 바뀌면 한 편. 주 2편(월·목, 이미 marketing.blogDays). 한꺼번에 여러 편 올리지 않는다. 전문 복사·서로이웃 품앗이·댓글 품앗이 안 함
+- KG-36-1 원장이 손으로 올린 8편은 geo.marketing_posts 에 없다 — Step 35 「AI 출처 효과」가 이 글들의 인용을 안 센다. 주소를 넣어 「올림」으로 적을지 결정 필요(KG-35-6: SQL 로 「올림」을 적으면 시도 일감이 사람 대기로 남는다)
+- KG-36-2 블로그 게시 자동은 tools/.browser-profile-docttak 로그인 전까지 안 돈다(원장: node tools/open-session.mjs --blog .browser-profile-docttak)

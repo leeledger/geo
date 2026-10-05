@@ -142,7 +142,10 @@ export const CLIENTS = [
     brandRe: /docttak\.com/i,
     // AI 답은 이름도 센다. DB(geo.clients.answer_pattern)에는 seed-panel.mjs 가 이 원문을 넣는다
     answerRe: /문서딱|docttak(\.com)?/i,
-    // 키는 문서딱 저장소가 IndexNow 를 붙일 때 정한다(브리프 「진행 중」). 그 전에는 indexnow.mjs 가 건너뛴다
+    /**
+     * 키는 일부러 안 넣는다. 문서딱 저장소가 배포마다 IndexNow 를 보낸다(Step 35 확인). 여기 넣으면 snapshot.yml 이 매일
+     * 사이트맵 44쪽을 또 보내 겹친다. 손으로 한 번 보낼 때만: INDEXNOW 키 87c53aad239a45ff5caa9ce574b5e423 (2026-10-05 빙·네이버 200)
+     */
     // https://docttak.com/llms.txt 200 text/plain (2026-10-01 확인)
     llmsTxt: true,
     publishes: false,
