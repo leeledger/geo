@@ -1534,3 +1534,5 @@ Known Gaps (26)
 - 결정(사실 적음): .local-agent.lock 이 2시간 안이면 프로필과 상관없이 기다리므로 로그인 창은 local-agent 실행 길이만큼(상한 90분) 늦게 뜰 수 있다. 「2분 안」은 local-agent 가 안 돌 때만 지킨다
 - KG-39-6 marketing-draft 관문이 다른 고객 이름(고객사말)을 안 본다 — 초안에 다른 고객 이름이 들어가도 안 걸린다. 이번엔 안 지음
 - KG-39-5 고침: 근거 페이지의 남의 회사 가격이 초안에 옮겨지는 것 — 원장 결정 대기, 기본 막음(결정 전엔 막는 쪽으로 짓는다). 이번엔 안 지음
+
+- 2026-10-06 Step 39 배포: main 6fc028c · web Ready · 세션이 pc-runner --disable-old 실행 — 옛 작업 3개(Cited AI Measure·Heartbeat·Local Agent) Disabled 확인(Get-ScheduledTask). 남은 세션+원장 확인: Neon 요금제 → LOGIN_POLL_HOURS=8-24, 로그인 버튼 실제 시험, gsc-access --look 원문 2개, 다음 12:40 로그에 중복 없음
