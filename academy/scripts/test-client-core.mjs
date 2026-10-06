@@ -6,6 +6,7 @@ import {
   AI_BOTS, CODE_SLUGS, answerPattern, nextAlias, 입력검사, 등록, 고치기, 폼값, robots막힘, ld타입, 세팅점검,
   체크리스트, 요약, 일감계획, 재점검고르기, 지우기, 파이프, 오류말, 내부주소, 본문상한,
   페이지줄읽기, 페이지줄글, 바깥글입력검사, 바깥글config, 바깥글폼값,
+  권한판정, 탐침읽기, 탐침저장, 점검저장,
 } from "../../web/lib/client-core.mjs";
 
 let 통과 = 0, 실패 = 0;
@@ -453,6 +454,43 @@ const 홈html = `<html><head><script type="application/ld+json">{"@type":"Dentis
   봄("체크리스트 바깥 글 — 켜짐·사실 0 → 기다림(사람 칸 아님)", 줄칸({ enabled: true, pages: [p], disclosure: "x" }).상태 === "기다림" && 줄칸({ enabled: true, pages: [p], disclosure: "x" }).사람말 === "사실 목록이 비어 글을 안 씁니다");
   봄("체크리스트 바깥 글 — 다 있음 → 됨", 줄칸({ enabled: true, pages: [p], disclosure: "x", facts: [{ text: "a" }] }).상태 === "됨");
   봄("바깥 글 칸은 일감을 안 만든다", 일감계획({ slug: "m", name: "엠" }, [줄칸({ enabled: true, pages: [p], disclosure: "x" })]).열기.length === 0);
+}
+
+// ─────────────────────────────────────────── 서치콘솔 권한 탐침 (Step 39c)
+{
+  봄("권한판정 — 원문 fixture 전엔 늘 모름", ["https://search.google.com/search-console?resource_id=sc-domain%3Aa.kr", "https://search.google.com/search-console/not-verified"]
+    .every((u) => 권한판정(u, "개요 실적 색인 생성 권한이 없습니다 You don't have access") === "모름"));
+  const 가짜출력 = [`속성 sc-domain:miso.kr · 주소 https://search.google.com/search-console?resource_id=sc-domain%3Amiso.kr`,
+    "GSC_ACCESS=모름", "GSC_URL=https://search.google.com/search-console?resource_id=sc-domain%3Amiso.kr", `GSC_SAMPLE=${JSON.stringify("개요\n실적\n" + "가".repeat(700))}`].join("\n");
+  const x = 탐침읽기(가짜출력);
+  봄("탐침읽기 — 상태·주소·앞 600자", x?.state === "모름" && x.url.includes("sc-domain%3Amiso.kr") && x.sample.startsWith("개요\n실적") && x.sample.length === 600);
+  봄("탐침읽기 — 모르는 상태·빈 출력 → null", 탐침읽기("GSC_ACCESS=됨") === null && 탐침읽기("") === null && 탐침읽기("로그인이 풀렸습니다") === null);
+  const 로그 = [];
+  const fq = (돌림 = [{ id: 5 }]) => async (s, p) => { 로그.push([s, p]); return 돌림; };
+  await 탐침저장(fq(), 5, { ...x, state: "모름" }, "2026-10-06 19:20");
+  봄("탐침저장 모름 — derived.gscAccess 만, config.gsc 안 켬", 로그[0][1][2] === false && JSON.parse(로그[0][1][1]).state === "모름" && JSON.parse(로그[0][1][1]).at === "2026-10-06 19:20");
+  await 탐침저장(fq(), 5, { ...x, state: "없음" }, "2026-10-06 19:20");
+  봄("탐침저장 없음 — config.gsc 안 켬", 로그[1][1][2] === false);
+  await 탐침저장(fq(), 5, { ...x, state: "있음" }, "2026-10-06 19:20");
+  봄("탐침저장 있음 — config.gsc 켬", 로그[2][1][2] === true);
+  봄("탐침저장 SQL — gsc 가 이미 true 면 안 건드림", /not coalesce\(config->'gsc' = 'true'::jsonb, false\)/.test(로그[0][0]));
+  봄("탐침저장 — 안 바뀌면 false", (await 탐침저장(fq([]), 5, x, "t")) === false);
+
+  const 줄 = (config, derived) => 체크리스트({ slug: "m", name: "엠", domain: "m.kr", relation: "외부", config: { wantGsc: true, ...config } }, derived).find((y) => y.id === "gsc");
+  const g = (state) => ({ gscAccess: { state, at: "2026-10-06 19:20", url: "u", sample: "" } });
+  봄("gsc 줄 — 탐침 전 「원장 PC 가 아직 안 봤습니다」", 줄({ gsc: false }, {}).사람말.startsWith("원장 PC 가 아직 안 봤습니다") && 줄({ gsc: false }, {}).상태 === "사람");
+  봄("gsc 줄 — 모름 「판정 기준을 아직 못 정했습니다」", 줄({ gsc: false }, g("모름")).사람말.startsWith("원장 PC 가 봤지만 판정 기준을 아직 못 정했습니다(2026-10-06 19:20)") && 줄({ gsc: false }, g("모름")).상태 === "사람");
+  봄("gsc 줄 — 없음(날짜)", 줄({ gsc: false }, g("없음")).사람말.startsWith("권한 없음(2026-10-06 19:20)") && 줄({ gsc: false }, g("없음")).상태 === "사람");
+  봄("gsc 줄 — 있음(날짜) → 됨", 줄({ gsc: true }, g("있음")).상태 === "됨" && 줄({ gsc: true }, g("있음")).사람말.startsWith("권한 있음(2026-10-06 19:20)"));
+  봄("gsc 줄 — 원장 「권한 받음」 그대로", 줄({ gsc: true }, {}).사람말.startsWith("권한을 받았다고 표시했습니다"));
+  봄("gsc 사람 칸 일감 글은 할일 그대로", 일감계획({ slug: "m", name: "엠" }, [줄({ gsc: false }, g("모름"))]).열기[0].detail.startsWith("고객에게 구글 서치콘솔의 m.kr 속성에"));
+
+  // 매시 사이트 점검이 gscAccess 를 안 지운다
+  const 점검로그 = [];
+  await 점검저장(async (s, p) => { 점검로그.push([s, p]); return []; }, { id: 5, domain: D, config: {} }, { fetch: 가짜fetch({}), lookup: 가짜dns() });
+  봄("점검저장 — gscAccess 남김", /derived \? 'gscAccess' then jsonb_build_object\('gscAccess', derived->'gscAccess'\)/.test(점검로그[0][0]));
+  const la = fs.readFileSync(new URL("../../tools/local-agent.mjs", import.meta.url), "utf8");
+  봄("local-agent 탐침 — gsc true·코드 고객·시험·오늘 본 고객은 빼고", /not coalesce\(config->'gsc' = 'true'::jsonb, false\)/.test(la) && /not \(slug = any\(\$1::text\[\]\)\)/.test(la) && /status not in \('ended', 'test'\)/.test(la) && /derived->'gscAccess'->>'at', 10\), ''\) <> \$2/.test(la));
 }
 
 console.log(`${통과} 통과 · ${실패} 실패`);

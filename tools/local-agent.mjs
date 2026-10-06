@@ -22,6 +22,7 @@ import { fileURLToPath } from "node:url";
 import pg from "pg";
 import { indexClients, loadClients } from "../academy/clients.mjs";
 import { 빙미등록 } from "./bing-site.mjs";
+import { CODE_SLUGS, 탐침읽기, 탐침저장 } from "../web/lib/client-core.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const LOCK = path.join(HERE, ".local-agent.lock");
@@ -291,11 +292,13 @@ try {
       evidence = left(evidence || E'\n해당 없음 — 이 고객은 PC 구글 색인 요청을 안 돈다(clients.mjs gsc 없음)', 4000)
       where kind='gsc-submit' and status='로컬 대기' and not (client_id = any($1::int[])) returning id, client_id`, [indexClients(고객들).map((c) => c.id)]);
   for (const t of 해당없음) await 활동("deliver", "구글 색인 요청 해당 없음", true, `gsc-submit 일감 #${t.id} 닫음 — gsc 없는 고객`, t.id, t.client_id);
+  let 구글막힘 = false;
   for (const c of indexClients(고객들)) {
     const gscTasks = await q(`select id from geo.agent_tasks where client_id=$1 and kind='gsc-submit' and status='로컬 대기'`, [c.id]);
     const r = 돌리기("submit-gsc.mjs", ["--all", "--client", c.slug], 20);
     if (/로그인이 안 돼 있습니다/.test(r.out)) {
       // 구글 로그인은 고객이 같이 쓴다. 다음 고객도 같은 데서 막히니 여기서 멈춘다
+      구글막힘 = true;
       await 사람로그인("google", "구글 서치콘솔");
       await 활동("deliver", "구글 색인 요청 멈춤", false, "로그인 필요", null, c.id);
       break;
@@ -311,6 +314,32 @@ try {
     if (r.ok) await 로그인됨("google");
     await 활동("deliver", "구글 색인 요청", r.ok, `${c.name} · ${끝(r.out, 200)} · 로컬 일감 ${closed}/${gscTasks.length} 완료`, null, c.id);
   }
+  /**
+   * ── 서치콘솔 권한 탐침(Step 39c): 구글 색인을 원하는데(wantGsc) 아직 권한 표시가 없는(gsc 아님) DB 고객을 하루 한 번.
+   * derived.gscAccess 에 화면 원문 앞부분을 남긴다. 「있음」일 때만 config.gsc = true. 판정 기준(원문 fixture)이 없으면 늘 「모름」
+   * gsc 가 이미 true 인 고객(원장 「권한 받음」)은 안 본다 — 확인할 기준이 아직 없다
+   */
+  if (!구글막힘) {
+    const 탐침대상 = await q(`select id, slug, name from geo.clients
+        where status not in ('ended', 'test') and not (slug = any($1::text[]))
+          and coalesce(config->'wantGsc', 'true'::jsonb) <> 'false'::jsonb and not coalesce(config->'gsc' = 'true'::jsonb, false)
+          and coalesce(left(derived->'gscAccess'->>'at', 10), '') <> $2
+        order by id`, [CODE_SLUGS, 날()]).catch((e) => { 기록(`권한 탐침 대상 못 읽음 ${e.message}`); return []; });
+    for (const c of 탐침대상) {
+      const r = 돌리기("gsc-access.mjs", ["--client", c.slug], 3);
+      if (/로그인이 풀렸습니다/.test(r.out)) {
+        await 사람로그인("google", "구글 서치콘솔");
+        await 활동("deliver", "서치콘솔 권한 탐침 멈춤", false, "로그인 필요", null, c.id);
+        break;
+      }
+      const 결과 = 탐침읽기(r.out);
+      if (!결과) { await 활동("deliver", "서치콘솔 권한 탐침 실패", false, `${c.name} · ${끝(r.out, 200)}`, null, c.id); continue; }
+      const 지금 = new Date().toLocaleString("sv-SE", { timeZone: "Asia/Seoul" }).slice(0, 16);
+      await 탐침저장(q, c.id, 결과, 지금);
+      await 활동("deliver", "서치콘솔 권한 탐침", true, `${c.name} · ${결과.state}${결과.state === "있음" ? " — config.gsc 켬" : ""}`, null, c.id);
+    }
+  }
+
   // ── 빙 주소 제출: 하루 100개 한도. 사이트맵에서 아직 안 낸 주소만 낸다(bing-done.json).
   // 사이트맵은 「Success」인데 Bingbot 이 47쪽 중 5쪽만 읽었다(2026-09-22) — 빙이 ChatGPT 검색·Copilot 의 색인이다
   for (const c of indexClients(고객들)) {

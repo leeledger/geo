@@ -15,6 +15,7 @@ import pg from "pg";
 import { loadClients } from "../clients.mjs";
 import { 고객사말 } from "../masks.mjs";
 import { 고객설정준비, 측정대상 } from "../measure-targets.mjs";
+import { 탐침저장, 점검저장 } from "../../web/lib/client-core.mjs";
 
 if (!process.argv.includes("--live")) {
   console.log("사용: node scripts/test-new-client.mjs --live   (운영 DB 에 시험 고객을 넣었다 지운다)");
@@ -142,6 +143,20 @@ try {
   // 6. AI 측정 대상 아님 — 돈·한도 안 씀
   const 대상 = await 측정대상(q, 오늘);
   봄("ai-measure 대상에 없음", !대상.some((t) => t.slug === SLUG), 대상.map((t) => t.slug).join(","));
+
+  // 7. 서치콘솔 권한 탐침 저장(Step 39c) — 실제 DB 의 jsonb 길. 모름은 config 안 바꿈, 있음만 gsc 켬, gsc true 면 안 건드림. 매시 점검이 안 지움
+  const 행 = async () => (await q(`select config, derived from geo.clients where id = $1`, [id]))[0];
+  const 결과 = { url: "https://search.google.com/search-console?resource_id=sc-domain%3Adocttak.com", sample: "개요" };
+  await 탐침저장(q, id, { ...결과, state: "모름" }, `${오늘} 19:20`);
+  let r = await 행();
+  봄("탐침 모름 → derived.gscAccess · config.gsc 그대로", r.derived?.gscAccess?.state === "모름" && r.derived.gscAccess.at === `${오늘} 19:20` && r.config.gsc === undefined);
+  await 점검저장(q, { id, domain: "docttak.com", config: r.config }, { fetch: async () => new Response("없음", { status: 404, headers: { "content-type": "text/html" } }), lookup: async () => [{ address: "93.184.216.34" }] });
+  r = await 행();
+  봄("매시 사이트 점검 뒤에도 gscAccess 남음", r.derived?.gscAccess?.state === "모름" && typeof r.derived.checkedAt === "string");
+  await 탐침저장(q, id, { ...결과, state: "있음" }, `${오늘} 19:21`);
+  r = await 행();
+  봄("탐침 있음 → config.gsc true", r.config.gsc === true && r.derived.gscAccess.state === "있음");
+  봄("gsc true 면 탐침저장이 안 건드림", (await 탐침저장(q, id, { ...결과, state: "없음" }, `${오늘} 19:22`)) === false && (await 행()).derived.gscAccess.state === "있음");
 } catch (e) {
   실패++;
   console.log(`  ✗ 실행 오류 — ${e.message}`);

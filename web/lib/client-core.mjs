@@ -592,8 +592,43 @@ export async function 세팅점검(domain, key, { fetch = globalThis.fetch, look
 export async function 점검저장(q, row, opts = {}) {
   const key = row.config?.indexnow?.mode === "우리" ? row.config.indexnow.key ?? null : null;
   const derived = await 세팅점검(row.domain, key, opts);
-  await q(`update geo.clients set derived = $2::jsonb where id = $1`, [row.id, JSON.stringify(derived)]);
+  // 서치콘솔 권한 탐침(gscAccess, Step 39c)은 원장 PC 가 하루 한 번 채운다 — 매시 사이트 점검이 지우지 않게 남긴다
+  await q(`update geo.clients set derived = $2::jsonb || case when derived ? 'gscAccess' then jsonb_build_object('gscAccess', derived->'gscAccess') else '{}'::jsonb end
+            where id = $1`, [row.id, JSON.stringify(derived)]);
   return derived;
+}
+
+// ─────────────────────────────────────────── 서치콘솔 권한 탐침 (Step 39c)
+/**
+ * 서치콘솔 화면(주소·본문) → "있음" | "없음" | "모름".
+ * 판정 기준은 원장 PC 가 실제로 본 화면 원문(academy/scripts/fixtures/gsc-access-have.txt·gsc-access-none.txt)에서만 만든다.
+ * 그 원문이 들어오기 전엔 언제나 「모름」 — 지어낸 정규식으로 권한을 판정하면 사람 칸이 거짓으로 닫힌다
+ */
+export function 권한판정(_url, _text) {
+  return "모름";
+}
+
+/** tools/gsc-access.mjs 출력(GSC_ACCESS= · GSC_URL= · GSC_SAMPLE=<JSON>) → { state, url, sample } | null */
+export function 탐침읽기(out) {
+  const 줄 = (k) => new RegExp(`^${k}=(.*)$`, "m").exec(String(out ?? ""))?.[1]?.trim() ?? null;
+  const state = 줄("GSC_ACCESS");
+  if (!["있음", "없음", "모름"].includes(state)) return null;
+  let sample = "";
+  try { sample = String(JSON.parse(줄("GSC_SAMPLE") ?? '""')); } catch { sample = ""; }
+  return { state, url: (줄("GSC_URL") ?? "").slice(0, 500), sample: sample.slice(0, 600) };
+}
+
+/**
+ * 탐침 결과를 derived.gscAccess 에. 「있음」일 때만 config.gsc = true(→ 매시 동기화가 setup-gsc 사람 칸을 닫는다).
+ * 「없음」「모름」은 config 를 안 바꾼다. 이미 gsc true(원장 「권한 받음」)인 고객은 건드리지 않는다
+ */
+export async function 탐침저장(q, clientId, 결과, at) {
+  const gscAccess = { state: 결과.state, at, url: 결과.url, sample: 결과.sample };
+  const rows = await q(`update geo.clients set derived = jsonb_set(coalesce(derived, '{}'::jsonb), '{gscAccess}', $2::jsonb),
+         config = case when $3 then jsonb_set(coalesce(config, '{}'::jsonb), '{gsc}', 'true'::jsonb) else config end
+       where id = $1 and not coalesce(config->'gsc' = 'true'::jsonb, false) returning id`,
+    [clientId, JSON.stringify(gscAccess), 결과.state === "있음"]);
+  return rows.length > 0;
 }
 
 // ─────────────────────────────────────────── 체크리스트
@@ -678,9 +713,19 @@ export function 체크리스트(row, derived, { pilot = null } = {}) {
 
   // 구글 서치콘솔 권한
   if (c.wantGsc === false) 줄.push({ id: "gsc", 칸: "구글 서치콘솔 권한", 상태: 없음, 사람말: "구글 색인 요청을 안 쓰기로 했습니다" });
-  else if (c.gsc === true) 줄.push({ id: "gsc", 칸: "구글 서치콘솔 권한", 상태: 됨, 사람말: "권한을 받았다고 표시했습니다. 원장 PC 가 매일 구글 색인 요청을 돕니다" });
-  else 줄.push({ id: "gsc", 칸: "구글 서치콘솔 권한", 상태: 사람, 사람말: "권한을 받아야 구글 색인 요청을 돌릴 수 있습니다",
+  else if (c.gsc === true) {
+    줄.push({ id: "gsc", 칸: "구글 서치콘솔 권한", 상태: 됨, 사람말: d.gscAccess?.state === "있음"
+      ? `권한 있음(${d.gscAccess.at}) — 원장 PC 가 서치콘솔 화면에서 확인했습니다. 매일 구글 색인 요청을 돕니다`
+      : "권한을 받았다고 표시했습니다. 원장 PC 가 매일 구글 색인 요청을 돕니다" });
+  } else {
+    // 탐침(Step 39c) — 원장 PC 가 하루 한 번 서치콘솔 화면을 연다. 판정 기준(원문 fixture)이 없으면 「모름」
+    const g = d.gscAccess;
+    const 본것 = g?.state === "없음" ? `권한 없음(${g.at}) — 원장 PC 가 서치콘솔에서 이 속성을 못 열었습니다. `
+      : g?.state === "모름" ? `원장 PC 가 봤지만 판정 기준을 아직 못 정했습니다(${g.at}). `
+      : "원장 PC 가 아직 안 봤습니다. ";
+    줄.push({ id: "gsc", 칸: "구글 서치콘솔 권한", 상태: 사람, 사람말: `${본것}권한을 받아야 구글 색인 요청을 돌릴 수 있습니다`,
     할일: `고객에게 구글 서치콘솔의 ${domain} 속성에 우리 구글 계정을 「전체」 권한 사용자로 넣어 달라고 요청합니다. 받으면 이 화면의 「권한 받음」을 누릅니다.` });
+  }
 
   // AI 측정 — 외부 고객은 파일럿·질문 승인이 있어야 잰다
   if (row.relation !== "외부") 줄.push({ id: "measure", 칸: "AI 측정(파일럿·질문 승인)", 상태: 없음, 사람말: "자사는 파일럿 없이 잽니다(리허설은 따로)" });

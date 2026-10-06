@@ -45,8 +45,13 @@ export type Derived = {
   sitemap: 칸결과 & { url: string; kind?: "index" | "urlset" | null; pages?: number; children?: number; counted?: number; ok?: boolean };
   llmsTxt: 칸결과 & { ok?: boolean };
   indexnowFile?: 칸결과 & { ok?: boolean };
+  gscAccess?: 탐침;
   errors: string[];
 };
+export type 탐침 = { state: "있음" | "없음" | "모름"; at: string; url: string; sample: string };
+export function 권한판정(url: string, text: string): "있음" | "없음" | "모름";
+export function 탐침읽기(out: string): Omit<탐침, "at"> | null;
+export function 탐침저장(q: Q, clientId: number, 결과: Omit<탐침, "at">, at: string): Promise<boolean>;
 export function robots막힘(text: string): string[];
 export function ld타입(html: string): { types: string[]; 깨짐: number };
 type LookupLike = (host: string) => Promise<{ address: string; family?: number }[]>;
