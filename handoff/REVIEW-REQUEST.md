@@ -66,3 +66,8 @@ Status: DONE (세션 몫 4개는 아래 「세션이 할 것」 — Bob 은 원�
 ## Out of Scope (logged in BUILD-LOG)
 - KG-39-3 DB 고객 바깥 글은 아무도 매일 안 돌린다 — optimize.yml 이 `--client docttak` 만 부른다
 - KG-39-4 바깥 글 폼에 situations·blogDays 칸 없음
+
+## 2차 (Richard 보류 반영)
+- tools/login-poll.mjs — 기다림 note 마다 updated_at=now()(status 로컬 대기 조건). 기다리는 동안 「PC 꺼짐」 30분 닫기에 안 걸린다
+- academy/scripts/test-login-live.mjs — 「31분째 기다리는(poll 이 계속 오는) 행은 닫히지 않는다」·「poll 이 끊긴 31분 행은 닫힌다」. live 20 통과 · test-login 56 · web tsc 0
+- BUILD-LOG: 최대 90분 늦을 수 있음 결정 · KG-39-6(관문에 다른 고객 이름 검사 없음) · KG-39-5 「원장 결정 대기, 기본 막음」

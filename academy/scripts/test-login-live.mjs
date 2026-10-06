@@ -106,12 +106,16 @@ try {
   const r0 = await 창요청(q, 딴일.id);
   봄("login-* 아닌 일감은 거부", !r0.ok && r0.err === "not-login" && (await 창행(id)).length === 1);
 
-  // 2. 로컬 에이전트가 도는 중 → 기다림 note, 그대로
+  // 2. 로컬 에이전트가 도는 중 → 기다림 note, 그대로. 31분째 기다려도 poll 이 오는 한 「PC 꺼짐」으로 안 닫힌다
+  await q(`update geo.agent_tasks set updated_at = now() - interval '31 minutes' where client_id = $1 and kind = 'open-login'`, [id]);
   fs.writeFileSync(LA_LOCK, "시험");
   let p = 폴("네이버 블로그");
   fs.rmSync(LA_LOCK, { force: true });
   창 = await 창행(id);
   봄("로컬 에이전트 잠금 → 안 엶 · 로컬 대기 · note", p.args === null && 창[0].status === "로컬 대기" && 창[0].last_error === "로컬 에이전트가 브라우저를 쓰는 중 — 끝나면 엽니다", `${창[0].status} ${창[0].last_error} ${p.out.slice(-200)}`);
+  const [신선] = await q(`select updated_at > now() - interval '1 minute' as ok from geo.agent_tasks where id = $1`, [창[0].id]);
+  await 오래된창요청닫기(q);
+  봄("31분째 기다리는(poll 이 계속 오는) 행은 닫히지 않는다", 신선.ok && (await 창행(id))[0].status === "로컬 대기");
 
   // 3. 확인 없음 → open-login 실패 · login 일감은 사람 대기 그대로
   p = 폴("");
@@ -139,7 +143,7 @@ try {
   const 닫힘 = await 오래된창요청닫기(q);
   창 = await 창행(id);
   t = await 일감(로그인.id);
-  봄("30분 지난 open-login → 실패 「PC 가 꺼져 있어 창을 못 열었습니다」", 닫힘.some((x) => x.client_id === id) && 창[0].status === "실패" && 창[0].last_error === "PC 가 꺼져 있어 창을 못 열었습니다");
+  봄("poll 이 끊긴 31분 행은 닫힌다 — 실패 「PC 가 꺼져 있어 창을 못 열었습니다」", 닫힘.some((x) => x.client_id === id) && 창[0].status === "실패" && 창[0].last_error === "PC 가 꺼져 있어 창을 못 열었습니다");
   봄("login 일감 근거에 「로그인 창 못 엶」", /로그인 창 못 엶 — PC 가 꺼져 있어/.test(t.evidence));
 
   // 6. 할 일 없음 → 바로 끝

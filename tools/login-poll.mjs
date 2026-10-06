@@ -74,7 +74,8 @@ process.on("exit", 잠금풀기);
 try {
   // 창 잠금을 먼저 쓰고 로컬 에이전트 잠금을 본다 — 로컬 에이전트는 자기 잠금을 쓰고 창 잠금을 본다. 둘 중 하나는 꼭 상대를 본다
   if (신선(LA_LOCK, 2 * 3600 * 1000)) {
-    if (t.last_error !== 기다림말) await q(`update geo.agent_tasks set last_error=$2 where id=$1`, [t.id, 기다림말]);
+    // updated_at 도 매번 — PC 가 켜져 있다는 표시. 안 그러면 local-agent 가 30분 넘게 돌 때 회사 루프가 「PC 꺼짐」으로 닫는다
+    await q(`update geo.agent_tasks set last_error=$2, updated_at=now() where id=$1 and status='로컬 대기'`, [t.id, 기다림말]);
     process.exit(0);
   }
   const [잡음] = await q(`update geo.agent_tasks set status='실행 중', last_error='', updated_at=now() where id=$1 and status='로컬 대기' returning id`, [t.id]);
