@@ -1536,3 +1536,8 @@ Known Gaps (26)
 - KG-39-5 고침: 근거 페이지의 남의 회사 가격이 초안에 옮겨지는 것 — 원장 결정 대기, 기본 막음(결정 전엔 막는 쪽으로 짓는다). 이번엔 안 지음
 
 - 2026-10-06 Step 39 배포: main 6fc028c · web Ready · 세션이 pc-runner --disable-old 실행 — 옛 작업 3개(Cited AI Measure·Heartbeat·Local Agent) Disabled 확인(Get-ScheduledTask). 남은 세션+원장 확인: Neon 요금제 → LOGIN_POLL_HOURS=8-24, 로그인 버튼 실제 시험, gsc-access --look 원문 2개, 다음 12:40 로그에 중복 없음
+
+- 2026-10-06 문서딱 티스토리 https://docttak.tistory.com/ 개설(원장). 13:17~13:21 에 3편(소개·증명사진 규격 표·첨부파일 용량 표) — 모두 docttak.com 원문 안내·도구로 링크. geo.marketing_posts #20~22 「올림」(channel blog, posted_url 은 canonical /entry/ 꼴 — 짧은 /n 주소는 note). 사이트 제안서 sameAs 에 티스토리 더함
+- 티스토리 쓰임(결정): 네이버 블로그는 네이버 검색·AI 브리핑 몫, 티스토리는 구글·Daum 몫. 같은 글을 둘에 복사하지 않는다 — 티스토리는 표·총정리(허브) 글, 네이버는 상황 글. 주 1편
+- KG-39-7 블로그 이름에 「&middot;」 글자가 그대로 들어가 og:title 이 「PDF&amp;middot;증명사진」으로 나간다(공유 미리보기에 그대로 보임) — 원장이 블로그 관리에서 이름을 「·」 글자로 다시 저장
+- KG-39-8 티스토리 자동 게시 없음(Open API 종료) — 필요하면 naver-blog-post 처럼 브라우저 게시 Step

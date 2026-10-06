@@ -15,10 +15,10 @@
 
 ## 제안 1 — 이름 지키기 (먼저)
 
-홈 Organization JSON-LD 에 `sameAs` 가 없다. 지금 있는 바깥 자리는 네이버 블로그 하나다.
+홈 Organization JSON-LD 에 `sameAs` 가 없다. 지금 있는 바깥 자리는 네이버 블로그와 티스토리(2026-10-06 개설) 둘이다.
 
 ```json
-"sameAs": ["https://blog.naver.com/robohelio"]
+"sameAs": ["https://blog.naver.com/robohelio", "https://docttak.tistory.com/"]
 ```
 
 - 바깥 자리가 생길 때마다 이 목록에 더한다(디스콰이엇 등). 실제로 만들어진 주소만 넣는다
