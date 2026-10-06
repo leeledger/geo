@@ -25,6 +25,17 @@ export function 폼값(row: Record<string, any>): {
   address_part: string; phone_last4: string; relation: string; want_gsc: boolean;
 };
 
+export type 바깥글칸 = {
+  enabled: boolean; disclosure: string; facts: string[]; pages: { all: string[][]; guide: string; tool: string; also?: string[] }[];
+  guidePrefix: string; alternatives: string[]; banned: string[]; persona: string;
+};
+export function 페이지줄읽기(line: string): { all: string[][]; guide: string; tool: string; also?: string[]; 오류?: undefined } | { 오류: string };
+export function 페이지줄글(p: { all: string[][]; guide: string; tool: string; also?: string[] }): string;
+export function 바깥글입력검사(f: Record<string, unknown>): { ok: boolean; 칸: 바깥글칸; 오류: string[] };
+export function 바깥글config(옛config: unknown, 칸: 바깥글칸, 오늘: string): Record<string, any>;
+export function 바깥글고치기(q: Q, slug: string, 칸: 바깥글칸, 오늘?: string): Promise<결과>;
+export function 바깥글폼값(row: Record<string, any>): Record<string, string>;
+
 type 칸결과 = { status: number | null; type?: string; error?: string; head?: string };
 export type Derived = {
   checkedAt: string;

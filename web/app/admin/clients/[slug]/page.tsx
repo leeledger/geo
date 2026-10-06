@@ -3,7 +3,7 @@ import Link from "next/link";
 
 import { isAdmin } from "@/lib/admin-auth";
 import { inqPool } from "@/lib/inquiries";
-import { CODE_SLUGS, 체크리스트, 폼값, 오류말, 파일럿상태, type Derived } from "@/lib/client-core.mjs";
+import { CODE_SLUGS, 체크리스트, 폼값, 바깥글폼값, 오류말, 파일럿상태, type Derived } from "@/lib/client-core.mjs";
 import { createPilot } from "@/lib/pilot-actions";
 import { recheckClient, markGscGranted, deleteTestClient } from "@/lib/client-actions";
 import { NEEDS_BUILD, NEEDS_BUILD_LABEL } from "@/lib/pilot-plan";
@@ -11,6 +11,7 @@ import AdminNav from "../../AdminNav";
 import SubmitButton from "../../SubmitButton";
 import CopyButton from "../../ops/CopyButton";
 import ClientForm from "../ClientForm";
+import MarketingForm from "../MarketingForm";
 import "../clients.css";
 
 export const dynamic = "force-dynamic";
@@ -162,6 +163,13 @@ export default async function Page({ params, searchParams }: {
               <summary>고치기</summary>
               <div className="in">
                 <ClientForm mode="edit" 값={폼} slug={slug} />
+              </div>
+            </details>
+
+            <details className="adm-more" id="offsite">
+              <summary>바깥 글 — 지식iN·카페·블로그 초안에 쓰는 사실</summary>
+              <div className="in">
+                <MarketingForm 값={바깥글폼값(row)} slug={slug} />
               </div>
             </details>
 

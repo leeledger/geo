@@ -221,6 +221,18 @@ export const CODE_CLIENTS = [
        * 블로그 아이디는 원장 PC 의 academy/.env.local NAVER_BLOG_ID_DOCTTAK. 프로필·아이디가 없으면 로컬 에이전트가 「로그인 필요」 일감을 한 번 올린다
        */
       blogProfile: ".browser-profile-docttak",
+      /**
+       * 글에 들어가는 이 고객 고유 말(Step 39a — 전엔 marketing-draft.mjs 에 박혀 있었다). 글자 하나 안 바꾸고 옮겼다(fixtures/marketing-prompt-docttak.txt).
+       * facts 는 사람이 확인한 사실만. 비면 글을 안 쓴다
+       */
+      persona: "너는 문서딱(docttak.com) 을 만든 사람이다. 직접 만든 무료 도구를 숨기지 않고 밝히며 정보를 나눈다.",
+      facts: [{ text: "모든 도구 무료·가입 없음" }, { text: "파일은 기기 안에서 처리하고 어디로도 보내지 않음" }],
+      // 안내 글 수를 셀 경로 앞부분 — 사이트맵에서 센다
+      guidePrefix: "/guide/",
+      // 원문 페이지가 언급한 다른 길 — 문서딱 페이지들에서 본 이름. 원문에 없는 이름은 후보가 안 된다
+      alternatives: ["정부24", "한글 프로그램", "한컴", "외교부", "큐넷", "Q-Net", "Gmail", "Outlook", "구글 드라이브"],
+      banned: [{ re: /remove-background|배경\s?(?:지우기|제거)\s?(?:도구|기능)/g, why: "비공개 도구 언급" }],
+      situations: "제출 마감 직전에 파일이 안 올라갈 때, 휴대폰만 있을 때",
     },
     queries: [
       { id: "idx", q: "site:docttak.com", kind: "색인" },
@@ -418,8 +430,26 @@ export function 고객설정(row, env = process.env) {
   if (blogDays !== undefined && !(Array.isArray(blogDays) && blogDays.every((d) => Number.isInteger(d) && d >= 0 && d <= 6))) {
     빠짐.push("config.marketing.blogDays 형이 틀림"); blogDays = undefined;
   }
+  // 사람이 확인한 사실(Step 39a) — 비면 marketing-draft 가 건너뛴다. 사이트에서 긁어 채우지 않는다
+  let facts = [];
+  if (마케팅.facts !== undefined) {
+    const 사실칸 = (f) => 객체인가(f) && 글자인가(f.text) && f.text.trim().length <= 200
+      && (f.checkedOn === undefined || (typeof f.checkedOn === "string" && /^\d{4}-\d{2}-\d{2}$/.test(f.checkedOn)));
+    if (!Array.isArray(마케팅.facts) || 마케팅.facts.length > 10 || !마케팅.facts.every(사실칸)) 빠짐.push("config.marketing.facts 형이 틀림");
+    else facts = 마케팅.facts.map((f) => ({ text: f.text.trim(), ...(f.checkedOn ? { checkedOn: f.checkedOn } : {}) }));
+  }
+  let guidePrefix = 한글자(마케팅.guidePrefix, "marketing.guidePrefix", 빠짐, 말상한);
+  if (guidePrefix !== undefined && !guidePrefix.startsWith("/")) { 빠짐.push("config.marketing.guidePrefix 형이 틀림"); guidePrefix = undefined; }
+  const banned = 말목록(마케팅.banned, "marketing.banned", 빠짐);
   const marketing = {
     enabled: 참거짓(마케팅.enabled, "marketing.enabled", 빠짐) ?? false,
+    facts,
+    persona: 한글자(마케팅.persona, "marketing.persona", 빠짐, 300) ?? null,
+    guidePrefix: guidePrefix ?? null,
+    alternatives: 말목록(마케팅.alternatives, "marketing.alternatives", 빠짐) ?? [],
+    // 말은 lit 로만 정규식 — 특수 글자가 정규식을 깨지 못한다
+    banned: banned?.length ? [{ re: new RegExp(banned.map(lit).join("|"), "gi"), why: "금지 말" }] : [],
+    situations: 한글자(마케팅.situations, "marketing.situations", 빠짐, 200) ?? null,
     pages,
     blogDays: 고름("marketing.blogDays", blogDays, undefined, [1, 4]),
     disclosure: 고름("marketing.disclosure", 한글자(마케팅.disclosure, "marketing.disclosure", 빠짐), undefined, null),

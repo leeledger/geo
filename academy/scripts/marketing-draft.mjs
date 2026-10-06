@@ -22,7 +22,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
 
-import { loadClients } from "../clients.mjs";
+import { loadClients, lit } from "../clients.mjs";
 import { 클로드코드, 클로드기록연결 } from "./claude-code.mjs";
 import { 검사, 숫자뽑기, 최소길이, 문장들 } from "./slop-rules.mjs";
 import { 금지, 파싱, 공통짜임새 } from "./writer-common.mjs";
@@ -42,11 +42,10 @@ const 호출상한 = Number(arg("--max-calls") ?? 5);
 
 /** 채널마다 본문 길이 하한. 블로그는 학원 글과 같은 하한(slop-rules 최소길이), 나머지는 답·공유 글 길이 */
 const 하한 = { jisikin: 200, cafe: 500, blog: 최소길이 };
-/** 노출·효과 보장, 남의 후기처럼 쓰기 — 브리프 「하지 말 것」 */
-const 금지말 = [
+/** 노출·효과 보장, 남의 후기처럼 쓰기 — 브리프 「하지 말 것」. 고객 고유 금지 말은 c.marketing.banned 가 뒤에 붙는다 */
+const 공통금지말 = [
   { re: /보장|무조건|1위|100\s*%/g, why: "노출·효과 보장 말" },
   { re: /후기|써\s?봤|사용해\s?봤|써\s?보니/g, why: "후기처럼 쓰기(본인 제작 도구)" },
-  { re: /remove-background|배경\s?(?:지우기|제거)\s?(?:도구|기능)/g, why: "비공개 도구 언급" },
 ];
 
 const 오늘 = new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" });
@@ -122,37 +121,37 @@ export function 대상고르기(질문들, 이름, 쓴것, 채널들, 맞는페�
 
 // ─────────────────────────────────────────── 프롬프트
 /** 소개꾼이 되지 않게 다른 길을 한 번 — 원문 페이지가 말한 대안만. 없으면 제출처 공고 확인 정도 (Arch 2026-10-02) */
-const 대안말 = (p) => p.대안.length
-  ? `문서딱 말고 다른 방법도 한 번은 알려 준다 — 원문 페이지가 언급한 대안(${p.대안.join(", ")}) 가운데 맞는 것 하나를 원문에 적힌 범위에서.`
-  : "문서딱 말고 다른 방법은 원문에 없으니 「제출처 공고에서 확인」 한 줄만 적는다. 다른 도구·앱을 지어내지 않는다.";
+const 대안말 = (c, p) => p.대안.length
+  ? `${c.name} 말고 다른 방법도 한 번은 알려 준다 — 원문 페이지가 언급한 대안(${p.대안.join(", ")}) 가운데 맞는 것 하나를 원문에 적힌 범위에서.`
+  : `${c.name} 말고 다른 방법은 원문에 없으니 「제출처 공고에서 확인」 한 줄만 적는다. 다른 도구·앱을 지어내지 않는다.`;
 
 const 채널말 = {
   jisikin: (c, p) => [
     `네이버 지식iN 에 「${p.query}」 비슷한 질문을 한 사람에게 다는 답이다. 질문자에게 직접 말하는 해요체.`,
     "첫 문장이 답이다. 인사·공감·서론 없이 바로 규격·방법을 말한다.",
     "본문 300~700자. 문단 2~4개.",
-    `문서딱 링크는 정확히 하나: ${p.tool}`,
-    대안말(p),
+    `${c.name} 링크는 정확히 하나: ${p.tool}`,
+    대안말(c, p),
     "title 칸에는 이 답을 달 만한 질문 예를 질문자 말투 한 줄로 쓴다(원장이 실제 질문을 찾을 때 쓴다).",
   ],
   cafe: (c, p) => [
     `네이버 카페에 올리는 정보 공유 글이다. 주제는 「${p.query}」. 제목은 「○○ 정리」 꼴.`,
     "본문 600~1200자. 짧은 줄과 문단. 표 문법(|) 대신 「항목: 값」 줄.",
-    `문서딱 링크는 한두 개만: ${p.guide} 또는 ${p.tool}`,
-    대안말(p),
+    `${c.name} 링크는 한두 개만: ${p.guide} 또는 ${p.tool}`,
+    대안말(c, p),
   ],
   blog: (c, p) => [
     `네이버 블로그 글이다. 검색어는 「${p.query}」. 제목은 사람이 검색창에 치는 질문형.`,
     `본문 ${최소길이 + 100}~2600자. 소제목은 ## 로 2~4개. 문단 80~400자.`,
-    "안내 페이지를 그대로 옮기지 않는다. 같은 사실을 다른 상황에 대어 쓴다(예: 제출 마감 직전에 파일이 안 올라갈 때, 휴대폰만 있을 때).",
+    `안내 페이지를 그대로 옮기지 않는다. 같은 사실을 다른 상황에 대어 쓴다${c.marketing.situations ? `(예: ${c.marketing.situations})` : ""}.`,
     "상황은 「~할 때」 꼴의 가정으로만 쓴다. 누가 겪은 일처럼(한 학생이·지난주 상담에서) 쓰지 않는다.",
     `원문 안내 페이지 링크를 꼭 한 번 넣는다: ${p.guide}`,
   ],
 };
 
-function 프롬프트(c, ch, p, 고칠것 = []) {
+export function 프롬프트(c, ch, p, 고칠것 = []) {
   return [
-    `너는 ${c.name}(${c.domain}) 을 만든 사람이다. 직접 만든 무료 도구를 숨기지 않고 밝히며 정보를 나눈다.`,
+    c.marketing.persona ?? `너는 ${c.name}(${c.domain}) 쪽 사람이다. 소속을 숨기지 않고 밝히며 정보를 나눈다.`,
     "",
     "## 이번 글",
     ...채널말[ch](c, p).map((s) => `- ${s}`),
@@ -164,8 +163,8 @@ function 프롬프트(c, ch, p, 고칠것 = []) {
     "- 기관의 한도·규격이 근거에 없으면 지어내지 말고 「그 기관 공고에서 확인」이라고 쓴다.",
     "- 써 봤다·후기·추천받았다 같은 말을 쓰지 않는다. 남의 말을 따옴표로 만들지 않는다.",
     "- 노출·효과를 보장하는 말(무조건, 1위, 100%)을 쓰지 않는다. 불안을 팔지 않는다.",
-    `- 문서딱이 안 하는 것·안 맞는 경우를 근거에 적힌 범위에서 한 번은 말한다.`,
-    "- 근거 밖의 주소를 쓰지 않는다. 링크는 위에 준 문서딱 주소와 근거에 적힌 공식 출처만.",
+    `- ${c.name}이 안 하는 것·안 맞는 경우를 근거에 적힌 범위에서 한 번은 말한다.`,
+    `- 근거 밖의 주소를 쓰지 않는다. 링크는 위에 준 ${c.name} 주소와 근거에 적힌 공식 출처만.`,
     "",
     "## AI 가 쓴 티 (전부 금지)",
     ...금지.map((s) => `- ${s}`),
@@ -173,7 +172,7 @@ function 프롬프트(c, ch, p, 고칠것 = []) {
     "- 문장을 짧게 끊는다. 번역체를 쓰지 않는다.",
     "",
     ...(고칠것.length ? ["## 지난 판이 걸린 곳 — 이것만 고쳐 다시 쓴다", ...고칠것.map((s) => `- ${s}`), ""] : []),
-    "## 근거 — 오늘 가져온 문서딱 페이지 원문",
+    `## 근거 — 오늘 가져온 ${c.name} 페이지 원문`,
     p.사실,
     ...p.페이지.map((x) => `\n### ${x.url}\n${x.글.slice(0, 5000)}`),
     "",
@@ -183,7 +182,7 @@ function 프롬프트(c, ch, p, 고칠것 = []) {
 }
 
 // ─────────────────────────────────────────── 게이트
-const 문서딱주소 = (s, domain) =>
+const 우리주소 = (s, domain) =>
   [...new Set([...s.matchAll(new RegExp(`https?://(?:www\\.)?${domain.replace(/\./g, "\\.")}[^\\s)\\]」>"'<,]*`, "gi"))]
     .map((m) => m[0].replace(/[.。]+$/, "")))];
 const 경로 = (u) => { try { const x = new URL(u); return x.pathname.endsWith("/") ? x.pathname : `${x.pathname}/`; } catch { return null; } };
@@ -209,14 +208,14 @@ export function 관문(ch, post, p, c) {
   }
   if (body.length < 하한[ch]) 이유.push(`본문 ${body.length}자 — ${CHANNEL_NAME[ch]} 하한 ${하한[ch]}자`);
   for (const s of 공통짜임새(body)) 이유.push(s);
-  for (const m of 금지말) {
+  for (const m of [...공통금지말, ...(c.marketing.banned ?? [])]) {
     const hits = `${title}\n${body}`.match(m.re);
     if (hits) 이유.push(`${m.why}: ${[...new Set(hits)].join(", ")}`);
   }
   if (!body.includes(c.marketing.disclosure)) 이유.push(`끝에 공개 문장이 없습니다: ${c.marketing.disclosure}`);
 
-  // 주소 — 문서딱 주소는 오늘 사이트맵에 있어야 하고, 바깥 주소는 근거 페이지에 적힌 공식 출처여야 한다
-  const 우리 = 문서딱주소(body, c.domain);
+  // 주소 — 고객 주소는 오늘 사이트맵에 있어야 하고, 바깥 주소는 근거 페이지에 적힌 공식 출처여야 한다
+  const 우리 = 우리주소(body, c.domain);
   for (const u of 우리) if (!p.사이트맵.has(경로(u))) 이유.push(`사이트맵에 없는 주소: ${u}`);
   const 바깥 = [...body.matchAll(/https?:\/\/[^\s)\]」>"'<]+/g)].map((m) => m[0].replace(/[.,]+$/, "")).filter((u) => !u.includes(c.domain));
   // 근거 주소 그대로이거나 그 앞부분(공식 사이트 첫 화면)만 — 근거가 첫 화면일 때 그 아래 아무 경로나 지어내는 걸 막는다
@@ -224,26 +223,25 @@ export function 관문(ch, post, p, c) {
   for (const u of 바깥) if (!p.바깥.some((h) => 끝빗금(h).startsWith(끝빗금(u)))) 이유.push(`근거에 없는 바깥 주소: ${u}`);
   const 경로들 = new Set(우리.map(경로));
   if (ch === "jisikin") {
-    if (경로들.size !== 1 || !경로들.has(경로(p.tool))) 이유.push(`문서딱 링크는 도구 주소 하나여야 합니다(${p.tool}) — 지금 ${우리.length}개`);
+    if (경로들.size !== 1 || !경로들.has(경로(p.tool))) 이유.push(`${c.name} 링크는 도구 주소 하나여야 합니다(${p.tool}) — 지금 ${우리.length}개`);
   }
   if (ch !== "blog") {
     if (p.대안.length ? !p.대안.some((k) => body.includes(k)) : !/공고/.test(body)) {
       이유.push(p.대안.length ? `다른 방법을 안 알렸습니다 — 원문 대안: ${p.대안.join(", ")}` : "다른 방법이 원문에 없으면 「제출처 공고에서 확인」을 적습니다");
     }
   }
-  if (ch === "cafe" && (경로들.size < 1 || 경로들.size > 2)) 이유.push(`문서딱 링크는 한두 개 — 지금 ${경로들.size}개`);
+  if (ch === "cafe" && (경로들.size < 1 || 경로들.size > 2)) 이유.push(`${c.name} 링크는 한두 개 — 지금 ${경로들.size}개`);
   if (ch === "blog" && !경로들.has(경로(p.guide))) 이유.push(`원문 안내 페이지 링크가 없습니다: ${p.guide}`);
   return 이유;
 }
 
 /**
  * 원문 페이지가 언급한 다른 길 — 출처 기관 + 원문에 실제로 나온 공식 사이트·기본 앱·프로그램 이름.
- * 목록은 문서딱 페이지들에서 본 이름이다. 원문에 없는 이름은 후보가 안 된다
+ * 이름 목록은 고객 설정(c.marketing.alternatives)이다. 원문에 없는 이름은 후보가 안 된다
  */
-const 대안이름 = ["정부24", "한글 프로그램", "한컴", "외교부", "큐넷", "Q-Net", "Gmail", "Outlook", "구글 드라이브"];
-// 브라우저·「파일」 앱은 문서딱을 쓰는 길이라 대안이 아니다. 「함께 보면 좋은 안내」·「바로 쓰는 도구」 뒤는 다른 주제 링크라 안 본다
+// 브라우저·「파일」 앱은 고객 도구를 쓰는 길이라 대안이 아니다. 「함께 보면 좋은 안내」·「바로 쓰는 도구」 뒤는 다른 주제 링크라 안 본다
 const 본론 = (글) => 글.split(/\n(?:함께 보면 좋은 안내|관련 안내|바로 쓰는 도구)\n/)[0];
-export const 대안찾기 = (글들, 기관 = []) => [...new Set([...기관, ...대안이름.filter((w) => 글들.some((g) => 본론(g).includes(w)))])];
+export const 대안찾기 = (글들, 기관 = [], 이름들 = []) => [...new Set([...기관, ...이름들.filter((w) => 글들.some((g) => 본론(g).includes(w)))])];
 
 /**
  * 원문에 없는 문장 후보 — 본문 문장마다 글자 3자 조각이 원문에 몇 % 있나. 낮은 문장이 「읽을 자리」다(Arch 2026-10-02).
@@ -288,6 +286,24 @@ export function 대조표(text, p) {
 }
 
 // ─────────────────────────────────────────── 실행
+/** 글을 못 쓰는 까닭(칸 이름) 또는 null. 사실이 0개면 쓰지 않는다 — 근거 없는 소속 주장을 막는다(Step 39a) */
+export function 바깥글빠진칸(c) {
+  if (!c) return null;
+  if (c.출처 === "코드") return !c.marketing ? "marketing" : !c.marketing.facts?.length ? "marketing.facts" : null;
+  return !c.marketing.enabled ? "marketing.enabled" : !c.marketing.pages.length ? "marketing.pages"
+    : !c.marketing.disclosure ? "marketing.disclosure" : !c.marketing.facts?.length ? "marketing.facts" : null;
+}
+
+/**
+ * 근거 맨 위 고정 사실 한 줄. 안내 글 수(guidePrefix 가 있을 때 사이트맵에서 센 것) + 사람이 확인한 사실.
+ * 날짜를 넣지 않는다 — 근거 글의 「2026-10-02」가 본문의 「10」「02」를 숫자 게이트에서 통과시킨다
+ */
+export function 사실줄(c, 안내수) {
+  const 셈 = c.marketing.guidePrefix && 안내수 != null ? [`안내 글 ${안내수}편`] : [];
+  const 줄 = [...셈, ...(c.marketing.facts ?? []).map((f) => f.text.replace(/[.。]+$/, ""))].join(", ");
+  return `${c.name} 고정 사실${셈.length ? "(오늘 사이트맵 기준)" : ""}: ${줄}.`;
+}
+
 async function main() {
   if (!SLUG) { console.log("사용법: node scripts/marketing-draft.mjs --client <slug> [--dry] [--channels jisikin,cafe,blog]"); process.exitCode = 1; return; }
 
@@ -297,11 +313,10 @@ async function main() {
   const q = (s, v = []) => db.query(s, v).then((r) => r.rows);
   // 코드 3곳 + DB 고객(Step 37). 콕 집어 부르니 시험 고객도 찾는다
   const [c] = await loadClients(q, { slug: SLUG, includeTest: true });
-  const 빠진칸 = !c ? null
-    : c.출처 === "코드" ? (c.marketing ? null : "marketing")
-    : !c.marketing.enabled ? "marketing.enabled" : !c.marketing.pages.length ? "marketing.pages" : !c.marketing.disclosure ? "marketing.disclosure" : null;
+  const 빠진칸 = 바깥글빠진칸(c);
   if (!c || 빠진칸) {
     console.log(!c ? `고객사 없음: ${SLUG}`
+      : 빠진칸 === "marketing.facts" ? `${c.name}: 사람이 확인한 사실 목록이 비었습니다 — 건너뜀`
       : c.출처 === "코드" ? `${c.name}: 바깥 글 설정(clients.mjs marketing)이 없습니다 — 건너뜀` : `${c.slug}: ${빠진칸} 없음 — 건너뜀`);
     if (!c) process.exitCode = 1;
     await db.end().catch(() => {});
@@ -334,14 +349,9 @@ async function main() {
     const 맵 = await 가져오기(`https://${c.domain}/sitemap.xml`);
     const 사이트맵 = new Set([...맵.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => 경로(m[1].trim())).filter(Boolean));
     if (!사이트맵.size) throw new Error("사이트맵이 비었습니다");
-    const 안내수 = [...사이트맵].filter((s) => /^\/guide\/[^/]+\/$/.test(s)).length;
-    // 날짜를 넣지 않는다 — 근거 글의 「2026-10-02」가 본문의 「10」「02」를 숫자 게이트에서 통과시킨다
-    // 「무료·가입 없음·기기 안 처리」는 문서딱(코드 덩어리) 사실이다. DB 고객에게 붙이면 지어낸 사실이 된다 — 사이트맵에서 센 것만
-    const 사실 = c.출처 === "코드"
-      ? `${c.name} 고정 사실(오늘 사이트맵 기준): 안내 글 ${안내수}편, 모든 도구 무료·가입 없음, 파일은 기기 안에서 처리하고 어디로도 보내지 않음.`
-      : `${c.name} 고정 사실(오늘 사이트맵 기준): 안내 글 ${안내수}편.`;
-    // 프롬프트·관문 문장이 아직 문서딱 전용이다(「문서딱 말고」「직접 만든 무료 도구」). DB 고객은 Claude 를 부르기 직전까지만 — Step 38 에서 일반화
-    const 부르기전멈춤 = 안부름 || c.출처 !== "코드";
+    const 안내수 = c.marketing.guidePrefix
+      ? [...사이트맵].filter((s) => new RegExp(`^${lit(c.marketing.guidePrefix)}[^/]+/$`).test(s)).length : null;
+    const 사실 = 사실줄(c, 안내수);
 
     let 호출 = 0;
     let 실패 = 0, 오류 = 0;
@@ -370,9 +380,9 @@ async function main() {
         기관: 출처기관(페이지.map((x) => x.글).join("\n")),
         근거: [사실, ...페이지.map((x) => x.글)].join("\n"),
       };
-      p.대안 = 대안찾기(페이지.map((x) => x.글), p.기관);
-      if (부르기전멈춤) {
-        console.log(`\n[${CHANNEL_NAME[ch]}] 「${query}」 · 근거 ${페이지.map((x) => x.url.replace(/^https?:\/\/[^/]+/, "")).join(" · ")} · 근거 ${p.근거.length}자 — Claude 안 부름(${안부름 ? "--no-claude" : "프롬프트가 문서딱 전용 — Step 38 전"})`);
+      p.대안 = 대안찾기(페이지.map((x) => x.글), p.기관, c.marketing.alternatives ?? []);
+      if (안부름) {
+        console.log(`\n[${CHANNEL_NAME[ch]}] 「${query}」 · 근거 ${페이지.map((x) => x.url.replace(/^https?:\/\/[^/]+/, "")).join(" · ")} · 근거 ${p.근거.length}자 — Claude 안 부름(--no-claude)`);
         continue;
       }
 

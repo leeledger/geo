@@ -1,7 +1,7 @@
 // 바깥 글 초안(Step 35 D53·D56) 단위 시험 — 가짜 행·글자만, DB·네트워크·Claude 없음.
 //   node scripts/test-marketing.mjs
-import { CLIENTS, bySlug } from "../clients.mjs";
-import { 대상고르기, 관문, 대조표, 본문글, 대안찾기, 낯선문장 } from "./marketing-draft.mjs";
+import { CLIENTS, bySlug, 고객설정 } from "../clients.mjs";
+import { 대상고르기, 관문, 대조표, 본문글, 대안찾기, 낯선문장, 프롬프트, 사실줄, 바깥글빠진칸 } from "./marketing-draft.mjs";
 import { countUsed, normUrl, searchLink, spotsNote, readSpots } from "../../web/lib/marketing-core.mjs";
 
 let 통과 = 0, 실패 = 0;
@@ -62,7 +62,7 @@ const 걸림 = (body, ch = "jisikin") => 관문(ch, { title: "여권사진 규�
 const 대안없음 = { ...p, 대안: [] };
 봄("원문에 대안이 없으면 공고 확인", /제출처 공고/.test(관문("jisikin", { title: "여권사진", body: 좋은.replace("외교부 여권안내에서", "다른 곳에서") }, 대안없음, c).join(" ")));
 봄("원문에 대안이 없고 공고 확인 있음 → 통과", !/공고|다른 방법/.test(관문("jisikin", { title: "여권사진", body: 좋은.replace("외교부 여권안내에서", "제출처 공고에서") }, 대안없음, c).join(" ")));
-봄("대안은 본론에서만 · 브라우저는 대안 아님", JSON.stringify(대안찾기(["한컴 안내\nSafari 로 열어요\n함께 보면 좋은 안내\n정부24 사진"], ["외교부"])) === JSON.stringify(["외교부", "한컴"]));
+봄("대안은 본론에서만 · 브라우저는 대안 아님", JSON.stringify(대안찾기(["한컴 안내\nSafari 로 열어요\n함께 보면 좋은 안내\n정부24 사진"], ["외교부"], c.marketing.alternatives)) === JSON.stringify(["외교부", "한컴"]));
 
 // 읽을 자리 — 원문 겹침 낮은 문장만, 공개 문장은 비교 원문에 넣으면 안 걸림
 const 낯 = 낯선문장(`${좋은}\n\n업로드가 안 되는 원인은 대부분 인터넷 속도 문제입니다.`, [p.근거, c.marketing.disclosure].join("\n"));
@@ -88,6 +88,31 @@ const e = countUsed(
 봄("올린 2 중 1 쓰임", e.posted === 2 && e.used === 1);
 봄("올리기 전 측정은 안 셈", !e.perEngine["chatgpt-web"] && e.perEngine["gemini-web"] === 1 && e.perEngine["perplexity-web"] === 1);
 봄("검색 링크", searchLink("jisikin", "a b")?.includes("where=kin") && searchLink("cafe", "a")?.includes("where=article") && searchLink("blog", "a") === null);
+
+// DB 고객(Step 39a) — 문서딱 말이 새지 않고, 사실 0 이면 안 쓴다
+{
+  const 행 = { id: 9, slug: "m-co", name: "엠", domain: "m.kr", answer_pattern: "엠",
+    config: { marketing: { enabled: true, pages: [{ all: [["여권"]], guide: "/guide/passport-photo/", tool: "/id-photo/" }], disclosure: "제가 일하는 곳입니다." } } };
+  const db0 = 고객설정(행, {});
+  봄("DB 고객 사실 0 → marketing.facts 빠짐", 바깥글빠진칸(db0) === "marketing.facts");
+  봄("문서딱(코드) 은 빠짐 없음", 바깥글빠진칸({ ...c, 출처: "코드" }) === null);
+  봄("코드 고객 사실 0 도 안 씀", 바깥글빠진칸({ ...c, 출처: "코드", marketing: { ...c.marketing, facts: [] } }) === "marketing.facts");
+  const db = 고객설정({ ...행, config: { marketing: { ...행.config.marketing, facts: [{ text: "사실 가" }, { text: "사실 나." }] } } }, {});
+  봄("DB 고객 사실 있음 → 빠짐 없음", 바깥글빠진칸(db) === null);
+  const 줄 = 사실줄(db, null);
+  봄("사실 줄 — 안내 수 없으면 머리말 없이", 줄 === "엠 고정 사실: 사실 가, 사실 나.", 줄);
+  봄("사실 줄 — guidePrefix 있으면 안내 수", 사실줄({ ...db, marketing: { ...db.marketing, guidePrefix: "/guide/" } }, 3) === "엠 고정 사실(오늘 사이트맵 기준): 안내 글 3편, 사실 가, 사실 나.");
+  const dp = { ...p, 사실: 줄, 근거: `${줄}\n${글}` };
+  const 프 = ["jisikin", "cafe", "blog"].map((ch) => 프롬프트(db, ch, dp)).join("\n");
+  봄("DB 고객 프롬프트 — 문서딱 0", !프.includes("문서딱"));
+  봄("DB 고객 프롬프트 — persona 기본값", 프.includes("너는 엠(m.kr) 쪽 사람이다. 소속을 숨기지 않고 밝히며 정보를 나눈다.") && !프.includes("무료 도구"));
+  봄("DB 고객 프롬프트 — situations 없으면 「(예:」 없음", !프.includes("(예:"));
+  봄("DB 고객 프롬프트 — 사실 두 줄", 프.includes("사실 가, 사실 나."));
+  봄("DB 고객 관문 — 문서딱 금지 말(배경 지우기)은 안 붙음", !/비공개 도구/.test(관문("jisikin", { title: "x", body: `${좋은}\n\n배경 지우기 도구도 있어요.` }, p, db).join(" ")));
+  const 관 = 관문("cafe", { title: "x", body: "짧다" }, { ...p, 대안: [] }, db).join(" / ");
+  봄("DB 고객 관문 — 이름이 고객 이름", 관.includes("엠 링크는 한두 개") && !관.includes("문서딱"), 관);
+  봄("DB 고객 금지 말 — 글자 그대로", /금지 말: a\.b/.test(관문("jisikin", { title: "x", body: `${좋은}\n\na.b 기능` }, p, 고객설정({ ...행, config: { marketing: { ...행.config.marketing, banned: ["a.b"] } } }, {})).join(" ")));
+}
 
 console.log(`\n${통과} 통과 · ${실패} 실패`);
 if (실패) process.exitCode = 1;

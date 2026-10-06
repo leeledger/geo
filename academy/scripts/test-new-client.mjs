@@ -125,12 +125,15 @@ try {
   봄("daily-agent 끝까지", da.code === 0 && !da.out.includes("실패:") && !da.out.includes("loop 없음"), `code ${da.code}`);
   봄("시험고객 하루 · 이름 질문 인용 없음 → 적중 0", da.out.includes(`시험고객 · ${오늘}`) && /적중 0\/1/.test(da.out));
 
-  // 4. 바깥 글 — 검색어·페이지·근거까지 고르고 Claude 는 안 부른다
-  const mk = 돌림(["scripts/marketing-draft.mjs", "--dry", "--client", SLUG]);
-  찍기("marketing-draft --dry --client e2e-test", mk.out);
+  // 4. 바깥 글 — 사람이 확인한 사실이 없으면 안 쓴다. 있으면 검색어·페이지·근거까지 고르고 Claude 는 안 부른다(--no-claude)
+  const mk0 = 돌림(["scripts/marketing-draft.mjs", "--dry", "--client", SLUG]);
+  찍기("marketing-draft --dry --client e2e-test (사실 0)", mk0.out);
+  봄("사실 0 → 건너뜀 · 종료코드 0", mk0.code === 0 && mk0.out.includes("사람이 확인한 사실 목록이 비었습니다 — 건너뜀") && !mk0.out.includes("Claude 호출"));
+  await q(`update geo.clients set config = jsonb_set(config, '{marketing,facts}', $2::jsonb) where id = $1`, [id, JSON.stringify([{ text: "시험 사실 하나" }])]);
+  const mk = 돌림(["scripts/marketing-draft.mjs", "--dry", "--no-claude", "--client", SLUG]);
+  찍기("marketing-draft --dry --no-claude --client e2e-test", mk.out);
   봄("검색어·페이지·근거", /「pdf 합치기 무료」 · 근거 \/guide\/pdf-merge\/ · \/pdf-merge\/ · 근거 \d+자/.test(mk.out));
-  봄("Claude 안 부름", mk.out.includes("Claude 안 부름(프롬프트가 문서딱 전용") && mk.out.includes("Claude 호출 0회"));
-  봄("문서딱 사실(무료·가입 없음)을 안 붙임", !mk.out.includes("가입 없음"));
+  봄("Claude 안 부름", mk.out.includes("Claude 안 부름(--no-claude)") && mk.out.includes("Claude 호출 0회"));
 
   // 5. 가림 — 고객사말에 시험고객
   const 말 = 고객사말(시험포함);

@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 
 import { isAdmin } from "./admin-auth";
 import { inqPool } from "./inquiries";
-import { CODE_SLUGS, 고치기, 등록, 오류말, 입력검사, 점검저장, 지우기 } from "./client-core.mjs";
+import { CODE_SLUGS, 고치기, 등록, 오류말, 입력검사, 점검저장, 지우기, 바깥글입력검사, 바깥글고치기 } from "./client-core.mjs";
 
 /**
  * 고객사 등록·고치기·다시 점검·GSC 권한 받음·지우기 (Step 38). 계산·SQL 은 client-core.mjs — 회사 루프·시험과 같은 함수.
@@ -70,6 +70,20 @@ export async function updateClient(prev: FormState, form: FormData): Promise<For
   const ok = 결과.도메인바뀜 ? await 점검(slug) : true;
   revalidatePath(`/admin/clients/${slug}`);
   redirect(`/admin/clients/${slug}?${ok ? "saved=1" : "err=check"}`);
+}
+
+/** 「바깥 글」 폼(Step 39a). 사실 줄은 원장이 확인한 것만 — 새 줄에 저장한 날이 붙는다 */
+export async function updateMarketing(prev: FormState, form: FormData): Promise<FormState> {
+  await guard();
+  const 값 = 폼글자(form);
+  const slug = String(form.get("slug_fixed") ?? "");
+  if (!/^[a-z0-9-]{1,40}$/.test(slug)) return { 오류: [오류말["not-found"]], 값, n: prev.n + 1 };
+  const r = 바깥글입력검사(값);
+  if (!r.ok) return { 오류: r.오류, 값, n: prev.n + 1 };
+  const 결과 = await 바깥글고치기(q, slug, r.칸);
+  if (!결과.ok) return { 오류: [오류말[결과.err] ?? "저장 안 됨"], 값, n: prev.n + 1 };
+  revalidatePath(`/admin/clients/${slug}`);
+  redirect(`/admin/clients/${slug}?saved=1`);
 }
 
 const 고객slug = (form: FormData) => {

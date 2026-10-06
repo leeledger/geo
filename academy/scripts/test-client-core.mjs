@@ -5,6 +5,7 @@ import { CODE_CLIENTS, 고객설정 } from "../clients.mjs";
 import {
   AI_BOTS, CODE_SLUGS, answerPattern, nextAlias, 입력검사, 등록, 고치기, 폼값, robots막힘, ld타입, 세팅점검,
   체크리스트, 요약, 일감계획, 재점검고르기, 지우기, 파이프, 오류말, 내부주소, 본문상한,
+  페이지줄읽기, 페이지줄글, 바깥글입력검사, 바깥글config, 바깥글폼값,
 } from "../../web/lib/client-core.mjs";
 
 let 통과 = 0, 실패 = 0;
@@ -400,6 +401,58 @@ const 홈html = `<html><head><script type="application/ld+json">{"@type":"Dentis
   봄("presence → presenceRe(글자 그대로)", x.presenceRe instanceof RegExp && x.presenceRe.test("주소 석촌동 274-8") && x.presenceRe.test("02-422-0525") && !x.presenceRe.test("axb") && x.출처.presenceRe === "입력");
   봄("presence 없음 → null", 고객설정({ ...행, config: {} }, {}).presenceRe === null && 고객설정({ ...행, config: {} }, {}).출처.presenceRe === "기본");
   봄("presence 형 틀림 → 빠짐·null", (() => { const y = 고객설정({ ...행, config: { presence: "석촌" } }, {}); return y.presenceRe === null && y.빠짐.includes("config.presence 형이 틀림"); })());
+}
+
+// ─────────────────────────────────────────── 바깥 글 폼 (Step 39a)
+{
+  const p = 페이지줄읽기("pdf, PDF + 합치,병합 | /guide/pdf-merge | /pdf-merge/ | /guide/a/ /guide/b");
+  봄("페이지 줄 → all 묶음·경로 끝 /", JSON.stringify(p) === JSON.stringify({ all: [["pdf", "PDF"], ["합치", "병합"]], guide: "/guide/pdf-merge/", tool: "/pdf-merge/", also: ["/guide/a/", "/guide/b/"] }), JSON.stringify(p));
+  봄("페이지 줄 왕복", JSON.stringify(페이지줄읽기(페이지줄글(p))) === JSON.stringify(p));
+  봄("페이지 줄 — 칸 둘이면 오류", !!페이지줄읽기("pdf | /guide/x/").오류);
+  봄("페이지 줄 — 경로가 / 아님 오류", !!페이지줄읽기("pdf | guide/x/ | /t/").오류);
+  봄("페이지 줄 — 빈 묶음 오류", !!페이지줄읽기("pdf + | /g/ | /t/").오류);
+  봄("페이지 줄 → 고객설정 정규식", (() => {
+    const x = 고객설정({ id: 1, slug: "m", name: "엠", domain: "m.kr", answer_pattern: "엠", config: { marketing: { pages: [p] } } }, {});
+    return x.marketing.pages[0].re.test("PDF 병합 방법") && !x.marketing.pages[0].re.test("pdf 용량");
+  })());
+
+  const 폼 = { enabled: "on", disclosure: "제가 운영하는 곳입니다.", facts: "사실 하나\n\n사실 둘\n사실 하나", pages: "pdf + 합치 | /g/ | /t/", guide_prefix: "/guide/", alternatives: "정부24, 한컴", banned: "a.b, (x)", persona: "" };
+  const r = 바깥글입력검사(폼);
+  봄("바깥 글 폼 통과 · 같은 줄 하나로", r.ok && JSON.stringify(r.칸.facts) === JSON.stringify(["사실 하나", "사실 둘"]) && r.칸.pages.length === 1, r.오류.join(" / "));
+  봄("켰는데 공개 문장 없음 → 오류", !바깥글입력검사({ ...폼, disclosure: "" }).ok);
+  봄("켰는데 페이지 없음 → 오류", 바깥글입력검사({ ...폼, pages: "" }).오류.some((x) => x.includes("페이지 줄")));
+  봄("꺼짐이면 빈 칸도 됨", 바깥글입력검사({ enabled: "" }).ok);
+  봄("사실 11줄 → 오류", !바깥글입력검사({ ...폼, facts: Array.from({ length: 11 }, (_, i) => `사실 ${i}`).join("\n") }).ok);
+  봄("사실 201자 → 오류", !바깥글입력검사({ ...폼, facts: "가".repeat(201) }).ok);
+  봄("금지 말 한 글자 → 오류", !바깥글입력검사({ ...폼, banned: "a" }).ok);
+  봄("안내 경로 앞부분 / 아님 → 오류", !바깥글입력검사({ ...폼, guide_prefix: "guide" }).ok);
+
+  const 옛 = { v: 1, gsc: true, marketing: { blogDays: [2], situations: "급할 때", persona: "옛 소개", facts: [{ text: "사실 하나", checkedOn: "2026-10-01" }, { text: "옛 사실" }] } };
+  const 새 = 바깥글config(옛, r.칸, "2026-10-06");
+  봄("checkedOn — 있던 줄은 그 날, 새 줄은 오늘", JSON.stringify(새.marketing.facts) === JSON.stringify([{ text: "사실 하나", checkedOn: "2026-10-01" }, { text: "사실 둘", checkedOn: "2026-10-06" }]), JSON.stringify(새.marketing.facts));
+  봄("화면 밖 칸(blogDays·situations·gsc)은 그대로", JSON.stringify(새.marketing.blogDays) === "[2]" && 새.marketing.situations === "급할 때" && 새.gsc === true);
+  봄("비운 persona 는 지움(기본값으로)", !("persona" in 새.marketing));
+  봄("날짜 없던 옛 줄은 다시 저장해도 날짜 안 붙임", 바깥글config(옛, { ...r.칸, facts: ["옛 사실"] }, "2026-10-06").marketing.facts[0].checkedOn === undefined);
+  const 왕복 = 바깥글폼값({ config: 새 });
+  봄("폼값 왕복", 왕복.facts === "사실 하나\n사실 둘" && 왕복.pages === "pdf + 합치 | /g/ | /t/" && 왕복.enabled === "on" && 왕복.banned === "a.b, (x)", JSON.stringify(왕복));
+
+  const 설정 = 고객설정({ id: 1, slug: "m", name: "엠", domain: "m.kr", answer_pattern: "엠", config: 새 }, {});
+  봄("고객설정 — facts·guidePrefix·alternatives", 설정.marketing.facts.length === 2 && 설정.marketing.guidePrefix === "/guide/" && 설정.marketing.alternatives.join() === "정부24,한컴" && 설정.marketing.persona === null && 설정.marketing.situations === "급할 때");
+  봄("고객설정 — banned 는 글자 그대로 정규식", 설정.marketing.banned[0].re.test("x a.b y") && !설정.marketing.banned[0].re.test("axb") && "(x)".match(설정.marketing.banned[0].re)?.[0] === "(x)" && 설정.marketing.banned[0].why === "금지 말");
+  const 틀림 = (m) => 고객설정({ id: 1, slug: "m", name: "엠", domain: "m.kr", answer_pattern: "엠", config: { marketing: m } }, {});
+  봄("facts 형 틀림 → 빠짐·빈 목록", (() => { const y = 틀림({ facts: [{ text: "" }] }); return y.빠짐.includes("config.marketing.facts 형이 틀림") && y.marketing.facts.length === 0; })());
+  봄("facts checkedOn 꼴 틀림 → 빠짐", 틀림({ facts: [{ text: "a", checkedOn: "10월 6일" }] }).빠짐.includes("config.marketing.facts 형이 틀림"));
+  봄("facts 11개 → 빠짐", 틀림({ facts: Array.from({ length: 11 }, () => ({ text: "a" })) }).빠짐.includes("config.marketing.facts 형이 틀림"));
+  봄("banned 형 틀림 → 빠짐·빈", (() => { const y = 틀림({ banned: "a" }); return y.빠짐.includes("config.marketing.banned 형이 틀림") && y.marketing.banned.length === 0; })());
+  봄("alternatives 형 틀림 → 빠짐·빈", (() => { const y = 틀림({ alternatives: [1] }); return y.빠짐.includes("config.marketing.alternatives 형이 틀림") && y.marketing.alternatives.length === 0; })());
+  봄("guidePrefix / 아님 → 빠짐·null", (() => { const y = 틀림({ guidePrefix: "guide" }); return y.빠짐.includes("config.marketing.guidePrefix 형이 틀림") && y.marketing.guidePrefix === null; })());
+  봄("persona 301자 → 빠짐", 틀림({ persona: "가".repeat(301) }).빠짐.includes("config.marketing.persona 말이 너무 김"));
+
+  const 줄칸 = (m) => 체크리스트({ slug: "m", name: "엠", domain: "m.kr", relation: "외부", config: { marketing: m } }, {}).find((x) => x.id === "offsite");
+  봄("체크리스트 바깥 글 — 꺼짐 해당없음", 줄칸({}).상태 === "해당없음");
+  봄("체크리스트 바깥 글 — 켜짐·사실 0 → 기다림(사람 칸 아님)", 줄칸({ enabled: true, pages: [p], disclosure: "x" }).상태 === "기다림" && 줄칸({ enabled: true, pages: [p], disclosure: "x" }).사람말 === "사실 목록이 비어 글을 안 씁니다");
+  봄("체크리스트 바깥 글 — 다 있음 → 됨", 줄칸({ enabled: true, pages: [p], disclosure: "x", facts: [{ text: "a" }] }).상태 === "됨");
+  봄("바깥 글 칸은 일감을 안 만든다", 일감계획({ slug: "m", name: "엠" }, [줄칸({ enabled: true, pages: [p], disclosure: "x" })]).열기.length === 0);
 }
 
 console.log(`${통과} 통과 · ${실패} 실패`);

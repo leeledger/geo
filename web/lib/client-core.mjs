@@ -240,6 +240,112 @@ export function 폼값(row) {
   };
 }
 
+// ─────────────────────────────────────────── 바깥 글 (Step 39a)
+const 경로끝 = (s) => (s.endsWith("/") ? s : `${s}/`);
+
+/**
+ * 페이지 한 줄 「말1,말2 + 말3 | /guide/x/ | /tool/ [| /also/ /also2/]」 → { all: [[말1,말2],[말3]], guide, tool, also? } | { 오류 }.
+ * 「+」 는 그리고, 「,」 는 또는. 경로는 / 로 시작, 끝 / 는 붙여 둔다(marketing-draft 가 사이트맵 경로를 / 로 끝맺어 견준다)
+ */
+export function 페이지줄읽기(line) {
+  const 칸 = String(line ?? "").split("|").map((s) => s.trim());
+  if (칸.length < 3 || 칸.length > 4) return { 오류: "「말 | 안내 경로 | 도구 경로」 꼴이 아닙니다" };
+  const all = 칸[0].split("+").map((g) => 같은말뺌(쉼표나눔(g)));
+  if (!all.length || all.some((g) => !g.length)) return { 오류: "찾을 말이 비었습니다" };
+  if (all.length > 20 || all.some((g) => g.length > 20 || g.some((w) => w.length > 40))) return { 오류: "찾을 말이 너무 많거나 깁니다(묶음 20개·말 40자까지)" };
+  const 경로들 = [칸[1], 칸[2], ...(칸[3] ? 칸[3].split(/[\s,]+/).filter(Boolean) : [])];
+  if (!경로들.every((p) => /^\/[^\s<>"']*$/.test(p) && p.length <= 200)) return { 오류: "경로는 / 로 시작합니다(예: /guide/pdf-merge/)" };
+  const [guide, tool, ...also] = 경로들.map(경로끝);
+  return { all, guide, tool, ...(also.length ? { also } : {}) };
+}
+
+/** config 페이지 → 폼 한 줄. 페이지줄읽기 의 거꿀 */
+export const 페이지줄글 = (p) =>
+  [(p.all ?? []).map((g) => g.join(",")).join(" + "), p.guide, p.tool, ...(p.also?.length ? [p.also.join(" ")] : [])].join(" | ");
+
+/**
+ * 「바깥 글」 폼 → { ok, 칸, 오류[] }.
+ *   enabled(on) · disclosure · facts(줄마다) · pages(줄마다) · guide_prefix · alternatives(쉼표) · banned(쉼표) · persona
+ * 사실은 사람이 확인한 것만 들어간다 — 사이트에서 긁어 채우지 않는다
+ */
+export function 바깥글입력검사(f) {
+  const 오류 = [];
+  const enabled = 켬(f.enabled);
+  const disclosure = String(f.disclosure ?? "").trim().replace(/\s+/g, " ");
+  if (disclosure.length > 300) 오류.push("공개 문장은 300자까지입니다");
+  if (enabled && !disclosure) 오류.push("켜려면 공개 문장(본문 끝에 붙는 소속 밝힘)을 넣어 주세요");
+  const facts = 같은말뺌(줄나눔(f.facts));
+  if (facts.length > 10) 오류.push(`확인한 사실은 10줄까지입니다 (지금 ${facts.length}줄)`);
+  else if (facts.some((x) => x.length > 200)) 오류.push("확인한 사실은 한 줄에 200자까지입니다");
+  const pages = [];
+  줄나눔(f.pages).forEach((l, i) => {
+    const p = 페이지줄읽기(l);
+    if (p.오류) 오류.push(`페이지 ${i + 1}째 줄: ${p.오류}`);
+    else pages.push(p);
+  });
+  if (pages.length > 20) 오류.push("페이지는 20줄까지입니다");
+  if (enabled && !pages.length && !오류.some((x) => x.startsWith("페이지"))) 오류.push("켜려면 페이지 줄을 하나는 넣어 주세요");
+  const guidePrefix = String(f.guide_prefix ?? "").trim();
+  if (guidePrefix && (!/^\/[^\s]*$/.test(guidePrefix) || guidePrefix.length > 40)) 오류.push("안내 경로 앞부분은 / 로 시작합니다(예: /guide/)");
+  const alternatives = 같은말뺌(쉼표나눔(f.alternatives));
+  if (alternatives.length > 20 || alternatives.some((x) => x.length < 2 || x.length > 40)) 오류.push("대안 이름은 20개까지, 하나하나 2~40자입니다");
+  const banned = 같은말뺌(쉼표나눔(f.banned));
+  if (banned.length > 20 || banned.some((x) => x.length < 2 || x.length > 40)) 오류.push("금지 말은 20개까지, 하나하나 2~40자입니다 (한 글자 말은 아무 글에나 걸립니다)");
+  const persona = String(f.persona ?? "").trim().replace(/\s+/g, " ");
+  if (persona.length > 300) 오류.push("소속 소개는 300자까지입니다");
+  return { ok: 오류.length === 0, 칸: { enabled, disclosure, facts, pages, guidePrefix, alternatives, banned, persona }, 오류 };
+}
+
+/**
+ * 「바깥 글」 저장 — config.marketing 의 화면 칸만 바꾸고 나머지(blogDays·blogId·situations…)는 그대로.
+ * 새로 들어온 사실 줄에만 checkedOn = 저장한 날(KST). 전부터 있던 줄은 날짜를 그대로 둔다(누가 언제 확인했나를 잃지 않게)
+ */
+export function 바깥글config(옛config, 칸, 오늘) {
+  const 옛 = 옛config && typeof 옛config === "object" && !Array.isArray(옛config) ? 옛config : {};
+  const 옛m = 옛.marketing && typeof 옛.marketing === "object" && !Array.isArray(옛.marketing) ? 옛.marketing : {};
+  const 옛사실 = new Map((Array.isArray(옛m.facts) ? 옛m.facts : []).filter((x) => x && typeof x.text === "string").map((x) => [x.text.trim(), x.checkedOn]));
+  const { persona: _p, guidePrefix: _g, disclosure: _d, ...남김 } = 옛m;
+  const facts = 칸.facts.map((text) => {
+    const 날 = 옛사실.has(text) ? 옛사실.get(text) : 오늘;
+    return 날 ? { text, checkedOn: 날 } : { text };
+  });
+  const marketing = {
+    ...남김,
+    enabled: 칸.enabled, facts, pages: 칸.pages, alternatives: 칸.alternatives, banned: 칸.banned,
+    ...(칸.disclosure ? { disclosure: 칸.disclosure } : {}),
+    ...(칸.guidePrefix ? { guidePrefix: 칸.guidePrefix } : {}),
+    ...(칸.persona ? { persona: 칸.persona } : {}),
+  };
+  return { ...옛, v: 1, marketing };
+}
+
+const kst오늘 = () => new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" });
+
+export async function 바깥글고치기(q, slug, 칸, 오늘 = kst오늘()) {
+  if (CODE_SLUGS.includes(slug)) return { ok: false, err: "code-client" };
+  const [row] = await q(`select id, to_jsonb(c)->'config' as config from geo.clients c where slug = $1`, [slug]);
+  if (!row) return { ok: false, err: "not-found" };
+  await q(`update geo.clients set config = $2::jsonb where id = $1`, [row.id, JSON.stringify(바깥글config(row.config, 칸, 오늘))]);
+  return { ok: true, id: row.id, slug };
+}
+
+/** 「바깥 글」 폼이 보여 줄 값 — config.marketing 원문에서 */
+export function 바깥글폼값(row) {
+  const c = row.config && typeof row.config === "object" ? row.config : {};
+  const m = c.marketing && typeof c.marketing === "object" ? c.marketing : {};
+  const 목록 = (x) => (Array.isArray(x) ? x.filter((s) => typeof s === "string") : []);
+  return {
+    enabled: m.enabled === true ? "on" : "",
+    disclosure: typeof m.disclosure === "string" ? m.disclosure : "",
+    facts: (Array.isArray(m.facts) ? m.facts : []).map((x) => x?.text).filter((s) => typeof s === "string").join("\n"),
+    pages: (Array.isArray(m.pages) ? m.pages : []).filter((p) => p && Array.isArray(p.all)).map(페이지줄글).join("\n"),
+    guide_prefix: typeof m.guidePrefix === "string" ? m.guidePrefix : "",
+    alternatives: 목록(m.alternatives).join(", "),
+    banned: 목록(m.banned).join(", "),
+    persona: typeof m.persona === "string" ? m.persona : "",
+  };
+}
+
 // ─────────────────────────────────────────── 세팅 점검
 const 앞 = (s, n = 300) => String(s ?? "").slice(0, n);
 const 같은호스트 = (a, b) => a.replace(/^www\./, "") === b.replace(/^www\./, "");
@@ -583,7 +689,14 @@ export function 체크리스트(row, derived, { pilot = null } = {}) {
   else if (!pilot.approved) 줄.push({ id: "measure", 칸: "AI 측정(파일럿·질문 승인)", 상태: 기다림, 사람말: "고객이 질문 20개를 승인하면 첫 측정을 시작합니다" });
   else 줄.push({ id: "measure", 칸: "AI 측정(파일럿·질문 승인)", 상태: 됨, 사람말: "질문이 승인돼 AI 답을 잽니다" });
 
-  줄.push({ id: "offsite", 칸: "바깥 글", 상태: 없음, 사람말: "꺼짐 — 다음 단계에서 켭니다" });
+  // 바깥 글 — 사실이 비면 글을 안 쓴다. 사람 칸이 아니다(일감 안 만든다): 켜고 사실을 적는 건 원장이 고를 일
+  const m = c.marketing && typeof c.marketing === "object" ? c.marketing : {};
+  const 사실수 = Array.isArray(m.facts) ? m.facts.length : 0;
+  const 페이지수 = Array.isArray(m.pages) ? m.pages.length : 0;
+  if (m.enabled !== true) 줄.push({ id: "offsite", 칸: "바깥 글", 상태: 없음, 사람말: "꺼짐 — 아래 「바깥 글」에서 켭니다" });
+  else if (!사실수) 줄.push({ id: "offsite", 칸: "바깥 글", 상태: 기다림, 사람말: "사실 목록이 비어 글을 안 씁니다" });
+  else if (!페이지수 || !m.disclosure) 줄.push({ id: "offsite", 칸: "바깥 글", 상태: 기다림, 사람말: `${!페이지수 ? "페이지 줄" : "공개 문장"}이 없어 글을 안 씁니다` });
+  else 줄.push({ id: "offsite", 칸: "바깥 글", 상태: 됨, 사람말: `켜짐 — 확인한 사실 ${사실수}줄 · 페이지 ${페이지수}줄` });
   return 줄;
 }
 
