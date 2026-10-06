@@ -1,14 +1,12 @@
-# Review Feedback — Step 38 (2026-10-05) · Ready for Builder: YES
-## Must Fix — 없음
+# Review Feedback — Step 39 (39a·39b·39c) · 2026-10-06 · Ready for Builder: NO
+## Must Fix
+- tools/login-poll.mjs (기다림 note) + web/lib/login-core.mjs 오래된창요청닫기 (9/10) — note 를 쓸 때 `update geo.agent_tasks set last_error=$2 where id=$1` 이라 updated_at 이 그대로다. 그런데 닫기는 `status='로컬 대기' and updated_at < now() - interval '30 minutes'` 를 「PC 가 꺼져 있어 창을 못 열었습니다」로 실패 처리한다. local-agent 는 최대 90분 돈다. 그래서 PC 가 켜져 있는데도 30분 뒤 거짓 문구가 뜨고 요청이 버려진다(브리프의 「끝나면 엶」이 깨진다). 고칠 것: 기다리는 동안 매 poll 마다 `updated_at=now()` 를 함께 쓴다(PC 가 꺼지면 poll 이 없으니 30분 판정은 그대로 산다). 시험: 31분째 기다림 행은 닫히지 않는다.
 ## Should Fix
-- client-core.mjs:250-283 (5/10, 확인 요망) — 호스트 모양만 보고 DNS 결과는 안 본다. 사설 IP로 풀리는 도메인은 통과한다. https 전용이고 관리자만 넣을 수 있어 실제 위험은 낮다 — dns.lookup 으로 사설·링크로컬·루프백을 거부하거나 KG에 적는다.
-- client-core.mjs:278 (8/10) — `body = await r.text()` 크기 상한이 없다(KG-38-4). 스트림을 2MB 까지만 읽고 끊는다.
-- pilot-actions.ts createPilot (7/10) — 아직 `on conflict(client_id) do update`. 서버는 두 번째 파일럿을 거부하지 않고 담당자 칸을 덮어쓴다. "pilot-exists" 오류말은 정의만 있다. 기존 pilots 행이 있으면 fail("pilot-exists").
-- client-core.mjs:186 (5/10) — 도메인 중복 검사가 확인 뒤 insert 이고 고유 색인이 없다. 관리자 한 명이라 경합 가능성은 낮다. tx 안에서 pg_advisory_xact_lock 을 잡는다.
-## Escalate — 없음. 다르게 한 3가지는 타당하다: answerPattern 이전(node 가 .ts 를 못 읽고 재수출로 호출부 불변), maxDuration 60(20초 상한 안), useActionState(열 칸을 다시 치지 않게).
-## Cleared — guard=isAdmin(기존 actions와 같음)·페이지 인증, 리다이렉트 https·같은 호스트·5홉·8/20초, slug·코드·도메인 거부, 지우기 test·FOR UPDATE·한 tx·남은 0, createPilot 이 geo.clients 를 안 만듦, 공개·리포트 길 0, derived 실측만, CLAUDE.md 는 함정 줄 하나만 바뀜.
+- 「.local-agent.lock 신선하면 프로필과 상관없이 기다림」 — 타당하다(프로필 기록이 없으니 충돌보다 늦게 뜨는 쪽이 낫다). 위를 고치면 최대 90분 늦을 수 있다. 이 사실을 BUILD-LOG 에 적는다.
+- marketing-draft 관문에 「다른 고객 이름」 검사가 없다(5/10). 프롬프트에 c.name 만 들어가니 지금은 위험이 낮다. KG 로 적는다.
+## Cleared
+39a: 사실은 config.marketing.facts 에서만 온다. 비면 Claude 호출 0, 종료코드 0. 스냅샷은 export 된 프롬프트·관문·사실줄을 그대로 거친다. 다시 돌려 보니 같다(6242자). 39b: requestLogin 에 isAdmin 이 있다. 사람 대기 login-* 만 받는다. 프로필·sites 는 창요청검사 정규식과 화이트리스트로 거른다(블로그 경로는 고객 slug 에서). 잠금 순서, 종료코드 3, loginBusy 분리, 옛 작업 3개만 끄는 것 확인. test-login 56 통과. 39c: 권한판정은 늘 「모름」이고 config.gsc 는 「있음」일 때만 켜진다. 점검저장은 gscAccess 만 살리고 나머지 derived 는 예전처럼 둔다.
 
-## 2차 (f5e0007) — Ready for Builder: YES · Must Fix 없음
-- 4건 모두 반영 확인. DNS 는 요청마다(리다이렉트 뒤 주소 포함) all 로 풀고 하나라도 내부면 거부. IPv4 11대역·169.254·CGNAT·::ffff 점 표기 덮음. 2MB 스트림 끊고 잘림 표시. pilot-exists 는 사전 검사와 23505(client_id 고유) 둘 다. advisory lock 은 tx 안. 새로 깨진 곳 없음.
-- Should Fix (6/10) client-core.mjs 내부주소 — IPv6 에서 64:ff9b::/96(NAT64)·2002::/16(6to4)·::ffff 16진 표기(::ffff:7f00:1)·::a.b.c.d 가 빠져 공개로 본다. getaddrinfo 가 내기 드물고 Vercel 에 NAT64 없음 — 넣거나 KG-38-7 옆에 적는다.
-- KG-38-7(rebinding) Known Gap 으로 받아들임. Step 38 is clear.
+## 2차 (21a540e) · Ready for Builder: YES
+- Must Fix 닫힘: 기다림 note 가 `set last_error=$2, updated_at=now() where id=$1 and status='로컬 대기'` 로 바뀌었다. 새 시험 「31분째 기다리는 행은 안 닫힘」과 「poll 끊긴 31분 행은 닫힘」 둘로 양쪽 길을 덮는다. test-login 56 통과.
+- 새로 깨진 것 없음. poll 은 `order by updated_at` 이라 기다리는 행이 뒤로 돌아 다른 요청이 먼저 집힌다. 해가 아니라 득이다. 창 잠금 때문에 끝나는 길은 갱신을 안 하지만 그 창은 13분 상한이라 30분 판정에 안 걸린다. BUILD-LOG 기록 확인.
