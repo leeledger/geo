@@ -1496,3 +1496,35 @@ Known Gaps (26)
 
 - 2026-10-05 밤 빙: .browser-profile 빙 웹마스터 로그인이 풀려 학원 빙 제출이 10-03 부터 매번 「Submit 버튼 못 찾음」으로 실패하고 있었다(풀리면 /webmasters/about 로 가는데 판정은 login|signin 만 봄). bing-submit-urls 판정에 /webmasters/about 추가 → local-agent 가 로그인 일감을 올린다. 원장 재로그인 뒤 학원 4개·문서딱 10개 제출 성공
 - KG-36-8 닫힘: 문서딱은 빙 웹마스터에 등록돼 있다(--look 원문: 사이트 선택 docttak.com/, URL Submission 화면). 미등록 판정 정규식은 원문이 없어 안 넣음(필요 없음)
+
+### 2026-10-06 — Step 39 설계 (원장 「진행시켜」) — Step 39 BRIEFED (handoff/ARCHITECT-BRIEF.md)
+- 쪼갬: 39a 바깥 글 범용화(KG-37-1) · 39b 로그인 창 버튼 + 운영 정리 · 39c GSC 권한 탐침. 덩어리마다 따로 커밋. ④ 자사 0원 리허설 화면은 Step 40 — 셋만으로 원장 브라우저·Claude 확인이 셋 걸린다
+- 결정(39a): 고정 사실은 config.marketing.facts(사람이 적은 줄 + checkedOn)에서만. 비면 초안 안 씀(건너뜀, 종료코드 0). 문서딱 전용 글(persona·facts·guidePrefix·alternatives·banned·situations)은 clients.mjs 문서딱 덩어리로 글자 그대로 옮긴다. 문서딱 동일 증명 = 프롬프트·관문 스냅샷 + `--dry --no-claude` 전후 0(--no-claude 는 프롬프트 전에 멈춰 그것만으론 증명 안 됨)
+- 결정(39a): DB 고객은 화면으로 바깥 글을 켤 수 없었다(client-core 폼이 marketing 을 안 다룸) → /admin/clients/[slug] 에 「바깥 글」 폼. 사실은 사이트에서 긁지 않는다
+- 사실(39b, 실측 10-06): 옛 작업 스케줄러 Cited AI Measure·Heartbeat·Local Agent 가 「준비」로 켜져 있다. 12:40 겹침의 주인 = 옛 Local Agent(12:40:02 정각 시작, pc-runner 12:40:26 건너뜀인데 종료코드 0·0초로 성공처럼 기록). ai-web-measure 21:30 실행(10-03~05)도 옛 작업. pc-runner --install 의 끄기가 안 먹었다
+- 결정(39b): 옛 작업 끄기 → 거부되면 원문 + 원장 일감. 잠금 건너뜀은 종료코드 3 으로 pc-runner 로그에 「건너뜀」
+- 결정(39b): Gemini 문서딱 「답 없음」은 10-06 한 번뿐(이전 10회 20/20). 고객 순서 돌리기는 안 한다(학원 레퍼런스가 맨 앞 고정이 우선). 대신 ai-web-measure 를 10:00·16:00 두 번 — 둘째는 그날 안 잰 문항만(옛 21:30 작업이 우연히 하던 일)
+- 결정(39b): 로그인 창 = 현황판 버튼 → open-login 로컬 대기 → pc-runner 의 별도 1분 타이머(busy 와 따로) → login-poll.mjs → open-session --only. 프로필 충돌은 .local-agent.lock·.open-session.lock 로 서로 기다림. 빙 웹마스터를 open-session 기본 셋에 넣고 판정 정규식은 tools/login-rules.mjs 한 곳(bing-submit-urls 와 같은 /webmasters/about). 네이버 NID_AUT 만료일 판정은 그대로. 헛 ✓ 막기: 두 번 연속 + 10초
+- Escalate(39b): Neon 요금제 모름 — 매분 조회가 DB 를 늘 깨운다. LOGIN_POLL_HOURS 빈 값(끔)으로 배포, 세션이 Neon 콘솔 확인 뒤 8-24
+- 결정(39c): tools/gsc-access.mjs 탐침. 판정 함수는 원문 fixture 전엔 언제나 「모름」, config.gsc 는 「있음」일 때만 true. 원문(있는 속성·example.com)은 세션이 원장과 함께
+- KG-39-1 고객 측정 순서: 같은 고객이 맨 뒤에서 3일 연속 멈추면 순서 돌리기 다시 본다
+- KG-39-2 config.gsc true(원장 「권한 받음」) 고객의 권한을 탐침으로 다시 확인 — 판정 기준(39c 원문) 뒤
+
+### Step 39 — 바깥 글 범용화 · 로그인 창 버튼 · GSC 권한 탐침 — BUILT · Richard 대기 (2026-10-06, Bob) · DONE
+커밋 9724204(39a) · c569e0e(39b) · 31b73b4(39c). 푸시·배포 안 함
+- 39a 결정: 회귀 기준 = 고치기 전에 뜬 스냅샷(academy/scripts/fixtures/marketing-prompt-docttak.txt — 프롬프트 3채널·관문 이유·대안·사실 줄). 일반화 뒤 같음 6242자 · `--dry --no-claude` 전후 diff 0
+- 39a 결정: 사실 0 이면 코드 고객도 안 쓴다(바깥글빠진칸 = marketing.facts). DB 고객도 이제 Claude 를 부른다(부르기전멈춤 = 안부름만)
+- 39a 결정: 사실 줄 끝 마침표는 떼고 한 번만 붙인다. guidePrefix 가 없으면 「(오늘 사이트맵 기준)」·안내 글 수를 안 쓴다
+- 39a 결정: 폼 페이지 경로는 끝 / 를 붙여 둔다 — marketing-draft 가 사이트맵 경로를 / 로 끝맺어 견준다(우리 랜딩 사이트맵은 / 없이 나온다)
+- 39a E2E: 시험 고객(geo-rose-nine) 사실 2줄 → Claude 1회 · 관문 통과 · 「문서딱」 0 · DB 안 바뀜 · 남은 행 0
+- 39b 결정: 옛 작업 끄기는 코드로만(pc-runner --disable-old, --install 도 같은 길). 실행은 세션 — 원장 PC 설정을 바꾸는 일. 왜 전엔 안 먹었나는 모른다: --install 이 Disable-ScheduledTask 출력을 stdio ignore 로 버렸다. 이제 schtasks 원문·끈 뒤 상태를 pc-runner.log 에 남긴다
+- 39b 결정: login-poll 은 .local-agent.lock 이 신선하면 프로필과 상관없이 기다린다(local-agent 가 지금 어느 프로필을 여는지 기록 없음). 잠금 순서: login-poll 은 창 잠금 먼저 → local-agent 잠금 확인 / local-agent 는 자기 잠금 먼저 → 창 잠금 확인
+- 39b 결정: open-login payload.from 은 숫자로(bigint 가 pg 에서 글자로 와 login 일감 완료가 안 됐던 것을 live 시험이 잡음)
+- 39b 결정: open-login 은 sticky — 회사 루프 「신호 사라짐」 닫기가 안 건드린다. 30분 로컬 대기 → 실패(PC 꺼짐) · 실행 중 20분 → 실패
+- 39b: LOGIN_POLL_HOURS= 빈 값으로 academy/.env.local 에 넣음(끔). pc-runner 다시 띄움 13:47:07 pid 39856
+- 39b: 옛 작업 상태(읽기만, 10-06 13:4x): `\Cited AI Measure` 다음 21:30 「준비」 · `\Cited Local Agent` 19:10 「준비」 — 오늘 19:10 에도 겹친다(새 코드라 pc-runner 쪽이 종료코드 3 「건너뜀」으로 남는다)
+- 39c 결정: 권한판정 은 늘 「모름」(원문 없음). 탐침 대상 지금 0곳(DB 고객 없음) — 오늘 밤 local-agent 가 브라우저를 더 열지 않는다
+- 39c 결정: 매시 사이트 점검(점검저장)이 derived 를 통째로 바꿔 gscAccess 를 지우던 길 → gscAccess 는 남긴다(도메인 바뀌면 고치기가 derived 를 비우는 건 그대로)
+- KG-39-3 DB 고객 바깥 글은 아무도 매일 안 돌린다 — optimize.yml 이 `marketing-draft --client docttak` 만. 첫 DB 고객이 바깥 글을 켜기 전에 고객 목록을 도는 길이 필요
+- KG-39-4 바깥 글 폼에 situations·blogDays 칸 없음(브리프 칸 목록 밖). config 에 있으면 저장해도 남긴다
+- KG-39-5 39a E2E 초안이 「공개 가격이 있는 국내 대행사 1곳은 월 500만원」을 썼다 — 근거 페이지(/geo/geo-cost/)에 있는 문장이라 관문 통과. 남의 회사 가격을 바깥 글로 옮기는 게 맞는지는 원장 판단(코드 문제 아님)

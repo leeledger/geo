@@ -1,173 +1,68 @@
-# Review Request — Step 38 (고객사 등록 화면 · 세팅 점검 · 체크리스트 · 사람 일감)
-Date: 2026-10-05
+# Review Request — Step 39 (39a · 39b · 39c)
+Date: 2026-10-06
 Ready for Review: YES
-Status: DONE — 단위 127 통과, 기존 시험 그대로 통과, web tsc exit 0 · next build 성공, E2E(로컬 next dev + 운영 DB + Playwright 헤드리스) 32/32·남은 행 0, 기존 3곳 회귀 차이 0(데이터 흐름 제외 — 아래)
+Status: DONE (세션 몫 4개는 아래 「세션이 할 것」 — Bob 은 원장 로그인 브라우저·작업 스케줄러를 안 건드렸다)
+
+커밋 셋(푸시·배포 안 함): `9724204` 39a · `c569e0e` 39b · `31b73b4` 39c
 
 ## Files Changed
-- web/lib/client-core.mjs:14-34 — CODE_SLUGS·AI_BOTS(clients.mjs·crawler-class.ts 베낌, 시험이 맞춰 봄).
-- web/lib/client-core.mjs:36-62 — answerPattern(raw, exclude) 구현(옮겨 옴). exclude 면 각 말 앞에 `(?<!(?:앞말)\s*)`. nextAlias 도 여기로.
-- web/lib/client-core.mjs:64-146 — 도메인정리·호스트(스킴·userinfo·포트·경로 떼고 IP·localhost·점 없음·한글 거부)·입력검사(사람 말 오류[])·오류말.
-- web/lib/client-core.mjs:148-240 — 고객칸준비(add column if not exists 만)·새키·등록(코드 slug·DB slug·같은 도메인 거부, tx, on conflict 없음)·고치기(slug·status 불변, 도메인 바뀌면 derived {}, 키·gsc·marketing 보존)·폼값.
-- web/lib/client-core.mjs:242-430 — 열기(redirect 손으로, https·같은 호스트만, 8초/전체 20초)·robots막힘·ld타입·세팅점검(home·robots·llms·키 파일 병렬 → 사이트맵·하위 5개)·점검저장. 본문은 칸마다 앞 300자.
-- web/lib/client-core.mjs:432-540 — 체크리스트(10칸, 사람 칸 최대 3: send·gsc·measure, send 할일 = 복사해 보낼 글)·요약·파일럿상태.
-- web/lib/client-core.mjs:542-645 — 일감계획(순수)·사람일감맞추기(upsert setup-<칸>, 됨 완료·해당없음 닫힘·기다림 그대로, 활동 agent setup)·재점검고르기·점검하고맞추기·세팅재점검(company 매시).
-- web/lib/client-core.mjs:646-700 — 지우기: status test 만, pg_constraint FK 순서로 한 tx, 남은 행 세어 0 아니면 rollback·left, .catch 없음.
-- web/lib/client-core.mjs:702-710 — 파이프(config·derived → posts/indexnow/marketing).
-- web/lib/client-core.d.mts — 위 타입.
-- web/lib/client-actions.ts:1-111 — server actions(guard=isAdmin): registerClient·updateClient(useActionState, 오류+친 값 돌려줌) · recheckClient · markGscGranted · deleteTestClient(?err=).
-- web/lib/answer-pattern.ts:11-13 — answerPattern 은 client-core 에서 다시 내보내기만. competitorNames 그대로.
-- web/lib/pilot-intake.ts:50-60 — nextAlias 삭제(쓰는 곳 없음, client-core 로).
-- web/lib/pilot-actions.ts:17-57 — createPilot: client_id 로 고객 행 읽기, geo.clients insert/upsert·alter 2줄 삭제, 외부만·answer_pattern 필수, 실패는 /admin/clients/<slug>?err=…#pilot.
-- web/app/admin/clients/page.tsx:1-84 — 목록(코드 3곳은 「코드 설정 — 화면에서 안 고침」, DB 고객은 「사람 n · 기다림 n」) + 등록 폼. maxDuration 60.
-- web/app/admin/clients/[slug]/page.tsx:1-207 — 체크리스트(data-check/data-state)·보낼 글 textarea+복사·권한 받음·다시 점검·점검 근거 표·고치기·파일럿 시작(옛 pilots 폼 칸 그대로)·지우기(시험만). maxDuration 60.
-- web/app/admin/clients/ClientForm.tsx:1-71 — 등록·고치기 클라이언트 폼(useActionState, key=n 으로 친 값 다시 그림).
-- web/app/admin/clients/clients.css — 화면 꼴(keep-all).
-- web/app/admin/pilots/page.tsx — 만들기 폼·FIELDS·errText 삭제, 「새 고객사는 고객사 화면에서 등록합니다」 링크.
-- web/app/admin/AdminNav.tsx:12 — 「고객사」.
-- web/lib/agents.ts:2,61-69,475-477 — PipeClient, pipeOf(client) = 코드 1·2·3 은 PIPES, 그 밖은 파이프(config, derived).
-- web/app/admin/ops/AgentBoard.tsx:2,13,79 · web/app/admin/ops/page.tsx:270 — clientId 대신 client 를 넘김.
-- web/lib/ops.ts:172-174,184-199,207 — Client 에 config·derived(to_jsonb, 칸 없는 DB 안전).
-- web/lib/todo-text.ts:176-187 — kind setup: 제목 그대로, 칸별 이유, 「고객 화면 열기」 → /admin/clients/<slug>.
-- academy/clients.mjs:326-328,434 — config.presence → presenceRe(lit, 없으면 null · 출처 입력/기본). 533 주석 /admin/clients.
-- academy/scripts/company.mjs:39,565-566,929-930 — 세팅재점검 매시 호출 · 「신호 사라짐」 닫기에서 setup-% 제외.
-- academy/scripts/test-client-core.mjs — 단위 시험(Test map 전부, DB·네트워크 없음).
-- academy/scripts/test-client-screen.mjs — E2E --live.
-- CLAUDE.md:115 — 함정 줄 교체(그 줄만).
 
-## 시험
-```
-test-client-core      127 통과 · 0 실패
-test-clients           99 통과 · 0 실패
-test-docttak           32 통과 · 0 실패
-test-marketing         38 통과 · 0 실패
-test-growth-import     59 통과 · 0 실패
-web/scripts/check-crawler-class   AI_BOTS 같음 (20) · SEARCH_BOTS 같음 (5)
-node --check scripts/company.mjs  OK
-web: node ./node_modules/typescript/bin/tsc --noEmit -p .   exit 0
-web: next build   성공(/admin/clients · /admin/clients/[slug] ƒ)
-```
+### 39a — 바깥 글 범용화
+- academy/scripts/marketing-draft.mjs:45-52 — 금지말 → 공통금지말 둘. remove-background 줄은 문서딱 config.banned 로
+- academy/scripts/marketing-draft.mjs:124-185 — 「문서딱」 리터럴 → c.name · persona 기본값 · situations 없으면 「(예: …)」 통째 뺌 · 프롬프트 export
+- academy/scripts/marketing-draft.mjs:211-244 — 관문 문장 c.name · 금지말 = 공통 + c.marketing.banned · 대안찾기(글들, 기관, 이름들)
+- academy/scripts/marketing-draft.mjs:289-306 — 바깥글빠진칸(사실 0 → marketing.facts) · 사실줄(c, 안내수)
+- academy/scripts/marketing-draft.mjs:316-321,352-354,383-385 — 건너뜀 문구 · guidePrefix 로 안내 수 · 부르기전멈춤 → 안부름만
+- academy/clients.mjs:224-235 — 문서딱 marketing 에 persona·facts·guidePrefix·alternatives·banned·situations(글자 그대로)
+- academy/clients.mjs:433-456 — 고객설정 marketing.facts(≤10·text 1~200·checkedOn)·guidePrefix(/)·alternatives·banned(lit, gi)·persona·situations 형 검사
+- web/lib/client-core.mjs:243-348 — 페이지줄읽기/페이지줄글 · 바깥글입력검사 · 바깥글config(새 사실 줄만 checkedOn=오늘) · 바깥글고치기 · 바깥글폼값
+- web/lib/client-core.mjs:(체크리스트 끝) — offsite 줄: 꺼짐 해당없음 · 켜짐+사실 0 「사실 목록이 비어 글을 안 씁니다」(기다림, 일감 없음) · 됨
+- web/lib/client-actions.ts:75-89 — updateMarketing(useActionState)
+- web/app/admin/clients/MarketingForm.tsx (새) · web/app/admin/clients/[slug]/page.tsx:6,14,168-174 — 「바깥 글」 폼 한 덩어리
+- academy/scripts/test-marketing-snapshot.mjs · fixtures/marketing-prompt-docttak.txt (새) — 고치기 전에 뜬 스냅샷
+- academy/scripts/test-marketing.mjs · test-client-core.mjs · test-new-client.mjs — DB 고객 시험 · E2E 는 사실 0 건너뜀 + `--no-claude`
 
-## 회귀 — 기존 3곳 전후 (cwd academy, 전 13:57 · 후 14:2x)
-```
-daily-agent --dry                                   차이 0
-marketing-draft --no-claude --client docttak        차이 0
-pilot-report --dry --stage baseline robotncoding    차이 0
-indexnow --list                                     차이 0
-health                                              차이 0
-pilot-report ilog · docttak · briefing              30분 사이 들어온 AI 측정(표본 80→96 등)·크롤러 수로 달라짐 →
-                                                    git stash 로 전/후를 바로 붙여 다시: 차이 0 · 0 · 0
-check-index --dry                                   문서딱 실시간 검색 3줄만(브랜드 「미노출→노출 1위」·네이버 노출 1/7→2/7·경고 줄) — 데이터
-```
+### 39b — 로그인 창 버튼 + 운영 정리
+- tools/login-rules.mjs (새) — 구글·네이버·블로그·빙 풀림 판정 · NID_AUT · 판정걸음(두 번 연속 + 10초)
+- tools/open-session.mjs (다시 씀) — 기본 셋(빙 추가) · `--only` · SITES 기준 done · 출력 「✓ <이름> 로그인 확인」 그대로
+- tools/bing-submit-urls.mjs:19,32-33 — 판정을 login-rules 빙나감으로
+- web/lib/login-core.mjs·.d.mts (새) — 로그인대상 표 · 창요청검사 · 확인된곳 · 창요청(upsert) · 오래된창요청닫기(30분 로컬 대기·20분 실행 중)
+- tools/login-poll.mjs (새) — 창 잠금 먼저 쓰고 local-agent 잠금 보기 → 실행 중 → open-session(OPEN_SESSION 바꿔 끼움) → 완료/실패
+- tools/pc-runner.mjs:36-46 — 측정 10:00·16:00 · OLD_TASKS 루트 경로 / 64-101 끝줄(종료코드 3 건너뜀)·시간창안·환경값 / 131-172 로그인 타이머(loginBusy) / 172-203 옛작업상태·관리자한줄·옛작업끄기(schtasks, 원문·끈 뒤 상태 로그) / 215-240 --disable-old · 대소문자 무시 직접실행 판정
+- tools/local-agent.mjs:55-76 — 잠금 건너뜀 exit 3 · .open-session.lock 기다림(최대 13분, 넘으면 exit 3) · 108·188 login 문구
+- tools/ai-web-measure.mjs:63-64 — 잠금 건너뜀 exit 3
+- web/lib/task-actions.ts:(끝) requestLogin · web/lib/todo-text.ts login 분기 · web/lib/ops.ts:346,356 dedupe_key · web/app/admin/ops/Todo.tsx 「로그인 창 열기」 폼
+- academy/scripts/company.mjs:553-557 — PC살핌 뒤 오래된창요청닫기
+- academy/scripts/test-login.mjs · test-login-live.mjs · fixtures/fake-open-session.mjs (새)
 
-## E2E 로그 원문 — `node scripts/test-client-screen.mjs --live` (exit 0)
-```
-next dev http://localhost:3077 뜸
-  ✓ 관리자 쿠키 → /admin/clients
-  ✓ docttak.com 중복 거부 — 사람 말
-  ✓ 거부 뒤 친 값이 남음
-  ✓ 거부는 행을 안 만듦
-  등록 → 상세 3.1초 (/admin/clients/e2e-screen)
-  ✓ 행 생김 — status test · 외부 · alias 「고객 …」
-  ✓ IndexNow 키 32자 · mode 우리
-  ✓ answer_pattern 만들어짐
-  derived: checkedAt 2026-10-05T05:16:44.974Z · home 200 · robots 200 막힘 [] · sitemap 200 https://geo-rose-nine.vercel.app/sitemap.xml 주소 13 · llms 200 ok true · homeLdTypes [Organization,Service,FAQPage] · 키 파일 404 ok false · 오류 []
-  ✓ derived.checkedAt 방금
-  ✓ derived.robots.status 실제 코드
-  ✓ derived.sitemap.pages 실제 수
-  ✓ derived.homeLdTypes 배열
-  ✓ 본문 앞부분 300자 이하
-  ✓ 키 파일 없음(우리 랜딩에 이 키 파일은 없다)
-  ✓ 체크리스트 뜸
-  ✓ 사이트 열림 = 됨
-  ✓ 「고객 담당에게 보낼 것」 = 사람
-  ✓ 보낼 글에 키 파일 이름·내용
-  ✓ GSC = 사람 · 파일럿 = 사람
-  ✓ 바깥 글 = 해당없음
-  ✓ 사람 칸 셋까지
-  동기화 1차 엶 [setup-send,setup-gsc,setup-measure] · 2차 엶 []
-     setup-gsc · 사람 대기 · 화면시험고객: 구글 서치콘솔 권한을 받아 주세요
-     setup-measure · 사람 대기 · 화면시험고객: 파일럿을 시작해 주세요
-     setup-send · 사람 대기 · 화면시험고객: 고객 담당에게 보낼 것이 있습니다
-  ✓ 사람 대기 일감 셋(setup-send·gsc·measure)
-  ✓ 두 번 돌려도 중복 없음
-  ✓ 제목 사람 말 · 링크 고객 화면
-  ✓ 고객사말에 새 이름·도메인
-  ✓ 권한 받음 → GSC 됨
-  ✓ 됨이면 일감 완료로 닫힘
-  파일럿 6457d6ce-34b3-442d-9f16-3eb66e6fa96a · 질문 20 · 과업 13 · 고객 행 4 → 4
-  ✓ 파일럿 하나·질문 20·과업 생김
-  ✓ createPilot 이 geo.clients 를 안 만듦
-  ✓ 파일럿 뒤 AI 측정 = 기다림(질문 승인 전)
-  ✓ /admin/pilots 열림 · 고객사 화면 링크
-  ✓ 지우기 → 목록(지웠습니다)
-  ✓ client_id·pilot_id 표 25칸 전부 0 · slug 0 (id 7)
+### 39c — GSC 권한 탐침
+- tools/gsc-access.mjs (새) — `--client|--domain [--look]`, PROP = submit-gsc 와 같음, 9초, GSC_ACCESS=/GSC_URL=/GSC_SAMPLE= 줄
+- web/lib/client-core.mjs:595-633 — 점검저장이 gscAccess 를 남김 · 권한판정(늘 「모름」) · 탐침읽기 · 탐침저장(있음만 gsc true, gsc true 면 안 건드림)
+- web/lib/client-core.mjs:716-737 — 체크리스트 gsc 줄 4갈래
+- tools/local-agent.mjs:317-342 — 탐침 대상(DB 고객·active·wantGsc·gsc 아님·오늘 안 봄), 구글 풀림이면 login-google
 
-32 통과 · 0 실패
-```
+## 증거
+- 39a 스냅샷: `node scripts/test-marketing-snapshot.mjs` → 「문서딱 스냅샷 같음 (6242자)」. 스냅샷은 `export` 만 붙인 코드로 떴다(프롬프트 3채널·관문 이유 3묶음·대안·사실 줄)
+- 39a `node scripts/marketing-draft.mjs --client docttak --dry --no-claude` 전후 `diff` 0 줄
+- 39a E2E(시험 고객 geo-rose-nine.vercel.app, status test): 사실 0 → 「시험바깥: 사람이 확인한 사실 목록이 비었습니다 — 건너뜀」 code 0 / 폼 길로 사실 2줄 저장(checkedOn 2026-10-06) → `--dry --channels jisikin --max-calls 1` Claude 1회 · 관문 통과 · 출력 「문서딱」 0 · marketing_posts 0행 · 지우기 뒤 남은 행 0
+- 39b `test-login-live.mjs --live`(next dev :3078 + 헤드리스): 19 통과 — 버튼 두 번 → open-login 1행 · login-* 아닌 id 거부 · local-agent 잠금 → 기다림 note · 가짜 창 확인 없음 → 실패/사람 대기 · 다시 → 전부 ✓ → 둘 다 완료 · 31분 뒤 → 「PC 가 꺼져 있어 창을 못 열었습니다」 · 일 없을 때 login-poll 1.0초 · 남은 행 0
+- pc-runner 다시 띄움: pid 15464 끝 → VBS 가 13:47:07 새 일꾼(pid 39856) 「로그인 창 집기 꺼짐(LOGIN_POLL_HOURS 빈 값)」. `--status` 일꾼 떠 있음
+- 시험: test-clients 99 · test-client-core 186 · test-marketing 51 · test-docttak 32 · test-login 56 · test-new-client --live 20 · 전부 0 실패. web tsc 0
+- 회귀 전후(clients.mjs 를 cd4d265 판으로 돌려 뜬 것과 비교): briefing · health · daily-agent --dry 출력 diff 0
 
 ## Open Questions
-- 등록·고치기 폼만 ?err= 대신 useActionState(오류+친 값). 브리프의 「?err= 사람 말 한 줄」과 다르다 — 리다이렉트면 열 칸을 다시 쳐야 해서 바꿨다. 다른 동작은 ?err=.
-- answerPattern 구현 위치를 client-core.mjs 로 옮겼다(브리프는 answer-pattern.ts 에 두 번째 인자). node 22 가 .ts 를 못 읽어 academy·시험이 같은 함수를 부르려면 이 길뿐. 한 인자 결과는 옛 구현과 11표본 글자 비교.
-- 원장이 「끝냈어요」로 닫은 setup 일감은 신호가 남으면 24시간 뒤 다시 열린다. 점검이 닫은 것은 바로. 이 규칙이 맞는지.
-- hitWords = 주소 일부(전화 끝자리 제외). 브리프에 칸 정의가 없어 정했다.
-- 매시 세팅재점검은 --plan 에서도 돈다(일감 계획과 같은 층). 지금 DB 고객은 코드 3곳뿐이라 대상 0.
+- **login-poll 의 「같은 프로필」**: 브리프는 「.local-agent.lock 신선 & 같은 프로필」. local-agent 는 한 실행에 학원 프로필과 고객 블로그 프로필을 다 열 수 있는데 지금 어느 걸 여는지 기록이 없다 → 잠금이 신선하면 프로필과 상관없이 기다리게 했다(크로미움 프로필 깨짐보다 늦게 뜨는 쪽을 골랐다). 블로그 창이 local-agent 실행(최대 90분) 동안 늦을 수 있다
+- 체크리스트 offsite 「켜짐 + 사실 0」을 상태 「기다림」으로 뒀다(사람 칸 아님 → 일감 없음). 요약의 기다림 수에 들어간다
+- 바깥 글 폼에 situations 칸은 안 넣었다(브리프 칸 목록에 없음). config 에 있으면 저장해도 남긴다
+- 창요청이 「실행 중」 15분 넘은 행은 다시 받는다(login-poll 이 죽은 경우). 브리프에 없는 길이라 봐 줄 것
+- open-login dedupe 는 `open-<login dedupe>`(= open-login-google · open-login-naver-blog-<slug>)
+
+## 세션이 할 것 (Bob 이 안 돌림)
+1. 옛 작업 끄기: `node tools/pc-runner.mjs --disable-old` → pc-runner.log 의 「옛 작업 …: 끄기 종료코드 · 원문 · 지금 끔」 세 줄. 못 끄면 화면에 관리자 PowerShell 한 줄이 찍힌다 → 원장 일감 1건
+2. Neon 요금제 확인 뒤 academy/.env.local `LOGIN_POLL_HOURS=8-24` (지금 빈 값). 바꾸면 일꾼 재시작 없이 다음 분부터 먹는다
+3. 로그인 버튼 시험: 현황판 login 일감(없으면 시험용 login-microsoft 한 건) 「로그인 창 열기」 → 2분 안에 창
+4. GSC 탐침 원문: `cd tools && node gsc-access.mjs --client robotncoding --look` · `node gsc-access.mjs --domain example.com --look` → fixtures 두 개 → 판정 정규식(39c 5)
 
 ## Out of Scope (logged in BUILD-LOG)
-- KG-38-2 시험 → 진짜 고객 전환 화면 없음 · KG-38-3 robots 일부 경로 막힘 안 봄 · KG-38-4 본문 크기 상한 없음(8초가 막음) · KG-38-5 E2E 시퀀스 7 · KG-38-6 /admin/pilots 운영 주소 확인은 배포 뒤
-
-## 2차 — Richard Should Fix 4건 (2026-10-05)
-- web/lib/client-core.mjs 내부주소·기본lookup·열기 — 요청마다(리다이렉트 뒤 주소 포함) dns.lookup(all) 먼저. 주소 하나라도 사설·루프백·링크로컬(169.254.169.254)·CGNAT·0/8·멀티캐스트·예약·fc00::/7·fe80::/10·IPv4 매핑이면 열지 않고 근거에 「내부 주소로 풀림(…)」. DNS 실패는 「도메인을 못 찾음(코드)」.
-- web/lib/client-core.mjs 본문읽기·본문상한 — 본문을 스트림으로 2MB 까지만 읽고 reader.cancel(). 칸에 잘림:true + 오류 줄. 하위 사이트맵도 같음. KG-38-4 닫음.
-- web/lib/pilot-actions.ts createPilot — 파일럿 행이 있으면 fail("pilot-exists"). on conflict update 삭제. 동시에 두 번이면 고유 색인 23505 → 같은 pilot-exists.
-- web/lib/client-core.mjs 등록 — begin 바로 뒤 pg_advisory_xact_lock(hashtext('geo.clients 등록')). 이후 slug·도메인 검사와 insert 가 잠금 안에서 돈다.
-- 세션 결정 반영: 원장이 닫은 setup 일감 24시간 뒤 다시 열림 · hitWords 주소만 — 그대로.
-- 남은 위험(KG-38-7): DNS 확인과 fetch 가 각자 이름을 푼다(DNS rebinding 틈). https·관리자 입력·8초라 낮음. 막으려면 고른 주소로 직접 붙는 dispatcher(undici) 가 필요하다.
-
-시험: test-client-core 127 → 138 통과 · 0 실패(내부 주소 표 2 · 메타데이터 거부·안 엶 2 · 주소 여럿 · 리다이렉트 뒤 DNS · DNS 실패 · 본문 끊기·2MB·한글 그대로 3 · 등록 잠금 순서 1). 지우기 소스 검사는 지우기 함수 몸통만 보게 좁혔다(본문읽기의 reader.cancel().catch 때문). test-clients 99 · test-docttak 32 · test-marketing 38 · test-growth-import 59 그대로. web tsc exit 0.
-E2E 다시(진짜 DNS·스트림 길 + 두 탭 파일럿 중복) — `node scripts/test-client-screen.mjs --live` exit 0:
-```
-next dev http://localhost:3077 뜸
-  ✓ 관리자 쿠키 → /admin/clients
-  ✓ docttak.com 중복 거부 — 사람 말
-  ✓ 거부 뒤 친 값이 남음
-  ✓ 거부는 행을 안 만듦
-  등록 → 상세 2.6초 (/admin/clients/e2e-screen)
-  ✓ 행 생김 — status test · 외부 · alias 「고객 …」
-  ✓ IndexNow 키 32자 · mode 우리
-  ✓ answer_pattern 만들어짐
-  derived: checkedAt 2026-10-05T05:24:32.217Z · home 200 · robots 200 막힘 [] · sitemap 200 https://geo-rose-nine.vercel.app/sitemap.xml 주소 13 · llms 200 ok true · homeLdTypes [Organization,Service,FAQPage] · 키 파일 404 ok false · 오류 []
-  ✓ derived.checkedAt 방금
-  ✓ derived.robots.status 실제 코드
-  ✓ derived.sitemap.pages 실제 수
-  ✓ derived.homeLdTypes 배열
-  ✓ 본문 앞부분 300자 이하
-  ✓ 키 파일 없음(우리 랜딩에 이 키 파일은 없다)
-  ✓ 체크리스트 뜸
-  ✓ 사이트 열림 = 됨
-  ✓ 「고객 담당에게 보낼 것」 = 사람
-  ✓ 보낼 글에 키 파일 이름·내용
-  ✓ GSC = 사람 · 파일럿 = 사람
-  ✓ 바깥 글 = 해당없음
-  ✓ 사람 칸 셋까지
-  동기화 1차 엶 [setup-send,setup-gsc,setup-measure] · 2차 엶 []
-     setup-gsc · 사람 대기 · 화면시험고객: 구글 서치콘솔 권한을 받아 주세요
-     setup-measure · 사람 대기 · 화면시험고객: 파일럿을 시작해 주세요
-     setup-send · 사람 대기 · 화면시험고객: 고객 담당에게 보낼 것이 있습니다
-  ✓ 사람 대기 일감 셋(setup-send·gsc·measure)
-  ✓ 두 번 돌려도 중복 없음
-  ✓ 제목 사람 말 · 링크 고객 화면
-  ✓ 고객사말에 새 이름·도메인
-  ✓ 권한 받음 → GSC 됨
-  ✓ 됨이면 일감 완료로 닫힘
-  ✓ 두 번째 파일럿 시작 거부 — 사람 말
-  ✓ 파일럿 하나 그대로 · 담당자 안 덮임
-  파일럿 51e8ec72-fa49-472b-aa8f-15de4ada3397 · 질문 20 · 과업 13 · 고객 행 4 → 4
-  ✓ 파일럿 하나·질문 20·과업 생김
-  ✓ createPilot 이 geo.clients 를 안 만듦
-  ✓ 파일럿 뒤 AI 측정 = 기다림(질문 승인 전)
-  ✓ /admin/pilots 열림 · 고객사 화면 링크
-  ✓ 지우기 → 목록(지웠습니다)
-  ✓ client_id·pilot_id 표 25칸 전부 0 · slug 0 (id 8)
-
-34 통과 · 0 실패
-```
+- KG-39-3 DB 고객 바깥 글은 아무도 매일 안 돌린다 — optimize.yml 이 `--client docttak` 만 부른다
+- KG-39-4 바깥 글 폼에 situations·blogDays 칸 없음
