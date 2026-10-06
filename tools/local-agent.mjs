@@ -51,10 +51,29 @@ if (process.argv.includes("--install")) {
 // 두 번 겹쳐 돌면 같은 글을 네이버에 두 번 올린다
 // wx 로 만들어야 둘이 동시에 「없음」을 보고 둘 다 들어가는 틈이 없다. 2시간 넘은 잠금은 죽은 실행의 흔적이다
 if (fs.existsSync(LOCK) && Date.now() - fs.statSync(LOCK).mtimeMs >= 2 * 3600 * 1000) fs.rmSync(LOCK, { force: true });
+// 종료코드 3 = 건너뜀(다른 실행이 돌고 있음). 0 이면 pc-runner 로그에 성공처럼 찍혀 옛 작업 스케줄러와 겹친 걸 못 봤다(2026-10-06 12:40)
 try { fs.writeFileSync(LOCK, String(process.pid), { flag: "wx" }); }
 catch {
   기록("이미 돌고 있습니다 — 건너뜀");
-  process.exit(0);
+  process.exit(3);
+}
+
+/**
+ * 현황판 「로그인 창 열기」 창(login-poll → open-session)이 떠 있으면 닫힐 때까지 기다린다 — 같은 프로필을 두 번 못 연다.
+ * 자기 잠금을 먼저 쓰고 창 잠금을 본다(login-poll 은 반대 순서). 13분 넘은 창 잠금은 죽은 창의 흔적. 건너뛰지 않고 기다린다
+ */
+const OS_LOCK = path.join(HERE, ".open-session.lock");
+const 창떠있음 = () => { try { return Date.now() - fs.statSync(OS_LOCK).mtimeMs < 13 * 60000; } catch { return false; } };
+if (창떠있음()) {
+  기록("로그인 창이 떠 있습니다 — 닫힐 때까지 기다림");
+  const t0 = Date.now();
+  // 처음 볼 때만 신선도로 거른다. 기다리는 동안은 파일이 있는 한 기다린다 — 그래야 13분 넘게 안 닫힌 창을 「안 닫힘」으로 안다
+  while (fs.existsSync(OS_LOCK) && Date.now() - t0 < 13 * 60000) await new Promise((r) => setTimeout(r, 30_000));
+  if (fs.existsSync(OS_LOCK)) {
+    기록("로그인 창이 안 닫힘 — 건너뜀");
+    fs.rmSync(LOCK, { force: true });
+    process.exit(3);
+  }
 }
 
 for (const l of fs.readFileSync(path.join(HERE, "../academy/.env.local"), "utf8").split(/\r?\n/)) {
@@ -85,7 +104,7 @@ const 사람로그인 = (kind, what) =>
   q(`insert into geo.agent_tasks (client_id, agent, kind, dedupe_key, title, detail, status, priority, payload)
      values (1, 'deliver', 'human', $1, $2, $3, '사람 대기', 5, '{"sticky":true}'::jsonb)
      on conflict (client_id, dedupe_key) do update set status='사람 대기', updated_at=now()`,
-    [`login-${kind}`, `${what} 로그인이 풀렸습니다`, `로컬 에이전트가 ${what} 일을 못 했습니다. PC 에서 node tools/open-session.mjs 를 실행해 로그인하면 다음 실행(12:40·19:10)부터 다시 돕니다.`]);
+    [`login-${kind}`, `${what} 로그인이 풀렸습니다`, `로컬 에이전트가 ${what} 일을 못 했습니다. 현황판 「로그인 창 열기」를 누르거나 PC 에서 node tools/open-session.mjs 로 로그인하면 다음 실행(12:40·19:10)부터 다시 돕니다.`]);
 const 로그인됨 = (kind) =>
   q(`update geo.agent_tasks set status='완료', done_at=now(), updated_at=now() where client_id=1 and dedupe_key=$1 and status='사람 대기'`, [`login-${kind}`]);
 
@@ -165,7 +184,7 @@ try {
         values ($1, 'deliver', 'human', $2, $3, $4, '사람 대기', 5, '{"sticky":true}'::jsonb)
         on conflict (client_id, dedupe_key) do update set status='사람 대기', updated_at=now()`,
       [c.id, `login-naver-blog-${c.slug}`, `${c.name} 블로그 로그인 필요`,
-        `${why} 원장 PC 에서 tools 폴더로 가서 node open-session.mjs --blog ${c.marketing.blogProfile} 로 ${c.name} 블로그 네이버 계정에 로그인하고, academy/.env.local 에 NAVER_BLOG_ID_${c.slug.toUpperCase()}=<블로그 아이디> 를 적어 주세요. 다음 실행(12:40·19:10)부터 확인한 블로그 초안을 올립니다.`]);
+        `${why} 현황판 「로그인 창 열기」를 누르거나 PC 에서 node tools/open-session.mjs --blog ${c.marketing.blogProfile} 로 ${c.name} 블로그 네이버 계정에 로그인하고, academy/.env.local 에 NAVER_BLOG_ID_${c.slug.toUpperCase()}=<블로그 아이디> 를 적어 주세요. 다음 실행(12:40·19:10)부터 확인한 블로그 초안을 올립니다.`]);
     if (!fs.existsSync(프로필) || !아이디) {
       await 로그인일감(!fs.existsSync(프로필) ? "블로그용 프로필이 아직 없습니다." : "블로그 아이디가 아직 없습니다.");
       await 활동("deliver", `${c.name} 블로그 멈춤`, false, "로그인 필요 — 프로필 또는 블로그 아이디 없음", null, c.id);

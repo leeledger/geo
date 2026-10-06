@@ -15,6 +15,7 @@ import { chromium } from "playwright";
 import fs from "node:fs";
 import path from "node:path";
 import { bingClient } from "./bing-site.mjs";
+import { 빙나감 } from "./login-rules.mjs";
 
 const CLIENT = await bingClient();
 const SITE = `https://${CLIENT.domain}/`;
@@ -30,8 +31,8 @@ const page = ctx.pages()[0] ?? (await ctx.newPage());
 await page.goto(`https://www.bing.com/webmasters/submiturl?siteUrl=${encodeURIComponent(SITE)}`, { waitUntil: "domcontentloaded" });
 await page.waitForTimeout(9000);
 say(`${CLIENT.name} · 주소 ${page.url()}`);
-// 로그인이 풀리면 /login 이 아니라 /webmasters/about 안내 쪽으로 간다(2026-10-05 확인) — 10-03 부터 「버튼 못 찾음」으로만 실패했다
-if (/login|signin|\/webmasters\/about/i.test(page.url())) { say("로그인이 풀렸습니다 — 빙 웹마스터에 다시 로그인"); await ctx.close(); process.exit(1); }
+// 로그인이 풀리면 /login 이 아니라 /webmasters/about 안내 쪽으로 간다(2026-10-05 확인). 판정은 login-rules.mjs 한 곳
+if (빙나감(page.url())) { say("로그인이 풀렸습니다 — 빙 웹마스터에 다시 로그인"); await ctx.close(); process.exit(1); }
 
 const 글 = (await page.evaluate(() => document.body.innerText)).replace(/\n{2,}/g, "\n");
 // 화면 모양(2026-09-22 확인): 「Quota left for today (URL Submission Only)」 다음 줄에 숫자

@@ -60,7 +60,8 @@ const LIMIT = Number(arg("--limit")) || 0;
 const SLUG = arg("--client");   // 없으면 대상 목록 전부
 
 if (fs.existsSync(LOCK) && Date.now() - fs.statSync(LOCK).mtimeMs >= 3 * 3600 * 1000) fs.rmSync(LOCK, { force: true });
-try { fs.writeFileSync(LOCK, String(process.pid), { flag: "wx" }); } catch { 기록("이미 돌고 있습니다 — 건너뜀"); process.exit(0); }
+// 종료코드 3 = 건너뜀(다른 실행이 돌고 있음) — pc-runner 가 성공과 갈라 적는다(Step 39b)
+try { fs.writeFileSync(LOCK, String(process.pid), { flag: "wx" }); } catch { 기록("이미 돌고 있습니다 — 건너뜀"); process.exit(3); }
 
 for (const l of fs.readFileSync(path.join(HERE, "../academy/.env.local"), "utf8").split(/\r?\n/)) {
   const m = /^([A-Z_]+)=(.*)$/.exec(l);

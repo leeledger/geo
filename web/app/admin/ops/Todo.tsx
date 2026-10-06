@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 
 import type { Ops } from "@/lib/ops";
 import { todoText, type TodoAction } from "@/lib/todo-text";
-import { finishTask, resolveNaverAttempt } from "@/lib/task-actions";
+import { finishTask, resolveNaverAttempt, requestLogin } from "@/lib/task-actions";
 import SubmitButton from "../SubmitButton";
 
 /**
@@ -25,6 +25,14 @@ function Act({ id, a }: { id: number; a: TodoAction }) {
         <input name="logNo" placeholder="네이버 글 번호" aria-label="네이버 글 번호 또는 주소" />
         <SubmitButton name="outcome" value="posted" className="td-btn">올라가 있음</SubmitButton>
         <SubmitButton name="outcome" value="retry" className="td-btn alt">안 올라감 · 다시</SubmitButton>
+      </form>
+    );
+  }
+  if (a.type === "login") {
+    return (
+      <form action={requestLogin}>
+        <input type="hidden" name="id" value={id} />
+        <SubmitButton className="td-btn">로그인 창 열기</SubmitButton>
       </form>
     );
   }

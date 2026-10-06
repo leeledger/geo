@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { isAdmin } from "./admin-auth";
 import { inqPool } from "./inquiries";
+import { 창요청 } from "./login-core.mjs";
 
 /**
  * 「원장님이 하실 일」을 끝냈다고 표시한다. 신호에서 나온 일은 신호가 남아 있으면 회사 루프가 다시 연다 —
@@ -48,5 +49,22 @@ export async function resolveNaverAttempt(form: FormData) {
   } else return;
   await db.query(`insert into geo.agent_activity (client_id, agent, action, ok, summary) values ($1,'deliver','원장 네이버 확인',true,$2)`,
     [t.client_id, `${t.title} · ${outcome === "posted" ? `올라가 있음 ${logNo}` : "다시 시도"}`]).catch((e) => console.error("활동 기록 실패", e));
+  revalidatePath("/admin/ops");
+}
+
+/**
+ * 「로그인 창 열기」(Step 39b) — 사람 대기 login-* 일감이면 open-login 일감을 로컬 대기로 올린다. 원장 PC 의 login-poll 이 매분 집어 창을 연다.
+ * 두 번 눌러도 한 행(login-core 창요청 upsert). 그 일감 줄은 「조치 중 · 로그인 창 요청함」으로 흐려진다
+ */
+export async function requestLogin(form: FormData) {
+  if (!(await isAdmin())) throw new Error("관리자만 할 수 있습니다");
+  const id = Number(form.get("id"));
+  if (!Number.isInteger(id)) return;
+  const q = (s: string, p: unknown[] = []) => inqPool().query(s, p).then((r) => r.rows);
+  const r = await 창요청(q, id);
+  if (r.ok && !r.이미) {
+    await q(`insert into geo.agent_activity (client_id, agent, action, ok, summary, task_id)
+             select client_id, 'deliver', '로그인 창 요청', true, title, id from geo.agent_tasks where id = $1`, [id]).catch((e) => console.error("활동 기록 실패", e));
+  }
   revalidatePath("/admin/ops");
 }

@@ -18,12 +18,15 @@ export type TodoTask = {
   evidence: string;
   link: string | null;
   payload: Record<string, unknown> | null;
+  /** login-* 같은 dedupe 로 행동을 고른다(Step 39b) */
+  dedupe?: string | null;
 };
 
 export type TodoAction =
   | { type: "link"; label: string; href: string }
   | { type: "finish" }
   | { type: "naver" }
+  | { type: "login" }
   | { type: "details"; label: string; body: string };
 
 export type TodoText = {
@@ -183,6 +186,16 @@ export function todoText(t: TodoTask, now = Date.now()): TodoText {
       : cut(plain(first(t.detail)), 90);
     const href = slug ? `/admin/clients/${slug}` : t.link ? localHref(t.link) : "/admin/clients";
     return { title: cut(t.title, 60), why, action: { type: "link", label: "고객 화면 열기", href }, doing };
+  }
+
+  // 로그인 풀림(local-agent 사람로그인·고객 블로그) — 버튼 하나로 원장 PC 에 창을 띄운다(Step 39b, login-core 창요청)
+  if (t.kind === "human" && /^login-/.test(t.dedupe ?? "")) {
+    return {
+      title: cut(plain(t.title), 60),
+      why: "버튼을 누르면 원장 PC 에 로그인 창이 뜹니다(PC 가 켜져 있어야 합니다). 로그인하면 창은 스스로 닫힙니다",
+      action: { type: "login" },
+      doing,
+    };
   }
 
   if (t.kind === "naver-attempt") {
