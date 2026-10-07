@@ -303,7 +303,8 @@ const main = async () => {
      * 가장 오래 안 잰 탐침부터. 오늘 잰 것은 빼고, 오늘 이미 잰 만큼은 한도에서 뺀다.
      * 확장 질문(Step 31 D40 — 원장이 받아들인 불린 탐침, pilot_questions stage 'extend', approved=false)도 이 줄에 같이 선다.
      * 승인 20문항이 아니니 ai_measurements 에 안 넣는다(form 'extend' → 탐침 표). 같은 날짜면 확장 질문이 먼저.
-     * 최근 14일 한 번이라도 이름이 나온 것을 먼저 잰다(Arch 31) — 승격 문턱(14일 4번)에 닿으려면 불린 탐침을 몰아 재야 한다
+     * 아직 한 번도 안 잰 탐침을 먼저 훑는다. 이전에는 적중 탐침을 앞세워 p1·p2만 매일 반복했고,
+     * 새로 만든 p3 이후 질문은 영원히 측정되지 않았다. 전부 한 번씩 잰 뒤에는 적중 탐침을 우선해 승격 문턱(14일 4번)을 확인한다.
      */
     const 탐침 = await q(
       `select c.prompt_id, c.stage, c.text, c.form, c.radius, m.last_day
@@ -319,7 +320,7 @@ const main = async () => {
                      where client_id=$1 and collection_method=$2 group by prompt_id) m
            on m.prompt_id = c.prompt_id
         where m.last_day is null or m.last_day < $3::date
-        order by coalesce(m.hit14, false) desc, m.last_day nulls first, c.ord_kind, c.ord_id
+        order by (m.last_day is null) desc, coalesce(m.hit14, false) desc, m.last_day, c.ord_kind, c.ord_id
         limit greatest(0, $4 - (select count(*) from academy.ai_probe_measurements
                                  where client_id=$1 and collection_method=$2 and measured_on=$3::date))`,
       [client.id, e.method, 오늘, Math.min(탐침수, 남은몫)]);
