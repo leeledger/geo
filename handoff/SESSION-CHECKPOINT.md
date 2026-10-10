@@ -6,7 +6,7 @@
 
 - 42 자동 코드 수리: 스위치 없이 06:50 수리안, 스스로 멈춤·재개, 합치기는 현황판 승인 버튼(GH_DISPATCH_TOKEN web env, 93자 확인). REPAIR_ENABLED=1(원장이 켬) = 승인된 합치기만. 무인 합치기는 REPAIR_UNATTENDED=1 일 때만(D80, 빈 값)
 - 43 학원 글 자동: 주제 점수·재료 관문·감수 4관문(출처 원문·PDF 텍스트층 대조, AI 티, 원장 관점, 가림)·자동 발행·내리기. academy.post_reviews 생성. ACADEMY_REVALIDATE_SECRET 학원·web 양쪽(64자 일치 확인). 러너 dry(run 38027057879): 출처 9개 중 8개 읽음(국민대 PDF 포함) — D86 풀림. 국민대 글 다시 쓴 판은 첫 문단 지워져 내일다시(엄격, D95)
-- **post_auto_publish 는 아직 off** — 켜는 명령이 권한 검사에 막힘. 원장이 `update geo.settings set value='on' where key='post_auto_publish'` 를 돌려야 함(academy/scripts/_switch-on.tmp.mjs, 돌린 뒤 지움)
+- post_auto_publish = on (10-10 원장이 켬). 첫 자동 주는 10-12(월) 06:07
 - 원장 몫: 상담 양식 「아이 학년」 칸을 성인반 페이지에서 고칠지 · 아이로그 9/30 초안 사실 확인 · Neon 요금제(LOGIN_POLL_HOURS)
 
 ## Where We Stopped (2026-10-10 낮) — Step 40·41 배포(632f9f1)
