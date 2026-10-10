@@ -10,6 +10,7 @@
  * 돌리는 것 (작업 스케줄러에 걸려 있던 것 그대로)
  *   heartbeat.mjs        매시 — 회사 루프가 오래 안 돌았으면 GitHub 에 돌려 달라고 한다
  *   local-agent.mjs      12:40 · 19:10 — 네이버 이관 · 구글 색인 요청
+ *   kin-agent.mjs        09:00 · 13:00 · 19:00 — 지식iN 질문 찾기 · 답 초안(등록은 원장)
  *   ai-web-measure.mjs   10:00 · 16:00, PC 가 켜져 있을 때 — ChatGPT·Gemini·퍼플렉시티 화면 측정
  *                        16:00 은 그날 못 잰 문항만 잰다(Step 39b). 옛 21:30 작업이 우연히 메워 주던 자리 — 10-06 Gemini 「답 없음」 멈춤
  * 시각을 놓치면(PC 가 켜져 있었으면) 켜진 뒤 그날 안에 한 번 따라잡는다. 한 번에 하나씩만 돌린다.
@@ -42,6 +43,8 @@ const JOBS = [
   // 구글·빙만 상한 60분이다. 60분 한도면 둘 다 막힌 날 블로그·Brave 몫이 안 남는다
   { id: "local-agent", script: "local-agent.mjs", at: ["12:40", "19:10"], limitMin: 90 },
   { id: "ai-web-measure", script: "ai-web-measure.mjs", at: ["10:00", "16:00"], limitMin: 180 },
+  // 지식iN(Step 41 KG-41-6) — 맞는 질문이 몇 시간 안에 채택돼 하루 세 번. pc-runner 가 한 번에 하나씩 돌려 로컬 에이전트와 안 겹친다
+  { id: "kin-agent", script: "kin-agent.mjs", at: ["09:00", "13:00", "19:00"], limitMin: 40 },
 ];
 // 끄기는 경로까지(루트 \) — 2026-10-06 실측: --install 의 Disable-ScheduledTask 뒤에도 셋 다 「준비」였다(출력을 버려 까닭을 못 남겼다)
 const OLD_TASKS = ["\\Cited Heartbeat", "\\Cited Local Agent", "\\Cited AI Measure"];

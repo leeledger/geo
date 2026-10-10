@@ -38,6 +38,15 @@ export const MARKETING_DDL = [
   note text not null default '')`,
   `alter table geo.kin_questions enable row level security`,
   `alter table geo.marketing_posts add column if not exists kin_question_id bigint references geo.kin_questions(id)`,
+  // 지식iN 찾기 한 번마다(KG-41-6) — 현황판 「최근 7일 읽은 질문」. read 는 분야 목록에서 처음 본 7일 안 질문 수(앞 실행과 안 겹침)
+  `create table if not exists geo.kin_runs (
+  id bigserial primary key,
+  client_id int not null references geo.clients(id),
+  at timestamptz not null default now(),
+  read int not null default 0,
+  matched int not null default 0,
+  candidates int not null default 0)`,
+  `alter table geo.kin_runs enable row level security`,
 ];
 
 export const CHANNELS = ["jisikin", "cafe", "blog"];

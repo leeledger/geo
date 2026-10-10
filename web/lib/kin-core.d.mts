@@ -11,6 +11,9 @@ export function 질문읽기(html: string): 질문 | null;
 export function kst날(d?: Date): string;
 export function 날짜풀기(text: string | null | undefined, now?: Date): string | null;
 export function 막힘(text: string, url?: string): boolean;
+export const 도구말: RegExp;
+export function 도구맞음<T>(글: string, 맞는페이지: (t: string) => T | null): T | null;
+export function 공급말(s: { 읽음: number; 맞음: number; 놓침: number }): string;
 export function 후보거름(x: (질문 & { asked: string | null }) | null, 오늘: string, 맞는페이지: (t: string) => unknown): string | null;
 export function 답차례(
   오늘글: { kin_question_id: number | string | null }[],

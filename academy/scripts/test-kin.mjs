@@ -4,7 +4,7 @@ import fs from "node:fs";
 import { CLIENTS, bySlug } from "../clients.mjs";
 import {
   질문주소, 목록주소, 목록읽기, 분야주소, 분야읽기, 질문읽기, 날짜풀기, 막힘, 후보거름, 답차례, 붙일글,
-  kin요청검사, kin창요청, 오래된kin요청닫기, 창상태말, 창결과, 채움말,
+  kin요청검사, kin창요청, 오래된kin요청닫기, 창상태말, 창결과, 채움말, 도구맞음, 공급말,
 } from "../../web/lib/kin-core.mjs";
 import { MARKETING_DDL } from "../../web/lib/marketing-core.mjs";
 import { 프롬프트, 관문, 대조표, 매일채널, 질문맞는줄 } from "./marketing-draft.mjs";
@@ -68,6 +68,14 @@ const 기본 = { title: "PDF 용량 줄이는 법 알려주세요", body: "메�
 봄("거름 — 채택", 후보거름({ ...기본, adopted: true }, "2026-10-10", 맞는페이지) === "채택된 답 있음");
 봄("거름 — 답 3개", 후보거름({ ...기본, answers: 3 }, "2026-10-10", 맞는페이지) === "답 3개");
 봄("거름 — 도구와 안 맞음", 후보거름({ ...기본, title: "파일 사진크기 축소질문", body: "32*32 로 줄일라고 하는데" }, "2026-10-10", 맞는페이지) === "도구와 안 맞음");
+// 도구 낱말(KG-41-5) — 여권·정부24 만으로는 안 걸린다
+for (const t of ["여권 발급 서류 뭐 필요한가요", "여권 만료 로 재발급 관련해서 궁금한게 있습니다", "정부24 모바일 신분증 발급하면 발급일자는?", "여권 최초발급 관련", "공무원 시험 일정"]) {
+  봄(`거짓 양성 아님 — ${t}`, 도구맞음(t, 맞는페이지) === null && 후보거름({ ...기본, title: t, body: "" }, "2026-10-10", 맞는페이지) === "도구와 안 맞음");
+}
+for (const t of ["여권 사진 규격이 어떻게 되나요", "정부24 pdf 용량 초과", "증명사진 용량 줄이는 법", "hwpx 파일 열기", "큐넷 사진 사이즈"]) {
+  봄(`도구 질문은 맞음 — ${t}`, 도구맞음(t, 맞는페이지) !== null);
+}
+봄("공급말", 공급말({ 읽음: 170, 맞음: 4, 놓침: 3 }) === "최근 7일 읽은 질문 170개 · 맞는 질문 4개 · 이미 채택돼 놓침 3개");
 봄("거름 — 본문으로 맞음", 후보거름({ ...기본, title: "급해요", body: "정부24 에 올릴 pdf 가 너무 커요" }, "2026-10-10", 맞는페이지) === null);
 봄("거름 — 날짜 모름·못 읽음", 후보거름({ ...기본, asked: null }, "2026-10-10", 맞는페이지) === "질문 날짜 모름" && 후보거름(null, "2026-10-10", 맞는페이지) === "질문을 못 읽음");
 봄("거름 — fixture 최근 질문은 도구와 안 맞음", 후보거름({ ...최근, asked: 날짜풀기(최근.askedText, 지금) }, "2026-10-10", 맞는페이지) === "도구와 안 맞음");
@@ -125,12 +133,18 @@ const 열기코드 = 주석뺌(읽기("../../tools/kin-open.mjs"));
 봄("kin-open — 누르는 것은 「답변」 열기·입력칸뿐", (열기코드.match(/\.click\(/g) ?? []).length === 2 && /button\._answerWriteButton/.test(열기코드));
 봄("kin-core — register·submit 셀렉터 없음", !/register|submit|regist/i.test(주석뺌(읽기("../../web/lib/kin-core.mjs"))));
 const 찾기코드 = 주석뺌(읽기("../../tools/kin-find.mjs"));
+const 에이전트코드 = 주석뺌(읽기("../../tools/kin-agent.mjs"));
+봄("kin-agent — 등록 없음 · 찾기·초안만", !/등록|register|submit|kin-open/i.test(에이전트코드) && /kin-find.mjs/.test(에이전트코드) && /--kin-question/.test(에이전트코드));
+봄("pc-runner — kin-agent 하루 세 번(09·13·19)", /id: "kin-agent", script: "kin-agent\.mjs", at: \["09:00", "13:00", "19:00"\]/.test(읽기("../../tools/pc-runner.mjs")));
+봄("local-agent — 지식iN 은 kin-agent 로 옮김", !/kin-find.mjs|--kin-question/.test(주석뺌(읽기("../../tools/local-agent.mjs"))));
+봄("kin-find — 분야 하루 15쪽 · 한 번에 5쪽", /분야상한 = 15, 분야한번 = 5/.test(찾기코드));
 봄("kin-find — 누르지 않는다(주소 이동만)", !/\.click\(|\.fill\(|keyboard\./.test(찾기코드));
 봄("login-poll — open-kin 을 집어 kin-open 을 띄운다", /kind in \('open-login', 'open-kin'\)/.test(읽기("../../tools/login-poll.mjs")) && /kin-open\.mjs/.test(읽기("../../tools/login-poll.mjs")));
 
 // ─────────────────────────────────────────── 표
 const 표 = MARKETING_DDL.join("\n");
 봄("표 — kin_questions url unique · 상태 셋", /create table if not exists geo\.kin_questions/.test(표) && /url text not null unique/.test(표) && /status in \('후보','씀','버림'\)/.test(표));
+봄("표 — kin_runs", /create table if not exists geo.kin_runs/.test(표) && ["../db/schema.sql", "../../web/db/schema.sql"].every((f) => /geo.kin_runs/.test(읽기(f))));
 봄("표 — marketing_posts.kin_question_id", /add column if not exists kin_question_id bigint/.test(표));
 봄("표 — schema.sql 두 벌에도", ["../db/schema.sql", "../../web/db/schema.sql"].every((f) => /geo\.kin_questions[\s\S]*kin_question_id bigint/.test(읽기(f))));
 

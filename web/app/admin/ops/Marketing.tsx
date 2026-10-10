@@ -52,6 +52,7 @@ export default function Marketing({ m, name }: { m: MarketingData; name: string 
             지식iN 은 PC 가 찾은 실제 질문에 단 답입니다. 「이 질문에 답하기」를 누르면 PC 에 질문 페이지가 답이 채워진 채 뜹니다.
             「등록」은 원장님이 누르고(자동 게시는 하지 않습니다), 「올렸어요」를 눌러 주세요.
           </p>
+          {m.kinSupply && <p className="mk-note">지식iN {m.kinSupply}</p>}
           {m.drafts.length === 0 ? <p className="mk-note">올릴 초안이 없습니다. 초안은 매일 아침 측정 뒤에 생깁니다</p> : (
             <ol className="mk-list">
               {m.drafts.map((d) => (

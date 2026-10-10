@@ -3,6 +3,14 @@ Date: 2026-10-10
 Ready for Review: YES
 Status: DONE_WITH_CONCERNS — 코드·시험 통과. 실제 kin-find 첫 실행 후보 0(아래), 운영 DB 표는 아직 없음(KG-41-1)
 
+## 3차 — KG-41-5·6 결정 반영
+- web/lib/kin-core.mjs 도구말·도구맞음(후보거름이 씀)·공급말 · kin-core.d.mts
+- tools/kin-agent.mjs (새) — 지식iN 찾기·답 초안, local-agent 에서 옮김(tools/local-agent.mjs 해당 블록 지움) · tools/pc-runner.mjs JOBS kin-agent 09·13·19
+- tools/kin-find.mjs — 분야 하루 15쪽·한 번 5, 검색 한 번 4, seen(docId) 로 새 질문만, 쪽 2 는 빈틈 있을 때만, kin_runs 남김
+- web/lib/marketing-core.mjs · schema.sql 두 벌 — geo.kin_runs · web/lib/marketing.ts kinSupply · Marketing.tsx 한 줄
+- 시험 test-kin 86(거짓 양성 5 · 도구 질문 5 · 공급말 · kin-agent 등록 없음 · pc-runner 시각 · kin_runs)
+- 실측(--dry, 남은 5쪽): 질문 100 · 처음 본 7일 안 90 · 도구 말 맞음 0 · 후보 0. KG-41-7(pc-runner 다시 떠야 반영)·KG-41-8(공급 얇음)
+
 ## 2차 — KG-41-3 결정 반영: 분야 새 질문 목록이 주 출처, 검색은 보조
 - tools/kin-find.mjs — ① 분야 목록(marketing.kinDirs, 하루 10쪽 따로 셈) → ② 검색(남을 때). 질문 열기·저장은 살펴보기 하나로 묶음
 - web/lib/kin-core.mjs 분야주소·분야읽기 · kin-core.d.mts · academy/clients.mjs kinDirs [102,10607,314,601,605] · test-kin +6(70) · fixtures/kin/dir-102.html
@@ -29,7 +37,7 @@ Status: DONE_WITH_CONCERNS — 코드·시험 통과. 실제 kin-find 첫 실행
 - academy/scripts/test-kin.mjs (새, 64) · test-docttak.mjs:173-188 (+3) · fixtures/kin/ (원문 5개, 로그인 아이디 지움)
 
 ## 시험
-test-kin 70 · test-docttak 35 · test-marketing 51 · 스냅샷 같음 · test-login 56 · test-clients 99 · test-client-core 186 · test-ops-words 532 · test-todo-words 14 — 실패 0. web tsc 0 · academy tsc 0
+test-kin 86 · test-docttak 35 · test-marketing 51 · 스냅샷 같음 · test-login 56 · test-clients 99 · test-client-core 186 · test-ops-words 532 · test-todo-words 14 — 실패 0. web tsc 0 · academy tsc 0
 
 ## Open Questions
 - 하루 1건을 local-agent(답차례)에만 둔 것 — marketing-draft 를 손으로 부르면 상한 밖. 밀린 초안 정리 때문에 이렇게 했다

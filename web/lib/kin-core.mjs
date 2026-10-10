@@ -128,10 +128,21 @@ export const 막힘 = (text, url = "") =>
   /captcha|nidlogin/i.test(String(url)) || /자동입력 방지|자동 입력 방지|보안문자|비정상적인 접근|일시적으로 제한/.test(String(text ?? ""));
 
 /**
+ * 도구 낱말(KG-41-5) — 페이지 줄(/여권/ ·/정부24/)만 맞으면 발급 절차 질문까지 걸린다. 도구로 풀 일(사진·규격·용량·파일 꼴)이
+ * 같이 있어야 맞는 질문이다. 「여권 발급 서류」는 안 맞고 「여권 사진 규격」은 맞는다
+ */
+export const 도구말 = /사진|규격|사이즈|용량|kb|픽셀|px|hwpx?|한글파일|pdf|합치|병합|변환|압축/i;
+/** 고객 페이지 줄에 맞고 도구 낱말도 있나 → 페이지 줄 | null */
+export const 도구맞음 = (글, 맞는페이지) => (도구말.test(글) ? 맞는페이지(글) : null);
+
+/** 현황판 한 줄 — 공급이 얇으면 원장이 숫자로 보게(KG-41-6) */
+export const 공급말 = (s) => `최근 7일 읽은 질문 ${s.읽음}개 · 맞는 질문 ${s.맞음}개 · 이미 채택돼 놓침 ${s.놓침}개`;
+
+/**
  * 후보로 둘 질문인가 → null(된다) | 안 되는 까닭.
  *   x       질문읽기 결과 + asked('YYYY-MM-DD'|null)
  *   오늘    KST 'YYYY-MM-DD'
- *   맞는페이지 (글) → 고객 페이지 줄 | null   (marketing.pages — 제목·본문이 고객 도구로 풀리는 것)
+ *   맞는페이지 (글) → 고객 페이지 줄 | null   (marketing.pages — 제목·본문이 고객 도구로 풀리는 것). 도구 낱말도 있어야 한다
  * 7일 안 = 오늘 포함 7일(오늘−6 이후)
  */
 export function 후보거름(x, 오늘, 맞는페이지) {
@@ -140,7 +151,7 @@ export function 후보거름(x, 오늘, 맞는페이지) {
   if (x.asked < 날더하기(오늘, -6)) return "7일 지남";
   if (x.adopted) return "채택된 답 있음";
   if (x.answers >= 3) return `답 ${x.answers}개`;
-  if (!맞는페이지(`${x.title}\n${x.body}`)) return "도구와 안 맞음";
+  if (!도구맞음(`${x.title}\n${x.body}`, 맞는페이지)) return "도구와 안 맞음";
   return null;
 }
 

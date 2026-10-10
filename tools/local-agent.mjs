@@ -8,7 +8,7 @@
  *   gsc-submit      구글 서치콘솔 색인 요청 (submit-gsc.mjs --all, 하루 한도 안에서)
  *   brave-index-check  개선 루프가 넘긴 글이 Brave 색인에 있나 (brave-index-check.mjs). 없으면 제출 명령을 사람에게
  *   고객 블로그     원장이 현황판에서 확인한 바깥 글 블로그 초안을 그 고객 블로그에 (naver-blog-post.mjs --marketing, Step 35 D55)
- *   지식iN 질문     고객 프로필로 실제 최근 질문을 찾고(kin-find.mjs) 하나에 답 초안(marketing-draft.mjs --kin-question). 등록은 원장 (Step 41)
+ *   (지식iN 질문 찾기·답 초안은 따로 kin-agent.mjs 가 하루 세 번 — Step 41)
  *
  * 로그인이 풀려 있으면 억지로 하지 않고 「사람 대기 · 로그인 필요」로 올린다.
  * 대시보드에 뜨고, 원장이 node tools/open-session.mjs 로 로그인하면 다음 실행부터 다시 돈다.
@@ -24,7 +24,6 @@ import pg from "pg";
 import { indexClients, loadClients } from "../academy/clients.mjs";
 import { 빙미등록 } from "./bing-site.mjs";
 import { CODE_SLUGS, 탐침읽기, 탐침저장 } from "../web/lib/client-core.mjs";
-import { 답차례 } from "../web/lib/kin-core.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const LOCK = path.join(HERE, ".local-agent.lock");
@@ -234,29 +233,6 @@ try {
       await q(`update geo.agent_tasks set status='닫힘', done_at=now(), updated_at=now(), evidence=$2 where id=$1`, [attempt.id, `발행 전에 멈춤: ${끝(r.out, 200)}`]);
       await 활동("deliver", `${c.name} 블로그 게시 실패`, false, 끝(r.out), attempt.id, c.id);
     }
-  }
-
-  /**
-   * ── 지식iN 실제 질문(Step 41 D70): marketing.kin 고객. 그날 첫 차례에만 kin-find(고객 프로필로 kin.naver.com 읽기),
-   * 그다음 7일 안 후보 하나에 답 초안(하루 1건 — kin-core 답차례). 등록은 원장이 현황판 「이 질문에 답하기」 창에서 누른다.
-   * 블로그 게시와 같은 프로필을 쓰니 그 뒤에 차례로 돈다(같은 프로필을 두 번 못 연다)
-   */
-  for (const c of 고객들.filter((x) => x.marketing?.kin && x.marketing.blogProfile)) {
-    const 오늘 = KST().slice(0, 10);
-    const [찾음] = await q(`select 1 from geo.agent_activity where client_id = $1 and run_url = 'kin-find'
-        and (at at time zone 'Asia/Seoul')::date = $2::date limit 1`, [c.id, 오늘]);
-    if (!찾음) {
-      const r = 돌리기("kin-find.mjs", ["--client", c.slug], 15);
-      기록(`${c.name} 지식iN 질문 찾기: ${끝(r.out, 160)}`);
-      if (/로그인이 필요|캡차/.test(r.out)) continue;   // 일감·활동은 kin-find 가 남겼다
-    }
-    const 오늘글 = await q(`select kin_question_id from geo.marketing_posts where client_id = $1 and channel = 'jisikin' and created_on = $2::date`, [c.id, 오늘]).catch(() => []);
-    const 후보들 = await q(`select id, asked_at::text, status from geo.kin_questions where client_id = $1 and status = '후보'`, [c.id]).catch(() => []);
-    const 차례 = 답차례(오늘글, 후보들, 오늘);
-    if (!차례.id) { 기록(`${c.name} 지식iN 답: ${차례.why}`); continue; }
-    const r = 돌리기(path.join(HERE, "../academy/scripts/marketing-draft.mjs"), ["--client", c.slug, "--kin-question", String(차례.id)], 12);
-    const [글] = await q(`select status from geo.marketing_posts where kin_question_id = $1 order by id desc limit 1`, [차례.id]).catch(() => []);
-    await 활동("deliver", `${c.name} 지식iN 답 초안`, r.ok, `질문 #${차례.id} · ${글 ? `초안 ${글.status === "초안" ? "통과" : "관문 탈락"}` : "안 씀"} · ${끝(r.out, 200)}`, null, c.id);
   }
 
   // ── 플레이스 대표키워드: 원장(2026-09-24) 「플레이스에 올리는 것도 에이전트가」. 일감 payload {add, remove}

@@ -268,6 +268,16 @@ create table if not exists geo.kin_questions (
 );
 alter table geo.kin_questions enable row level security;
 alter table geo.marketing_posts add column if not exists kin_question_id bigint references geo.kin_questions(id);
+-- 지식iN 찾기 한 번마다(Step 41 KG-41-6) — 현황판 「최근 7일 읽은 질문」. web/lib/marketing-core.mjs MARKETING_DDL 과 같은 줄
+create table if not exists geo.kin_runs (
+  id bigserial primary key,
+  client_id int not null references geo.clients(id),
+  at timestamptz not null default now(),
+  read int not null default 0,
+  matched int not null default 0,
+  candidates int not null default 0
+);
+alter table geo.kin_runs enable row level security;
 -- 문서딱 저장소 주간 성장 리포트(Step 36) — academy/scripts/growth-import.mjs 가 매일 한 번 쌓는다.
 -- gsc·cf 는 리포트 growth-data JSON 그대로, 표 3칸은 리포트가 반올림한 값. web/lib/growth-core.mjs GROWTH_DDL 과 같은 줄
 create table if not exists geo.growth_reports (
