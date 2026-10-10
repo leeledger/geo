@@ -189,9 +189,9 @@ export function plain(s: string | null | undefined): string {
   t = t.replace(/[\w.-]*gemini[\w.-]*/gi, "Gemini");
   t = t.replace(/microsoft(?=[^a-z]|$)/gi, "빙").replace(/빙를/g, "빙을").replace(/빙가/g, "빙이").replace(/빙는/g, "빙은").replace(/빙와/g, "빙과");
   t = t.replace(/\bvendor\b/gi, "");
-  // 내부 이름(감사·수리공·조사·커버리지)은 화면에 안 낸다(Step 40)
-  t = t.replace(/\bR\d+\b/g, "점검 규칙").replace(/영점/g, "0에 머묾").replace(/수리공/g, "자동 코드 수리").replace(/감사/g, "자동 점검")
-    .replace(/(^|\s)조사 · /g, "$1").replace(/조사/g, "점검").replace(/커버리지/g, "읽은 비율").replace(/근거 없는/g, "증거 없는");
+  // 내부 이름(감사·수리공·조사·커버리지)은 화면에 안 낸다(Step 40). 낱말 앞이 한글이면 안 바꾼다 — 「제조사」, 「감사합니다·감사드립니다」도 그대로
+  t = t.replace(/\bR\d+\b/g, "점검 규칙").replace(/영점/g, "0에 머묾").replace(/수리공/g, "자동 코드 수리").replace(/(?<![가-힣])감사(?![가-힣]*니다)/g, "자동 점검")
+    .replace(/(^|\s)조사 · /g, "$1").replace(/(?<![가-힣])조사/g, "점검").replace(/커버리지/g, "읽은 비율").replace(/근거 없는/g, "증거 없는");
   t = t.replace(/\s*\(?최고\s*\d+(?:\.\d+)?\s*%\)?/g, "");
   t = t.replace(/\s*\d+(?:\.\d+)?\s*%/g, "");
   // 지운 자리에 남은 외톨이 조사(「통화 뒤 에 결과」 「: 의 비교군」). 「이 학원」의 「이」처럼 낱말도 되는 것은 안 지운다

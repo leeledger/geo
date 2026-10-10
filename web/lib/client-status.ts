@@ -30,12 +30,13 @@ export async function readClientStatus(client: { id: number; name: string }): Pr
                  when action like '네이버 이관:%' then 'naver' else 'measure' end k, count(*)::int n
           from geo.agent_activity where client_id=$1 and ok and ${주안("at")}
            and (${색인활동} or action = '소비자 화면 AI 측정') group by 1`, 주),
-      // 손댄 마지막 날 — 글·바깥 글·가이드 반영·색인, 전체 기간(측정은 손댄 것이 아니다)
-      q<{ d: string | null }>(`select (max(x) at time zone 'Asia/Seoul')::date::text d from (
-            select max(published_at) x from academy.posts where client_id=$1 and published
-            union all select max(posted_at) from geo.marketing_posts where client_id=$1 and status='올림'
-            union all select max(done_at) from geo.agent_tasks where client_id=$1 and kind='question-draft' and status='완료'
-            union all select max(at) from geo.agent_activity where client_id=$1 and ok and ${색인활동}) t`, [client.id]),
+      // 손댄 마지막 날 — 실제 작업만(사이트 글 발행·바깥 글 올림·가이드 글 반영), 전체 기간.
+      // 색인 요청·빙 제출·네이버 옮김·측정은 기계가 저절로 하는 일이라 안 넣는다(세션 결정 2026-10-10)
+      q<{ post: string | null; outside: string | null; guide: string | null }>(`select
+            (select (max(published_at) at time zone 'Asia/Seoul')::date::text from academy.posts where client_id=$1 and published) post,
+            (select (max(posted_at) at time zone 'Asia/Seoul')::date::text from geo.marketing_posts where client_id=$1 and status='올림') outside,
+            (select (max(done_at) at time zone 'Asia/Seoul')::date::text from geo.agent_tasks
+              where client_id=$1 and kind='question-draft' and status='완료') guide`, [client.id]),
       q<{ status: string; n: number; oldest: string; qn: number }>(`select status, count(*)::int n,
             (min(created_at) at time zone 'Asia/Seoul')::date::text oldest,
             sum(case when jsonb_typeof(payload->'questions') = 'array' then greatest(jsonb_array_length(payload->'questions'), 1) else 1 end)::int qn
@@ -57,7 +58,7 @@ export async function readClientStatus(client: { id: number; name: string }): Pr
       measure: k("measure"), posts: posts?.n ?? 0,
       outside: { blog: ch("blog"), jisikin: ch("jisikin"), cafe: ch("cafe") },
       guides: guides?.n ?? 0, gsc: k("gsc"), bing: k("bing"), naver: k("naver"),
-      lastTouch: last?.d ?? null, backlog: b, repairOff: !!repair?.off,
+      touched: { post: last?.post ?? null, outside: last?.outside ?? null, guide: last?.guide ?? null }, backlog: b, repairOff: !!repair?.off,
     };
     return { ok: true, s: 상태문장(raw, 오늘) };
   } catch (e) {

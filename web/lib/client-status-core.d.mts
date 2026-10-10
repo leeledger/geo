@@ -8,7 +8,8 @@ export type StatusRaw = {
   gsc: number;
   bing: number;
   naver: number;
-  lastTouch: string | null;
+  /** 손댄 마지막 날 — 실제 작업만(글 발행·바깥 글·가이드 반영). 색인 요청·측정 같은 자동 일은 안 넣는다 */
+  touched: { post?: string | null; outside?: string | null; guide?: string | null };
   backlog: { owner?: Backlog; session?: Backlog; local?: Backlog; repair?: Backlog; failed?: Backlog };
   repairOff: boolean;
 };

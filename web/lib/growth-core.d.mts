@@ -38,3 +38,7 @@ export function weeksToFetch(listed: string[], stored: Iterable<string>, max?: n
 export function kstDay(iso: string | null | undefined): string | null;
 export function weekMonday(label: string): string;
 export function reportStalled(latest: { week: string; generated: string | null } | null | undefined, today: string): boolean;
+export function 주별칸(
+  tracked: { crawl: boolean; posts: boolean },
+  v: { posts: number | null | undefined; search: number | null; ai: number | null; other: number | null; cov: (number | null)[] | null },
+): { 글: string; 방문: string; 색인: string };

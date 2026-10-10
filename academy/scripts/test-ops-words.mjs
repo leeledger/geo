@@ -23,14 +23,14 @@ const 봄 = (어디, 글) => {
 };
 
 // ── 1. 순수 함수 출력
-const 빈 = { measure: 0, posts: 0, outside: { blog: 0, jisikin: 0, cafe: 0 }, guides: 0, gsc: 0, bing: 0, naver: 0, lastTouch: null, backlog: {}, repairOff: false };
+const 빈 = { measure: 0, posts: 0, outside: { blog: 0, jisikin: 0, cafe: 0 }, guides: 0, gsc: 0, bing: 0, naver: 0, touched: {}, backlog: {}, repairOff: false };
 const 밀림 = { n: 2, q: 12, oldest: "2026-09-17" };
 for (const [이름, raw] of [
   ["빈", { ...빈, name: "새 고객" }],
-  ["아이로그", { ...빈, name: "아이로그", measure: 42, lastTouch: "2026-09-18", backlog: { session: 밀림 } }],
-  ["전부", { ...빈, name: "학원", measure: 1, posts: 1, outside: { blog: 1, jisikin: 1, cafe: 1 }, guides: 1, gsc: 1, bing: 1, naver: 1, lastTouch: "2026-10-10",
+  ["아이로그", { ...빈, name: "아이로그", measure: 42, touched: { post: "2026-09-18" }, backlog: { session: 밀림 } }],
+  ["전부", { ...빈, name: "학원", measure: 1, posts: 1, outside: { blog: 1, jisikin: 1, cafe: 1 }, guides: 1, gsc: 1, bing: 1, naver: 1, touched: { post: "2026-10-10" },
     backlog: { owner: 밀림, session: 밀림, local: 밀림, repair: 밀림, failed: 밀림 }, repairOff: true }],
-  ["수리 켜짐", { ...빈, name: "x", lastTouch: "2026-10-10", backlog: { repair: 밀림 } }],
+  ["수리 켜짐", { ...빈, name: "x", touched: { post: "2026-10-10" }, backlog: { repair: 밀림 } }],
 ]) {
   const s = 상태문장(raw, "2026-10-10");
   for (const [k, v] of Object.entries(s)) 봄(`상태문장 ${이름} ${k}`, Array.isArray(v) ? v.join(" / ") : v);

@@ -88,7 +88,9 @@ for (const c of clients) {
           and day > (now() at time zone 'Asia/Seoul')::date - 7`, P),
     q(`select max(day) filter (where hit)::text 마지막적중일, min(day)::text 첫측정일
          from academy.serp_checks where client_id = $1 and kind = '경쟁'`, P),
-  ]).then(([rows, [d]]) => 검색판정(rows, 오늘KST(), d ?? {})).catch(() => null);
+  ]).then(([rows, [d]]) => 검색판정(rows, 오늘KST(), d ?? {}))
+    // 조용히 「신호 없음」이 되면 안 된다 — `day::text day` 문법 오류가 이렇게 숨어 있었다
+    .catch((e) => { console.error("scout 판정 실패", c.slug, e.message); return null; });
   const brandMiss = 판정?.brandMiss ?? [];
   if (brandMiss.length) {
     report(`brand-${c.slug}`, "막힘",

@@ -35,7 +35,7 @@ try {
   ]);
   깎기("todo-text", [['from "./agents";', 'from "./agents.mjs";']]);
   const { todoText } = await import(pathToFileURL(path.join(폴더, "todo-text.mjs")).href);
-  const { judge, clientRows, contentLate, ROLES } = await import(pathToFileURL(path.join(폴더, "agents.mjs")).href);
+  const { judge, clientRows, contentLate, ROLES, plain } = await import(pathToFileURL(path.join(폴더, "agents.mjs")).href);
 
   // ── todo-text listing
   const 일 = (o) => ({ agent: "deliver", kind: "listing", title: "등재 필요: 「잠실 초등 코딩학원」", detail: "학원 목록 사이트가 1쪽을 차지하고 나온데다 …", error: "", evidence: "", link: null, payload: {}, ...o });
@@ -90,6 +90,18 @@ try {
   t("contentLate — 막힘은 그대로", () => {
     const 막힘 = { id: "content", name: "글 쓰기", does: "", state: "stuck", reason: "실패", last: null, next: null, today: { ok: 0, fail: 1 } };
     assert.equal(contentLate(막힘, [세션일("2026-09-17T13:29:47Z")], true, 지금), 막힘);
+  });
+
+  // ── plain — 내부 이름은 따로 선 낱말만 바꾼다
+  t("plain — 따로 선 「감사」「조사」만 바꿈", () => {
+    for (const [a, b] of [["감사 끝남", "자동 점검 끝남"], ["조사 · 근거 없는 완료", "증거 없는 완료"], ["원인 조사 대기", "원인 점검 대기"]]) assert.equal(plain(a), b, `${a} → ${plain(a)}`);
+    assert.equal(plain("조사 · 근거 없는 완료"), "증거 없는 완료");
+    assert.equal(plain("원인 조사 대기"), "원인 점검 대기");
+  });
+  t("plain — 「감사합니다」「제조사」「검사」는 그대로", () => {
+    assert.equal(plain("확인 감사합니다"), "확인 감사합니다");
+    assert.equal(plain("제조사 목록"), "제조사 목록");
+    assert.equal(plain("수업 감사드립니다"), "수업 감사드립니다");
   });
 
   // ── judge 일반 규칙 — 정상인데 활동 없음

@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import type { Client, Ops } from "@/lib/ops";
 import { addDays, delta, type Delta, type Growth as G } from "@/lib/growth";
 import { engineName } from "@/lib/agents";
+import { 주별칸 } from "@/lib/growth-core.mjs";
 import CoverageChart, { type CovSeries } from "./CoverageChart";
 
 /**
@@ -354,12 +355,14 @@ export function GrowthMore({ g, client, place }: { g: G | null; client: Client |
               const rounds = (g?.ai ?? []).flatMap((p) =>
                 p.rounds.filter((r) => r.day >= w.week && r.day <= end).map((r) => `${engineName(p.engine)} ${md(r.day)}`));
               const pw = postWeek.get(w.week);
+              // 기록이 안 들어오는 고객은 0 이 아니라 「안 셈/안 잼」(D64)
+              const 칸 = 주별칸(g?.tracked ?? { crawl: true, posts: true }, { posts: pw?.n, search: w.search, ai: w.ai, other: w.other, cov: c });
               return (
                 <tr key={w.week}>
                   <td>{weekLabel(w.week, w.partialDays)}</td>
-                  <td className="n">{pw ? `${pw.n}편` : "확인 못함"}</td>
-                  <td className="n">{w.search ?? "?"} / {w.ai ?? "?"} / {w.other ?? "?"}</td>
-                  <td className="n">{c ? c.map((v) => v ?? "—").join(" / ") : "—"}</td>
+                  <td className="n">{칸.글}</td>
+                  <td className="n">{칸.방문}</td>
+                  <td className="n">{칸.색인}</td>
                   <td className="n">{w.rival ? `${w.rival.won}/${w.rival.total} (${md(w.rival.day)})` : "기록 없음"}</td>
                   <td>{rounds.length ? rounds.join(" · ") : "—"}</td>
                   <td className="n">{w.inquiries === null ? "확인 못함" : `${w.inquiries}건`}</td>

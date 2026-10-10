@@ -210,3 +210,15 @@ export const GROWTH_FOOT = [
   "Cloudflare 요청·페이지뷰는 봇을 포함합니다. 순방문자는 하루 단위 합이라 같은 사람이 여러 번 셉니다.",
   "구글 숫자는 3일 늦게 확정됩니다 · 출처: github.com/leeledger/doc-tools-kr reports/growth",
 ];
+
+/**
+ * 「주별 요약」 표의 글·로봇 방문·답변 색인 칸(Step 40 D64). 기록이 안 들어오는 고객(tracked false)은 0 이 아니라 「안 셈/안 잼」.
+ * 주별 쿼리는 generate_series left join 이라 기록이 없어도 0 이 나온다 — 그래서 tracked 를 먼저 본다
+ */
+export function 주별칸(tracked, { posts, search, ai, other, cov }) {
+  return {
+    글: !tracked.posts ? "안 셈" : posts === null || posts === undefined ? "확인 못함" : `${posts}편`,
+    방문: !tracked.crawl ? "안 잼" : `${search ?? "?"} / ${ai ?? "?"} / ${other ?? "?"}`,
+    색인: !tracked.crawl ? "안 잼" : cov ? cov.map((v) => v ?? "—").join(" / ") : "—",
+  };
+}

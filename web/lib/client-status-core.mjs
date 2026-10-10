@@ -35,7 +35,8 @@ export const 이번주 = (오늘) => ({ from: 날더하기(오늘, -7), to: 날�
  *   outside: { blog, jisikin, cafe }  바깥 글 올림
  *   guides,                        고객 사이트에 반영한 가이드 글(question-draft 완료)
  *   gsc, bing, naver,              구글 색인 요청 · 빙 주소 제출 · 네이버 이관
- *   lastTouch,                     손댄 마지막 날 'YYYY-MM-DD' | null (전체 기간, 측정 제외)
+ *   touched: { post, outside, guide }  손댄 마지막 날 'YYYY-MM-DD' | null — 사이트 글 발행·바깥 글 올림·가이드 글 반영, 전체 기간.
+ *                                  기계가 저절로 하는 일(색인 요청·빙 제출·네이버 옮김·측정)은 손댄 것이 아니다(세션 결정 2026-10-10)
  *   backlog: { owner, session, local, repair, failed }  각 { n, oldest: 'YYYY-MM-DD' } | 없음. session 은 q(묶인 질문 수)도
  *   repairOff                      자동 코드 수리 스위치가 꺼져 있나
  * }
@@ -59,9 +60,10 @@ export function 상태문장(raw, 오늘) {
   const 끝말 = "글·색인·사이트 반영은 0건입니다.";
   const 한일 = 측정말고 ? (일.length ? `${일.join(" · ")}. ${끝말}` : 끝말) : 일.join(" · ");
 
-  const 손댄지 = raw.lastTouch ? 날차(raw.lastTouch, 오늘) : null;
-  const 손댄날 = raw.lastTouch
-    ? `고객 사이트나 바깥에 실제로 손댄 마지막 날 ${월일(raw.lastTouch)} (${손댄지 === 0 ? "오늘" : `${손댄지}일 전`})`
+  const lastTouch = Object.values(raw.touched ?? {}).filter(Boolean).sort().at(-1) ?? null;
+  const 손댄지 = lastTouch ? 날차(lastTouch, 오늘) : null;
+  const 손댄날 = lastTouch
+    ? `고객 사이트나 바깥에 실제로 손댄 마지막 날 ${월일(lastTouch)} (${손댄지 === 0 ? "오늘" : `${손댄지}일 전`})`
     : "아직 없습니다";
 
   const b = raw.backlog ?? {};
