@@ -150,6 +150,10 @@ export function 거르기(후보들, 기록 = [], 최근글 = [], { now = Date.n
     if (부족) { 뺀것.push({ 제목: c.제목, 왜: `${KST월일(부족.at)} 재료가 모자라 미룸 — 4주 뒤 다시 봄` }); continue; }
     if (모든.has(제목정규화(c.제목))) { 뺀것.push({ 제목: c.제목, 왜: "같은 제목의 글이 이미 있음" }); continue; }
     const 내낱말 = 낱말(c.제목);
+    // 측정 질문은 이미 쓴 글 제목을 거의 그대로 묻는 것이 많다(「바이브 코딩이 뭐야? 아이도 배울 수 있어?」).
+    // 기간과 상관없이 제목 낱말 3개 이상이 같으면 같은 질문으로 본다 — 같은 글을 또 쓰면 인용이 갈린다
+    const 같은질문 = 모든제목.find((x) => 내낱말.filter((w) => 낱말(x).some((y) => 같은낱말(w, y))).length >= 3);
+    if (같은질문) { 뺀것.push({ 제목: c.제목, 왜: `이미 쓴 글 「${같은질문.length > 18 ? `${같은질문.slice(0, 18)}…` : 같은질문}」과 같은 질문` }); continue; }
     let 겹침 = null;
     for (const p of 최근글) {
       const 그낱말 = 낱말(`${p.title} ${(p.tags ?? []).join(" ")}`);
@@ -177,11 +181,11 @@ const 수업낱말 = /수업|대회|합격|커리큘럼/;
  */
 export async function 재료모으기(q, client = 1) {
   const m = (await q(
-    `select id, kind, said, coalesce(context, '') context, day::text day from academy.materials
+    `select id, kind, said, coalesce(context, '') context, day::text as day from academy.materials
       where client_id = $1 and cardinality(used_in) = 0 order by day desc limit 12`, [client]))
     .map((r, i) => ({ 라벨: `m${i + 1}`, id: r.id, 원문: `${r.said}${r.context ? ` (${r.context})` : ""}`, 날: r.day }));
   const i = (await q(
-    `select id, day::text day, said from academy.inquiries
+    `select id, day::text as day, said from academy.inquiries
       where client_id = $1 and coalesce(btrim(said), '') <> '' order by day desc limit 12`, [client]))
     .map((r, n) => ({ 라벨: `i${n + 1}`, id: r.id, 원문: r.said, 날: r.day }));
   const 글 = await q(

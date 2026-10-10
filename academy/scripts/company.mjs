@@ -18,7 +18,8 @@
  *   sales    성과   상담 결과·리드 후속은 사람 일로 올린다
  *   improve  개선   daily-agent.mjs 가 따로 돈다 (optimize.yml)
  *
- * 사람만 할 수 있는 일(발행 전 사실 확인·로그인·상담 결과)은 「사람 대기」로 올리고 할 곳의 주소를 단다.
+ * 사람만 할 수 있는 일(로그인·상담 결과)은 「사람 대기」로 올리고 할 곳의 주소를 단다.
+ * 학원 주 1편은 주제·감수·발행까지 자동이다(Step 43) — 자동 감수를 다 통과한 글만 나가고, 원장은 나간 글을 「내리기」 한 번으로 내린다.
  * 로그인한 브라우저가 필요한 일은 「로컬 대기」— tools/local-agent.mjs 가 원장 PC 에서 집어 간다.
  *
  *   node scripts/company.mjs              계획 + 실행
@@ -45,6 +46,7 @@ import { 프로필 } from "./profile.mjs";
 import { PM보고 } from "./pm-report.mjs";
 import { PC무소식, PC무소식글 } from "./pc-silent.mjs";
 import { 파일럿칸준비, 파일럿날짜맞추기, 구축대기한도 } from "../pilot-plan.mjs";
+import { 이번주글SQL, 기록하기, KST날 } from "../../web/lib/post-auto-core.mjs";
 
 for (const l of fs.readFileSync(new URL("../.env.local", import.meta.url), "utf8").split(/\r?\n/)) {
   const m = /^([A-Z_]+)=(.*)$/.exec(l);
@@ -733,37 +735,39 @@ const EXEC = {
 
   // ── 콘텐츠
   async "weekly-draft"(t, c) {
-    const [d] = await q(`select count(*)::int n from academy.posts where client_id=$1 and not published and ${내린글아님}`, [c.id]);
-    if (d.n > 0) {
-      return { status: "사람 대기", evidence: `${오늘()} 검토 대기 초안 ${d.n}편이 있어 새로 쓰지 않음`,
-        error: "초안을 사실 확인하고 발행하면 주 1편이 이어집니다", link: `${ADMIN}/admin/drafts` };
-    }
     if (!c.conf?.publishes || c.id !== 1) return { status: "사람 대기", error: "이 고객사는 사이트 글을 우리가 올리지 않습니다 (clients.mjs publishes=false)" };
     /**
-     * write-draft 하나만 부른다. 길은 그 안에서 고른다 —
-     * 재료가 3개 넘으면 자기가 쓰고, 모자라면 write-news 로 넘기고, 둘 다 없으면 건너뛴다(78). 이번 주 글이 이미 있어도 78.
-     *
-     * 전에는 여기서 write-news 를 먼저 부르고 안 되면 write-draft 를 불렀다. 그런데 write-draft 가
-     * 모드 사실에서 write-news 를 또 부른다 — 한 주에 검색 생성이 두 번 돌았다(KG-15-6).
-     * 검색 한 번에 OpenRouter web 플러그인이 요청당 $0.007 이고, Claude 구독은 하루 한도가 있다.
+     * 주 1편(Step 43 D88). 이번 주(KST) 발행 1편이면 다음 월요일. 감수 중인 자동 초안이 있으면 감수가 끝날 때까지 내일 다시.
+     * 한 주 2주제까지 — 이번 주 버림 2건이면 「못냄」 한 줄 남기고 다음 월요일.
+     * 주제·쓰기는 auto-post.mjs --pick 한 곳(write.yml 도 같은 길). 질문 겨냥 초안도 여기 후보로만 들어온다(D92).
+     * 쓰기 건너뜀(78)은 고장이 아니다 — 원장에게 올리지 않는다(2026-09-24 「없으면 패스」)
      */
-    const r = 실행(["scripts/write-draft.mjs"]);
-    const slug = /DRAFT_SLUG=(\S+)/.exec(r.out)?.[1];
-    if (slug) {
-      const 모드 = /^모드=(\S+)/m.exec(r.out)?.[1] ?? "?";
-      return { status: "완료", evidence: `${오늘()} 초안 작성 /blog/${slug} (모드=${모드})` };
+    const 이번주 = await q(이번주글SQL, [c.id]);
+    if (이번주.some((p) => p.published)) return { status: "대기", nextTry: 다음월요일(), evidence: `${오늘()} 이번 주 글이 이미 나감(주 1편)` };
+    if (이번주.length) return { status: "대기", nextTry: 내일(), evidence: `${오늘()} 감수 중인 초안이 있어 새로 쓰지 않음 (/blog/${이번주[0].slug})` };
+    const [주] = await q(`select count(*) filter (where kind='버림')::int 버림, count(*) filter (where kind='못냄')::int 못냄
+        from academy.post_reviews where client_id=$1 and at >= (date_trunc('week', now() at time zone 'Asia/Seoul') at time zone 'Asia/Seoul')`, [c.id])
+      .catch(() => [null]);
+    if (!주) return { status: "실패", attempt: true, error: "글 기록 표(academy.post_reviews)를 못 읽음 — setup-post-reviews.mjs 를 먼저" };
+    if (주.못냄) return { status: "대기", nextTry: 다음월요일(), evidence: `${오늘()} 이번 주는 못 냄으로 끝남` };
+    if (주.버림 >= 2) {
+      await 기록하기(q, { client: c.id, topic_key: `week:${KST날()}`, kind: "못냄", why: "주제 2개 다 3번 걸림" })
+        .catch((e) => console.log("  ⚠ 못냄 기록 실패", e.message));
+      await 활동(c.id, "content", "이번 주 글 못 냄", true, "주제 2개가 다 자동 감수에 3번 걸림 — 다음 월요일에 새 주제", t.id);
+      return { status: "대기", nextTry: 다음월요일(), evidence: `${오늘()} 이번 주 못 냄 — 주제 2개 다 3번 걸림` };
     }
-    /**
-     * 78 은 고장이 아니라 건너뜀이다 — 이번 주 글이 이미 있거나, 재료도 사실도 없거나, 게이트가 두 번 막았다.
-     * 원장에게 올리지 않는다(2026-09-24 「없으면 패스」). attempt 도 안 올린다 — 실패로 세면 계속 다시 돈다.
-     * 다음 월요일까지 미루는 건 매시 루프가 이걸 다시 집어 write-news(검색 한 번 $0.007)를 또 돌리지 않게 하려는 것이다
-     */
-    if (r.code === 78) {
-      const 모드 = /^모드=(\S+)/m.exec(r.out)?.[1] ?? "?";
-      return { status: "대기", nextTry: 다음월요일(),
-        evidence: `${오늘()} ${모드 === "이번주있음" ? "이번 주 글이 이미 있어 건너뜀(주 1편)" : "글감이 없어 이번 주는 건너뜀"}` };
+    const r = 실행(["scripts/auto-post.mjs", "--pick"]);
+    let o = null;
+    try { o = JSON.parse(/^AUTOPOST=(.+)$/m.exec(r.out)?.[1] ?? ""); } catch { o = null; }
+    switch (o?.상태) {
+      case "씀": return { status: "완료", link: `${ADMIN}/admin/drafts#${o.slug}`, evidence: `${오늘()} 초안 작성 /blog/${o.slug} (${o.모드} 글) — 주제 「${o.제목}」` };
+      case "이번주있음": return { status: "대기", nextTry: 내일(), evidence: `${오늘()} 이번 주 글이 이미 있음 (/blog/${o.slug})` };
+      case "후보없음": return { status: "대기", nextTry: 다음월요일(), evidence: `${오늘()} 이번 주 쓸 주제 없음 — 후보가 모두 걸러짐` };
+      // 앞 후보 3개가 재료 부족으로 4주 미뤄졌다 — 내일은 그다음 후보를 본다
+      case "재료부족": return { status: "대기", nextTry: 내일(), evidence: `${오늘()} 앞 후보 3개가 재료 부족 — 내일 다음 후보` };
+      case "쓰기건너뜀": return { status: "대기", nextTry: 내일(), evidence: `${오늘()} 「${o.제목}」 쓰기가 빈손으로 끝남 — 내일 다음 주제` };
+      default: return { status: "실패", attempt: true, error: 끝(o?.왜 ?? r.out) };
     }
-    return { status: "실패", attempt: true, error: 끝(r.out) };
   },
 
   async "question-draft"(t, c) {
@@ -777,14 +781,9 @@ const EXEC = {
       }
       return { status: "관찰", nextTry: 뒤(24 * 30), evidence: `${오늘()} ${c.name} 저장소에서 쓸 주제 — 원장 할 일에서 뺌` };
     }
-    const [d] = await q(`select count(*)::int n from academy.posts where client_id=$1 and not published and ${내린글아님}`, [c.id]);
-    if (d.n >= 3) return { status: "대기", nextTry: 뒤(12), evidence: `${오늘()} 검토 대기 초안 ${d.n}편 — 발행이 밀려 미룸` };
-    const p = t.payload;
-    const r = 실행(["scripts/write-draft.mjs", "--question", p.question, "--stage", p.stage ?? "local", "--sources", (p.sources ?? []).join(",")]);
-    const slug = /DRAFT_SLUG=(\S+)/.exec(r.out)?.[1];
-    // 78 = 건너뜀(이번 주 글이 이미 있거나 글감 없음). 실패로 세지 않고 다음 주에 다시 본다
-    if (!slug && r.code === 78) return { status: "대기", nextTry: 다음월요일(), evidence: `${오늘()} 주 1편 · 이번 주는 건너뜀` };
-    return slug ? { status: "완료", evidence: `${오늘()} 초안 /blog/${slug}`, link: `${ADMIN}/admin/drafts#${slug}` } : { status: "실패", attempt: true, error: 끝(r.out) };
+    // 학원(1번)은 여기서 직접 쓰지 않는다 — 주간 초안(auto-post --pick)의 주제 후보(경쟁이 이기는 질문)로만 들어간다(Step 43 D92).
+    // 쓰는 길이 둘이면 주 1편이 깨진다. 후보는 대기·관찰 상태의 이 일감을 읽으니 관찰로 둔다
+    return { status: "관찰", nextTry: 뒤(24 * 7), evidence: `${오늘()} 주제 후보로 넘김` };
   },
 
   async review(t) {

@@ -8,7 +8,7 @@
  *   모드 재료  안 쓴 재료 3개 이상 → 그 재료로 쓴다
  *   모드 사실  재료가 모자라고 쓸 사실이 있음 → write-news.mjs 에 넘긴다. 여기서는 안 쓴다
  *   모드 없음  둘 다 아님 → 아무것도 안 쓴다. 건너뛴 기록만 남기고 78 로 끝낸다(원장 할 일로 안 올림)
- *   이번주있음 이번 주(월~일 KST)에 초안이 이미 있음 → 78. 주 1편
+ *   이번주있음 이번 주(월~일 KST)에 발행된 글이나 감수 중인 자동 초안이 있음 → 78. 주 1편
  *
  * 빈손으로 오는 게 슬롭을 내놓는 것보다 낫다. 원장이 읽고 버리는 시간이 더 비싸다.
  *
@@ -17,14 +17,17 @@
  *   2. 근거를 모은다   — 기존 글(겹치는 주장) · 지고 있는 검색어 · 원장이 버린 이유
  *   3. 초안을 쓴다     — 금지 표현은 slop-rules 가 잡는 것과 같은 목록을 미리 준다
  *   4. 게이트를 돈다   — slop-rules 의 치명. 걸리면 한 번만 다시 쓰고, 두 번째도 걸리면 안 넣는다
- *   5. 초안으로 넣는다 — published=false. 발행은 사람이 한다
+ *   5. 초안으로 넣는다 — published=false
  *
- * 발행까지 자동으로 하지 않는다. CLAUDE.md 의 「사람만 할 수 있는 일 — 발행 전 사실 확인」이고,
- * 지어낸 문장 하나가 다른 문서와 어긋나면 레퍼런스 전체가 죽는다.
+ * 여기서는 발행하지 않는다. 주제를 auto-post.mjs 가 고른 자동 글(--topic-json)은 자동 감수
+ * (출처 원문 대조·AI 티·원장 관점·가림, auto-post.mjs --review)를 다 통과해야 나간다(Step 43).
+ * 지어낸 문장 하나가 다른 문서와 어긋나면 레퍼런스 전체가 죽는다 — 애매하면 안 나간다.
  *
  *   node scripts/write-draft.mjs                주제를 골라 초안까지
  *   node scripts/write-draft.mjs --dry          고른 주제와 프롬프트만 보고 멈춘다 (키 없이 됨)
  *   node scripts/write-draft.mjs --topic <id>   주제를 직접 지정
+ *   node scripts/write-draft.mjs --topic-json <파일>
+ *                                               auto-post.mjs 가 고른 주제·라벨 재료(i#·p#)로 재료 글을 쓴다(Step 43)
  *
  * 모델은 키가 있는 쪽을 쓴다 (anthropic → gemini → groq).
  * WRITER_PROVIDER·WRITER_MODEL·WRITER_MAX_TOKENS 로 바꾼다.
@@ -37,6 +40,7 @@ import { 공급자만들기, 공급자들, 금지, 지어내기금지, 파싱, �
 import { 검사, 근거표글 } from "./slop-rules.mjs";
 import { 재료도구 } from "./material-task.mjs";
 import { 프로필 } from "./profile.mjs";
+import { 이번주글SQL } from "../../web/lib/post-auto-core.mjs";
 
 for (const l of fs.readFileSync(new URL("../.env.local", import.meta.url), "utf8").split(/\r?\n/)) {
   const m = /^([A-Z_]+)=(.*)$/.exec(l);
@@ -55,6 +59,10 @@ const 인자 = (name) => {
 const QUESTION = 인자("--question");
 const STAGE = 인자("--stage") ?? "problem";
 const SOURCES = (인자("--sources") ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+const TJ = 인자("--topic-json");
+const TOPIC = TJ ? JSON.parse(fs.readFileSync(TJ, "utf8")) : null;
+/** auto-post 가 넘긴 라벨 재료(i# 상담 말 · p# 원장 글 문단). 재료표(m#)는 여기서 스스로 붙인다 */
+const 덧재료 = Array.isArray(TOPIC?.재료표) ? TOPIC.재료표 : [];
 const CLIENT = 1;
 const ADMIN = process.env.ADMIN_BASE_URL || "https://geo-rose-nine.vercel.app";
 let 공급자 = 공급자만들기();
@@ -82,16 +90,13 @@ const { 재료일감, 빈손, 다시돎, 재료썼음 } = 재료도구(q, { clie
 
 const main = async () => {
   /**
-   * ── 주 1편. 이번 주(월요일 0시 KST 부터)에 이미 초안이 생겼으면 안 쓴다.
-   * 초안이 들어오는 길이 셋이다 — 월요일 write.yml, 회사 루프의 주간 초안, 질문 겨냥 초안. 길마다 막지 않고 여기 한 곳에서 막는다.
+   * ── 주 1편. 이번 주(월요일 0시 KST 부터)에 발행된 글이 있거나, 감수 중인 자동 초안이 있으면 안 쓴다(Step 43 D88).
+   * 전에는 created_at 으로 셌다 — 자동 감수에서 버린 초안이 지워지면 그 주 두 번째 주제를 못 썼다.
+   * 초안이 들어오는 길 — 월요일 write.yml, 회사 루프의 주간 초안(auto-post), 개선 루프의 질문 겨냥 초안. 여기 한 곳에서 막는다.
    * 원장(2026-09-24): 「포스팅 글 작성은 주당 1회」. 못 읽으면 쓰지 않는다 — 두 편이 나가는 것보다 한 주 건너뛰는 게 낫다
    */
   if (!DRY) {
-    const 이번주 = await q(
-      `select slug from academy.posts
-        where client_id = $1
-          and created_at >= date_trunc('week', now() at time zone 'Asia/Seoul') at time zone 'Asia/Seoul'
-        limit 1`, [CLIENT]).catch((e) => {
+    const 이번주 = await q(`${이번주글SQL} limit 1`, [CLIENT]).catch((e) => {
       console.log("이번 주 초안을 확인하지 못했습니다:", e.message.slice(0, 120));
       return null;
     });
@@ -142,7 +147,8 @@ const main = async () => {
   // 「뉴스거리가 있다」가 아니라 「write-news 를 돌릴 수 있다」는 뜻이다. 뉴스거리가 있는지는
   // 검색을 해 봐야 알고, 그건 write-news 가 한다. 없으면 거기서 빈손으로 끝나고 그 주는 건너뛴다
   const 뉴스도구있음 = Boolean(process.env.GEMINI_API_KEY);
-  const 모드 = 재료들.length >= 3 ? "재료" : (측정?.answer || 뉴스도구있음) ? "사실" : "없음";
+  // 자동 글(--topic-json)은 auto-post 의 재료 관문을 이미 지났다 — 재료 글로 쓴다
+  const 모드 = TOPIC || 재료들.length >= 3 ? "재료" : (측정?.answer || 뉴스도구있음) ? "사실" : "없음";
   console.log(`모드=${모드}`);
 
   // ── 모드 사실 — 여기서는 글을 안 쓴다. write-news.mjs 에 넘기고 종료 코드를 그대로 이어받는다
@@ -198,7 +204,9 @@ const main = async () => {
   const 점수 = (t) => 핵심어.filter((k) => 짚(t).includes(k)).length;
   const 재료점수 = (t) => 재료낱말.filter((k) => 짚(t).includes(k)).length;
 
-  const 후보 = QUESTION
+  const 후보 = TOPIC
+    ? [{ id: null, title: TOPIC.주제?.제목 ?? "", angle: TOPIC.각도 ?? "", category: TOPIC.분류 || "학부모안내", tags: TOPIC.태그 ?? [] }]
+    : QUESTION
     ? [{
         id: null,
         title: QUESTION,
@@ -217,8 +225,8 @@ const main = async () => {
     return;
   }
   // 맞물리는 주제가 없으면 재료 자체에서 제목을 뽑게 한다. 주제 은행을 억지로 끌어다 쓰지 않는다
-  const 맞물림 = QUESTION || WANT ? true : 후보.length > 0 && 재료점수(후보[0]) >= 1;
-  if (!QUESTION && !WANT && !맞물림) {
+  const 맞물림 = TOPIC || QUESTION || WANT ? true : 후보.length > 0 && 재료점수(후보[0]) >= 1;
+  if (!TOPIC && !QUESTION && !WANT && !맞물림) {
     console.log("  맞물리는 주제가 주제 은행에 없습니다 — 재료에서 제목을 뽑습니다.");
   }
 
@@ -262,9 +270,11 @@ const main = async () => {
    * 라벨이 없으면 어느 재료를 썼는지 못 알아내고, 그러면 게이트가 지어낸 장면을 못 가른다.
    */
   const 만들기 = (고른것, 쓸재료, 고침 = []) => {
-    const 재료표 = 쓸재료
-      .map((m, i) => `- [m${i + 1}] ${m.kind} · ${m.day} · ${m.context || "상황 기록 없음"}: 「${m.said}」`)
-      .join("\n");
+    const 재료표 = [
+      ...쓸재료.map((m, i) => `- [m${i + 1}] ${m.kind} · ${m.day} · ${m.context || "상황 기록 없음"}: 「${m.said}」`),
+      // p# 는 옛 글 문단이다 — 쓰면 그 연도를 문장에 적는다(9/28 옛 지점 글이 지금 일처럼 나간 일, D84)
+      ...덧재료.map((m) => `- [${m.라벨}] ${m.원문}`),
+    ].join("\n");
     const 숫자재료 = 쓸재료.some((m) => m.kind === "숫자");
     return [
       // 집필 담당의 정체성·일하는 법·기억 (agents/content). 공급자가 여럿이라 시스템 칸 대신 본문 앞에 둔다
@@ -285,6 +295,7 @@ const main = async () => {
       "첫 문단은 위 재료 중 하나를 그대로 인용해서 연다. 고쳐 쓰지 말고 들은 말 그대로 따옴표 안에 넣는다.",
       "재료에 없는 상담·수업 장면은 한 줄도 쓰지 마라. 「한 학부모가」 「어떤 아이가」로 시작하는 문장은",
       "위 재료에 그 말이 있을 때만 쓴다. 없으면 그 문단을 통째로 지운다.",
+      ...(덧재료.length ? ["학원 경험 문장은 라벨 있는 재료에만 근거한다. p# 를 쓰면 그 연도를 문장에 적는다(「2024년에는」)."] : []),
       "",
       `# 지켜야 할 것\n- ${규칙.join("\n- ")}`,
       "",
@@ -327,10 +338,12 @@ const main = async () => {
       고침.length ? `# 방금 쓴 글이 게이트에 걸렸다. 같은 실수를 하지 마라\n- ${고침.join("\n- ")}` : "",
       "",
       "# 내놓을 형식 (JSON 하나만, 다른 말 없이)",
-      QUESTION || !맞물림
-        ? `{"title": "질문형 제목", "slug": "제목을 로마자로 옮긴 주소. 소문자·숫자·하이픈만, 60자 이하 (예: koding-hagwon-goreugi)", "summary": "결론 한두 줄", "tags": ["5개"], "body": "마크다운 본문", "쓴재료": ["m1"], "확인필요": ["내가 지어냈을 수 있어 원장 확인이 필요한 문장"]}`
+      TOPIC || QUESTION || !맞물림
+        ? `{"title": "질문형 제목", "slug": "제목을 로마자로 옮긴 주소. 소문자·숫자·하이픈만, 60자 이하 (예: koding-hagwon-goreugi)", "summary": "결론 한두 줄", "tags": ["5개"], "body": "마크다운 본문", "쓴재료": ["m1"], "확인필요": ["내가 지어냈을 수 있어 원장 확인이 필요한 문장"]${TOPIC ? `, "주장": [{"문장": "본문 문장 그대로", "종류": "바깥|학원|판단", "출처": [], "재료": ["m1"]}]` : ""}}`
         : `{"title": "질문형 제목", "summary": "결론 한두 줄", "tags": ["5개"], "body": "마크다운 본문", "쓴재료": ["m1"], "확인필요": ["내가 지어냈을 수 있어 원장 확인이 필요한 문장"]}`,
       "",
+      ...(TOPIC ? ["주장 에는 숫자·기관·제도·학원 경험이 든 문장을 본문 그대로 하나도 빠짐없이 넣는다. 학원 = 라벨 재료에서 온 것(재료 라벨 필수), 판단 = 네 판단.",
+        "발행 전에 기계가 라벨 재료 원문과 한 문장씩 맞춰 보고, 원문에 없는 문장은 지운다.", ""] : []),
       "쓴재료 에는 본문에 실제로 인용한 재료의 라벨만 넣어라. 안 쓴 라벨을 넣으면 검사에서 걸려 글이 통째로 버려진다.",
       "확인필요 에는 상담·수업에서 실제로 있었던 일처럼 쓴 문장을 빠짐없이 넣어라.",
       "네가 겪지 않은 일을 겪은 것처럼 쓰면 발행 전에 걸러야 한다.",
@@ -444,8 +457,11 @@ const main = async () => {
     if (!r.post) break;
     쓴재료 = 라벨풀기(r.post.쓴재료, 쓸재료);
     const 표 = 근거표만들기(쓸재료);
-    const 근거 = 근거표글(표);
-    const g = 검사(r.post.body ?? "", { 재료들: 쓴재료, 근거 });
+    // 라벨 재료(i#·p#)를 쓴 장면도 재료로 친다 — 원문 그대로 인용했는지는 게이트가 겹침으로 본다
+    const 쓴라벨 = new Set((Array.isArray(r.post.쓴재료) ? r.post.쓴재료 : []).map(String));
+    const 쓴덧 = 덧재료.filter((m) => 쓴라벨.has(m.라벨)).map((m) => ({ said: m.원문, context: "" }));
+    const 근거 = [근거표글(표), ...쓴덧.map((m) => m.said)].join("\n");
+    const g = 검사(r.post.body ?? "", { 재료들: [...쓴재료, ...쓴덧], 근거 });
     if (!g.치명.length) {
       ({ post, 고쳐읽음 } = r);
       // 게이트가 본 글 그대로 — slop-check --strict 가 같은 근거로 다시 본다
@@ -497,7 +513,7 @@ const main = async () => {
   }
 
   let slug = 고른것.id;
-  if (QUESTION || !맞물림 || !slug) {
+  if (TOPIC || QUESTION || !맞물림 || !slug) {
     // 질문 모드·재료 주제는 기존 글을 절대 덮어쓰지 않는다. 겹치면 뒤에 번호를 붙인다
     const 기본 = /^[a-z0-9]+(-[a-z0-9]+)*$/.test(post.slug ?? "") && post.slug.length <= 60
       ? post.slug
@@ -539,6 +555,13 @@ const main = async () => {
       질문: QUESTION ?? null,
       경쟁출처: SOURCES,
       쓴날: new Date().toISOString(),
+      // 자동 글(Step 43) — 감수가 읽는다. 주제가 있으면 감수 중 초안으로 센다(주 1편)
+      ...(TOPIC ? {
+        주제: TOPIC.주제,
+        주장: Array.isArray(post.주장) ? post.주장 : [],
+        재료표: [...쓸재료.map((m, i) => ({ 라벨: `m${i + 1}`, 원문: `${m.said}${m.context ? ` (${m.context})` : ""}` })),
+          ...덧재료.map((m) => ({ 라벨: m.라벨, 원문: m.원문 }))],
+      } : {}),
     })],
   ).catch((e) => console.log("  ⚠ 검토 메모를 못 남겼습니다:", e.message));
   await 다시돎();
@@ -550,7 +573,7 @@ const main = async () => {
 
   console.log(`\n초안으로 넣었습니다: ${post.title} (${본문.length}자)`);
   console.log(`쓴 재료 ${쓴재료.length}개: ${쓴재료.map((m) => `「${m.said.slice(0, 24)}…」`).join(" ") || "없음"}`);
-  console.log("발행은 사람이 합니다. 확인이 필요한 문장:");
+  console.log(TOPIC ? "자동 감수를 통과해야 나갑니다. 확인이 필요한 문장:" : "발행은 사람이 합니다. 확인이 필요한 문장:");
   for (const s of post.확인필요 ?? []) console.log("  ·", s);
   if (흠.length) {
     console.log("\n짜임새에서 걸린 것:");
