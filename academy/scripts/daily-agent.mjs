@@ -31,7 +31,7 @@ import { fileURLToPath } from "node:url";
 import { Pool } from "pg";
 import { 자기점검, 점검요약, 겹침, 곳 as 곳이름 } from "./loop-review.mjs";
 import { loadClients, bySlug } from "../clients.mjs";
-import { 세션일감열기, 세션완료찾기, 세션일감닫기, 세션끝냄, 탐침글일감 } from "./session-task.mjs";
+import { 세션일감열기, 세션완료찾기, 세션끝냄, 탐침글일감 } from "./session-task.mjs";
 import { 전파찾기, 전파칸, 사다리짓기, 경쟁우세, 후보고르기, 불리던글, 승격일감, 확장넣기 } from "./loop-grow.mjs";
 import { 경쟁사목록 } from "../pilot-report-core.mjs";
 import { 측정설정 } from "../measure-targets.mjs";
@@ -216,12 +216,7 @@ const 돌기 = async (c, 설정) => {
     if ((r.status === "사람 대기" || r.status === "세션 대기") && r.run_day <= 날더하기(오늘, -14)) {
       기록.push(`${r.target_prompt} ${r.action_kind} 14일 미처리 → 닫음`);
       if (!DRY) await q(`update geo.agent_runs set verdict='미처리', verdict_note='14일 동안 사람 작업이 없었음', judged_at=now() where id=$1`, [r.id]);
-      // 세션 글이면 짝 일감도 닫는다 — 안 닫으면 sticky 라 「세션에서 할 일」에 죽은 일감이 쌓인다
-      if (r.status === "세션 대기") {
-        const 글 = questions.find((x) => x.prompt_id === r.target_prompt)?.text;
-        const 닫음 = 글 ? await 세션일감닫기(q, { clientId: c.id, 질문: 글, 오늘, DRY }) : [];
-        if (닫음.length) 기록.push(`${r.target_prompt} 세션 글 일감 #${닫음.join(", #")} 닫음`);
-      }
+      // 세션 글 일감은 나이로 닫지 않는다(Step 40 D60) — 7일부터 현황판 원장 할 일, 세션이 끝내거나 원장이 닫는다
       r.verdict = "미처리";
       continue;
     }

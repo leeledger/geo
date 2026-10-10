@@ -22,6 +22,7 @@ import { fileURLToPath } from "node:url";
 import { Pool } from "pg";
 import { 클로드코드, 클로드코드있음, 클로드기록연결 } from "./claude-code.mjs";
 import { 프로필 } from "./profile.mjs";
+import { R5제외 } from "../serp-judge.mjs";
 
 // Actions 에서는 .env.local 을 만들지 않는다 — 조사관이 볼 수 있는 곳에 비밀 파일을 두지 않으려고
 const envFile = new URL("../.env.local", import.meta.url);
@@ -222,8 +223,9 @@ const R5 = async () => {
     from academy.coverage_by_vendor order by client_id, coverage_pct`);
   for (const r of rows) {
     if (r.pct >= 20) { 풀림("R5", r.client_id, r.vendor, `커버리지 ${r.pct}% (${r.pages_crawled}/${r.pages_total})`); continue; }
-    // 덕덕고 검색 결과는 자체 수집이 아니라 빙 색인이다. DuckDuckBot 이 적게 오는 건 고칠 결함이 아니다 — 빙(microsoft)으로 본다(조사 439, 2026-09-24)
-    if (r.vendor === "duckduckgo") { 풀림("R5", r.client_id, r.vendor, "덕덕고 결과는 빙 색인 기반 — 빙 커버리지로 대신 봄"); continue; }
+    // 감시 안 하는 크롤러(R5제외). 덕덕고는 빙 색인이라 빙(microsoft)으로 보고(조사 439, 2026-09-24), 바이트댄스는 한국 학부모가 안 쓴다(D59).
+    // 풀림 사유가 있으니 「사람 대기」 조사도 다음 감사에서 닫힌다
+    if (R5제외[r.vendor]) { 풀림("R5", r.client_id, r.vendor, R5제외[r.vendor]); continue; }
     const 이름 = `client ${r.client_id} ${r.vendor} ${r.pct}% (${r.pages_crawled}/${r.pages_total})`;
     if (r.pages_total < 10) { 참고("R5", `제외 — ${이름}: 페이지 ${r.pages_total}개라 비율이 안 선다`); continue; }
     if (r.age <= 14) { 참고("R5", `제외 — ${이름}: 처음 온 지 ${r.age}일 (${r.first}), 14일 전엔 판단 안 함`); continue; }

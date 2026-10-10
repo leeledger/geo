@@ -2,14 +2,16 @@
 //   node academy/scripts/test-ilog-loop.mjs
 // 1) 질문 패널 20개 모양  2) 이름 판별 말(오탐)  3) 고객별 루프 설정(이름 질문 적중·홈 JSON-LD)
 // 4) 자기 점검 — 탐침 끄기·검색어형 묶음  5) 세션 글 일감 제목  6) 측정 예산 두 배 조건·순서
-// 7) 「세션 대기」 생애주기(열기·재사용·끝냄·판정 찾기·14일 닫기·dry) — 가짜 q
+// 7) 「세션 대기」 생애주기(열기·재사용·끝냄·판정 찾기·dry) — 가짜 q
+// 8) 고객당 열린 세션 글 1개 — 묶기(Step 40 D60)  9) 나이로 안 닫음
 // 하나라도 틀리면 종료코드 1.
 import assert from "node:assert/strict";
 import { CLIENTS, bySlug, 세션글제목 } from "../clients.mjs";
 import { 패널, 이름말 } from "./seed-ilog-panel.mjs";
 import { 자기점검 } from "./loop-review.mjs";
 import { 대상고르기, 고객수, 측정상한 } from "../measure-targets.mjs";
-import { 세션일감열기, 세션완료찾기, 세션일감닫기, 세션끝냄, 같은질문일감, 세션글키 } from "./session-task.mjs";
+import fs from "node:fs";
+import { 세션일감열기, 세션완료찾기, 세션끝냄, 같은질문일감, 세션글키, 세션일감묶기, 묶음상한, 탐침글일감 } from "./session-task.mjs";
 
 let fail = 0, pass = 0;
 const t = (name, f) => {
@@ -135,12 +137,33 @@ const 가짜db = (행들 = []) => {
   const 글 = (s) => String(s ?? "").replace(/[^가-힣a-zA-Z0-9]/g, "");
   const q = async (sql, p = []) => {
     const s = sql.replace(/\s+/g, " ");
-    const 같은 = (r) => r.client_id === p[0] && r.kind === "question-draft" && 글(r.payload?.question) === p[1];
-    if (/^select id, status, dedupe_key/.test(s)) return 표.filter(같은).sort((a, b) => a.id - b.id).slice(0, 1);
+    // 질문 글자가 payload.question 이나 묶인 payload.questions 중 하나와 같다(Step 40)
+    const 같은 = (r) => r.client_id === p[0] && r.kind === "question-draft"
+      && [r.payload?.question, ...(r.payload?.questions ?? [])].some((x) => 글(x) === p[1]);
+    if (/^select id, status, dedupe_key/.test(s)) {
+      return 표.filter(같은).sort((a, b) => (b.status === "세션 대기") - (a.status === "세션 대기") || a.id - b.id).slice(0, 1)
+        .map((r) => ({ id: r.id, status: r.status, dedupe_key: r.dedupe_key, question: r.payload?.question ?? null }));
+    }
     if (/^select id, done_at/.test(s)) {
       return 표.filter((r) => 같은(r) && r.status === "완료" && r.done_day >= p[2]).slice(0, 1).map((r) => ({ id: r.id, done_at: r.done_at }));
     }
+    if (/^select id, payload from geo\.agent_tasks .*status='세션 대기' order by created_at, id limit 1/.test(s)) {
+      return 표.filter((r) => r.client_id === p[0] && r.kind === "question-draft" && r.status === "세션 대기")
+        .sort((a, b) => String(a.created_at ?? "").localeCompare(String(b.created_at ?? "")) || a.id - b.id).slice(0, 1)
+        .map((r) => ({ id: r.id, payload: r.payload }));
+    }
     씀.push(s);
+    if (/^update geo\.agent_tasks set payload = payload \|\| jsonb_build_object\('questions'/.test(s)) {
+      const r = 표.find((x) => x.id === p[0]);
+      r.payload = { ...r.payload, questions: JSON.parse(p[1]) };
+      r.evidence = `${r.evidence ?? ""}${p[2]}`;
+      return [];
+    }
+    if (/^update geo\.agent_tasks set updated_at=now\(\), evidence/.test(s)) {
+      const r = 표.find((x) => x.id === p[0]);
+      r.evidence = `${r.evidence ?? ""}${p[1]}`;
+      return [];
+    }
     if (/^update geo\.agent_tasks set status='세션 대기'/.test(s)) {
       const r = 표.find((x) => x.id === p[0]);
       Object.assign(r, { status: "세션 대기", title: p[1], done_at: null });
@@ -152,9 +175,6 @@ const 가짜db = (행들 = []) => {
       const r = { id: ++다음, client_id: p[0], kind: "question-draft", dedupe_key: p[1], title: p[2], status: "세션 대기", payload: JSON.parse(p[5]) };
       표.push(r);
       return [{ id: r.id }];
-    }
-    if (/^update geo\.agent_tasks set status='닫힘'/.test(s)) {
-      return 표.filter((r) => 같은(r) && r.status === "세션 대기").map((r) => ((r.status = "닫힘"), { id: r.id }));
     }
     if (/^update geo\.agent_tasks set status='완료'/.test(s)) {
       const r = 표.find((x) => x.id === p[0] && x.kind === "question-draft" && x.status === "세션 대기");
@@ -231,14 +251,88 @@ await tt("끝냄 — 세션 대기가 아니면(이미 완료) 없다고 답함"
   const r = await 세션끝냄(db.q, { id: 29, 근거: "근거", 시각: "2026-10-02 12:00", DRY: false });
   assert.equal(r.ok, false);
 });
-await tt("14일 닫기 — 짝 일감도 닫힘, dry 는 안 씀", async () => {
-  const db = 가짜db();
-  await 여는값(db);
-  assert.deepEqual(await 세션일감닫기(db.q, { clientId: 2, 질문: "학원 출결 관리 앱", 오늘: "2026-10-14", DRY: true }), []);
-  assert.equal(db.표[0].status, "세션 대기");
-  const 닫음 = await 세션일감닫기(db.q, { clientId: 2, 질문: "학원 출결 관리 앱", 오늘: "2026-10-14", DRY: false });
-  assert.deepEqual(닫음, [db.표[0].id]);
-  assert.equal(db.표[0].status, "닫힘");
+// ── 8. 고객당 열린 세션 글 1개 — 묶기(Step 40 D60)
+const 열린28 = () => ({ id: 28, client_id: 2, kind: "question-draft", dedupe_key: "qdraft-ef37aa752c", status: "세션 대기",
+  created_at: "2026-09-17T01:00:00Z", payload: { question: "학원 관리 프로그램 뭐가 좋은가요?" } });
+const 묶기값 = (db, 질문, DRY = false) => 세션일감묶기(db.q, { c: 고객, 질문, 출처: "탐침 p3", 오늘: "2026-10-10", DRY });
+await tt("묶기 — 열린 것이 있으면 questions 에 대표 질문과 함께 덧붙임·evidence", async () => {
+  const db = 가짜db([열린28()]);
+  const r = await 묶기값(db, "학원 출결 관리 앱");
+  assert.deepEqual(r, { id: 28, 말: "열린 세션 글 일감 #28 에 「학원 출결 관리 앱」 묶음", 묶음: true });
+  assert.deepEqual(db.표[0].payload.questions, ["학원 관리 프로그램 뭐가 좋은가요?", "학원 출결 관리 앱"]);
+  assert.match(db.표[0].evidence, /2026-10-10 탐침 p3 질문 묶음: 「학원 출결 관리 앱」/);
+});
+await tt("묶기 — 같은 질문(글자 기준)이면 안 늘어남", async () => {
+  const db = 가짜db([열린28()]);
+  await 묶기값(db, "학원 출결 관리 앱");
+  const 전 = db.씀.length;
+  const r = await 묶기값(db, "학원출결 관리앱?");
+  assert.equal(r.묶음, true);
+  assert.equal(db.표[0].payload.questions.length, 2);
+  assert.equal(db.씀.length, 전);
+  const r2 = await 묶기값(db, "학원 관리 프로그램, 뭐가 좋은가요");
+  assert.equal(db.표[0].payload.questions.length, 2, r2.말);
+});
+await tt("묶기 — 상한 15 넘으면 안 넣고 evidence 「상한 — 안 묶음」, 묶음 false", async () => {
+  const 열 = 열린28();
+  열.payload.questions = Array.from({ length: 묶음상한 }, (_, i) => `질문 ${i}`);
+  const db = 가짜db([열]);
+  const r = await 묶기값(db, "열여섯째 질문");
+  assert.equal(r.묶음, false);
+  assert.equal(db.표[0].payload.questions.length, 15);
+  assert.match(db.표[0].evidence, /상한 — 안 묶음: 「열여섯째 질문」/);
+});
+await tt("묶기 — 열린 것이 없으면 undefined, dry 는 안 씀", async () => {
+  assert.equal(await 묶기값(가짜db(), "학원 출결 관리 앱"), undefined);
+  const db = 가짜db([열린28()]);
+  const r = await 묶기값(db, "학원 출결 관리 앱", true);
+  assert.match(r.말, /^\(dry\)/);
+  assert.equal(db.씀.length, 0);
+});
+await tt("같은질문일감 — 묶인 questions 안의 질문도 찾고, 열린 일감을 먼저", async () => {
+  const 닫힌 = { id: 12, client_id: 2, kind: "question-draft", dedupe_key: "qdraft-aaa", status: "닫힘", payload: { question: "학원 출결 관리 앱" } };
+  const 열 = 열린28();
+  열.payload.questions = [열.payload.question, "학원 출결 관리 앱"];
+  const db = 가짜db([닫힌, 열]);
+  assert.equal((await 같은질문일감(db.q, 2, "학원 출결관리 앱"))?.id, 28);
+});
+await tt("세션완료찾기 — 묶인 질문으로도 완료를 찾는다", async () => {
+  const 열 = { ...열린28(), status: "완료", done_day: "2026-10-12", done_at: "2026-10-12T03:00:00Z" };
+  열.payload = { question: "학원 관리 프로그램 뭐가 좋은가요?", questions: ["학원 관리 프로그램 뭐가 좋은가요?", "학원 출결 관리 앱"] };
+  const db = 가짜db([열]);
+  assert.equal((await 세션완료찾기(db.q, 2, "학원 출결 관리 앱", "2026-10-10"))?.id, 28);
+});
+await tt("열기 — 다른 세션 글이 열려 있으면 새로 안 만들고 묶음", async () => {
+  const db = 가짜db([열린28()]);
+  const r = await 여는값(db);
+  assert.equal(r.id, 28);
+  assert.equal(db.표.length, 1);
+  assert.equal(db.표[0].title, undefined, "대표 일감 제목을 덮어쓰지 않음");
+  assert.deepEqual(db.표[0].payload.questions, ["학원 관리 프로그램 뭐가 좋은가요?", "학원 출결 관리 앱"]);
+});
+await tt("열기 — 묶인 질문으로 이미 열려 있으면 제목 안 덮음·안 씀", async () => {
+  const 열 = 열린28();
+  열.payload.questions = [열.payload.question, "학원 출결 관리 앱"];
+  const db = 가짜db([열]);
+  const r = await 여는값(db);
+  assert.equal(r.id, 28);
+  assert.equal(db.씀.length, 0);
+});
+await tt("탐침글일감 — 열린 세션 글이 있으면 막지 않고 묶음", async () => {
+  const db = 가짜db([열린28()]);
+  const r = await 탐침글일감(db.q, { c: 고객, 설정: 아이로그.loop, gap: { prompt_id: "p3", text: "학원 문자 발송 프로그램", radius: "전국", n: 4, root: "q2" }, 곳이름: "Claude", 오늘: "2026-10-10", DRY: false });
+  assert.equal(r.id, null);
+  assert.match(r.말, /#28 에 「학원 문자 발송 프로그램」 묶음/);
+  assert.equal(db.표.length, 1);
+  assert.equal(db.표[0].payload.questions.at(-1), "학원 문자 발송 프로그램");
+});
+// ── 9. 나이로 안 닫음(D60) — daily-agent 의 14일 run 은 「미처리」 판정만, 세션 글 일감은 그대로
+t("나이 닫기 제거 — 세션일감닫기 없음 · daily-agent 는 미처리 판정만 · 탐침글일감 은 닫지 않음", () => {
+  const 루프 = fs.readFileSync(new URL("./daily-agent.mjs", import.meta.url), "utf8");
+  const 세션 = fs.readFileSync(new URL("./session-task.mjs", import.meta.url), "utf8");
+  assert.match(루프, /verdict='미처리'/);
+  assert.doesNotMatch(루프, /세션일감닫기/);
+  assert.doesNotMatch(세션, /세션일감닫기|status='닫힘'/);
 });
 
 console.log(`\n${pass} 통과 · ${fail} 실패`);

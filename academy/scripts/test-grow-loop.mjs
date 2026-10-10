@@ -215,12 +215,14 @@ t("D41 곳 바뀜 — 문장 사슬은 Claude 로만 본다(다른 곳 0/4 는 �
 });
 const 칸 = { prompt_id: "p8", text: "서울 코딩학원 어디가 좋아?", radius: "서울", method: 클, n: 4, root: "q2" };
 const 학원 = { id: 1, name: "로봇&코딩학원" };
-await tt("D41 일감 — 열린 세션 글이 있으면 안 연다", async () => {
-  const w = 가짜q([[/status='세션 대기' order by id limit 1/, [{ id: 40 }]]]);
+await tt("D41·D60 일감 — 열린 세션 글이 있으면 새로 안 열고 그 일감에 묶는다", async () => {
+  const w = 가짜q([[/status='세션 대기'\s+order by created_at, id limit 1/, [{ id: 40, payload: { question: "코딩학원 고르는 법" } }]]]);
   const r = await 탐침글일감(w.q, { c: 학원, 설정: bySlug("robotncoding", CLIENTS).loop, gap: 칸, 곳이름: "Claude", 오늘, DRY: false });
   assert.equal(r.id, null);
-  assert.match(r.말, /#40/);
+  assert.match(r.말, /#40 에 「서울 코딩학원 어디가 좋아\?」 묶음/);
   assert.equal(w.부름.some((c) => /insert/.test(c.sql)), false);
+  const 묶음 = w.부름.find((c) => /jsonb_build_object\('questions'/.test(c.sql));
+  assert.deepEqual(JSON.parse(묶음.p[1]), ["코딩학원 고르는 법", "서울 코딩학원 어디가 좋아?"]);
 });
 await tt("D41 일감 — 재료 없으면 「재료 필요」, 있으면 재료로만", async () => {
   const w = 가짜q([[/academy.materials/, [{ n: 0 }]], [/insert into geo.agent_tasks/, [{ id: 61 }]]]);
@@ -239,7 +241,7 @@ await tt("D41 일감 — dry 는 닫기·쓰기 없음, 같은 문장 일감이 
   const r = await 탐침글일감(d.q, { c: 학원, 설정: bySlug("robotncoding", CLIENTS).loop, gap: 칸, 곳이름: "Claude", 오늘, DRY: true });
   assert.match(r.말, /^\(dry\)/);
   assert.equal(d.부름.some((c) => /^\s*(update|insert)/.test(c.sql)), false);
-  const s = 가짜q([[/kind='question-draft' and regexp_replace/, [{ id: 12, status: "완료" }]]]);
+  const s = 가짜q([[/kind='question-draft' and \(regexp_replace/, [{ id: 12, status: "완료" }]]]);
   const r2 = await 탐침글일감(s.q, { c: 학원, 설정: bySlug("robotncoding", CLIENTS).loop, gap: 칸, 곳이름: "Claude", 오늘, DRY: false });
   assert.match(r2.말, /#12\(완료\)/);
 });

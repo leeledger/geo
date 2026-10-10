@@ -98,6 +98,7 @@ const 돌리기 = (file, args, timeoutMin, env = {}) => {
   }
 };
 const 끝 = (s, n = 300) => String(s).replace(/\s+/g, " ").trim().slice(-n);
+const KST = () => new Date().toLocaleString("sv-SE", { timeZone: "Asia/Seoul" }).slice(0, 16);
 const 활동 = (agent, action, ok, summary, taskId = null, clientId = 1) =>
   q(`insert into geo.agent_activity (client_id, agent, action, ok, summary, task_id, run_url) values ($6,$1,$2,$3,$4,$5,'local-agent')`,
     [agent, action, ok, String(summary).slice(0, 1000), taskId, clientId]).catch(() => {});
@@ -114,6 +115,16 @@ try {
   // 코드 3곳 + DB 고객(Step 37). DB 를 못 읽으면 코드 3곳(stderr 한 줄)
   const 고객들 = await loadClients(q);
   await 활동("deliver", "로컬 에이전트 출근", true, "네이버 이관·구글 색인 요청 확인");
+
+  // 세션이 손으로 옮긴 글은 naver_log_no 가 있어 아래 목록에서 빠진다. 그 글의 로컬 대기 이관 일감은 닫을 곳이 없어 여기서 닫는다(Step 40)
+  const 이미있음 = await q(
+    `update geo.agent_tasks t set status='완료', done_at=now(), updated_at=now(),
+            evidence=left(t.evidence || E'\n' || $1 || ' 이미 네이버에 있음 logNo=' || p.naver_log_no, 4000)
+       from academy.posts p
+      where t.kind='naver-transfer' and t.status='로컬 대기' and p.client_id = t.client_id
+        and p.slug = t.payload->>'slug' and p.naver_log_no is not null
+      returning t.id`, [KST()]);
+  if (이미있음.length) 기록(`네이버에 이미 있는 글의 이관 일감 ${이미있음.length}건 완료`);
 
   // ── 네이버 이관: 최근 2주 발행했는데 네이버에 없는 글 (정찰 신호와 같은 기준) + 발행 알림이 넘긴 글
   // 한 번이라도 발행 버튼까지 갔을 수 있는 글(시도 기록이 열려 있는 글)은 자동으로 다시 올리지 않는다 — 네이버에 두 벌이 된다
@@ -140,7 +151,9 @@ try {
     // 발행 버튼을 누르기 직전에 찍는 줄이 있으면 올라갔을 수 있다. 시간 초과도 어디서 죽었는지 모르니 같은 취급
     const 발행했을수도 = /발행 버튼을 누릅니다|ETIMEDOUT|timed out|SIGTERM/i.test(r.out);
     if (after?.naver_log_no) {
-      await q(`update geo.agent_tasks set status='완료', done_at=now(), updated_at=now() where id=$1`, [attempt.id]);
+      // 근거(logNo)를 같이 남긴다 — 빈 완료는 감사 R3 가 「근거 없는 완료」로 잡는다
+      await q(`update geo.agent_tasks set status='완료', done_at=now(), updated_at=now(), evidence = left(coalesce(evidence, '') || E'\n' || $2, 4000) where id=$1`,
+        [attempt.id, `${KST()} logNo=${after.naver_log_no}`]);
     } else if (발행했을수도) {
       await q(`update geo.agent_tasks set status='사람 대기', updated_at=now(), last_error=$2 where id=$1`,
         [attempt.id, `네이버 블로그에 이 글이 올라갔는지 확인해 주세요. 올라갔으면 update academy.posts set naver_log_no='<번호>', naver_at=now() where slug='${p.slug}'; 안 올라갔으면 이 일감을 닫으면 다시 시도합니다. 출력: ${끝(r.out, 200)}`]);

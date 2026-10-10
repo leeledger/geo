@@ -32,7 +32,8 @@ import { fileURLToPath } from "node:url";
 import { Pool } from "pg";
 import { loadClients, 세션글제목 } from "../clients.mjs";
 import { 고객설정준비 } from "../measure-targets.mjs";
-import { 같은질문일감, 세션글키 } from "./session-task.mjs";
+import { 같은질문일감, 세션글키, 세션일감묶기 } from "./session-task.mjs";
+import { 색인결과 } from "../serp-judge.mjs";
 import { 탐침측정DDL } from "./loop-grow.mjs";
 import { MARKETING_DDL } from "../../web/lib/marketing-core.mjs";
 import { GROWTH_DDL } from "../../web/lib/growth-core.mjs";
@@ -449,6 +450,10 @@ const 세션글열기 = async (clients) => {
     const 멈춤 = await q(`select id, payload->>'question' as question from geo.agent_tasks
                           where client_id=$1 and kind='question-draft' and status='관찰' and payload ? 'question'`, [c.id]);
     for (const t of 멈춤) {
+      // 열린 세션 글은 고객당 1개(Step 40 D60) — 이미 열린 것이 있으면 질문만 묶고 이 일감은 닫는다
+      const 묶음 = await 세션일감묶기(q, { c, 질문: t.question, 출처: `관찰 일감 #${t.id}`, 오늘: 오늘().slice(0, 10), DRY: false });
+      if (묶음?.묶음) { await 상태(t.id, "닫힘", { evidence: `${오늘()} #${묶음.id} 에 묶음` }); continue; }
+      if (묶음) continue; // 상한 — 관찰로 둔다
       await q(`update geo.agent_tasks set status='세션 대기', title=$2, last_error=$3, updated_at=now(),
                  evidence = left(evidence || $4, 4000) where id=$1 and status='관찰'`,
         [t.id, 세션글제목(c.name, t.question), 세션글할일(c), `\n${오늘()} 세션 글 일감으로 올림`]);
@@ -457,6 +462,21 @@ const 세션글열기 = async (clients) => {
   }
 };
 const 세션글할일 = (c) => `Claude 세션에서 ${c.conf.loop.draftWhere} 에 씁니다`;
+
+/**
+ * 등재 일감(listing)의 검색어가 최근 7일 네이버(웹문서·통합)에서 이미 나오면 저절로 끝낸다(Step 40 D62).
+ * 하루 걸렸다 빠지면 who-wins(주 1회)가 다시 연다. sticky 라 「신호 사라짐」으로는 안 닫힌다
+ */
+const 등재닫기 = async () => {
+  const 나옴 = await q(`select t.id, to_char(max(s.day), 'FMMM/FMDD') d
+      from geo.agent_tasks t
+      join academy.serp_checks s on s.client_id = t.client_id and s.query = t.payload->>'query'
+       and s.engine in ('naver', 'naver_all') and s.hit and s.day > (now() at time zone 'Asia/Seoul')::date - 7
+     where t.kind = 'listing' and t.status not in ('완료', '닫힘')
+     group by t.id`);
+  for (const t of 나옴) await 상태(t.id, "완료", { evidence: `${오늘()} 네이버 검색에 이미 나옴(${t.d} 측정)` });
+  if (나옴.length) console.log(`  등재 일감 ${나옴.length}건 — 네이버에 이미 나와 완료`);
+};
 
 const 계획 = async (clients, { latest: latestRuns, ok: ghOk }) => {
   const bySlug = Object.fromEntries(clients.map((c) => [c.slug, c]));
@@ -557,6 +577,7 @@ const 계획 = async (clients, { latest: latestRuns, ok: ghOk }) => {
   }
   await 파일럿업무(읽음);
   await 세션글열기(clients);
+  await 등재닫기().catch((e) => console.log("  ⚠ 등재 일감 닫기 실패", 끝(e.message, 200)));
 
   // 신호가 사라진 일감은 닫는다. 발행 후 알리기처럼 신호 없이 만든 일감(sticky)은 손대지 않는다
   const open = await q(`select id, client_id, dedupe_key, title from geo.agent_tasks
@@ -640,7 +661,12 @@ const EXEC = {
 
   async "brand-defense"(t, c) {
     const idx = 실행(["scripts/indexnow.mjs", "--client", c.slug, "/"]);
-    const sent = idx.ok && /접수됨/.test(idx.out);
+    const 결과 = 색인결과(idx.out, idx.ok);
+    // 키가 없는 고객은 저장소가 배포 때 색인 알림을 보낸다. 건너뜀을 실패로 세면 3회 뒤 사람 대기로 갔다(#1385)
+    if (결과 === "키없음") {
+      return { status: "관찰", nextTry: 뒤(24), evidence: `${오늘()} 색인 알림은 이 고객 저장소가 배포 때 보냄 — 여기서는 안 보냄` };
+    }
+    const sent = 결과 === "접수";
     if (t.attempts >= 3) {
       return { status: "사람 대기", attempt: true, evidence: `${오늘()} 색인 알림 ${sent ? "접수" : "실패"} · 3회 밀어도 이름 검색에 안 나옴`,
         error: "구글 서치콘솔 색인 요청과 네이버 플레이스·서치어드바이저 등록 상태를 확인해야 합니다 (로그인 필요)" };
@@ -680,7 +706,14 @@ const EXEC = {
         const 세션 = c.conf?.loop?.draft === "session";
         // 세션 고객은 같은 질문이면 한 일감 — 개선 루프(daily-agent)와 같은 규칙: 질문 글자로 있는 일감 키, 없으면 세션글키(질문)
         const 질문 = it.question || it.query;
-        const 키 = 세션 ? ((await 같은질문일감(q, c.id, 질문))?.dedupe_key ?? 세션글키(질문)) : `qdraft-${h}`;
+        const 있음 = 세션 ? await 같은질문일감(q, c.id, 질문) : undefined;
+        // 열린 세션 글은 고객당 1개(Step 40 D60). 이미 열린 일감에 있는 질문이면 그대로, 다른 일감이 열려 있으면 그 일감에 질문만 묶는다
+        if (있음?.status === "세션 대기") { made.push(`${it.query}→열린 일감 #${있음.id}`); continue; }
+        if (세션) {
+          const 묶음 = await 세션일감묶기(q, { c, 질문, 출처: "이기는 지면 분석", 오늘: 오늘().slice(0, 10), DRY: false });
+          if (묶음) { made.push(`${it.query}→묶음 #${묶음.id}`); continue; }
+        }
+        const 키 = 세션 ? (있음?.dedupe_key ?? 세션글키(질문)) : `qdraft-${h}`;
         await 일감({ client_id: c.id, agent: "content", kind: "question-draft", key: 키, priority: 35,
           title: 세션 ? 세션글제목(c.name, 질문) : `겨냥 초안: 「${질문}」`,
           detail: `${it.reason ?? ""}\n이기는 곳: ${(it.targets ?? []).join(", ")}`,
@@ -841,6 +874,11 @@ const EXEC = {
     await 일감({ client_id: c.id, agent: "deliver", kind: "gsc-submit", key: `gsc-${slug}`, priority: 30, status: "로컬 대기",
       title: `구글 색인 요청: /blog/${slug}`, detail: "서치콘솔 로그인 창이 필요해 원장 PC 의 local-agent 가 합니다.",
       payload: { sticky: true, url: `https://${c.domain}/blog/${slug}` } });
+    // 이미 네이버에 있는 글(세션이 손으로 옮김)은 이관 일감을 안 만든다 — 만들면 닫을 곳이 없다(Step 40)
+    const [글] = await q(`select naver_log_no from academy.posts where client_id=$1 and slug=$2`, [c.id, slug]);
+    if (글?.naver_log_no) {
+      return { status: "완료", evidence: `${오늘()} IndexNow 접수 (Bing·Naver) · 구글 요청을 로컬 일감으로 넘김 · 네이버에는 이미 있음 logNo=${글.naver_log_no}` };
+    }
     await 일감({ client_id: c.id, agent: "deliver", kind: "naver-transfer", key: `naver-post-${slug}`, priority: 30, status: "로컬 대기",
       title: `네이버 이관: /blog/${slug}`, detail: "네이버 블로그 로그인 창이 필요해 원장 PC 의 local-agent 가 합니다.",
       payload: { sticky: true, slug } });

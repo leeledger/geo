@@ -22,6 +22,8 @@
  */
 import fs from "node:fs";
 import { Pool } from "pg";
+import { loadClients } from "../clients.mjs";
+import { 검색판정 } from "../serp-judge.mjs";
 
 for (const l of fs.readFileSync(new URL("../.env.local", import.meta.url), "utf8").split(/\r?\n/)) {
   const m = /^([A-Z_]+)=(.*)$/.exec(l);
@@ -46,6 +48,9 @@ const report = (key, level, what, why, todo) =>
 
 const clients = await q(`select id, slug, name, domain from geo.clients where status <> 'ended' order by id`)
   .catch(() => [{ id: 1, slug: "robotncoding", name: "로봇&코딩학원", domain: "robotncoding.com" }]);
+// siteLog·출처 는 고객 설정에만 있다(briefing.mjs 와 같은 로더). 못 읽으면 코드 3곳만
+const 고객설정 = new Map((await loadClients(q, { includeTest: true })).map((c) => [c.slug, c]));
+const 오늘KST = () => new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" });
 
 for (const c of clients) {
   const P = [c.id];
@@ -75,15 +80,16 @@ for (const c of clients) {
     }
   }
 
-  // ── 2. 우리 이름인데 안 나오는가 (브랜드 방어)
-  const brandMiss = await q(`
-    select query,
-           array_agg(distinct engine) filter (where not hit) engines
-      from academy.serp_checks
-     where client_id = $1 and kind = '브랜드'
-       and day = (select max(day) from academy.serp_checks where client_id = $1)
-     group by query
-    having not bool_or(hit)`, P).catch(() => []);
+  // ── 2·3. 검색 노출 판정 — (검색어, 엔진)마다 최근 7일 안 가장 늦은 1행으로 본다(Step 40).
+  // 「가장 최근 날」 하나만 보면 bing 만 잰 날에 브랜드·경쟁이 다 0 이 되어 일감이 열렸다 닫혔다 했다
+  const 판정 = await Promise.all([
+    q(`select query, engine, kind, day::text as day, hit from academy.serp_checks
+        where client_id = $1 and kind in ('브랜드', '경쟁')
+          and day > (now() at time zone 'Asia/Seoul')::date - 7`, P),
+    q(`select max(day) filter (where hit)::text 마지막적중일, min(day)::text 첫측정일
+         from academy.serp_checks where client_id = $1 and kind = '경쟁'`, P),
+  ]).then(([rows, [d]]) => 검색판정(rows, 오늘KST(), d ?? {})).catch(() => null);
+  const brandMiss = 판정?.brandMiss ?? [];
   if (brandMiss.length) {
     report(`brand-${c.slug}`, "막힘",
       `${c.name} — 우리 이름으로 검색해도 안 나옵니다`,
@@ -92,19 +98,11 @@ for (const c of clients) {
       "이름이 겹치는 곳이 자리를 가져갔는지 확인하고, 색인 요청을 다시 넣으세요.");
   }
 
-  // ── 3. 경쟁 검색어에서 며칠째 0인가
-  const [rv] = await q(`
-    select count(*) filter (where won)::int won, count(*)::int total
-      from (select query, bool_or(hit) won from academy.serp_checks
-             where client_id = $1 and kind = '경쟁'
-               and day = (select max(day) from academy.serp_checks where client_id = $1)
-             group by query) t`, P).catch(() => [{ won: 0, total: 0 }]);
-  const [days] = await q(`
-    select count(distinct day)::int n from academy.serp_checks
-     where client_id = $1 and kind = '경쟁'`, P).catch(() => [{ n: 0 }]);
-  if (rv.total > 0 && rv.won === 0 && days.n >= 3) {
+  // ── 3. 경쟁 검색어에서 며칠째 0인가. 옛 셈(잰 날 전체 수)은 「0인 날」이 아니었다 — 마지막으로 나온 날부터 센다
+  const rv = 판정?.rival;
+  if (rv && rv.total > 0 && rv.won === 0 && rv.zeroDays >= 3) {
     report(`rival-${c.slug}`, "샘",
-      `${c.name} — 경쟁 검색어 0/${rv.total} (${days.n}일째)`,
+      `${c.name} — 이름 없이 찾는 검색어 ${rv.total}개에서 한 번도 안 나옴 (${rv.zeroDays}일째)`,
       "이름 없이 지역·업종으로 찾는 사람에게 한 번도 안 걸립니다. 브랜드 검색 1위는 여기 안 셉니다.",
       "이기고 있는 지면이 무엇인지 먼저 보세요 — node scripts/who-wins.mjs. " +
       "목록 사이트가 이기는 자리면 글이 아니라 등재가 답입니다.");
@@ -156,8 +154,13 @@ for (const c of clients) {
    */
   const [ever] = await q(`
     select count(*)::int n from academy.crawl_hits where client_id = $1`, P).catch(() => [{ n: 0 }]);
+  // 기록 장치를 일부러 안 다는 곳(문서딱 — 정적 사이트·추적 금지)은 장치 일감이 헛일이다(D57, briefing.mjs 와 같은 조건).
+  // DB 고객의 기본 문구(「방문 기록 장치 없음」)는 일부러가 아니다 — 그대로 올린다
+  // 신호를 안 내면 옛 notracker 일감은 회사 루프에서 「신호 사라짐」으로 닫힌다
+  const 설정 = 고객설정.get(c.slug);
+  const 일부러없음 = !!설정?.siteLog && 설정.출처?.siteLog !== "기본";
   if (ever.n === 0) {
-    report(`notracker-${c.slug}`, "기회",
+    if (!일부러없음) report(`notracker-${c.slug}`, "기회",
       `${c.name} — 크롤러 방문을 아직 안 재고 있습니다`,
       "기록이 한 줄도 없습니다. 끊긴 게 아니라 측정 장치를 아직 안 달았습니다. " +
       "AI 가 실제로 읽어 가는지는 서버에 기록을 심어야만 압니다 — 검색 콘솔에도 안 나옵니다.",
