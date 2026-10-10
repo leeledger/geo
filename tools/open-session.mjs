@@ -21,6 +21,8 @@
  */
 import { chromium } from "playwright";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
+const HERE = path.dirname(fileURLToPath(import.meta.url));
 import { 구글나감, 네이버나감, 블로그나감, 빙나감, 네이버쿠키, 판정걸음 } from "./login-rules.mjs";
 
 const bi = process.argv.indexOf("--blog");
@@ -42,7 +44,7 @@ if (ki >= 0) {
     console.log("--kin 다음에 고객 프로필 폴더 이름을 주세요. 예: --kin .browser-profile-docttak (학원 프로필은 안 됩니다)");
     process.exit(1);
   }
-  const kctx = await chromium.launchPersistentContext(path.resolve(process.cwd(), kp), {
+  const kctx = await chromium.launchPersistentContext(path.resolve(HERE, kp), {
     headless: false, viewport: { width: 1280, height: 940 }, locale: "ko-KR", timezoneId: "Asia/Seoul",
     args: ["--disable-blink-features=AutomationControlled"],
   });
@@ -61,7 +63,7 @@ if (ki >= 0) {
   process.exit(0);
 }
 
-const PROFILE = path.resolve(process.cwd(), BLOG_PROFILE ?? ".browser-profile");
+const PROFILE = path.resolve(HERE, BLOG_PROFILE ?? ".browser-profile");
 
 const 학원 = [
   {
