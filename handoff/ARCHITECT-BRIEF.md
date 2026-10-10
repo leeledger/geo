@@ -1,136 +1,195 @@
-# Architect Brief — Step 42 · 자동 코드 수리: 혼자 시작·멈춤·재개, 합치기는 원장 버튼
+# Architect Brief — Step 43 · 학원 주 1편: 주제·감수·발행까지 자동, 원장은 사후 「내리기」
 
-원장 결정 2026-10-10(1안). 결정 D72~D79 · KG-42-x 는 BUILD-LOG.
+원장 결정 2026-10-10: 「새 글 포스팅도 자동화해서 주제 선택과 감수 모두 자동으로.」 결정 D81~D94 · KG-43-x 는 BUILD-LOG.
+Step 42 브리프는 BUILD-LOG Step 42 절에 있다.
 
 ## Goal
-수리 대기 코드 일감이 있으면 06:50 에 스위치와 무관하게 수리안(가지·가드·검토·승인 일감)이 만들어지고, 원장은 현황판에서 「합치기 / 버리기」 한 번만 누른다. 멈춤·재개는 규칙이 스스로 한다.
+월요일 초안이 사람 버튼을 기다리지 않는다. 기계 감수 4관문(출처 대조·AI 티·원장 관점·가림)을 모두 통과한 글만 스스로 발행되고, 하나라도 걸리면 발행 없이 다음 날 다시 쓰고, 3번 지면 버리고 다음 주제로 간다. 원장은 나간 글을 「내리기」 한 번으로 내린다.
 
-## 지금 (확인한 사실)
-- `gh variable list`: REPAIR_ENABLED **없음**(설정된 적 없음). 지금 승인 합치기(mode=merge)도 `승인합치기()` 692줄에서 막힌다
-- 정해진 실행은 `수리()` 630줄 `!ENABLED && !손으로` 에서 「스위치 꺼짐」 활동만 남기고 끝. 현황판·아침 보고는 이 활동 문구로 「꺼짐」을 판정(agents.ts:342, client-status.ts:45, pm-report.mjs:127~160)
-- 멈춤은 `geo.settings repair_paused='true'` 한 값. 이유는 활동 문구에만. 재개는 사람만
-- web 에 GitHub 토큰 없음. 현황판 버튼은 전부 server action(web/lib/task-actions.ts) → DB 만 씀
-- 승인 merge 는 `손으로`(dispatch + triggering_actor 가 [bot] 아님)일 때만. 버튼이 사람 계정 토큰으로 dispatch 해야 이 가드가 그대로 산다
-
-## Flow
+## 지금 흐름 (조사 — 2026-10-10 운영 DB 읽기 전용)
 ```
-06:50 schedule / 사람 run
- └ 지난수리확인()
-     ├ [새] 승인 대기 7일 지남 → 수리 '만료' · 승인 일감 '닫힘' · 조사 '수리 대기'
-     ├ 승인 일감 닫힘/완료 → 거절처리 (그대로)
-     └ 합침 확인·재발 되돌림 (그대로) ──되돌림 실패──► 멈춤(revert-failed, 사람만)
-                                       └7일 2번──────► 멈춤(revert-twice)
- └ 수리()
-     ├ [새] 자동재개() — 멈춤이면 재개판정(kind) → 풀면 기록
-     ├ 멈춤? → 끝
-     ├ 봇 dispatch? → 끝 (그대로)
-     ├ [지움] !ENABLED → 끝
-     ├ [새] 승인 대기 >= 3 → 끝
-     ├ 하루 1건·claude·조사 고르기·전력·금지경로 (그대로)
-     ├ 만들기() → 가드 → 검토
-     │    fail → '검토 불합격' + 일감 이유 → [새] 연속 3 fail? → 멈춤(review-fail-3)
-     │    pass → ENABLED && 무인허용 && !needs_owner ? 합치기(무인, 그대로)
-     │          : '승인 대기' + 승인 일감(사람말·왜·검토·숫자에 닿음)
-현황판 [합치기] → server action → GitHub dispatch repair.yml mode=merge task=N (PAT = leeledger)
-     → 승인합치기(): 손으로·ENABLED·멈춤·승인일감 사람대기·가지 머리·가드·재검토 (전부 그대로)
-       못 합치면 [새] 승인 일감 payload.merge_result = {at, why}
-현황판 [버리기] → 승인 일감 '닫힘' → 다음 실행 거절처리 (기존 길)
+월 06:07 write.yml ─┐
+매시 company.mjs ───┴─ weekly-draft → write-draft.mjs
+                         ├ 재료 ≥3 → 관점 글        ← academy.materials 0행 · inquiries 0행. 한 번도 안 탐
+                         ├ 사실 → write-news.mjs    ← 실제로 나간 길(ai-textbook·68시간·국민대, 모델 opus)
+                         └ 없음 → 78 건너뜀
+                       초안(published=false)
+매시 company review     → slop-check + 다듬기(숫자·소제목·링크 고정) → 「사람 대기」   ◀ 여기서 사람을 기다린다
+매시 company illustrate → post_images(DB) 도해 → /blog/img/<slug>/<name>.svg (배포 불필요)
+원장 /admin/drafts 「발행」 publishDraft() → announce 일감 → IndexNow · gsc(로컬) · naver-transfer(로컬, pc-runner)
+```
+- 버려진 이유: 9/23 관점 초안 3편 「AI slop · 일반론 · 억지 상황」(재료 없이 씀, Step 15). 9/28 이관 글 「코딩학원의 선택」 재발행 → 옛 지점(로보티즈키즈랩 반포교육원·헬리오시티 2호점) 설명이라 내림(review_notes.비공개이유). draft_feedback 은 지금 0행.
+- 사람 문은 publishDraft 하나다. 앞(초안·다듬기·도해)과 뒤(색인·네이버)는 이미 자동. **이번 Step 은 그 문을 기계 감수로 바꾸는 것이 전부.** 새 발행 파이프라인을 짓지 않는다.
+- 「커밋」 단계는 자동 경로에 없다: 글은 DB, 도해는 post_images(DB). 바뀌는 파일이 없다(D90).
+
+## 새 흐름
+```
+weekly-draft(월~, 이번 주 발행 0편)
+  └ auto-post --pick ──후보 0──▶ 활동 「이번 주 쓸 주제 없음」 · 다음 월요일
+        │ 고름(post_reviews kind=고름, why=고른 이유)
+        ▼
+  재료 관문: 이 주제가 학원 사실을 요구하나?
+        ├ 요구 + m#/i# 라벨 0 ──▶ kind=재료부족 · 다음 후보(한 실행 3후보까지)
+        └ 아니면 사실 글 / 재료 있으면 재료 섞은 글
+  write-news.mjs --topic-json (재료 모드면 write-draft) → 초안 + notes.주장[] + notes.주제
+        ▼
+  company review → auto-post --review <slug>   (회차 n, 하루 1회)
+     (a) 출처 대조 ─ 지지 안 됨 → 문장 지움 → 길이·첫 문단 확인 ─ 못 지움 → 실패
+     (b) AI 티 ─── 걸림 → 다듬기 1 + 다시 쓰기 1 (다시 쓰면 a부터) ─ 그래도 → 실패
+     (c) 원장 관점 Claude ─ 걸림 → 실패
+     (d) 가림 ──── 걸림 → 실패
+        ├ 4개 통과 → notes.감수={통과, 해시} → illustrate(기존) → 발행가능? → 발행(core) → announce(기존)
+        ├ 실패, n<3 → 대기(내일 06:30 KST) · 실패 이유를 고침 목록으로 다시 씀
+        ├ 실패, n=3 → kind=버림 · 초안 삭제 · draft_feedback 1행 · 다음 날 다음 주제(주당 2주제까지)
+        └ 한도·출처 전부 네트워크 오류 → 미룸, 회차 안 셈
+  발행 뒤 /admin/drafts 「자동 글」 카드 [내리기] → 내리기(core) → 사이트 5분 안(revalidate 300) 사라짐 · 네이버는 사람 일감 · IndexNow
 ```
 
 ## Build Order
 
-### 42a — 순수 판정 (먼저, 시험과 함께)
-새 파일 `web/lib/repair-core.mjs` (의존성 0 — repair.yml 은 academy 에 pg 만 깐다. company.mjs 가 `../../web/lib/*.mjs` 를 이미 import 함)
-- `멈춤무게 = { "revert-failed": 3, legacy: 3, "revert-twice": 2, "review-fail-3": 1 }`
-- `멈춤합치기(지금, 새것)` → 무거운 쪽을 남긴다. revert-failed 위에 다른 멈춤이 와도 revert-failed 유지
-- `재개시각(pause)` → revert-twice: `last_revert_at + 7d` · review-fail-3: `at + 7d` · revert-failed / legacy(이유 JSON 없음): `null`
-- `재개판정(pause, { revertsSince, recurring }, now)` → `{ ok, why }`. revert-twice: 재개시각 지남 && revertsSince===0 && recurring===0. review-fail-3: 재개시각 지남. 나머지 늘 false(why="되돌리기 실패 — 사람이 main 확인")
-- `연속불합격(rows)` → rows = 최근 3행(42b-7 SQL). 3행이고 전부 status='검토 불합격'이면 true
-- `만료인가(row, now)` → status='승인 대기' && created_at 이 168시간 넘음
-- `숫자경로` 배열 + `숫자닿음(files)` → bool. 시작 목록(.mjs): `ai-measure check-index bing-check import-ai-measurements openai-gap who-wins query-audit rescan growth-import scout loop-review api-cost`. **Flag: Bob 이 academy/scripts/*.mjs 전부를 `insert into|update ` + 측정·판정 표 이름(ai_*, *measure*, index*, crawl*, serp*, growth_*, probe*)으로 grep 해 목록을 확정하고 REVIEW-REQUEST 에 근거(파일 → 표)를 적는다.** 금지 경로(audit·verdict·report·case-report·pilot-report)는 어차피 못 고치니 넣어도 무해
-- `수리상태({ paused, pause, pending, queue, switchOn }, now)` → `{ kind: "none"|"making"|"waiting"|"paused", text }`. 우선순위 paused > waiting > making > none
-  - paused: `스스로 멈춤 — {이유 사람말} · {재개시각 ? "M/D 이후 재발 없으면 수리안 만들기 다시 시작" : "되돌리기가 실패해 사람이 main 을 확인해야 다시 시작"}`
-  - waiting: `승인 기다림 {n}건`(queue>0 이면 ` · 수리안 만들 것 {m}건`). switchOn===false 면 ` · 비상 스위치가 꺼져 있어 합치기가 막혀 있음`
-  - making: `수리안 만드는 중 — {m}건 대기, 매일 06:50 1건`
-  - none: `고칠 것 없음`
-  - 날짜는 `timeZone: "Asia/Seoul"` (CLAUDE.md 함정)
-- 문구에 「켜기」「켤지」「원장님 결정」 금지
+### 43a 데이터·핵심 판정 (행동 변화 0 — 먼저 합칠 수 있게)
+1. `academy/scripts/setup-post-reviews.mjs` (setup-*.mjs 꼴, 전부 if not exists):
+   ```sql
+   create table if not exists academy.post_reviews (
+     id bigserial primary key, client_id int not null default 1,
+     slug text, topic_key text not null,
+     kind text not null check (kind in ('고름','재료부족','감수','발행','버림','내림','못냄')),
+     attempt int, passed boolean, stages jsonb not null default '{}'::jsonb,
+     why text, at timestamptz not null default now());
+   create index if not exists post_reviews_topic on academy.post_reviews (client_id, topic_key, at desc);
+   create index if not exists post_reviews_slug on academy.post_reviews (slug, at desc);
+   -- geo.settings 에 post_auto_publish='on' (칸 이름은 repair_paused 쓰는 곳에서 확인)
+   ```
+   운영 적용은 Bob. 적용 뒤 select 결과를 REVIEW-REQUEST 에.
+2. 새 `web/lib/post-auto-core.mjs` (+`.d.mts`, 의존성 0, DB 는 q 주입 — repair-core 꼴). auto-post·company·web 화면·pm-report 가 이 한 곳만 쓴다:
+   - `주제키(후보)` → `bank:<id>` | `q:<sha1 10>`(질문 정규화: 공백·물음표 제거) | `serp:<sha1 10>`
+   - `후보모으기(q, client)` 네 신호. 후보 = `{키, 제목, 신호[], 이유, 점수, 학원사실필요}`:
+     - A 안 불린 질문: ai_measurements 14일, `stage <> 'brand'`(이름 질문은 성과 아님), prompt_text 별 `bool_or(mentioned or cited) = false`. 점수 30 + 잰 엔진 수
+     - B 경쟁사가 이기는 질문: geo.agent_tasks client 1 kind='question-draft' status in ('대기','관찰'). 25점. 이유에 payload.sources
+     - C 지는 검색어: serp_checks kind='경쟁' 7일 `bool_or(hit)=false` (write-draft.mjs 181행 SQL 그대로). 20점
+     - D 주제 은행: topics.json `!slug`. 10점, season 이 이번 달에 맞으면 +5
+     - 같은 질문(같은 키)이 여러 신호에 걸리면 한 후보로 합치고 점수 더함. 이유는 사람 말 한 줄: 「AI 답 4곳 중 0곳이 우리를 안 부름(10/8 잼) · 경쟁 학원 2곳이 이김」
+   - `거르기(후보들, 기록, 최근글)` → `{남은것, 뺀것:[{제목, 왜}]}`:
+     - 같은 topic_key 에 '발행' 있으면 영구 제외 · '버림' 8주 · '재료부족' 4주 제외
+     - 최근 28일 발행 글(내린 글 포함) 제목+tags 와 핵심 낱말(2자 이상, write-draft STOP 불용어 제외) 2개 이상 겹치면 제외 — 왜 「10/4 국민대 글과 겹침」
+     - 모든 발행 글 제목과 정규화 문자열이 같으면 제외
+     - topics.json category·제목에 「과정」「모집」「특강」「반」 이면 `학원사실필요=true` (메모리 course-post-concrete-not-essay)
+   - `주장뽑기(body)` → 문장별 `{문장, 숫자[], 고유명사[], 제도어[]}`. 숫자: 아라비아 숫자, 쉼표 제거·전각→반각, 목록 번호·「n단계」·`(n)` 은 fact-check.mjs 규칙 그대로 뺌. 고유명사: 「대학교|대학|대|부|청|원|위원회|재단|전형|법|고시|방안|과정|대회|교과서」로 끝나는 어절 + 라틴 대문자 시작 낱말. 제도어: 의무화|도입|신설|시행|폐지|개정|확대|축소|필수. 셋 다 비면 대상 아님
+   - `창찾기(원문, 주장)` → 주장의 숫자 전부가 원문에 있고, 각 숫자 ±300자 안에 고유명사·제도어 중 하나 이상 있는 창(최대 3개, 600자). 비교는 공백 무시. 숫자 없는 주장은 고유명사+제도어 둘 다 한 창 안에
+   - `문장지우기(body, 문장들)` → 지운 뒤 문단 < 80자면 문단째, 빈 `##` 절이면 소제목째. `{body, 지운것[], 첫문단지움}`
+   - `본문해시(body)` → 이미지 마크다운 줄 제거·공백 정규화 뒤 sha1(node:crypto 는 의존성 아님)
+   - `다음행동({회차, 결과, 오늘감수있음})` → 통과 | 내일다시 | 버림 | 미룸
+   - `글기록말(rows)` → 화면·보고용 사람 말 줄(현황판 규칙: 로그 조각·영문 키·JSON 금지)
+   - `발행가능` · `발행` · `내리기` — 43c
+3. `academy/scripts/test-post-auto.mjs` — 아래 Test map 전부. 순수 함수는 고정 입력, DB 함수는 가짜 q(호출 SQL·인자 기록).
 
-### 42b — repair.mjs (순서대로)
-1. `import { … } from "../../web/lib/repair-core.mjs"`
-2. `ensure()` 뒤에 `geo.settings repair_switch` = ENABLED ? '1' : '0' 저장 (현황판이 GitHub 변수를 못 읽음)
-3. `멈추기(이유)` → `멈추기(kind, 이유, extra={})`: 지금 `repair_pause` JSON 을 읽어 `멈춤합치기` → `repair_pause = {kind, reason, at, last_revert_at?, repairs?}` 저장, `repair_paused='true'`(옛 키 그대로 — 사람이 'false' 로 푸는 길 유지). 활동 `수리공 멈춤 — {이유} · {재개시각 ? "M/D 이후 스스로 다시 시작" : "사람이 풀 때까지"}`
-   - 372줄 7일 2번 → `멈추기("revert-twice", …, { last_revert_at: 방금 되돌린 시각 })`
-   - 363줄 되돌리기 실패 → `멈추기("revert-failed", …)`
-4. 읽을 때: `repair_paused` 가 'true' 가 아니면 멈춤 아님(`repair_pause` 무시). 'true' 인데 `repair_pause` 없음 → kind legacy
-5. `자동재개()` 새 함수 — `수리()` 맨 앞(멈춤 확인 전). paused 이고 `재개판정` ok 면: `repair_paused='false'`, `repair_pause` 지움, `repair_resumed_at = now()`, 활동 `수리공 다시 시작 — {why}. 수리안 만들기만 — 합치기는 원장 승인`. 입력 SQL:
-   - revertsSince: `select count(*) from geo.repairs where status in ('되돌림','되돌림 실패') and updated_at > $last_revert_at`
-   - recurring: status='합침' 수리의 조사 payload 가 `absent_at > merged_at and seen_at > absent_at` 인 수
-   - 재개 뒤 무인 합치기는 기존 `무인허용()` 의 `r === 0`(되돌림 이력 0) 때문에 안 열린다 — 손대지 않는다
-6. `수리()`: 630~635줄 `!ENABLED && !손으로` 블록 **삭제**. 다른 가드 전부 그대로. 하루 상한 확인 뒤 `select count(*) from geo.repairs where status='승인 대기'` >= 3 이면 로그만 남기고 끝
-7. 검토 불합격 두 곳(673줄 수리(), 734줄 승인합치기()) 뒤 `연속확인()`: `select id, status, note from geo.repairs where review is not null and status not in ('dry','dry 폐기','revert-test') and created_at > coalesce($resumed_at, 'epoch') order by id desc limit 3` → `연속불합격` 이면 `멈추기("review-fail-3", "검토 연속 3번 불합격 (수리 a·b·c)", { repairs })`. 일감마다 이유는 기존 evidence 줄이 적는다 — 지우지 말 것
-8. `지난수리확인()` 맨 앞: 승인 대기 중 `만료인가` → 수리 '만료' + note, 승인 일감 `status='닫힘'` evidence 「7일 안 눌림 — 닫음」, 조사 `'수리 대기'` evidence 「수리안 {id} 7일 만료 — 다시 대기」, 활동. **기존 거절 루프보다 반드시 먼저**(안 그러면 닫힌 승인 일감을 거절로 읽는다). 644줄 `전력` 목록에 '만료' 넣지 말 것
-9. `수리지침` 278줄 JSON 에 `"사람말":"원장님이 읽을 한두 문장 — 무엇이 틀렸고 고치면 무엇이 달라지나. 파일·함수 이름 쓰지 않는다"`. `만들기` 반환에 `사람말`, `checks` 에 `사람말·touches_numbers·숫자파일`
-10. `승인일감()` payload 에 `{ repair_id, task_id, 사람말, 왜: diagnosis.결론 ?? 조사 title, verdict, notes(한줄 200), touches_numbers, 숫자파일, 명령 }`. 제목 `수리안 {repair_id} — {사람말 || 요약}`. detail 의 거절 안내를 「현황판 버리기 버튼」으로
-11. `승인합치기()` 가 합치지 않고 나가는 모든 길(스위치 꺼짐·멈춤·수리안 없음·머리 바뀜·main 이 같은 파일 바꿈·가드·재검토 fail·한도·시간 모자람·푸시 포기)에서 승인 일감 `payload.merge_result = {at, why}` 기록(조용한 실패 금지). 692줄 활동 문구 → `비상 스위치 꺼짐 — 합치지 않았습니다`
-12. 머리 주석(1~20줄)·repair.yml 머리 주석: 「REPAIR_ENABLED=1 일 때만 main 에 합친다(비상 스위치). 수리안 만들기는 스위치와 무관」. yml 실행 로직은 그대로
-- Flag: 견습 5건·`무인허용()`·`needs_owner`·가드·금지 경로·`손으로`·승인 일감 사람 대기 확인·재검토 — **한 줄도 약하게 하지 않는다**. Richard 가 diff 로 대조한다
+### 43b 주제·재료·쓰기
+4. 새 `academy/scripts/auto-post.mjs` (company 가 부름):
+   - `--pick [--dry]`: 후보모으기 → 거르기 → 점수순. 1위부터 재료 관문(5). 고르면 post_reviews '고름'(why) 후 쓰기. `--dry` 는 후보표·뺀 이유만 찍고 DB 안 씀
+   - `--review <slug> [--dry]`: 43c. `--dry` 는 발행 글도 받고 DB·본문 안 씀
+   - 마지막 줄 `AUTOPOST=<JSON>` (illustrate 의 `ILLUSTRATE=` 꼴) — company 가 읽음
+5. 재료 관문(D84) — 학원만 아는 사실의 근거는 DB 셋뿐. 라벨을 붙여 쓰기에 넘김:
+   - `m#` academy.materials 안 쓴 것 · `i#` academy.inquiries said 비지 않은 것 · `p#` 원장 글: client 1, published, (source_url is not null 이관 글 또는 활동 「원장 승인 발행」 글), **비공개이유 있는 글 제외**. 수업·대회·합격·커리큘럼 낱말 든 문단만, 발행 연도 붙여 최대 8개
+   - `학원사실필요` 후보인데 m·i 라벨 0개 → '재료부족', 다음 후보(한 실행 3후보까지). p# 만으로는 과정 글 안 씀(옛 글은 옛 사실)
+   - 아니면 사실 글: write-news.mjs 에 새 인자 `--topic-json <tmp 파일>`(제목·각도·이유·재료표). 인자 없으면 지금처럼 스스로 찾음 — 기존 경로 유지
+   - 쓰기 프롬프트 추가: 「학원 경험 문장은 라벨 있는 재료에만. p# 를 쓰면 그 연도를 문장에 적는다」「주장 목록을 내놓는다」
+   - 출력 JSON 에 `주장: [{문장, 종류:"바깥"|"학원"|"판단", 출처:[url], 재료:["p2"]}]` → review_notes.주장. review_notes.주제 = `{키, 제목, 이유, 신호}`
+6. `write-draft.mjs` 주 1편 확인을 「이번 주(KST) **발행된** 글 또는 감수 중(notes.주제 있음·미발행·비공개이유 없음) 초안」으로(지금은 created_at). 머리 주석 20~23행·write.yml 14~17행 「발행은 사람」 문구를 새 흐름으로
+7. `company.mjs`:
+   - `weekly-draft`: write-draft 대신 `auto-post.mjs --pick`. 이번 주 발행 1편이면 다음 월요일. 이번 주 '버림' 2건이면 '못냄' 한 줄 + 다음 월요일(주당 2주제, D88)
+   - `question-draft` client 1: 직접 안 씀 → 관찰, nextTry 뒤(24*7), evidence 「주제 후보로 넘김」. 후보 B 가 읽음(쓰는 길이 둘이면 주 1편이 깨진다)
+   - 다른 고객 분기(773~779행)는 손대지 않음
 
-### 42c — 현황판·아침 보고
-- `web/lib/agents.ts` 514줄 근처: settings `repair_paused, repair_pause, repair_switch` + `count(*) geo.repairs where status='승인 대기'` + `count(*) geo.agent_tasks where kind='investigate' and status='수리 대기' and payload->'diagnosis'->>'분류'='code'` → `JudgeInput.repair`. `judge` isRepair 블록(337~343)을 `수리상태()` 로: paused → state "off" + text, 그 밖엔 기존 판정 흐름 유지하고 reason 이 없을 때 text. 「스위치 꺼짐」 접두어 판정 삭제
-- `web/lib/client-status.ts:44~61` + `client-status-core.mjs:41,75`: `repairOff` → `repairText`. 75줄은 `자동 코드 수리 — {n}건 · {며칠째} ({repairText})`
-- `academy/scripts/pm-report.mjs:127~160`: 「꺼진날」 쿼리·문장 삭제 → 같은 입력으로 `수리상태` 계산, kind 가 paused/waiting 일 때만 확인필요 한 줄(paused 면 이유·재개 날짜, waiting 이면 「현황판에서 합치기/버리기」)
-- `web/lib/todo-text.ts:144` repair-approval: title `수리안 {repair_id} — {사람말}`(plain·cut 80), why `{왜 한 줄} · 검토 {통과|불합격} — {notes}`, `numbers: touches_numbers`. 새 action `{ type: "repair", taskId, href(compare), switchOn, requestedAt, result }`
-- `web/app/admin/ops/Todo.tsx`: type "repair" → 「숫자에 닿음」 표시 · `[합치기]` `[버리기]` 두 form · `[바뀐 곳 보기]` 링크. switchOn===false 면 합치기 disabled + 「비상 스위치가 꺼져 있어 합칠 수 없음」. requestedAt 있고 result 없으면 「합치는 중 (요청 HH:MM)」, result 있으면 「합치지 못함 — {why}」
-- `web/lib/task-actions.ts`:
-  - `approveRepair(form)`: isAdmin → `kind='repair-approval' and status='사람 대기'` 확인 → payload.merge_requested_at 30분 안이면 무시 → `POST https://api.github.com/repos/leeledger/geo/actions/workflows/repair.yml/dispatches` body `{ref:"main", inputs:{mode:"merge", task:String(payload.task_id)}}`, `Authorization: Bearer ${process.env.GH_DISPATCH_TOKEN}`. 204 → payload `merge_requested_at=now, merge_result=null`, 활동 `원장 합치기 요청`. 그 외·토큰 없음 → payload `merge_result={at, why:"요청 실패 {status}" | "토큰 없음"}`, 활동 ok=false. 상태는 '사람 대기' 그대로(승인합치기가 사람 대기만 합친다)
-  - `discardRepair(form)`: 같은 확인 → `status='닫힘'`, evidence 「원장이 버림」, 활동. 다음 실행 `거절처리`가 기존대로
-- 「수리 켜기」 할 일·문구 전부 제거
-- `web/.env.example` 에 `GH_DISPATCH_TOKEN=` 줄과 범위 주석
+### 43c 자동 감수·발행·내리기
+8. `auto-post.mjs --review <slug>` — 하루 1회차(같은 KST 날 '감수' 행 있으면 미룸). a→b→c→d 고정, 앞이 지면 뒤는 안 돌림(호출 절약). 결과는 stages jsonb 한 행:
+   - **(a) 출처 대조** — `fact-check.mjs` 확장(기존 CLI 출력 유지 + `export async function 출처대조(post, notes, {fetch, 클로드})`):
+     - 대상 = 주장뽑기(body) 전부 ∪ notes.주장 중 바깥·학원. 주장 목록에 없는 문장은 그 글의 모든 출처가 후보
+     - 바깥: notes.주장 출처 ∪ notes.출처 URL 을 실제로 가져옴. fetch 15초·2MB·리다이렉트 따라감(그라운딩 리다이렉트 포함)·UA 지정·script/style/태그 제거. PDF·비 HTML = 「못 읽음」(D86). 최종 주소 기록
+     - 학원: 라벨 재료 원문
+     - 창 없음 → 「없음」. 창 있으면 Claude 한 번에 묶어 판정 `클로드코드(prompt, {purpose:"출처대조", capRequired:true})` → 문장별 `{id, 판정:"맞음"|"다름"|"없음", 근거:"원문 그대로 한 줄"}`. 근거가 그 창의 부분문자열이 아니면 「없음」. JSON 깨짐 → 전부 「없음」(fail-closed)
+     - 「맞음」 아닌 문장 → 문장지우기. 지운 뒤 본문 < 1,500자(사실)·1,800자(재료) 또는 첫문단지움 → (a) 실패. 아니면 통과 + 지운것 기록 + 본문 갱신(updated_at 낙관 잠금 — company review 822행 꼴)
+     - 바깥 출처 전부 네트워크 오류(DNS·타임아웃) → 미룸(회차 안 셈). 일부만 못 읽음 → 그 문장만 「없음」
+   - **(b) AI 티** — slop-rules `검사` 치명 0 + MARKS 어휘 0 + `공통짜임새` 0 + 제목 질문형(`?`·`요`·`까`로 끝) + 문단 80~400 + 소제목 ≤4. 걸리면 기존 review 다듬기(숫자·소제목·링크 고정) 1회 → 그래도 걸리면 쓰기 모델에 고침 목록 주고 다시 쓰기 1회(다시 쓴 글은 a부터) — 합 2회. 그래도 걸리면 실패
+     - CLAUDE.md 「AI 가 쓴 티」 각 줄 → 잡는 규칙 이름 표를 test-post-auto 에 넣는다. 빈 칸이면 slop-rules 에 규칙 추가. 지금 빈 것으로 보이는 둘: 「결론에서 앞 말 반복」(마지막 문단 vs 앞 문단 `겹치나`), 「목록 남발」(목록 덩어리 2개 이상 또는 항목 8개 초과)
+   - **(c) 원장 관점** — 쓰기와 다른 호출, 쓰기 프롬프트를 안 봄. `클로드코드(..., {purpose:"감수", capRequired:true})`. 프롬프트: CLAUDE.md 절대 규칙 6줄 + AI 티 목록 + 9/23 버린 이유 + 9/28 내린 이유 + 「너는 이 학원 원장이다. 학부모가 읽고 광고로 느낄 곳을 찾아라」. 출력 `{걸림:[{문장, 종류:"광고"|"학원홍보마무리"|"불안팔기"|"지어낸경험"|"일반론"|"번역체"}], 말리기:"하지 말라고 한 문장 원문"}`. 통과 = 걸림 0 **그리고** 말리기 문장이 본문 부분문자열. 본문에 없는 걸림 문장은 버리되 기록. JSON 깨짐 → 실패
+   - **(d) 가림** — masks.mjs `가림검사(제목+요약+본문, await DB고객말(q, 1))` + 옛 이름 `["로보티즈키즈랩","반포교육원","2호점"]`(9/28). 걸리면 실패(자동으로 안 지움 — 글 전체 판단)
+   - 4개 통과 → notes.감수 = `{통과:true, 해시:본문해시(body), 날:KST}` + '감수' 행 passed=true
+9. 발행(core, D89):
+   - `발행가능(q, slug, {자동})`: 지금 publishDraft SQL 조건 그대로(그림 있음·비공개이유 없음·post_images 다 있음). 자동이면 **+** notes.감수.통과 **+** `본문해시(body) = notes.감수.해시` **+** geo.settings post_auto_publish='on'(못 읽으면 false). 아니면 `{ok:false, 왜}`
+   - `발행(q, slug, {누가})`: publishDraft 의 update + announce 일감 + review 일감 완료 + 활동(「자동 감수 통과 발행」/「원장 승인 발행」)을 옮김. `web/lib/draft-actions.ts publishDraft` 는 이걸 부름(누가='원장', 자동 조건 안 봄 — 원장 판단이 감수)
+   - 부르는 곳: company `illustrate` 「붙임」 직후 + company `review` 가 그림 이미 있는 글을 통과시킨 직후. 둘 다 발행가능 먼저. post_reviews '발행'
+10. company `review(t)`: post_auto_publish='on' 이고 notes.주제 있음(자동 글) → `auto-post.mjs --review` → 통과→완료 · 내일다시→대기 nextTry 내일 06:30 KST · 버림→닫힘 · 미룸→대기 뒤(6). 아니면(스위치 off·세션 초안) 지금 코드 그대로 「사람 대기」. 버림: draft_feedback(reasons ['자동 감수 3회 실패'], note=마지막 실패 사람 말) → 초안 delete → 재료 used_in 에서 slug 제거 → weekly-draft 일감 next_try=내일
+11. 내리기(D91): `내리기(q, slug, {이유})` = published=false + review_notes.비공개이유 「원장 내림 <날>: <이유|이유 안 적음>」 + post_reviews '내림' + 활동 + deliver 일감 kind `announce-removal`(실행기는 indexnow.mjs 그대로, company EXEC 에 추가) + naver_log_no 있으면 사람 대기 일감 「네이버 글도 내려 주세요」(블로그 주소: naver-blog-post.mjs 가 쓰는 블로그 아이디 env — Bob 확인)
+    - `web/lib/draft-actions.ts takedownPost(form)` (guard 동일) → core 내리기
+12. 화면·보고:
+    - `/admin/drafts` 위 「자동 글」 절: 감수 중 초안 + 최근 30일 자동 발행 글. 카드 = 제목 · 고른 이유 · 쓴 재료(원문 앞 40자) · 대조한 출처(주소 + 맞은 문장 수 / 못 읽은 곳 / 지운 문장 원문) · 감수 4줄(통과/걸림 + 사람 말) · 회차 n/3 · [내리기](발행 글만, 이유 한 줄 선택)
+    - `/admin/ops` 콘텐츠 줄 + pm-report 아침 보고: `글기록말` 한 줄 — 「이번 주 글: 감수 2/3회 — 출처에 없는 숫자 1곳(국민대 정원)」「10/13 자동 발행: …」「이번 주 못 냄 — 주제 2개 다 3번 걸림」
+13. 문서:
+    - CLAUDE.md 「사람만 할 수 있는 일」의 `- 발행 전 사실 확인` 을 이 줄로 교체:
+      `- 자동 발행된 글 훑어보기 — 이상하면 /admin/drafts 「내리기」 한 번. 발행 전 확인은 자동 감수(출처 원문 대조·AI 티·원장 관점·고객사 가림)가 하고, 하나라도 걸리면 안 나간다`
+    - `.claude/skills/post/SKILL.md` 4절 앞: 세션이 손으로 쓴 글도 `node scripts/auto-post.mjs --review <slug>` 통과 뒤 발행. 7절(topics.json slug·커밋)은 세션 경로라 유지
+    - write-draft.mjs·write.yml·fact-check.mjs 머리 주석의 「판단은 사람」「발행은 사람」 갱신
 
-## Escalate (원장 — Arch 가 대신 정하지 않음)
-- **E1 REPAIR_ENABLED=1.** 변수가 없어 승인 버튼을 눌러도 합쳐지지 않는다(뜻을 안 바꾸면 이렇다). 켜면: 버튼 합치기 가능 + 기존 규칙대로 승인 합친 5건이 7일 버티고 되돌림 0 이면 무인 합치기. 0 = 비상 정지. Arch 권고: 배포 때 `gh variable set REPAIR_ENABLED --body 1`. 원장 OK 한 줄 필요
-- **E2 GH_DISPATCH_TOKEN.** 세분화 PAT(leeledger, 저장소 geo 하나, Actions read/write 만 — 코드 푸시 불가). 만드는 건 사람(1분). 대안 PC `gh auth token`(repo·workflow 전체) — 폭이 넓어 권고 안 함. 넣을 땐 `vercel env add GH_DISPATCH_TOKEN production < file` 후 `env pull` 길이 확인(BOM 함정)
-- 토큰 없어도 배포는 된다: 카드가 「합치지 못함 — 토큰 없음」과 기존 `gh workflow run …` 명령 복사를 보여 준다
+- Flag: 감수 기준을 느슨하게 만들지 않는다. 애매하면(파싱 실패·근거 부분문자열 불일치·스위치 못 읽음) **안 나간다**.
+- Flag: 해시는 4관문 통과 시점 본문으로만 찍는다. illustrate 는 이미지 줄만 더하므로 해시 불변. 그 밖이 바뀌면 발행가능이 막는다 — 맞는 동작.
+- Flag: 회차는 하루 1번. company 가 매시 돌아도 같은 날 두 번째 감수는 미룸.
+- Flag: 공급자 한도(`한도:true`)는 실패 아님. 회차 안 셈.
+- Flag: 다른 고객(아이로그·문서딱) 경로는 바꾸지 않는다(D93).
+- Flag: 원장 버튼 publishDraft 동작은 core 로 옮겨도 그대로(회귀 테스트).
 
-## Failure modes
-| 경로 | 실제로 일어날 일 | 처리 | 원장이 보나 |
+## 실패 모드
+| 경로 | 운영에서 일어날 일 | 처리 | 사람에게 |
 |---|---|---|---|
-| 스위치 없이 수리안 생성 | 한도 소진·claude 실패 | 기존 한도 skip · 실패 2번 사람 대기 | 보임(일감) |
-| 승인 대기 쌓임 | 안 누름 → 매일 Claude 2회 | >=3 이면 생성 멈춤 · 7일 만료 | 「승인 기다림 n건」 |
-| 합치기 버튼 | 토큰 없음/만료 401 | merge_result, 카드 「합치지 못함」 | 보임 |
-| 합치기 버튼 | dispatch 됐는데 스위치 0·멈춤·main 바뀜 | 각 길에서 merge_result | 보임 |
-| 버튼 두 번 | run 2개 | 30분 무시 + concurrency + 두 번째는 승인 대기 없음 | 무해 |
-| 만료 vs 거절 순서 | 닫힌 승인 일감을 거절로 읽어 영영 자동 수리 안 함 | 만료 먼저(42b-8) | — |
-| 재개 직후 재멈춤 | 옛 불합격 3행이 다시 세짐 | resumed_at 이후 행만 | — |
-| revert-failed 위 revert-twice | 덜 무거운 멈춤이 덮어 자동 재개 → 깨진 main 위 수리 | 멈춤합치기 무거운 쪽 유지 + 시험 | 「사람이 main 확인」 |
-| 옛 paused=true(이유 없음) | 자동 재개해 버림 | legacy → 사람만 | 보임 |
-| 숫자 목록 누락 | 측정 스크립트 수리에 표시 없음 | Bob grep 근거 + Richard 대조 | KG |
+| 출처 가져오기 | 언론사가 Actions IP 막음·JS 렌더 | 그 문장 「없음」→ 지움. 전부 막히면 미룸 | 카드 「못 읽은 출처 n곳」 |
+| 출처 PDF(국민대 모집요강) | 본문 못 읽음 | 근거 아님. 다른 기사에 같은 숫자 있으면 통과 | 카드 |
+| 판정 Claude | 근거를 지어냄 | 근거가 창 부분문자열 아니면 「없음」 | 테스트 |
+| 원장 관점 Claude | 「문제 없음」 남발 | 말리기 문장 원문 인용 필수 — 못 대면 실패 | 카드 |
+| 문장 지우기 | 앞뒤가 안 이어짐 | (b)(c)가 지운 본문으로 돈다 | 카드에 지운 문장 원문 |
+| 도해 | 감수 뒤 본문이 바뀜 | 해시 불일치 → 발행 막힘 → 다음 review | 카드 「감수 뒤 본문이 바뀜」 |
+| 주제 | 같은 주제 두 번 | topic_key + 28일 낱말 + 제목 정규화 | --pick --dry 표 |
+| 재료 | 옛 글 사실을 지금 일로(9/28 재발) | p# 연도 붙임·과정 글 금지·옛 이름 가림 | (d) 실패 |
+| 한도 | 측정이 하루 몫을 다 씀 | 미룸, 회차 안 셈 | 아침 보고 「한도로 미룸」 |
+| 스위치 | geo.settings 못 읽음 | 발행 안 함, 초안 보존 | ops 줄 |
+| 내리기 | 네이버엔 남음 | 사람 일감(로그인 필요) | 오늘 할 일 |
+| 주 1편 | 버림 2번 → 그 주 0편 | '못냄' 한 줄, 다음 월요일 | 아침 보고 |
 
-## Test map
-새 `academy/scripts/test-repair-core.mjs` (DB·git 없음, 다른 test-*.mjs 꼴):
-- 멈춤합치기: revert-failed 위 revert-twice/review-fail-3 → revert-failed 유지 · review-fail-3 위 revert-twice → revert-twice [새]
-- 재개시각: revert-twice = last_revert+7d · review-fail-3 = at+7d · revert-failed/legacy = null [새]
-- 재개판정: 6일 23시간 false · 7일+0+0 true · 7일+revertsSince 1 false · 7일+recurring 1 false · revert-failed 30일 false · legacy false [새]
-- 연속불합격: 3 fail true · 2 fail+승인 대기 false · 2행 false [새]
-- 만료인가: 167시간 false · 169시간 true · 합침 상태 false [새]
-- 숫자닿음: ai-measure.mjs true · write-draft.mjs false · 확정 목록 전부 true [새]
-- 수리상태: 4 kind 문구 · paused+pending → paused · switchOn false 문구 · KST 날짜(UTC 15:30 → 다음 날) · 「켜」「원장님 결정」 미포함 [새]
-기존 회귀(고쳐서 통과):
-- `test-ops-words.mjs:103` 「judge 수리 꺼짐」 → paused/waiting/none 입력, 「켤지」 미포함 단언 [TESTED→수정]
-- `test-ops-words.mjs:26~33`·`test-client-status.mjs` repairOff → repairText [TESTED→수정]
-- `test-todo-words.mjs` repair-approval: 「수리안 n —」·숫자에 닿음·type repair [새]
-- `node scripts/repair.mjs --guard-test` 21건 ✓ [TESTED]
-- 나머지 test-*.mjs 0 실패 · tsc web·academy 0 (`node ./node_modules/typescript/bin/tsc` — npx 함정)
-- [GAP — 배포 뒤 실측] repair.mjs DB 경로(자동재개·만료·연속확인 SQL). Bob 은 SQL 을 REVIEW-REQUEST 에 붙이고 운영 DB 에 select 판(읽기만)으로 돌린 결과를 적는다
+조용한 실패(테스트·처리·표시 다 없음) 남은 것 없음. 「판정이 맞았나」의 마지막 그물은 사후 내리기 — 원장 결정 범위.
+
+## Test map (`test-post-auto.mjs` 새 파일 — 전부 [GAP], 이번에 채움)
+- 주제키: 물음표·공백 차이 → 같은 키
+- 후보모으기(가짜 q): A·B·C·D 각 1건 → 4후보 · 같은 질문 A+B → 1후보 점수 합 · brand stage 제외
+- 거르기: 발행 키 영구 · 버림 8주 안/밖 · 재료부족 4주 · 28일 낱말 2개 겹침 제외/1개 통과 · 과정 글 학원사실필요
+- 재료 관문: 학원사실필요 + m·i 0 → 재료부족 · p# 만 → 재료부족 · 비공개이유 글은 p# 에서 빠짐
+- 주장뽑기: 목록 번호·「3단계」 제외 · 「2027학년도」「10명」「국민대」「신설」 잡힘 · 숫자 없는 판단 문장 대상 아님
+- 창찾기: 1,500·전각 숫자 · 숫자 있는데 300자 안 고유명사 없음 → 없음
+- 판정 파서: 근거가 창 밖 → 없음 · JSON 깨짐 → 전부 없음
+- 문장지우기: 문단 < 80자 → 문단째 · 빈 절 → 소제목째 · 첫문단지움 감지
+- 본문해시: 이미지 줄 더해도 같음 · 글자 하나 바뀌면 다름
+- 다음행동: 1·2회 실패 → 내일다시 · 3회 → 버림 · 한도 → 미룸(회차 그대로) · 같은 날 두 번째 → 미룸
+- 원장 관점 파서: 말리기 인용 본문에 없음 → 실패 · 본문에 없는 걸림 → 버리고 기록
+- 가림: DB 고객 이름 → 실패 · 「로보티즈키즈랩」 → 실패 · 「로보티즈 드림」 → 통과
+- 발행가능: 해시 다름 · 스위치 off · 스위치 못 읽음 · 그림 없음 · 비공개이유 → 각각 false+왜 · 원장 버튼(자동 아님)은 감수 없이 true
+- 내리기: published=false·비공개이유·announce-removal·네이버 일감(가짜 q SQL 순서)
+- AI 티 규칙표: CLAUDE.md 줄마다 규칙 이름 있음
+- 글기록말: 영문 키·JSON 조각 없음(test-ops-words 금지어 재사용)
+- 회귀(그대로 통과): test-ops-words · test-todo-words · test-client-status · test-repair-core · test-marketing · tsc web·academy (`node ./node_modules/typescript/bin/tsc` — npx 는 경로 `&` 로 깨짐)
 
 ## Out of Scope
-- 견습 5건·무인 합치기 규칙·가드 변경 · 현황판 「멈춤 풀기」 버튼(KG-42-1) · 같은 조사 반복 만료 상한(KG-42-2) · repair.yml 실행 로직
+- 아이로그·문서딱 세션 글(D93): 틀(주제 기록·AI 티·원장 관점·가림)은 옮겨진다. 그러나 사실의 원문이 기사가 아니라 그 고객 **제품 코드**고(9/30 아이로그 초안 「출결 내보내기 없음·예약 발송 없음」), 발행이 고객 저장소 커밋·배포다. 대조기가 달라 Step 44 후보. KG-43-1
+- 네이버 글 자동 내리기(로그인 필요) — 사람 일감까지. KG-43-2
+- 한글 숫자 표기(「열 명」) 대조 — 아라비아 숫자만. KG-43-3
+- PDF 본문 추출(의존성 추가) — KG-43-4
+- topics.json slug 채우기 — 자동 경로는 post_reviews 가 기록
+- /admin/material 재료 입력 화면
 
 ## Acceptance
-- test-repair-core 전부 ✓ · 회귀 0 실패 · guard-test ✓ · tsc 0
-- `grep -rn "켤지\|수리 켜기\|켜 줘\|스위치 꺼짐" web/lib web/app academy/scripts` → repair.mjs 비상 스위치 활동 외 0
-- diff 대조: `무인허용`·`견습건수`·`needs_owner`·`손으로`·`승인합치기` 가드 줄 변화 0 (merge_result 기록 추가만)
-- 배포 뒤: `gh workflow run repair.yml -f mode=run`(leeledger) → 스위치 없이 수리안 1건 → /admin/ops 할 일에 「수리안 n — 사람말」·검토·(해당 시) 숫자에 닿음·[합치기][버리기]. 수리 줄 「승인 기다림 1건 · 수리안 만들 것 1건」(E1 전이면 「비상 스위치…막혀 있음」)
-- E2 뒤: 합치기 → Actions 에 repair run(triggering_actor=leeledger) → E1 전이면 카드 「합치지 못함 — 비상 스위치 꺼짐」
-- 아침 보고(pm-report --force)에 「꺼져 있습니다」 문장 없음
+- 43a 먼저 합칠 수 있음: 테이블·core·테스트만, 발행 동작 변화 0
+- `node scripts/test-post-auto.mjs` 전부 ✓ + 회귀 0 실패 + tsc 0
+- `node scripts/auto-post.mjs --pick --dry` 운영 DB 읽기 — 후보표(신호·점수·이유)와 뺀 이유가 사람 말로. 국민대·68시간 주제가 28일 겹침으로 빠지는지 REVIEW-REQUEST 에 붙임
+- `node scripts/auto-post.mjs --review 2027-algorithm-talent-admission-kookmin --dry` — 출처 8곳 실제 fetch 결과(읽음/못 읽음/PDF), 대조 문장 수, 지웠을 문장, (b)(c)(d) 결과. **로컬 1회 + Actions 러너 1회(workflow_dispatch dry)** — 러너 IP 차단 여부가 이 Step 의 가장 큰 미확인(D86)
+- 같은 본문 「10명」→「12명」 가짜 초안(fixture, DB 안 씀) → (a) 에서 그 문장 「없음」
+- 가짜 초안 끝에 「우리 학원으로 오세요」 → (b) 또는 (c) 실패
+- setup-post-reviews 운영 적용 + post_auto_publish='on' select 확인
+- /admin/drafts 자동 글 절·내리기 버튼 운영 주소 화면 확인(누르지 않음)
+- CLAUDE.md 한 줄 교체 · post SKILL · 주석 갱신
+- 배포: web `git push`(Vercel) · company·write 는 Actions 가 main 사용 · academy 사이트 코드 변경 없음(바뀌면 `npx vercel --prod --yes`)

@@ -5,7 +5,7 @@
 
 ## Current Status
 
-**Active step:** Step 15 초안 재료 — IN REVIEW (Richard 대기). 이전: Step 1~8 배포 완료. 남은 것: 네이버 소유확인 캡차와 이관 35편(사람 일), Known Gaps 잔여분(KG-2·13·17·19). 주간 글쓰기는 `gemini-3.6-flash` 로 월 0원에 돈다(월 06:07 KST, 초안까지만 · 발행은 사람)
+**Active step:** Step 43 학원 글 자동 감수·발행 — BRIEFED (Bob 대기, 2026-10-10). 브리프 handoff/ARCHITECT-BRIEF.md · 결정 D81~D94
 **Last cleared:** Step 0 — 2026-09-11 (설치 이전 작업 기록)
 **Pending deploy:** NO
 
@@ -1678,3 +1678,85 @@ Known Gaps (26)
 - 운영 DB 읽기 전용(begin read only … rollback): 수리입력 → making 「수리안 만드는 중 — 2건 대기」· 멈춤·만료 후보 0 · 연속확인 1행(수리 4 검토 불합격)
 - KG-42-4 사람이 repair_paused 를 'false' 로 손으로 풀면 repair_resumed_at 이 안 적혀 옛 불합격 행이 다음 연속확인에 다시 세진다(자동재개 길만 적음)
 - KG-42-5 「원장 합치기 요청」 실패 활동(ok=false)이 수리 줄을 「막힘」으로 보이게 한다(브리프대로). 카드에도 같은 이유가 뜬다
+
+### Step 43 — 학원 주 1편 주제·감수·발행 자동, 원장은 사후 「내리기」 — BRIEFED (2026-10-10, Arch) · Bob 대기
+원장 결정(2026-10-10): 「새 글 포스팅도 자동화해서 주제 선택과 감수 모두 자동으로.」 브리프 handoff/ARCHITECT-BRIEF.md.
+조사(운영 DB 읽기 전용): academy.materials 0행 · inquiries(client 1) 0행 · draft_feedback 0행 → 재료 모드는 한 번도 안 탐. 실제로 나간 자동 글은 전부 write-news(모드 사실). 사람 문은 publishDraft 하나 — 다듬기·도해(post_images)·색인·네이버 이관은 이미 자동.
+- D81 (원장) 발행 전 사람 감수를 기계 감수 4관문으로 바꾼다: (a) 출처 원문 대조 (b) AI 티 (c) 원장 관점 두 번째 Claude (d) 고객사·옛 이름 가림. 하나라도 지면 안 나간다. 사람 감수는 다시 넣지 않는다 — 대신 사후 「내리기」
+- D82 새 발행 파이프라인을 짓지 않는다. 기존 review·illustrate·announce 일감 사이의 publishDraft 문만 기계로 바꾼다. 발행 SQL·announce 는 web/lib/post-auto-core.mjs 로 옮겨 원장 버튼과 자동이 한 곳을 쓴다
+- D83 주제 자동: 안 불린 질문(brand 제외)·경쟁 이기는 질문(question-draft 일감)·지는 검색어·주제 은행 네 신호 점수 합. 같은 topic_key 발행 영구 제외·버림 8주·재료부족 4주·최근 28일 글과 핵심 낱말 2개 겹침 제외. 고른 이유를 post_reviews 에 사람 말로
+- D84 재료 관문: 학원만 아는 사실은 라벨 재료(m 재료표·i 상담 발화·p 원장 글 문단, 비공개이유 글 제외)에 있는 것만. 과정·모집 주제는 m·i 없으면 「재료부족」으로 미루고 다음 주제. p# 는 연도를 붙여 쓴다(9/28 옛 지점 재발 방지)
+- D85 출처 대조는 결정적 창찾기(숫자 전부 + 300자 안 고유명사·제도어) → Claude 판정, 판정 근거는 창 부분문자열이어야 함. 지지 안 되는 문장은 지우고, 지워서 1,500자 미만이거나 첫 문단이 사라지면 실패
+- D86 PDF·비 HTML 출처는 「못 읽음」 = 근거 아님. 출처 전부 네트워크 오류면 미룸(회차 안 셈). Actions 러너에서 언론사 fetch 가 되는지는 미확인 — Acceptance 에 러너 dry 1회
+- D87 회차 = 하루 1번 감수(쓰기 포함). AI 티는 한 회차 안에서 다듬기 1 + 다시 쓰기 1. 3회차 실패면 버림(draft_feedback·초안 삭제·재료 반환). 한도·네트워크는 회차 안 셈
+- D88 주 1편 유지: 이번 주(KST) 발행 1편이면 끝. 한 주 2주제까지, 둘 다 버리면 「못냄」 기록하고 다음 월요일. 주 1편 확인은 created_at 이 아니라 발행·감수 중 초안 기준
+- D89 발행가능 = 기존 publishDraft 조건 + 감수 통과 + 본문해시(이미지 줄 뺀 본문) 일치 + geo.settings post_auto_publish='on'(못 읽으면 안 나감). 원장 버튼은 감수 조건 없이 지금처럼
+- D90 자동 경로에 커밋 단계 없음 — 글·도해가 DB 에 있어 바뀌는 파일이 없다. topics.json slug 대신 post_reviews 가 쓴 주제를 기록. 세션 /post 경로는 커밋 유지
+- D91 내리기 = published=false + 비공개이유(기존 재발행 차단 장치 재사용) + IndexNow 알림 일감 + 네이버 글은 사람 일감(로그인 필요). 사이트는 revalidate 300 이라 5분 안
+- D92 질문 겨냥 초안(question-draft, client 1)은 직접 쓰지 않고 주제 후보로만 — 쓰는 길이 둘이면 주 1편이 깨진다
+- D93 아이로그·문서딱 세션 글은 이번 Step 밖. 틀은 옮길 수 있으나 사실 원문이 고객 제품 코드이고 발행이 고객 저장소 커밋이라 대조기가 다르다 → Step 44 후보
+- D94 CLAUDE.md 「사람만 할 수 있는 일 — 발행 전 사실 확인」 → 「자동 발행된 글 훑어보기 — 이상하면 /admin/drafts 「내리기」 한 번…」 (문구는 브리프 13번, 수정은 Bob)
+- KG-43-1 세션 글(아이로그·문서딱) 자동 감수 — 제품 코드 대조기 필요 · KG-43-2 네이버 글 자동 내리기 · KG-43-3 한글 숫자 표기 대조 · KG-43-4 PDF 본문 추출
+
+### Step 43 — 빌드 (2026-10-10, Bob) · 43a a2d532b · 43b 62de684 · 43c 1d8162c · DONE_WITH_CONCERNS (러너 dry·운영 표 적용 남음)
+- 43a: setup-post-reviews.mjs(표 + post_auto_publish='off' on conflict do nothing — **운영 적용 안 함**, 오케스트레이터 지시 「DB 쓰기 금지」) · web/lib/post-auto-core.mjs(+.d.mts) · test-post-auto.mjs
+- 43b: auto-post.mjs --pick · write-news/write-draft --topic-json(주장·주제·재료표를 review_notes 에) · write-draft 주 1편 = 이번주글SQL · company weekly-draft → auto-post --pick · question-draft(학원) → 관찰 「주제 후보로 넘김」 · write.yml auto → auto-post --pick
+- 43c: fact-check.mjs 출처대조()·출처가져오기() export(CLI 출력 그대로, main 가드) · review-gates.mjs(티찾기·가림찾기·원장규칙·관점프롬프트) · auto-post --review · slop-rules 결론반복·목록남발(경고로만 — 기존 게이트 동작 그대로) · company review(스위치 on + notes.주제 → 자동감수)·illustrate 붙임 뒤 자동발행·announce-removal 실행기 · draft-actions publishDraft → core 발행, takedownPost → core 내리기 · /admin/drafts 「자동 글」 절 · 현황판 콘텐츠 줄·아침 보고 산출물에 글기록말 · CLAUDE.md D94 · post SKILL 4절 · write.yml review-dry 디스패치
+- 결정(Bob): 스위치 기본값 'off'(브리프는 'on') — 오케스트레이터 지시. 세션이 러너 dry 확인 뒤 켠다
+- 결정(Bob): write.yml auto 모드도 auto-post --pick — 그대로 두면 월요일 write-draft 가 주제 없는 초안을 쓰고, 이번주글SQL 이 그 초안을 안 세서 같은 주 두 번째 초안이 나온다(D92 와 같은 이유)
+- 결정(Bob): weekly-draft 의 「검토 대기 초안 있으면 사람 대기」 제거 — 감수 중 자동 초안만 막는다(이번주글SQL). 세션 초안은 자기 review 일감이 다룬다
+- 결정(Bob): 거르기에 「기간 무관 제목 낱말 3개 이상 같으면 같은 질문」 추가 — 측정 질문이 기존 글 제목을 거의 그대로 묻는다(「바이브 코딩이 뭐야? 아이도 배울 수 있어?」 vs 9/8 글). 브리프 규칙만으로는 안 걸린다
+- 결정(Bob): 낱말 겹침은 조사 붙은 꼴도 같은 말(앞부분 일치, 짧은 쪽 2자 이상·라틴만이면 완전 일치). 그래서 「AI·아이한테」 처럼 흔한 낱말 둘로 빠지는 후보가 있다(--pick --dry 표에 보임)
+- 결정(Bob): 학원사실필요 — 「교육과정」은 나라 교육과정이라 뺌, 「반」은 낱말 끝(주말반)만(일반·절반·반드시 아님). 후보 전체 제목에 적용(은행만이 아니라)
+- 결정(Bob): 철 → 달 표는 대략(학기초 2·3·8·9 / 학기중 4·5·6·10·11 / 방학전 6·7·11·12 / 영재원모집 9·10·11 / 대회시즌 4~7). core 철 한 곳
+- 결정(Bob): 재료 관문 결과 = 학원사실필요면 m·i 있을 때 write-draft(재료), 아니면 write-news(사실, m·i·p 를 선택 재료로 넘김). 쓰기 빈손(78)이면 그 주제 '재료부족'(4주) — 매일 같은 주제로 검색을 다시 돌리지 않게
+- 결정(Bob): 주장뽑기 — 숫자만 있고 이름·제도어가 없는 문장(「2단계에서 70%에 면접 30%」)은 같은 문단 앞 문장의 이름·제도어를 빌려 창을 찾는다. 안 빌리면 사실인 문장이 전부 지워진다. 띄어 쓴 이름(「알고리즘우수자 전형」)은 붙여 하나로
+- 결정(Bob): 숫자 없는 주장은 「이름(있으면)과 제도어(있으면)가 한 창 안에」 — 브리프 문구대로 둘 다 요구하면 이름만 든 사실 문장이 창 없이 전부 지워진다
+- 결정(Bob): 창은 주장의 숫자·이름이 가장 많이 든 자리부터, 출처 전체에서 3개 — 앞 출처의 메뉴·날짜(2026-10-10 의 10)에 걸린 창이 자리를 다 차지했다(로컬 dry 에서 확인)
+- 결정(Bob): 학원 주장(notes.주장 종류 학원)은 라벨 재료 원문이 곧 창(짧다). 주장 목록에 없는 문장은 모든 출처 + 재료가 후보
+- 결정(Bob): 판정·다듬기·다시쓰기·원장 관점 호출이 한도가 아닌 이유로 실패해도 미룸(회차 안 셈) — 인증·시간 초과로 회차를 태우지 않게. JSON 이 깨진 답은 브리프대로 실패 쪽(전부 없음 / 관점 실패)
+- 결정(Bob): 결론반복은 겹치나 n=20 — 8자면 「2027학년도 국민대」 같은 이름만 겹쳐도 걸린다
+- 결정(Bob): (b) 에 「학원 홍보로 닫기」(마지막 두 문단의 우리 학원·체험 수업·오세요 등) — 「우리 학원으로 오세요」 가짜 초안을 기계가 확정적으로 잡게(Acceptance)
+- 결정(Bob): (d) 가림은 masks 가림검사의 「모양 /blog/…」 걸림을 뺀다 — 학원 글이 자기 글로 거는 내부 링크다. 전화번호 걸림은 그대로
+- 결정(Bob): 2회차부터는 지난 회차 고침 목록으로 먼저 다시 쓰고(이 다시 쓰기가 그 회차의 1회), (b) 는 다듬기만
+- 결정(Bob): 감수 통과 뒤 본문이 그대로면 다음 review 는 회차를 안 쓰고 「통과」로 발행가능만 다시 본다(완료 일감이 24시간 뒤 다시 열려도 회차가 안 늘게)
+- 결정(Bob): dry 의 Claude 호출은 상한을 세기만 하고 geo.claude_calls 에 안 적는다(읽기 전용 q 주입)
+- 결정(Bob): 네이버 블로그 아이디 = NAVER_BLOG_ID || "force11"(naver-blog-post.mjs 와 같은 기본값)
+- KG-43-5 daily-agent.mjs 가 write-draft --question 으로 학원 초안을 쓰는 길이 남아 있다(브리프 범위 밖). 주제 기록이 없어 이번주글SQL 이 안 센다 — 자동 초안이 버려진 주에 그 길이 돌면 한 주 두 편이 될 수 있다
+- KG-43-6 write.yml(월 06:07)과 company weekly-draft 가 같은 시각에 겹쳐 돌면 둘 다 이번주 확인을 지나 두 편을 쓸 수 있다(전에도 같던 경쟁). 잠금 없음
+- KG-43-7 company 한 실행 40분 예산 안에서 auto-post --review 가 35분까지 쓴다(Claude 4~5회). 같은 실행의 다른 일감이 밀릴 수 있다
+- KG-43-8 /admin/drafts 아래 기존 초안 목록에도 감수 중 자동 초안이 같이 뜬다(발행 버튼 포함). 스위치 off 동안은 그게 맞다
+- KG-43-9 국민대 글 제목(「…10명 신설됐습니다」)·소제목 6개(출처 절 제외)는 (b) 규칙(질문형·4개)에 걸린다 — 원장이 발행한 글 기준과 브리프 기준이 다르다. 규칙은 브리프대로 둠
+- 시험: test-post-auto 30 ✓ · test-ops-words 551 · test-todo-words 17 · test-client-status 14 · test-repair-core 27 · test-marketing 51 · fact-check CLI 「확인할 줄 27개」 그대로 · slop-check 기본 「걸린 표현이 없습니다」 그대로 · tsc web·academy 0
+- dry(운영 DB 읽기·쓰기 0): `auto-post --pick --dry` — 후보 20 · 남은 17 · 뺀 3(9/22 AI 교과서 글과 겹침 1 · 이미 쓴 글과 같은 질문 2) · 재료 m0 i0 p8 · 1위 「초등학교 몇 학년부터 코딩 배우는 게 좋아?」(A 34점) → 사실 글(write-news). 국민대·68시간과 겹치는 후보는 지금 신호에 없음(겹침 제외는 test-post-auto 국민대 fixture 로 확인)
+- dry: `auto-post --review 2027-algorithm-talent-admission-kookmin --dry`(로컬, CLAUDE_CODE_LOCAL=1) — 출처 9곳: 읽음 7 · PDF 1(국민대 모집요강) · 못 읽음 1(admission.kookmin.ac.kr 첫 화면, 본문 거의 없음). 처음 글 (a) 통과 「대조 20문장 중 8 맞음 · 12곳 지움」 → (b) 걸림(제목 질문형 아님 · 소제목 6개) → 다듬기·다시 쓰기 → 다시 쓴 글 (a) 「첫 문단이 지워짐」 실패 → 1회차 실패(내일다시). (c)(d) 안 돌림. (d) 를 원문에 따로 돌리면 걸림 0
+- 첫 dry 한 번은 판정 답 JSON 을 못 읽어 전부 「없음」(fail-closed) — 같은 입력 재실행은 정상. 원인 미확인(답 원문을 안 남긴 실행)
+- Actions 러너 dry 는 못 함(푸시 금지) — write.yml workflow_dispatch mode=review-dry 로 세션이 돌린다
+
+### Step 43 — 검수 반영 (2026-10-10, Bob)
+세션 결정(오케스트레이터 전달):
+- D95 엄격도는 그대로 받아들인다(국민대 글 8/20 · 제목·소제목 걸림). 사실 관문(a)을 느슨하게 하지 않는다
+- D96 PDF 본문 읽기를 출처 대조 앞 단계로 — 텍스트층만(pdfjs-dist 6.4.299, academy devDependency · 워크플로 company·write 는 --no-save 설치), PDF 하나 5MB·50쪽·30초 따로, 스캔본(글자층 200자 미만)은 「못 읽음」 그대로, 창·근거 부분문자열 규칙은 그대로
+- D97 감수 중 자동 초안이 14일 넘으면 「버림 — 감수 기한 지남」으로 놓아주고 다음 주제가 이어진다(company weekly-draft 맨 앞). 이 버림은 「주당 2주제」 셈에서 뺀다. 이번주글SQL 도 14일 넘은 초안은 안 센다
+- 이탈 판정 기록: 「기간 무관 제목 낱말 3개 = 같은 질문」(D98 로 적음)·write.yml auto → auto-post --pick·이름 빌리기·한도 아닌 실패 미룸은 Richard 가 받아들임
+- D98 거르기: 기간과 상관없이 발행 글 제목과 낱말 3개 이상 같으면 「같은 질문」으로 제외
+Must Fix:
+- 다듬기검사에 주장뽑기 이름·제도어 모음(정렬 join) 같음 조건 — 다르면 다듬은 글 버림(신설→폐지·국민대→서울대 시험)
+- 학원표지(우리 학원·저희·우리 반·원생·우리 수업·상담에서·상담 온/오는/오신·가르쳐 보면·학교/정보/교과/정규/교실/온라인 아닌 「수업에서」) 문장은 notes.주장 과 상관없이 「학원」 강제, 창은 라벨 재료만 — 라벨 없으면 지움(시험 2)
+Should Fix:
+- 판정 답 못 읽음 → 출처대조 미룸(회차 안 셈) + 답 앞 500자를 활동 「자동 감수 판정 답 못 읽음」에 남김 · 근거 하한 4 → 15자
+- 내리기: academy/app/api/posts PATCH(?slug) 가 /·/blog·글·sitemap·rss 를 바로 revalidate. web takedownPost 가 부름(env ACADEMY_ADMIN_PASSWORD·ACADEMY_ADMIN_ID·ACADEMY_SITE_URL, 없으면 15분 안에 저절로 빠짐 + 활동에 실패 기록). 카드 문구 갱신
+- 현황판·아침 보고 글기록말에 「초안이 N일째 감수가 안 됨 / N일째 감수 중 — 14일이면 놓아줌」
+- 발행(자동) update WHERE 에 review_notes 감수.통과='true' — 발행가능과 update 사이 틈
+- 다시 쓰기 프롬프트: 숫자 문장에 무엇의 숫자인지 이름을 같은 문장에
+- 세션 몫: web 에 ACADEMY_ADMIN_PASSWORD(학원 ADMIN_PASSWORD 와 같은 값) 넣기 · academy 배포(npx vercel --prod — PATCH 라우트)
+- 시험: test-post-auto 32 ✓ · ops-words 551 · todo-words 17 · client-status 14 · repair-core 27 · marketing 51 · fact-check CLI 그대로 · tsc web·academy 0
+- dry(로컬, 쓰기 0) 국민대 --review: 출처 9곳 중 읽음 8(PDF 1 — 59쪽 중 앞 50쪽, 글자층 읽음) · 못 읽음 1(입학처 첫 화면). 처음 글 (a) 통과 「21문장 중 9 맞음 · 12곳 지움」(PDF 전 20문장 중 8) → (b) 제목 걸림 → 다듬기 버림(숫자 바뀜) → 다시 씀 → 다시 쓴 글 (a) 「11문장 중 7 맞음 · 4곳 지움」, PDF 에서 「국제인재 전형 15명과 함께 신설」 맞음 → (b) 통과 → (c) 원장 관점 걸림(일반론 3곳, 말리기 문장 있음) → 1회차 실패(내일다시). (d) 안 돌림
+
+### Step 43 — 재검수 반영 (2026-10-10, Bob)
+- PATCH /api/posts: 전용 비밀 ACADEMY_REVALIDATE_SECRET(헤더 x-revalidate-secret)만 timingSafeEqual, 길이 다르면 거절, slug ^[\w가-힣-]{1,100}$ · GET/POST/DELETE 는 그 비밀을 안 받음 · web 의 ACADEMY_ADMIN_PASSWORD·ACADEMY_ADMIN_ID 사용 제거
+- 학원표지 추가: (?<![가-힣])제가 · 상담(해|하다|을 하다) 보면 · 가르치(다|면서|며|는|던) · 가르쳐 (보면|본) · 수강생 · 우리 원(?![가-힣]) · 수업 시간에(학교·정보·교과 등 앞이면 아님). 리뷰어 재현 3문장 시험
+- 다듬기검사: 학원표지 문장 수 증가 → 버림 · 말모음 중복 세는 정렬 목록. 시험 2
+- PDF 파싱 20초 Promise.race(PDF상한.파싱초) · pdfjs-dist 6.4.299 정확 고정(package.json·lock)
+- KG-43-10 기존 GET/POST/DELETE 의 x-admin-pw 비교가 상수 시간이 아님(이번 단계 밖)
+- 시험: test-post-auto 35 ✓ · 회귀 0 실패 · tsc web·academy 0
