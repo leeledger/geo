@@ -29,8 +29,8 @@ const 시 = 3600 * 1000;
 
 /** 직원 — agents/<id> 와 같은 이름 */
 const 직원들 = [
-  ["pm", "총괄"], ["research", "근거"], ["content", "집필"], ["illustrate", "삽화"],
-  ["deliver", "유통"], ["audit", "감사"], ["repair", "수리공"],
+  ["pm", "매시 점검"], ["research", "측정"], ["content", "글 쓰기"], ["illustrate", "그림"],
+  ["deliver", "색인·블로그 옮기기"], ["audit", "자동 점검"], ["repair", "자동 코드 수리"],
   // 영업은 멈춤(2026-09-24 원장: 학원 레퍼런스가 서기 전까지 영업 카테고리 불필요). 다시 켜면 여기와 정해진작업에 되돌린다
 ];
 
@@ -41,12 +41,12 @@ const 직원들 = [
  */
 const 정해진작업 = {
   watch: { 이름: "사이트 점검", 주기: 3 },
-  audit: { 이름: "감사", 주기: 24, self: "a.agent = 'audit'" },
+  audit: { 이름: "자동 점검", 주기: 24, self: "a.agent = 'audit'" },
   scout: { 이름: "문제 정찰", 주기: 24 },
   optimize: { 이름: "AI 답변 측정", 주기: 24 },
   serp: { 이름: "검색 순위 측정", 주기: 24 },
   snapshot: { 이름: "색인 알림", 주기: 24 },
-  repair: { 이름: "수리", 주기: 24, self: "a.agent = 'repair'" },
+  repair: { 이름: "자동 코드 수리", 주기: 24, self: "a.agent = 'repair'" },
   write: { 이름: "주간 초안 작성", 주기: 24 * 7 },
 };
 /** 옮긴 줄의 작업 → 직원. 스스로 활동을 적는 작업(audit·repair·sales)은 옮긴 줄을 실패일 때만 센다(이중 계산) */
@@ -69,6 +69,15 @@ const 이가 = (w) => {
   return c >= 0 && c < 11172 && c % 28 === 0 ? `${w}가` : `${w}이`;
 };
 const 요일 = ["일", "월", "화", "수", "목", "금", "토"];
+/** 어절 경계에서 자른다 — web/lib/todo-text.ts cut 과 같은 꼴 */
+const cut = (s, n) => {
+  const t = String(s ?? "").trim();
+  if (t.length <= n) return t;
+  let x = t.slice(0, n);
+  const sp = x.lastIndexOf(" ");
+  if (sp > n * 0.5) x = x.slice(0, sp);
+  return `${x.replace(/[\s,·:—-]+$/, "")}…`;
+};
 
 /** 다음 주간 초안 시각 — write.yml 월 06:07 KST */
 const 다음초안 = (now) => {
@@ -137,12 +146,17 @@ export async function 보고짓기(q, now = new Date()) {
   // ── 확인 필요
   const 되풀이 = 열린.filter((t) => (t.attempts >= 5 || t.escalated) && t.status !== "사람 대기");
   const 조사 = 열린.filter((t) => t.agent === "audit" && t.kind === "investigate" && t.status === "사람 대기");
+  const 수리대기 = 열린.filter((t) => t.status === "수리 대기").length;
   const 확인필요 = [
     // attempts 는 시도 수다(관찰로 다시 띄운 것도 센다). 실패 수로 쓰지 않는다(Richard 19)
-    ...되풀이.map((t) => `「${t.title}」 ${t.attempts}번 시도했고 아직 안 끝났습니다. 계속 다시 하는 중입니다`),
-    ...조사.map((t) => `감사 조사 「${t.title}」 — 원장님 확인을 기다립니다`),
+    ...되풀이.map((t) => `「${cut(t.title, 50)}」 — ${t.attempts}번 해 봤는데 안 끝났습니다. 자동으로 계속 다시 합니다`),
+    // 조사는 건마다 적지 않는다 — 할 일은 「오늘 하실 일」에 있다
+    ...(조사.length ? [`자동 점검이 원장님 판단을 기다리는 일 ${조사.length}건 — 「오늘 하실 일」에 있습니다`] : []),
     ...늦음.map((x) => x.말),
-    ...(꺼진날 !== null && 꺼진날 >= 7 ? [`수리공이 ${꺼진날}일째 꺼져 있습니다. 켜는 건 원장님 몫입니다`] : []),
+    ...(꺼진날 !== null && 꺼진날 >= 7
+      ? [`자동 코드 수리가 ${꺼진날}일째 꺼져 있습니다. 그동안 코드 문제 ${수리대기}건이 손대지 않은 채 쌓였습니다. ` +
+         "켜면 매일 06:50 에 1건씩 Claude 가 고치고, 검토를 통과한 것만 반영합니다. 켤지는 원장님 결정입니다 — Claude 세션에 「자동 수리 켜 줘」"]
+      : []),
   ];
 
   // ── 직원별 지금 상태
@@ -243,15 +257,16 @@ async function 고객줄읽기(q, now = new Date()) {
   const out = [];
   for (const c of 고객들) {
     const 측정 = (await q(
-      `with d as (select collection_method m, max(measured_on) as day from academy.ai_measurements
-                   where client_id = $1 and measured_on > now() - interval '30 days' group by 1)
+      `with d as (select collection_method m, max(measured_on) as day from academy.ai_measurements a
+                   where client_id = $1 and measured_on > now() - interval '30 days' and coalesce(a.stage, '') <> 'brand' group by 1)
        select d.m, a.engine, d.day::text as day, count(*)::int n, count(*) filter (where a.mentioned)::int k
          from d join academy.ai_measurements a on a.client_id = $1 and a.collection_method = d.m and a.measured_on = d.day and a.attempt = 1
+                and coalesce(a.stage, '') <> 'brand'
         group by 1, 2, 3 order by 1, 2`, [c.id]))
       .filter((r) => now.getTime() - Date.parse(`${r.day}T00:00:00+09:00`) <= 3 * 86400000);
     let AI;
     if (측정.length) {
-      AI = `AI 답변 ${측정.map((r) => `${엔진이름[r.engine] ?? r.engine} ${r.n}번 중 ${r.k}번 이름 나옴(${월일(`${r.day}T00:00:00+09:00`)})`).join(" · ")}`;
+      AI = `이름 안 넣은 질문 — ${측정.map((r) => `${엔진이름[r.engine] ?? r.engine} ${r.n}개 중 ${r.k}개에 이름 나옴(${월일(`${r.day}T00:00:00+09:00`)})`).join(" · ")}`;
     } else {
       const [승인] = await q(`select count(*) filter (where pq.approved)::int n from geo.pilot_questions pq
                                join geo.pilots p on p.id = pq.pilot_id where p.client_id = $1`, [c.id]);
@@ -265,11 +280,12 @@ async function 고객줄읽기(q, now = new Date()) {
     const 방문 = !v?.since ? "방문 기록 없음"
       : v.since >= 오늘 ? `방문 기록 ${월일(`${v.since}T00:00:00+09:00`)} 시작 — 어제까지 숫자 없음`
       : `방문자 ${v.n}명(${v.since > 더하기일(오늘, -7) ? `기록 시작 ${월일(`${v.since}T00:00:00+09:00`)}부터` : "7일"} 어제까지)`;
+    // 밀린 일 — 고객 상태 칸(web/lib/client-status.ts)과 같은 상태 목록
     const [일] = await q(`select count(*)::int n, count(*) filter (where status = '사람 대기')::int h, count(*) filter (where status = '세션 대기')::int s
-                          from geo.agent_tasks where client_id = $1 and status not in ('완료', '닫힘')`, [c.id]);
+                          from geo.agent_tasks where client_id = $1 and status in ('사람 대기', '세션 대기', '로컬 대기', '수리 대기', '실패')`, [c.id]);
     out.push({
       slug: c.slug, name: c.name,
-      줄: [AI, 방문, `열린 일감 ${일.n}건${일.h || 일.s ? `(${[일.h ? `원장 몫 ${일.h}건` : "", 일.s ? `세션 몫 ${일.s}건` : ""].filter(Boolean).join(" · ")})` : ""}`].join(" · "),
+      줄: [AI, 방문, `밀린 일 ${일.n}건(원장님 ${일.h} · Claude 세션 ${일.s})`].join(" · "),
     });
   }
   return out;
@@ -286,12 +302,13 @@ async function AI답변읽기(q, now = new Date()) {
     `with d as (
        select collection_method m, engine, measured_on,
               dense_rank() over (partition by collection_method order by measured_on desc) r
-         from academy.ai_measurements where client_id = 1 and measured_on > now() - interval '30 days'
+         from academy.ai_measurements where client_id = 1 and measured_on > now() - interval '30 days' and coalesce(stage, '') <> 'brand'
         group by 1, 2, 3)
      select d.m, d.engine, d.r, d.measured_on::text as day,
             count(*)::int n, count(*) filter (where a.mentioned)::int 이름, count(*) filter (where a.cited)::int 인용,
             array_agg(a.prompt_id) ids
        from d join academy.ai_measurements a on a.collection_method = d.m and a.engine = d.engine and a.measured_on = d.measured_on and a.client_id = 1 and a.attempt = 1
+                                    and coalesce(a.stage, '') <> 'brand'
       where d.r <= 2 group by 1, 2, 3, 4 order by 1, 3`);
   const out = [];
   for (const m of [...new Set(rows.map((r) => r.m))]) {
@@ -305,7 +322,8 @@ async function AI답변읽기(q, now = new Date()) {
       if (공통.length >= 5) {
         const [a, b] = await Promise.all([지금, 전].map((x) => q(
           `select count(*) filter (where mentioned)::int 이름, count(*) filter (where cited)::int 인용 from academy.ai_measurements
-            where client_id = 1 and collection_method = $1 and measured_on = $2 and prompt_id = any($3) and engine = $4 and attempt = 1`, [m, x.day, 공통, x.engine]).then((r) => r[0])));
+            where client_id = 1 and collection_method = $1 and measured_on = $2 and prompt_id = any($3) and engine = $4 and attempt = 1
+              and coalesce(stage, '') <> 'brand'`, [m, x.day, 공통, x.engine]).then((r) => r[0])));
         const d = a.이름 - b.이름;
         비교 = { day: 전.day, 공통: 공통.length, 전이름: b.이름, 지금이름: a.이름, 전인용: b.인용, 지금인용: a.인용,
           말: Math.abs(d) <= 3 ? "비슷" : d > 0 ? "늘었음" : "줄었음" };

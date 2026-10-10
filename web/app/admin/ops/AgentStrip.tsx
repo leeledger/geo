@@ -148,7 +148,7 @@ export default function AgentStrip({ initial, slug }: { initial: Agents; slug?: 
     <section className="ag" aria-labelledby="ag-h">
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
       <div className="ag-hd">
-        <h2 id="ag-h">자동으로 도는 일 · 회사 전체{data.client ? ` · 콘텐츠·유통은 ${data.client}` : ""}</h2>
+        <h2 id="ag-h">자동으로 도는 일 · 회사 전체{data.client ? ` · 글 쓰기·색인은 ${data.client}` : ""}</h2>
         {lost
           ? <span className="ag-sub lost" role="status">연결 끊김 · {ago(data.at, now)} 값</span>
           : <span className="ag-sub">{hhmm(data.at)} 기준 · 저절로 새로 고침</span>}

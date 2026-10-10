@@ -1,0 +1,88 @@
+// 고객 상태 칸 문장(Step 40 D63) 단위 시험 — web/lib/client-status-core.mjs, 가짜 숫자만.
+//   node academy/scripts/test-client-status.mjs
+// 아이로그 꼴(측정만 · 손댄 날 9/18 · 세션 1편 질문 12개 23일 → 멈춤) · 문서딱 꼴 · 학원 꼴 · 전부 빈 것 · 뱃지 경계 6/7/13/14일.
+// 하나라도 틀리면 종료코드 1.
+import assert from "node:assert/strict";
+import { 상태문장, 이번주, 며칠전 } from "../../web/lib/client-status-core.mjs";
+
+let fail = 0, pass = 0;
+const t = (name, f) => {
+  try { f(); pass++; } catch (e) { fail++; console.log(`✗ ${name}\n   ${e.message.split("\n")[0]}`); }
+};
+
+const 오늘 = "2026-10-10";
+const 빈 = { measure: 0, posts: 0, outside: { blog: 0, jisikin: 0, cafe: 0 }, guides: 0, gsc: 0, bing: 0, naver: 0, lastTouch: null, backlog: {}, repairOff: false };
+
+t("이번 주 = 어제까지 7일", () => assert.deepEqual(이번주(오늘), { from: "2026-10-03", to: "2026-10-09" }));
+
+t("아이로그 꼴 — 측정만 · 9/18 · 세션 1편 질문 12개 23일 → 멈춤", () => {
+  const s = 상태문장({ ...빈, name: "아이로그", measure: 42, lastTouch: "2026-09-18",
+    backlog: { session: { n: 1, q: 12, oldest: "2026-09-17" } } }, 오늘);
+  assert.deepEqual(s, {
+    제목: "아이로그 · 이번 주 (10/3~10/9)",
+    뱃지: "멈춤",
+    한일: "AI 답변 측정 42번. 글·색인·사이트 반영은 0건입니다.",
+    손댄날: "고객 사이트나 바깥에 실제로 손댄 마지막 날 9/18 (22일 전)",
+    밀린일: ["Claude 세션 — 가이드 글 1편(묶인 질문 12개) · 23일째"],
+  });
+});
+
+t("문서딱 꼴 — 색인 있음 · 원장님·세션 밀림 · 수리 꺼짐", () => {
+  const s = 상태문장({ ...빈, name: "문서딱", measure: 41, gsc: 10, bing: 8, lastTouch: "2026-10-09",
+    backlog: { owner: { n: 1, oldest: "2026-10-08" }, session: { n: 1, q: 6, oldest: "2026-10-02" }, repair: { n: 2, oldest: "2026-10-01" } },
+    repairOff: true }, 오늘);
+  assert.equal(s.한일, "AI 답변 측정 41번 · 구글 색인 요청 10건 · 빙 주소 제출 8건");
+  assert.equal(s.손댄날, "고객 사이트나 바깥에 실제로 손댄 마지막 날 10/9 (1일 전)");
+  assert.deepEqual(s.밀린일, [
+    "원장님 — 1건 · 가장 오래된 것 2일째",
+    "Claude 세션 — 가이드 글 1편(묶인 질문 6개) · 8일째",
+    "자동 코드 수리 — 2건 · 9일째 (수리가 꺼져 있어 안 움직입니다)",
+  ]);
+  assert.equal(s.뱃지, "느림");
+});
+
+t("학원 꼴 — 글·블로그 옮김·바깥 글 · 원장 PC · 실패 · 수리 켜짐", () => {
+  const s = 상태문장({ ...빈, name: "로봇&코딩학원", measure: 41, posts: 1, naver: 1, gsc: 15, bing: 8,
+    outside: { blog: 2, jisikin: 0, cafe: 1 }, guides: 0, lastTouch: "2026-10-10",
+    backlog: { local: { n: 2, oldest: "2026-10-08" }, failed: { n: 1, oldest: "2026-10-10" }, repair: { n: 1, oldest: "2026-10-09" } } }, 오늘);
+  assert.equal(s.한일, "AI 답변 측정 41번 · 사이트 글 발행 1편 · 블로그 글 올림 2편 · 카페 글 올림 1편 · 구글 색인 요청 15건 · 빙 주소 제출 8건 · 네이버 블로그로 옮김 1편");
+  assert.equal(s.손댄날, "고객 사이트나 바깥에 실제로 손댄 마지막 날 10/10 (오늘)");
+  assert.deepEqual(s.밀린일, [
+    "원장 PC — 2건 · 2일째 (PC 가 켜져 있어야 움직입니다)",
+    "자동 코드 수리 — 1건 · 1일째 (매일 06:50 에 1건씩)",
+    "자동 작업 실패 — 1건 · 오늘",
+  ]);
+  assert.equal(s.뱃지, "돎");
+});
+
+t("전부 빈 것 — 0 이라고 적고, 손댄 날 없음 → 멈춤", () => {
+  const s = 상태문장({ ...빈, name: "새 고객" }, 오늘);
+  assert.equal(s.한일, "글·색인·사이트 반영은 0건입니다.");
+  assert.equal(s.손댄날, "아직 없습니다");
+  assert.deepEqual(s.밀린일, ["밀린 일 없습니다"]);
+  assert.equal(s.뱃지, "멈춤");
+});
+
+t("세션 묶인 질문 수가 없으면 편 수로", () => {
+  const s = 상태문장({ ...빈, name: "x", lastTouch: 오늘, backlog: { session: { n: 1, oldest: 오늘 } } }, 오늘);
+  assert.deepEqual(s.밀린일, ["Claude 세션 — 가이드 글 1편(묶인 질문 1개) · 오늘"]);
+});
+
+// 뱃지 경계 — 손댄 날 기준, 밀린 일 기준 둘 다
+const 손댄 = (d) => 상태문장({ ...빈, name: "x", lastTouch: d }, 오늘).뱃지;
+const 밀린 = (d) => 상태문장({ ...빈, name: "x", lastTouch: 오늘, backlog: { owner: { n: 1, oldest: d } } }, 오늘).뱃지;
+t("뱃지 — 손댄 날 6일 돎 · 7일 느림 · 13일 느림 · 14일 멈춤", () => {
+  assert.deepEqual(["2026-10-04", "2026-10-03", "2026-09-27", "2026-09-26"].map(손댄), ["돎", "느림", "느림", "멈춤"]);
+});
+t("뱃지 — 밀린 일 6일 돎 · 7일 느림 · 13일 느림 · 14일 멈춤", () => {
+  assert.deepEqual(["2026-10-04", "2026-10-03", "2026-09-27", "2026-09-26"].map(밀린), ["돎", "느림", "느림", "멈춤"]);
+});
+
+t("며칠전 — DB 시각 글자를 KST 날짜로", () => {
+  assert.equal(며칠전("2026-09-17 13:29:47.961393+00", 오늘), 23);
+  assert.equal(며칠전("2026-10-09T15:49:00Z", 오늘), 0, "00:49 KST 는 오늘");
+  assert.equal(며칠전("모름", 오늘), null);
+});
+
+console.log(`\n${pass} 통과 · ${fail} 실패`);
+if (fail) process.exitCode = 1;

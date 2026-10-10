@@ -54,6 +54,11 @@ export type Growth = {
     search: number | null; ai: number | null; other: number | null; inquiries: number | null;
     rival: { day: string; won: number; total: number } | null;
   }[] | null;
+  /**
+   * 이 고객에 기록이 들어오는가(Step 40 D64). crawl = 크롤러 방문 1행이라도 · posts = 사이트 글 1행이라도.
+   * false 면 0 이 아니라 「안 잼」이다 — 문서딱처럼 장치를 일부러 안 달았거나 글이 고객 저장소에 올라가는 곳. 못 읽으면 true(기존 「확인 못함」 그대로)
+   */
+  tracked: { crawl: boolean; posts: boolean };
 };
 
 /** AI 가 답할 때 찾는 검색 색인. 순서가 곧 계열색 순서다 — 바꾸지 않는다 */
@@ -381,5 +386,10 @@ export async function readGrowth(client: Client): Promise<Growth> {
     });
   });
 
-  return { today: T, days, coverage, ai, rival, crawl, posts, inquiries, sales, agents, weeks };
+  const tr = await part("기록 여부", async () => (await q<{ crawl: boolean; posts: boolean }>(
+    `select exists (select 1 from ${S}.crawl_hits where client_id = $1) as crawl,
+            exists (select 1 from ${S}.posts where client_id = $1) as posts`, [id]))[0]);
+  const tracked = { crawl: tr?.crawl ?? true, posts: tr?.posts ?? true };
+
+  return { today: T, days, coverage, ai, rival, crawl, posts, inquiries, sales, agents, weeks, tracked };
 }

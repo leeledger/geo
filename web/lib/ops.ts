@@ -78,7 +78,7 @@ export type Ops = {
    */
   company: {
     ok: boolean;
-    tasks: { id: number; agent: string; kind: string; status: string; title: string; detail: string; evidence: string; error: string; link: string | null; updatedAt: string; doneAt: string | null; payload: Record<string, unknown> | null; dedupe: string | null }[];
+    tasks: { id: number; agent: string; kind: string; status: string; title: string; detail: string; evidence: string; error: string; link: string | null; createdAt: string; updatedAt: string; doneAt: string | null; payload: Record<string, unknown> | null; dedupe: string | null }[];
     activity: { agent: string; action: string; ok: boolean; summary: string; at: string; runUrl: string | null }[];
   };
   recent: { title: string; slug: string; at: string }[];
@@ -344,7 +344,7 @@ export async function readOps(client?: Client): Promise<Ops> {
     let company = empty.company;
     try {
       const tasks = await q(`select id, agent, kind, status, title, detail, evidence, last_error, link, payload, dedupe_key,
-               updated_at::text as updated, done_at::text as done
+               created_at::text as created, updated_at::text as updated, done_at::text as done
           from geo.agent_tasks
          where client_id=${c.id} and (status not in ('완료','닫힘') or done_at > now() - interval '48 hours')
          order by case status when '사람 대기' then 0 when '실행 중' then 1 when '실패' then 2 when '수리 대기' then 3 when '대기' then 4 when '로컬 대기' then 5 when '세션 대기' then 5 when '관찰' then 6 else 7 end, priority, updated_at desc
@@ -353,7 +353,7 @@ export async function readOps(client?: Client): Promise<Ops> {
           from geo.agent_activity where client_id=${c.id} or client_id is null order by at desc limit 80`);
       company = {
         ok: true,
-        tasks: tasks.map((t) => ({ id: Number(t.id), agent: t.agent, kind: t.kind, status: t.status, title: t.title, detail: t.detail, evidence: t.evidence, error: t.last_error, link: t.link, updatedAt: t.updated, doneAt: t.done, payload: t.payload ?? null, dedupe: t.dedupe_key ?? null })),
+        tasks: tasks.map((t) => ({ id: Number(t.id), agent: t.agent, kind: t.kind, status: t.status, title: t.title, detail: t.detail, evidence: t.evidence, error: t.last_error, link: t.link, createdAt: t.created, updatedAt: t.updated, doneAt: t.done, payload: t.payload ?? null, dedupe: t.dedupe_key ?? null })),
         activity: activity.map((a) => ({ agent: a.agent, action: a.action, ok: a.ok, summary: a.summary, at: a.at, runUrl: a.run_url })),
       };
     } catch (e) { console.error("agent_tasks 읽기 실패", e); }

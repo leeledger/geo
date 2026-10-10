@@ -1,0 +1,20 @@
+export type Backlog = { n: number; oldest: string; q?: number };
+export type StatusRaw = {
+  name: string;
+  measure: number;
+  posts: number;
+  outside: { blog: number; jisikin: number; cafe: number };
+  guides: number;
+  gsc: number;
+  bing: number;
+  naver: number;
+  lastTouch: string | null;
+  backlog: { owner?: Backlog; session?: Backlog; local?: Backlog; repair?: Backlog; failed?: Backlog };
+  repairOff: boolean;
+};
+export type StatusText = { 제목: string; 뱃지: "돎" | "느림" | "멈춤"; 한일: string; 손댄날: string; 밀린일: string[] };
+export function 월일(d: string): string;
+export function 오늘KST(now?: number): string;
+export function 며칠전(ts: string | null | undefined, 오늘: string): number | null;
+export function 이번주(오늘: string): { from: string; to: string };
+export function 상태문장(raw: StatusRaw, 오늘: string): StatusText;

@@ -11,6 +11,7 @@ import { readGrowthReports, type GrowthReports } from "@/lib/growth-reports";
 import { GROWTH_SLUGS } from "@/lib/growth-core.mjs";
 import { readAnswerTable, type AnswerTable } from "@/lib/asks";
 import { readMarketing, type Marketing as MarketingData } from "@/lib/marketing";
+import { readClientStatus, type ClientStatus as ClientStatusData } from "@/lib/client-status";
 import Todo from "./Todo";
 import AgentStrip from "./AgentStrip";
 import Growth, { GrowthMore } from "./Growth";
@@ -21,6 +22,7 @@ import AskLog from "./AskLog";
 import Visits from "./Visits";
 import GrowthReport from "./GrowthReport";
 import Marketing, { MK_CSS } from "./Marketing";
+import ClientStatus, { CS_CSS } from "./ClientStatus";
 
 /** 로그인 뒤 돌아올 자리 */
 const HERE = "/admin/ops";
@@ -147,7 +149,7 @@ export default async function OpsPage({
   const clients = await listClients();
   const client = clients.find((x) => x.slug === want) ?? clients[0] ?? null;
 
-  const [d, gr, agents, pm, vis, ans, mk, gp] = await Promise.all([
+  const [d, gr, agents, pm, vis, ans, mk, gp, cs] = await Promise.all([
     readOps(client ?? undefined),
     // 통째로 실패하면 섹션에 이유 한 줄. 조각 실패는 readGrowth 안에서 null 로 잡힌다
     client
@@ -170,11 +172,13 @@ export default async function OpsPage({
     client ? readMarketing(client.id) : Promise.resolve<MarketingData>({ ok: true, enabled: false, drafts: [], todo: 0, used: null, firstPosted: null }),
     // 고객 저장소 주간 성장 리포트(Step 36) — 리포트를 읽는 고객(GROWTH_SLUGS) 탭이나 행이 있는 탭에만 카드
     client ? readGrowthReports(client.id) : Promise.resolve<GrowthReports>({ ok: true, weeks: [], today: "", stalled: false, opportunity: null }),
+    // 고객 상태 칸(Step 40 D63) — 고객 탭 맨 위. 못 읽으면 칸에 「못 읽었습니다」
+    client ? readClientStatus(client) : Promise.resolve<ClientStatusData | null>(null),
   ]);
 
   return (
     <div className="ops">
-      <style dangerouslySetInnerHTML={{ __html: CSS + PM_CSS + MK_CSS }} />
+      <style dangerouslySetInnerHTML={{ __html: CSS + PM_CSS + MK_CSS + CS_CSS }} />
       <div className="w">
         <div className="ops-top">
           <h1>운영 현황{client && clients.length < 2 ? ` · ${client.name}` : ""}</h1>
@@ -198,6 +202,7 @@ export default async function OpsPage({
 
         {!d.ok && <div className="err">데이터를 못 읽었습니다 — {d.err}</div>}
 
+        {client && cs && <ClientStatus data={cs} name={client.name} />}
         <PmReport data={pm} ans={ans} client={client} />
         <Todo name={client?.name ?? null} company={d.company} unresolved={gr.g?.inquiries ? gr.g.inquiries.unresolved : null}
               marketing={mk.ok ? mk.todo : 0} />

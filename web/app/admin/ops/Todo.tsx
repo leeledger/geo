@@ -2,13 +2,14 @@ import type { ReactNode } from "react";
 
 import type { Ops } from "@/lib/ops";
 import { todoText, type TodoAction } from "@/lib/todo-text";
+import { 오늘KST, 며칠전 } from "@/lib/client-status-core.mjs";
 import { finishTask, resolveNaverAttempt, requestLogin } from "@/lib/task-actions";
 import SubmitButton from "../SubmitButton";
 
 /**
  * ① 오늘 원장님이 하실 일 — 현황판 맨 위.
  *
- * 원천은 일감 표의 「사람 대기」뿐이다(새 쿼리 없음). 문장은 todoText() 가 kind·payload 로 만든다 — 데이터는 안 고친다.
+ * 원천은 일감 표의 「사람 대기」, 그리고 7일 넘게 밀린 「세션 대기」 한 줄(Step 40 D61)이다(새 쿼리 없음). 문장은 todoText() 가 kind·payload 로 만든다 — 데이터는 안 고친다.
  * 행동은 AgentBoard 에 있던 것을 그대로 옮겼다. 서버 액션을 새로 만들지 않는다.
  * 근거에 최근 조치가 적힌 일은 「조치 중」으로 흐리게, 맨 뒤로.
  */
@@ -92,21 +93,45 @@ export default function Todo({ name, company, unresolved, marketing = 0 }: { nam
       act: <a className="td-btn" href="#mk">올리러 가기 →</a>,
     });
   }
+  // 「세션 대기」는 Claude 세션 몫(Step 30). 가장 오래된 것이 7일을 넘으면 세션을 여는 것이 원장 할 일이 된다(Step 40 D61)
+  const 오늘 = 오늘KST();
+  const sessionTasks = company.tasks.filter((t) => t.status === "세션 대기");
+  const session = sessionTasks.length;
+  const sessionDays = Math.max(0, ...sessionTasks.map((t) => 며칠전(t.createdAt, 오늘) ?? 0));
+  const sessionLate = session > 0 && sessionDays >= 7 && !!name;
+  if (sessionLate) {
+    const questions = sessionTasks.flatMap((t) => {
+      const l = Array.isArray(t.payload?.questions) ? (t.payload.questions as unknown[]).filter((x): x is string => typeof x === "string") : [];
+      return l.length ? l : typeof t.payload?.question === "string" ? [t.payload.question] : [];
+    });
+    // 맨 앞에 — 뒤에 두면 다섯 줄 상한에 밀려 「자세히」로 빠지는데, 거기엔 이 줄이 없다
+    items.unshift({
+      key: "session", doing: null,
+      title: `${name} 저장소에서 Claude 세션 한 번 열기`,
+      why: `가이드 글 일감이 ${sessionDays}일째 밀렸습니다. 세션에 「밀린 세션 글 써 줘」라고 하면 됩니다`,
+      act: (
+        <details className="td-more-d">
+          <summary className="td-btn alt">묶인 질문 보기</summary>
+          <ul>{questions.map((x) => <li key={x}>{x}</li>)}</ul>
+        </details>
+      ),
+    });
+  }
   // 조치 중인 것은 맨 뒤로 (정렬은 안정적이라 나머지 순서는 그대로)
   items.sort((a, b) => Number(a.doing !== null) - Number(b.doing !== null));
 
   const shown = items.slice(0, MAX);
   const rest = items.length - shown.length;
   const open = items.filter((x) => !x.doing).length;
-  // 「세션 대기」는 원장 몫이 아니다(Step 30 Arch) — 할 일 상자 밖에 한 줄만. Claude 세션을 열면 세션이 처리한다
-  const session = company.tasks.filter((t) => t.status === "세션 대기").length;
+  // 원장 밖에 밀린 일(세션·원장 PC·자동 수리·실패) — 있으면 맨 위 고객 상태 칸에 있다고 알린다
+  const 밖에밀림 = company.tasks.some((t) => ["세션 대기", "로컬 대기", "수리 대기", "실패"].includes(t.status));
 
   return (
     <>
     <section className="td" aria-labelledby="td-h">
       <h2 id="td-h">오늘 원장님이 하실 일{who}{open > 0 && <span className="td-n"> {open}건</span>}</h2>
       {items.length === 0 ? (
-        <p className="td-none">없습니다. 나머지는 자동으로 돕니다</p>
+        <p className="td-none">{밖에밀림 ? "원장님 몫은 없습니다. 밀린 일은 맨 위에 있습니다" : "원장님 몫은 없습니다"}</p>
       ) : (
         <ol className="td-list">
           {shown.map((x) => (
@@ -122,7 +147,7 @@ export default function Todo({ name, company, unresolved, marketing = 0 }: { nam
       )}
       {rest > 0 && <p className="td-more">나머지 {rest}건은 맨 아래 「자세히」에 있습니다</p>}
     </section>
-    {session > 0 && <p className="td-session">세션에서 할 일 {session}건 — 원장님 몫이 아닙니다. Claude 세션을 열면 세션이 처리합니다</p>}
+    {session > 0 && !sessionLate && <p className="td-session">Claude 세션 몫 {session}건 · 가장 오래된 것 {sessionDays === 0 ? "오늘" : `${sessionDays}일째`} — 세션을 열어야 움직입니다</p>}
     </>
   );
 }

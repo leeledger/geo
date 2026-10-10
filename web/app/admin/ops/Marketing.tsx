@@ -57,7 +57,7 @@ export default function Marketing({ m, name }: { m: MarketingData; name: string 
                   </div>
                   {d.spots.length > 0 && (
                     <div className="mk-spot">
-                      <b>읽을 자리 — 원문에 없을 수 있는 문장 {d.spots.length}개</b>
+                      <b>올리기 전에 확인할 문장 {d.spots.length}개 — 고객 사이트 원문에서 못 찾은 말입니다</b>
                       <ul>{d.spots.map((t, i) => <li key={i}>{t}</li>)}</ul>
                     </div>
                   )}

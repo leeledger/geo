@@ -194,7 +194,8 @@ export default function Growth({ g, err, name }: { g: G | null; err?: string; na
             )}
 
           {/* 2 답변 색인 — 셋 중 가장 낮은 곳 */}
-          {cov === null ? <Card none head="답변 색인 — 확인 못함" />
+          {!g.tracked.crawl ? <Card none head="검색 엔진이 읽은 쪽 수 — 안 잽니다" note="이 사이트에는 방문 기록 장치가 없습니다. 색인은 서치콘솔 숫자로 봅니다" />
+            : cov === null ? <Card none head="답변 색인 — 확인 못함" />
             : cov.total === 0 || !low ? <Card none head="사이트 쪽 목록이 없습니다" />
             : (
               <Card
@@ -206,7 +207,8 @@ export default function Growth({ g, err, name }: { g: G | null; err?: string; na
             )}
 
           {/* 3 글 */}
-          {ps === null ? <Card none head="글 — 확인 못함" /> : (
+          {!g.tracked.posts ? <Card none head="글 — 여기서 안 셉니다" note="글은 고객 저장소에 올라가 이 화면에 기록이 안 들어옵니다" />
+            : ps === null ? <Card none head="글 — 확인 못함" /> : (
             <Card
               head={<>최근 7일 글 <b>{ps.last7.now ?? 0}편</b> · 목표 주 1편</>}
               cmp={postsEver ? <>
@@ -236,7 +238,8 @@ export default function Growth({ g, err, name }: { g: G | null; err?: string; na
       {/* ④ 차트 하나 */}
       <section className="gr gr-card" aria-labelledby="cov-h">
         <h2 id="cov-h">검색 엔진이 읽어 간 우리 글</h2>
-        {cov === null ? <p className="gr-empty">확인 못함</p> : <>
+        {!g.tracked.crawl ? <p className="gr-empty">안 잽니다 — 방문 기록 장치 없음</p>
+          : cov === null ? <p className="gr-empty">확인 못함</p> : <>
           <p className="d">우리 사이트 {cov.total}쪽 가운데 검색 엔진이 한 번이라도 읽어 간 쪽 수입니다. ChatGPT 검색은 빙이 읽은 것을, 구글 AI 답변은 구글이 읽은 것을 씁니다.</p>
           <CoverageChart total={cov.total} series={chartSeries} />
         </>}
@@ -300,7 +303,7 @@ export function GrowthMore({ g, client, place }: { g: G | null; client: Client |
               {rv.prev ? <> · {md(rv.prev.day)} {rv.prev.won}개 </> : " "}<Word d={rivalDelta} />
             </>}</dd></div>
           <div><dt>로봇 방문 — 어제까지 7일</dt>
-            <dd>{!cr ? "확인 못함" : <>
+            <dd>{!g.tracked.crawl ? "안 잽니다 — 방문 기록 장치 없음" : !cr ? "확인 못함" : <>
               검색 색인 {n(cr.search.now ?? 0)}회 · 그 전 {n(cr.search.prev ?? 0)}회 / AI 학습 {n(cr.ai.now ?? 0)}회 · 그 전 {n(cr.ai.prev ?? 0)}회
               {(cr.other.now ?? 0) + (cr.other.prev ?? 0) > 0 && ` / 기타 ${n(cr.other.now ?? 0)}회 · 그 전 ${n(cr.other.prev ?? 0)}회`}
             </>}</dd></div>
@@ -324,13 +327,13 @@ export function GrowthMore({ g, client, place }: { g: G | null; client: Client |
         <table>
           <thead><tr><th>날짜</th><th>구글</th><th>네이버</th><th>빙</th></tr></thead>
           <tbody>
-            {cov && covDays.map((day, i) => (
+            {cov && g?.tracked.crawl && covDays.map((day, i) => (
               <tr key={day}>
                 <td>{md(day)}</td>
                 {cov.series.map((s) => <td className="n" key={s.vendor}>{s.points[i].pages}</td>)}
               </tr>
             ))}
-            {(!cov || !covDays.length) && <tr><td colSpan={4}>{cov ? "기록 없음" : "확인 못함"}</td></tr>}
+            {(!cov || !covDays.length || (g && !g.tracked.crawl)) && <tr><td colSpan={4}>{g && !g.tracked.crawl ? "안 잽니다" : cov ? "기록 없음" : "확인 못함"}</td></tr>}
           </tbody>
         </table>
       </div>

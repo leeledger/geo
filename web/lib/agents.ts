@@ -21,7 +21,7 @@ export type AgentState = "unknown" | "off" | "stuck" | "late" | "wait" | "workin
 /** 활동 한 줄 (geo.agent_activity + 그 일감의 kind). clientId 는 고객별 줄(Step 34)을 가를 때만 쓴다 */
 export type Act = { agent: string; action: string; ok: boolean; summary: string; at: string; kind: string | null; clientId?: number | null };
 /** 안 끝난 일감 */
-export type OpenTask = { agent: string; kind: string; status: string; title: string; updatedAt: string; clientId?: number | null };
+export type OpenTask = { agent: string; kind: string; status: string; title: string; updatedAt: string; createdAt?: string; clientId?: number | null };
 
 export type AgentRow = {
   id: string;
@@ -101,17 +101,17 @@ type Role = { id: string; name: string; does: string; agents: string[]; jobs: Jo
 /* yml 의 cron 을 바꾸면 여기도 — cron 은 UTC, 여기는 KST(+9) */
 export const ROLES: Role[] = [
   {
-    id: "ops", name: "운영", does: "매시 일을 나눠 맡기고, 건너뛴 예약과 실패한 작업을 다시 돌립니다", agents: ["ops", "audit"],
+    id: "ops", name: "매시 점검", does: "매시 일을 나눠 맡기고, 건너뛴 예약과 실패한 작업을 다시 돌립니다", agents: ["ops", "audit"],
     jobs: [
       { name: "매시 점검", self: { agent: "ops", action: "회사 루프", also: ["매시 점검 시작"] }, hourly: 23, countMirror: false },            // company.yml  23 * * * *
       { name: "사이트 점검", wf: "watch", countMirror: true,                                                        // watch.yml    11 */3 * * *
         times: ["00:11", "03:11", "06:11", "09:11", "12:11", "15:11", "18:11", "21:11"] },
-      { name: "감사", wf: "audit", self: { agent: "audit" }, times: ["06:35"], countMirror: false, catchup: true },                 // audit.yml    35 21 * * *
+      { name: "자동 점검", wf: "audit", self: { agent: "audit" }, times: ["06:35"], countMirror: false, catchup: true },                 // audit.yml    35 21 * * *
       { name: "문제 정찰", wf: "scout", times: ["06:37"], countMirror: true, catchup: true },                                       // scout.yml    37 21 * * *
     ],
   },
   {
-    id: "repair", name: "수리공", does: "감사에서 나온 코드 문제를 고쳐 올립니다", agents: ["repair"],
+    id: "repair", name: "자동 코드 수리", does: "자동 점검에서 나온 코드 문제를 고쳐 올립니다", agents: ["repair"],
     jobs: [{ name: "수리", wf: "repair", self: { agent: "repair" }, times: ["06:50"], countMirror: false }],        // repair.yml   50 21 * * *
   },
   {
@@ -122,16 +122,16 @@ export const ROLES: Role[] = [
     ],
   },
   {
-    id: "content", name: "콘텐츠", does: "월요일 아침 초안을 주 1편 씁니다. 쓸 거리가 없으면 그 주는 건너뜁니다", agents: ["content"],
+    id: "content", name: "글 쓰기", does: "월요일 아침 초안을 주 1편 씁니다. 쓸 거리가 없으면 그 주는 건너뜁니다", agents: ["content"],
     // 검토 일감은 회사 루프(매시)가 집어 간다 — 그건 운영 줄의 회사 루프로 본다
     jobs: [{ name: "주간 초안 작성", wf: "write", times: ["06:07"], dow: 1, countMirror: true, catchup: true }],                   // write.yml    7 21 * * 0 (월 06:07 KST)
   },
   {
     // 콘텐츠 활동 중 일감 kind 가 illustrate 인 것. 회사 루프가 집어 가고 하루 6회 상한 — 정해진 시각이 없다
-    id: "illustrate", name: "삽화", does: "초안이 생기면 도해를 그립니다", agents: ["content"], jobs: [],
+    id: "illustrate", name: "그림", does: "초안이 생기면 도해를 그립니다", agents: ["content"], jobs: [],
   },
   {
-    id: "deliver", name: "유통", does: "새 글을 검색 엔진에 알리고 네이버 블로그로 옮깁니다", agents: ["deliver"],
+    id: "deliver", name: "색인·블로그 옮기기", does: "새 글을 검색 엔진에 알리고 네이버 블로그로 옮깁니다", agents: ["deliver"],
     jobs: [
       { name: "색인 알림", wf: "snapshot", times: ["03:23"], countMirror: true, catchup: true },                                    // snapshot.yml 23 18 * * *
       // 원장 PC 의 로컬 에이전트. PC 가 꺼져 있으면 기록이 없다 — 그것도 알려야 할 일이다
@@ -144,7 +144,7 @@ export const ROLES: Role[] = [
 /** 회사 루프가 옮겨 적은 「자동 작업 X」를 사람 말로 */
 export const WORKFLOW_PLAIN: Record<string, string> = {
   watch: "사이트 점검", scout: "문제 정찰", serp: "검색 순위 측정", snapshot: "색인 알림", write: "주간 초안 작성",
-  optimize: "AI 답변 측정", audit: "감사", repair: "수리", sales: "영업 주간 정리", company: "매시 점검",
+  optimize: "AI 답변 측정", audit: "자동 점검", repair: "자동 코드 수리", sales: "영업 주간 정리", company: "매시 점검",
 };
 
 /** 옮겨 적기가 최대 1시간 늦다(회사 루프 매시 :23) + GitHub 예약 실행 자체가 늦게 뜨는 몫. 그래서 90분 */
@@ -189,15 +189,17 @@ export function plain(s: string | null | undefined): string {
   t = t.replace(/[\w.-]*gemini[\w.-]*/gi, "Gemini");
   t = t.replace(/microsoft(?=[^a-z]|$)/gi, "빙").replace(/빙를/g, "빙을").replace(/빙가/g, "빙이").replace(/빙는/g, "빙은").replace(/빙와/g, "빙과");
   t = t.replace(/\bvendor\b/gi, "");
-  t = t.replace(/\bR\d+\b/g, "감사 규칙").replace(/영점/g, "0에 머묾");   // 감사 용어
+  // 내부 이름(감사·수리공·조사·커버리지)은 화면에 안 낸다(Step 40)
+  t = t.replace(/\bR\d+\b/g, "점검 규칙").replace(/영점/g, "0에 머묾").replace(/수리공/g, "자동 코드 수리").replace(/감사/g, "자동 점검")
+    .replace(/(^|\s)조사 · /g, "$1").replace(/조사/g, "점검").replace(/커버리지/g, "읽은 비율").replace(/근거 없는/g, "증거 없는");
   t = t.replace(/\s*\(?최고\s*\d+(?:\.\d+)?\s*%\)?/g, "");
   t = t.replace(/\s*\d+(?:\.\d+)?\s*%/g, "");
   // 지운 자리에 남은 외톨이 조사(「통화 뒤 에 결과」 「: 의 비교군」). 「이 학원」의 「이」처럼 낱말도 되는 것은 안 지운다
   t = t.replace(/(^|[\s:(])(?:의|에|를|을|으로|에서)(?=\s)/g, "$1");
   t = t.replace(/\(\s*\)/g, "").replace(/\s+([,)])/g, "$1").replace(/(·\s*){2,}/g, "· ").replace(/\s+/g, " ").trim();
   t = t.replace(/\bgoogle\b/gi, "구글").replace(/\bnaver\b/gi, "네이버").replace(/\bcrawl-push\b/g, "색인 재요청")
-    .replace(/빙\(빙\)/g, "빙").replace(/빙는/g, "빙은").replace(/감사 규칙 감사 (?:신호|규칙)/g, "감사 규칙")
-    .replace(/\(\s*→\s*/g, "(").replace(/감사 규칙와/g, "감사 규칙과").replace(/감사 규칙는/g, "감사 규칙은");
+    .replace(/빙\(빙\)/g, "빙").replace(/빙는/g, "빙은").replace(/점검 규칙 자동 점검 (?:신호|규칙)/g, "점검 규칙")
+    .replace(/\(\s*→\s*/g, "(").replace(/점검 규칙와/g, "점검 규칙과").replace(/점검 규칙는/g, "점검 규칙은");
   return t.replace(/^[·—:\s-]+|[·—:\s-]+$/g, "");
 }
 
@@ -337,7 +339,7 @@ export function judge(role: Role, input: JudgeInput, now: number): AgentRow {
       const text = why ? plain(why.summary.replace(/^수리공 멈춤 — /, "").replace(/\s*\(.*$/, "")) : "";
       return row("off", `멈춰 있습니다 — ${text || "사람이 풀 때까지"}`);
     }
-    if (shown && shown.summary.startsWith("스위치 꺼짐")) return row("off", "꺼 둠 · 켜는 건 원장님 결정");
+    if (shown && shown.summary.startsWith("스위치 꺼짐")) return row("off", "꺼져 있음 — 코드 문제가 쌓입니다. 켤지는 원장님 결정");
   }
 
   // 막힘 — 가장 최근 활동이 실패. 수리공의 「검토 불합격」은 검토 관문이 제 일을 한 것이라 막힘으로 안 친다
@@ -406,6 +408,8 @@ export function judge(role: Role, input: JudgeInput, now: number): AgentRow {
     if (!recent && !open) return row("idle", "지금은 할 일이 없습니다");
   }
 
+  // 「정상」인데 마지막 한 일이 「기록 없음」이면 거짓말이다(Step 40) — 10일 안 활동이 없으면 쉬는 중
+  if (!shown) return row("idle", "최근 10일 한 일이 없습니다");
   return row("ok", null);
 }
 
@@ -435,28 +439,43 @@ function claudeCap(): number | null {
 }
 
 /**
+ * 고객 콘텐츠 줄의 늦음·쉼(Step 40). 세션 글이 3일 넘게 밀리면 늦음 — 세션을 열어야 움직인다.
+ * 밀린 것이 없고 10일 활동도 없으면 쉬는 중. 막힘·일하는 중·원장 차례 같은 판정은 그대로 둔다
+ */
+export function contentLate(row: AgentRow, 대기: OpenTask[], 활동있음: boolean, now: number): AgentRow {
+  const oldest = Math.min(...대기.map((t) => Date.parse(t.createdAt ?? t.updatedAt)).filter((x) => !Number.isNaN(x)));
+  const d = Number.isFinite(oldest) ? Math.floor((Date.parse(`${kstDay(now)}T00:00:00+09:00`) - Date.parse(`${kstDay(oldest)}T00:00:00+09:00`)) / 86400000) : 0;
+  if (row.state !== "ok" && row.state !== "idle") return row;
+  if (대기.length && d >= 3) return { ...row, state: "late", reason: `가이드 글이 ${d}일째 안 써졌습니다 — Claude 세션을 열어야 움직입니다` };
+  if (!대기.length && !활동있음) return { ...row, state: "idle", reason: "최근 10일 한 일이 없습니다" };
+  return row;
+}
+
+/**
  * 글 길이 없는 고객(아이로그·문서딱)의 콘텐츠·유통 줄 (Step 34 D49). 학원 문구 한 벌을 모든 탭에 띄우면 돌지 않는 일을 돈다고 쓰게 된다.
  *   콘텐츠  자동 초안 없음. 개선 루프가 넘긴 「세션 대기」 글 일감(session-task.mjs, agent content)만 센다. 학원 write.yml 의 옮긴 줄은 안 본다
  *   삽화    없음 — 줄을 뺀다
  *   유통    색인 알림이 그 고객에 돌면 그 일만, 안 돌면 「해당 없음」
  * 운영·수리공·측정은 회사 전체 일이라 손대지 않는다.
+ * export 는 시험용(test-todo-words.mjs 가 문장을 본다)
  */
-function clientRows(r: Role, c: { id: number; name: string }, pipe: Pipe, acts: Act[], tasks: OpenTask[], now: number): AgentRow[] {
+export function clientRows(r: Role, c: { id: number; name: string }, pipe: Pipe, acts: Act[], tasks: OpenTask[], now: number): AgentRow[] {
   if (r.id === "illustrate") return [];
   if (r.id === "content") {
     const ts = tasks.filter((t) => t.clientId === c.id && roleOfAgent(t.agent, t.kind) === "content");
-    const n = ts.filter((t) => t.status === "세션 대기").length;
-    // 바깥 글을 쓰는 고객은 그 일이 매일 돈다(Step 35). 사이트 글은 여전히 세션 몫
-    const 세션 = `세션에서 쓸 글 ${n ? `${n}건 → ${c.name} 저장소에 반영` : "없음"}`;
-    const does = pipe.marketing ? `매일 지식iN·카페 초안 1건씩, 블로그 주 2편(원장 확인 뒤 게시) · ${세션}` : `자동 초안 없음 · ${세션}`;
+    const 대기 = ts.filter((t) => t.status === "세션 대기");
+    const n = 대기.length;
+    // 바깥 글을 쓰는 고객은 그 일이 매일 돈다(Step 35). 사이트 글은 여전히 세션 몫 — 세션을 열어야 움직인다
+    const 세션 = `글은 Claude 세션이 ${c.name} 저장소에 씁니다 · 밀린 글 ${n}편`;
+    const does = pipe.marketing ? `매일 지식iN·카페 초안 1건씩, 블로그 주 2편(원장 확인 뒤 게시) · ${세션}` : 세션;
     const role: Role = { ...r, jobs: [], does };
-    const row = judge(role, { acts: acts.filter((a) => !isMirror(a) && a.clientId === c.id && roleOfAct(a) === "content"), tasks: ts }, now);
-    // 쉬는 중이면 이유 대신 위 문장을 보인다 — 「세션에서 쓸 글 없음」이 그 이유다
-    return [row.state === "idle" ? { ...row, reason: null } : row];
+    const mineActs = acts.filter((a) => !isMirror(a) && a.clientId === c.id && roleOfAct(a) === "content");
+    const row = judge(role, { acts: mineActs, tasks: ts }, now);
+    return [contentLate(row, 대기, mineActs.length > 0, now)];
   }
   if (r.id === "deliver") {
     if (!pipe.indexnow) {
-      return [{ id: r.id, name: r.name, state: "none", reason: null, does: "색인 알림 없음 · 이 고객에는 자동 유통이 안 돕니다", last: null, next: null, today: { ok: 0, fail: 0 } }];
+      return [{ id: r.id, name: r.name, state: "none", reason: null, does: "색인 알림 없음 · 이 고객에는 자동 색인 알림이 안 돕니다", last: null, next: null, today: { ok: 0, fail: 0 } }];
     }
     // 색인 알림은 회사 전체 한 번 실행이 키 있는 곳을 다 돈다 — 옮긴 줄(자동 작업 snapshot)이 그 실행이다
     const role: Role = {
@@ -491,7 +510,7 @@ export async function readAgents(now = Date.now(), client: (PipeClient & { name:
         where a.at > now() - interval '10 days'
         order by a.at desc`);
     const { rows: tr } = await p.query(
-      `select agent, kind, status, title, updated_at, client_id from geo.agent_tasks where status not in ('완료', '닫힘')`);
+      `select agent, kind, status, title, created_at, updated_at, client_id from geo.agent_tasks where status not in ('완료', '닫힘')`);
     const { rows: sr } = await p.query(`select value from geo.settings where key = 'repair_paused'`);
     let claude: Agents["claude"] = null;
     try {
@@ -514,7 +533,7 @@ export async function readAgents(now = Date.now(), client: (PipeClient & { name:
     } catch (e) { console.error("claude_calls 읽기 실패", e); }
 
     const acts: Act[] = ar.map((r) => ({ agent: r.agent, action: r.action, ok: !!r.ok, summary: r.summary, at: iso(r.at), kind: r.kind ?? null, clientId: r.client_id ?? null }));
-    const tasks: OpenTask[] = tr.map((r) => ({ agent: r.agent, kind: r.kind, status: r.status, title: r.title, updatedAt: iso(r.updated_at), clientId: r.client_id ?? null }));
+    const tasks: OpenTask[] = tr.map((r) => ({ agent: r.agent, kind: r.kind, status: r.status, title: r.title, updatedAt: iso(r.updated_at), createdAt: iso(r.created_at), clientId: r.client_id ?? null }));
     const paused = sr[0]?.value === "true";
     let merged7: number | null = null;
     try {

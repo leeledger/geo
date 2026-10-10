@@ -6,7 +6,7 @@ import type { AnswerTable, BrandRow } from "@/lib/asks";
  * ⓪ 오늘 아침 보고 — 현황판 맨 위, 「오늘 원장님이 하실 일」 위.
  *
  * 총괄(pm-report.mjs)이 매일 08시 넘어 한 장 남긴다. 문장은 거기서 틀에 숫자만 넣어 만든 것 — 여기서 고치지 않는다.
- * 상태 · 결론 · 확인 필요(있을 때만)를 펼쳐 두고, 직원별 한 줄과 다음 할 일은 접는다.
+ * 상태 · 결론 · 확인 필요(있을 때만)를 펼쳐 두고, 다음 할 일은 한 줄로 둔다(담당별 줄은 Step 40 에서 뺐다 — body.직원 저장은 그대로).
  * 저장된 보고는 회사 전체 한 장이라 고객 탭과 무관하다. 고객별 측정 표는 아래 ClientAnswers 가 탭마다 센다(Step 33).
  */
 
@@ -26,12 +26,8 @@ export const PM_CSS = `
 .pm-con{margin:8px 0 0;font-size:16px;font-weight:700}
 .pm-need{margin:10px 0 0;padding:10px 12px;background:var(--sunk);border:1px solid var(--line);border-radius:10px}
 .pm-need b{display:block;font-size:14px;color:var(--warn);margin-bottom:4px}
-.pm-need ul,.pm-staff ul{margin:0;padding-left:18px;font-size:14px;line-height:1.7;color:var(--ink)}
+.pm-need ul{margin:0;padding-left:18px;font-size:14px;line-height:1.7;color:var(--ink)}
 .pm-meta{margin:8px 0 0;font-size:14px;color:var(--ink2)}
-.pm-staff{margin-top:8px}
-.pm-staff>summary{cursor:pointer;font-size:14px;color:var(--ink2)}
-.pm-staff ul{margin-top:6px}
-.pm-staff li span{color:var(--ink2)}
 .pm-none{margin:8px 0 0;font-size:15px;color:var(--ink2)}
 .pm-none.bad{color:var(--crit)}
 .pm-ai{margin:10px 0 0;border-collapse:collapse;font-size:14px;min-width:0;width:auto}
@@ -101,7 +97,7 @@ export default function PmReport({ data, ans, client }: {
     company = (
       <>
         <div className="pm-head"><h2>오늘 아침 보고 · 회사 전체</h2></div>
-        <p className="pm-none">아직 보고가 없습니다. 매일 08시가 지나면 총괄이 한 장 남깁니다.</p>
+        <p className="pm-none">아직 보고가 없습니다. 매일 08시가 지나면 매시 점검이 한 장 남깁니다.</p>
       </>
     );
   } else {
@@ -122,15 +118,7 @@ export default function PmReport({ data, ans, client }: {
         {b.산출물.length > 0 && <p className="pm-meta">어제부터 한 일: {b.산출물.join(" · ")}</p>}
         {(b.고객별 ?? []).map((c) => <p key={c.slug} className="pm-meta"><b>{c.name}</b> {c.줄}</p>)}
         {(b.확장 ?? []).map((c) => <p key={`x-${c.slug}`} className="pm-meta"><b>{c.name}</b> {c.줄}</p>)}
-        <details className="pm-staff">
-          <summary>담당별로 한 일과 다음 할 일</summary>
-          <ul>
-            {b.직원.map((s) => (
-              <li key={s.id}><b>{s.이름}</b> {s.한일} <span>— {s.지금}</span></li>
-            ))}
-          </ul>
-          <ul>{b.다음.map((s, i) => <li key={i}>{s}</li>)}</ul>
-        </details>
+        {b.다음.length > 0 && <p className="pm-meta">다음: {b.다음.join(" · ")}</p>}
       </>
     );
   }

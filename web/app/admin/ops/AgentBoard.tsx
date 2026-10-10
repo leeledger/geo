@@ -27,7 +27,7 @@ export default function AgentBoard({ data: d, clientName, client }: { data: Ops;
         : d.agentLoop.status === "사람 대기" ? "사람이 할 일에서 막혀 있습니다"
         : d.agentLoop.status === "세션 대기" ? "Claude 세션이 쓸 글을 기다립니다"
         : "오늘 행동을 실행했습니다",
-      reason: d.agentLoop.diagnosis + (d.agentLoop.evidence ? ` · 근거: ${d.agentLoop.evidence}` : ""),
+      reason: d.agentLoop.diagnosis + (d.agentLoop.evidence ? ` · 확인한 것: ${d.agentLoop.evidence}` : ""),
       next: d.agentLoop.action,
       last: d.agentLoop.startedAt, lastLabel: "마지막 실행",
       metric: d.agentLoop.engines || d.agentLoop.status, metricLabel: d.agentLoop.engines ? "그날 자동 측정 적중 (API · 소비자 화면 아님)" : "실행 상태",
@@ -39,15 +39,15 @@ export default function AgentBoard({ data: d, clientName, client }: { data: Ops;
       status: d.serp.brandLost.length ? "attention" : d.crawl.last24h === 0 ? "review" : "recorded",
       headline: d.serp.brandLost.length ? "브랜드 검색 결과 확인이 필요합니다" : d.crawl.last24h === 0 ? "최근 크롤러 기록을 확인할 차례입니다" : "최근 수집 기록을 확인했습니다",
       reason: d.serp.brandLost.length ? `최근 측정에서 미노출: ${d.serp.brandLost.join(" · ")}` : `최근 24시간 크롤러 방문 ${d.crawl.last24h.toLocaleString("ko-KR")}회. 방문 기록은 점검 작업의 실행 여부와 별개입니다.`,
-      next: d.serp.brandLost.length ? "검색 결과와 브랜드 식별 기준을 대조해 원인을 조사합니다." : d.crawl.last24h === 0 ? "사이트 응답과 수집 장치부터 확인합니다. 방문 부재만으로 장애를 단정하지 않습니다." : "다음 점검에서 수집·발행·측정 기록의 변화를 확인합니다.",
+      next: d.serp.brandLost.length ? "검색 결과와 브랜드 식별 기준을 대조해 원인을 찾습니다." : d.crawl.last24h === 0 ? "사이트 응답과 수집 장치부터 확인합니다. 방문 부재만으로 장애를 단정하지 않습니다." : "다음 점검에서 수집·발행·측정 기록의 변화를 확인합니다.",
       last: d.lastAt.next, lastLabel: "마지막 조치 기록", metric: String(d.crawl.last24h), metricLabel: "24시간 크롤러 방문", jobs: "상태 점검 · 브리핑 · 문제 우선순위 · 후속 확인",
     },
     {
-      id: "measure", name: "측정 담당", initials: "측", role: "검색 노출과 변화의 근거를 남깁니다", mode: "매일 07:41 자동 측정",
+      id: "measure", name: "측정 담당", initials: "측", role: "검색 노출과 그 변화를 기록으로 남깁니다", mode: "매일 07:41 자동 측정",
       status: measurementOld ? "review" : "recorded",
       headline: measurementOld ? "오늘 측정 기록이 아직 없습니다" : "오늘 검색 노출을 측정했습니다",
       reason: d.serp.day ? `최근 측정일 ${d.serp.day.slice(0, 10)} · 경쟁 검색어 ${d.serp.rivalTotal}개 중 ${d.serp.rivalWon}개에서 노출됐습니다.` : "측정 기록이 없어 현재 노출을 판단할 수 없습니다.",
-      next: measurementOld ? "예정 시각과 측정 실행 결과를 확인합니다. 아직 예정 전이면 기다립니다." : d.serp.rivalWon === 0 ? "경쟁 검색어의 실제 검색 결과를 조사해 개선할 지면을 찾습니다." : "노출된 질문과 미노출 질문을 비교해 다음 개선 대상을 정합니다.",
+      next: measurementOld ? "예정 시각과 측정 실행 결과를 확인합니다. 아직 예정 전이면 기다립니다." : d.serp.rivalWon === 0 ? "경쟁 검색어의 실제 검색 결과를 살펴 개선할 지면을 찾습니다." : "노출된 질문과 미노출 질문을 비교해 다음 개선 대상을 정합니다.",
       last: d.lastAt.measure, lastLabel: "마지막 노출 측정", metric: `${d.serp.rivalWon} / ${d.serp.rivalTotal}`, metricLabel: "노출된 경쟁 검색어", jobs: "검색 노출 측정 · 크롤러 분석 · 사이트 진단 · 결과 비교",
     },
     {
@@ -55,15 +55,15 @@ export default function AgentBoard({ data: d, clientName, client }: { data: Ops;
       status: d.posts.draft > 0 ? "review" : d.posts.sinceDays === null || d.posts.sinceDays > 7 ? "review" : "recorded",
       headline: d.posts.draft > 0 ? `검토할 초안 ${d.posts.draft}편이 있습니다` : d.posts.sinceDays === null ? "발행 기록이 없습니다" : `마지막 발행은 ${d.posts.sinceDays}일 전입니다`,
       reason: d.posts.draft > 0 ? "초안 수는 저장된 미발행 글 기준입니다. 사실 확인과 발행 여부를 검토해야 합니다." : "발행 주기는 고객사의 콘텐츠 운영 범위와 함께 판단합니다.",
-      next: d.posts.draft > 0 ? "초안의 근거와 표현을 확인하고, 검토가 끝난 글의 발행을 준비합니다." : "콘텐츠 계약 범위를 확인하고 다음 질문과 주제를 선정합니다.",
-      last: d.lastAt.content, lastLabel: "마지막 사이트 발행", metric: String(d.posts.draft), metricLabel: "검토할 초안", jobs: "주제 선정 · 근거 조사 · 집필 · 도해 · 발행 전 사실 확인",
+      next: d.posts.draft > 0 ? "초안의 사실과 표현을 확인하고, 검토가 끝난 글의 발행을 준비합니다." : "콘텐츠 계약 범위를 확인하고 다음 질문과 주제를 선정합니다.",
+      last: d.lastAt.content, lastLabel: "마지막 사이트 발행", metric: String(d.posts.draft), metricLabel: "검토할 초안", jobs: "주제 선정 · 자료 찾기 · 글 쓰기 · 도해 · 발행 전 사실 확인",
     },
     {
-      id: "deliver", name: "유통 담당", initials: "유", role: "발행한 글이 발견되도록 연결합니다", mode: "색인 알림 자동 · 이관은 로그인 필요",
+      id: "deliver", name: "색인·블로그 옮기기 담당", initials: "색", role: "발행한 글이 발견되도록 연결합니다", mode: "색인 알림 자동 · 이관은 로그인 필요",
       status: d.lastAt.deliver ? "recorded" : "review",
       headline: d.lastAt.deliver ? "네이버 이관 기록이 있습니다" : "네이버 이관 기록을 확인해 주세요",
       reason: d.lastAt.deliver ? "이관 기록과 검색 색인 완료는 서로 다른 단계입니다." : "기록이 없다고 실패한 것은 아닙니다. 고객사의 네이버 운영 범위부터 확인합니다.",
-      next: "유통 대상 글과 이관 여부를 대조합니다. 구글 요청·네이버 이관에는 로그인 세션이 필요합니다.",
+      next: "알릴 글과 네이버 이관 여부를 대조합니다. 구글 요청·네이버 이관에는 로그인 세션이 필요합니다.",
       last: d.lastAt.deliver, lastLabel: "마지막 네이버 이관", metric: String(d.posts.published), metricLabel: "사이트 발행 글 · 이관 수 아님", jobs: "IndexNow 알림 · 구글 색인 요청 · 네이버 이관 · 반영 확인",
     },
     {
@@ -85,7 +85,7 @@ export default function AgentBoard({ data: d, clientName, client }: { data: Ops;
         a.next = "개선 루프가 세션 글 일감을 열면 세션이 씁니다.";
       }
       if (a.id === "deliver") {
-        a.mode = pipe.indexnow ? "색인 알림 자동 · 네이버 이관·구글 요청 없음" : "자동 유통 없음";
+        a.mode = pipe.indexnow ? "색인 알림 자동 · 네이버 이관·구글 요청 없음" : "자동 색인 알림 없음";
         a.headline = pipe.indexnow ? "매일 03:23 색인 알림이 이 사이트도 돕니다" : "이 고객에는 색인 알림이 안 돕니다";
         a.reason = pipe.indexnow ? "알림 접수와 검색 색인 완료는 서로 다른 단계입니다." : "IndexNow 키가 없어 색인 알림이 건너뜁니다.";
         a.next = pipe.indexnow ? "다음 03:23 실행 기록을 확인합니다." : "키가 생기면 색인 알림 대상에 넣습니다.";
@@ -123,13 +123,13 @@ export default function AgentBoard({ data: d, clientName, client }: { data: Ops;
         : human.length ? `원장님 확인 ${human.length}건: ${human[0].title}`
         : wait.length ? `다음 일 ${wait.length}건: ${wait[0].title}`
         : local.length ? `PC 에서 할 일 ${local.length}건: ${local[0].title}`
-        : session.length ? `세션에서 할 일 ${session.length}건: ${session[0].title}`
+        : session.length ? `Claude 세션 몫 ${session.length}건: ${session[0].title}`
         : act ? `최근 한 일: ${act.action}` : "아직 실행 기록이 없습니다",
       reason: top ? (lastLine(top.evidence) || top.detail) : act ? act.summary : a.reason,
       next: !top ? (act ? "새 신호가 생기면 매시 23분 회사 루프가 일감을 만듭니다." : a.next)
         : top.status === "사람 대기" ? `원장님 할 일 — ${top.error || top.detail}`
         : top.status === "로컬 대기" ? "원장 PC 의 로컬 에이전트가 12:40·19:10 에 처리합니다 (PC 가 켜져 있어야 합니다)."
-        : top.status === "세션 대기" ? "Claude 세션을 열면 세션이 씁니다. 원장님 몫이 아닙니다."
+        : top.status === "세션 대기" ? "Claude 세션을 열어야 움직입니다. 아무도 안 열면 그대로 쌓입니다."
         : top.status === "관찰" ? `조치를 끝내고 효과를 기다리는 중 · 다음 확인 후 필요하면 다시 합니다.`
         : "매시 23분 회사 루프가 집어 갑니다.",
       last: act?.at ?? null, lastLabel: act ? `마지막 실제 활동 (${act.ok ? "성공" : "실패"})` : "실제 활동 기록 없음",

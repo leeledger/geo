@@ -41,13 +41,14 @@ const VENDOR: Record<string, [string, string]> = {
   // [이름, 주격]
   microsoft: ["빙", "빙이"], google: ["구글", "구글이"], naver: ["네이버", "네이버가"],
   openai: ["ChatGPT", "ChatGPT 가"], anthropic: ["Claude", "Claude 가"], perplexity: ["퍼플렉시티", "퍼플렉시티가"],
+  apple: ["애플", "애플이"],
 };
 
 /** 감사 규칙 → 무엇이 문제인가 (audit.mjs 의 R1~R6) */
 const RULE: Record<string, string> = {
   R1: "같은 일이 되풀이해 실패합니다",
   R2: "자동 측정이 멈췄습니다",
-  R3: "완료로 닫혔는데 근거가 없는 일이 있습니다",
+  R3: "완료로 닫혔는데 한 일의 증거가 안 남은 일이 있습니다",
   R4: "AI 답변에서 우리 사이트 인용이 0에 머뭅니다",
   R6: "출근 기록만 있고 실제로 한 일이 없습니다",
 };
@@ -56,14 +57,14 @@ const RULE: Record<string, string> = {
 const REPAIR_WHY: [RegExp, string][] = [
   [/검토에서 떨어|검토 불합격/, "자동 수리안이 검토에서 떨어졌습니다 — Claude 세션에서 고칩니다"],
   [/가드에 걸/, "자동 수리안이 안전 검사에 걸렸습니다 — Claude 세션에서 고칩니다"],
-  [/못 고친|못 고침/, "수리공이 못 고쳤습니다 — Claude 세션에서 고칩니다"],
+  [/못 고친|못 고침/, "자동 수리가 못 고쳤습니다 — Claude 세션에서 고칩니다"],
   [/번 실패/, "자동 수리가 되풀이해 실패했습니다 — Claude 세션에서 고칩니다"],
   [/합치다 멈/, "자동 수리를 합치다 멈췄습니다 — 코드는 그대로입니다"],
   [/사람이 합칩니다/, "자동으로 못 합쳤습니다 — 사람이 합칩니다"],
   [/되돌/, "자동 수리를 되돌렸습니다 — 다시 볼 일입니다"],
-  [/거절/, "원장님이 거절한 수리안입니다 — 조사를 닫을지 정합니다"],
+  [/거절/, "원장님이 거절한 수리안입니다 — 이 일을 닫을지 정합니다"],
   [/다시 열림/, "전에 고친 문제가 다시 생겼습니다"],
-  [/고칠 수 없는 파일/, "수리공이 손댈 수 없는 파일입니다 — Claude 세션에서 고칩니다"],
+  [/고칠 수 없는 파일/, "자동 수리가 손댈 수 없는 파일입니다 — Claude 세션에서 고칩니다"],
   [/효과 없음|신호가 그대로/, "수리 뒤 7일 동안 그대로입니다"],
 ];
 
@@ -124,7 +125,7 @@ export function todoText(t: TodoTask, now = Date.now()): TodoText {
   if (t.kind === "investigate") {
     const rule = String(p.rule ?? "");
     const f = obj(p.facts);
-    let title = RULE[rule] ?? "자동 조사가 원장 확인을 기다립니다";
+    let title = RULE[rule] ?? "자동 점검이 원장 확인을 기다립니다";
     if (rule === "R5") {
       const v = VENDOR[String(f.vendor ?? "")];
       const total = num(f.pages_total), got = num(f.pages_crawled);
@@ -136,7 +137,7 @@ export function todoText(t: TodoTask, now = Date.now()): TodoText {
     // 수리공이 꺼져 있으면 조사 끝난 코드 문제가 여기로 온다. 원장이 읽고 판단할 일이 아니라 Claude 세션이 고칠 일이다
     const why = REPAIR_WHY.find(([re]) => re.test(src))?.[1] ?? "코드를 고쳐야 합니다 — Claude 세션을 열면 처리합니다";
     const 결론 = String(obj(p.diagnosis)["결론"] ?? "");
-    const action: TodoAction = 결론 ? { type: "details", label: "조사 내용 보기", body: cut(plain(결론), 320) } : linkAction(t.link);
+    const action: TodoAction = 결론 ? { type: "details", label: "점검 내용 보기", body: cut(plain(결론), 320) } : linkAction(t.link);
     return { title, why, action, doing };
   }
 
@@ -220,10 +221,28 @@ export function todoText(t: TodoTask, now = Date.now()): TodoText {
     };
   }
   if (t.kind === "listing") {
+    // detail 첫 문장은 LLM 문장이라 잘리면 「…나온데다」 같은 조각이 남는다 — payload.targets 로 새로 만든다(Step 40)
     const query = typeof p.query === "string" ? p.query : "";
+    const targets = Array.isArray(p.targets) ? p.targets.filter((x): x is string => typeof x === "string" && x.trim() !== "") : [];
     return {
       title: query ? `「${query}」 검색에 올라가기` : cut(plain(t.title), 60),
-      why: cut(plain(first(t.detail)), 90),
+      why: targets.length
+        ? `이 검색 1쪽을 차지한 곳: ${targets.slice(0, 3).join(", ")}. 그곳에 학원 정보를 올리면 됩니다(업체 로그인 필요)`
+        : "어디에 올릴지 모릅니다 — 닫아도 됩니다",
+      action: linkAction(t.link), doing,
+    };
+  }
+
+  if (t.kind === "crawl-push") {
+    // 제목은 정찰이 쓴 「… 커버리지 N% (최고 M%)」 꼴. 숫자만 읽어 사람 말로 다시 쓴다. 못 읽으면 괄호를 뺀다
+    const vendor = String(p.vendor ?? "");
+    const v = VENDOR[vendor];
+    const m = /커버리지 ([\d.]+)% \(최고 ([\d.]+)%\)/.exec(t.title);
+    return {
+      title: `${v ? v[1] : "검색 로봇이"} 우리 글을 덜 읽습니다${m ? ` (${m[1]}% · 가장 많이 읽는 곳 ${m[2]}%)` : ""}`,
+      why: vendor === "openai"
+        ? "ChatGPT 는 빙이 읽은 글로 답합니다. 빙 웹마스터에 주소를 내면 늘어납니다(로그인 필요)"
+        : "이 검색 로봇이 robots.txt 에서 막혔는지 봅니다",
       action: linkAction(t.link), doing,
     };
   }
