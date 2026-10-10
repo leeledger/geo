@@ -2,6 +2,13 @@
 *Read this before reading anything else. If it covers current state, skip BUILD-LOG.*
 
 
+## Where We Stopped (2026-10-10) — Step 40 브리프 · Step 41 다음 브리프
+
+- handoff/ARCHITECT-BRIEF.md = Step 40(40a 데이터: 검색 판정 7일 최신·notracker·bytedance 제외·brand-defense 건너뜀·네이버 이관 닫기·세션 일감 고객당 1개·listing 자동 닫기·정리 스크립트 / 40b 화면: 고객 상태 칸·은어 걷기·「안 잼」). 다음: Bob(builder)
+- handoff/NEXT-BRIEF-kin.md = Step 41 문서딱 지식iN 실제 질문 먼저·등록 직전까지 자동·카페 멈춤(원장 결정 D67~D71). Step 40 배포 뒤 ARCHITECT-BRIEF.md 로
+- 결정 D57~D71 BUILD-LOG. KG-40-1~3
+- 원장 몫: REPAIR_ENABLED 켤지 결정(자동 코드 수리)
+
 ## Where We Stopped (2026-10-05 저녁) — Step 36·37·38 배포
 
 - 36 문서딱 매일 구글·빙 색인(local-agent 고객별) · doc-tools-kr 주간 성장 리포트 → geo.growth_reports → 문서딱 탭 카드(첫 행 2026-41: GSC 7일 클릭 0·노출 36, CF 페이지뷰 6,651 봇 포함)
