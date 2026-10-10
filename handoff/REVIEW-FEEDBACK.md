@@ -1,37 +1,23 @@
-# Review Feedback — Step 41 5차 (0b34146)
+# Review Feedback — Step 42 (+D80)
 Date: 2026-10-10
 Ready for Builder: YES
 
 ## Must Fix
-- 없음.
+(없음)
 
 ## Should Fix
-- tools/kin-find.mjs:243 (confidence: 8/10) — 캡차 일감에 적은 대체 명령이 엉뚱한 프로필을 연다. 문구는 `node tools/open-session.mjs --kin ${c.marketing.blogProfile}` 이고, 원장은 저장소 루트에서 이 명령을 친다.
-  그런데 open-session.mjs:45 는 `path.resolve(process.cwd(), kp)` 로 경로를 잡는다. 루트에서 돌리면 `C:\dev\AGO&GEO\.browser-profile-docttak` 에 로그인 안 된 빈 프로필을 새로 만든다. 거기서 캡차를 풀어도 진짜 프로필 `tools\.browser-profile-docttak` 에는 남지 않는다.
-  버튼 쪽은 login-poll 이 `cwd: HERE` 로 띄우니 정상이다. 대체 명령만 틀렸다. 고침은 둘 중 하나다. ① --kin 에서 `path.resolve(HERE, kp)` 로 바꾼다(HERE 가 없으면 `path.dirname(fileURLToPath(import.meta.url))`). ② 문구를 `cd tools && node open-session.mjs --kin …` 로 바꾼다. 1분짜리라 바로 고친다. pc-runner 를 다시 띄우기 전에 고친다. 웹 배포와는 관계없다.
-
-## 지난 Must Fix — 둘 다 닫힘
-- KG-41-9: open-session `--kin` 이 그 고객 프로필로 kin.naver.com 분야 102 를 연다. 로그인 확인으로 닫지 않고, 원장이 닫거나 12분이 지나면 `ctx.close()` 로 정상 종료한다. 누르는 코드는 없다. 프로필 이름은 `^\.browser-profile-[a-z0-9-]{1,40}$` 로 거르고, 학원 프로필은 막는다.
-  login-core 창요청은 `kin-captcha-<slug>` 를 `{sites:["kin"]}` 로 받는다. 할 일 카드 버튼은 「지식iN 캡차 풀 창 열기」, 공급 줄도 그 버튼 이름으로 바뀌었다.
-- Escalate 2: marketing-draft 의 근거(417행)와 대조표 줄에서 질문 글이 빠졌다. 프롬프트에는 「질문 숫자를 규격·한도처럼 옮겨 쓰지 않는다」가 들어갔다. 시험도 붙었다.
-- 확인: test-kin 110 · test-login 56 통과 · 0 실패, web tsc 0.
-
-## 배포 순서 (KG-41-1)
-1) DDL — Git Bash 에서 아래 덩어리를 그대로 붙여 넣는다. 2) 마지막 줄이 `{ kq: 'geo.kin_questions', kr: 'geo.kin_runs', col: 1, runcols: 2 }` 인지 본다. 아니면 멈춘다. 3) 웹 배포 → 운영 /admin/ops 에서 문서딱 바깥 글 카드를 확인한다. 4) 위 Should Fix 를 고친 뒤 pc-runner 를 다시 띄운다(KG-41-7).
-```
-cd "/c/dev/AGO&GEO/tools" && node --input-type=module -e '
-import fs from "node:fs"; import pg from "pg"; import { MARKETING_DDL } from "../web/lib/marketing-core.mjs";
-for (const l of fs.readFileSync("../academy/.env.local","utf8").split(/\r?\n/)) { const m=/^([A-Z_]+)=(.*)$/.exec(l); if (m && !process.env[m[1]]) process.env[m[1]]=m[2]; }
-const u=new URL(process.env.DATABASE_URL); u.searchParams.delete("sslmode");
-const c=new pg.Client({connectionString:u.toString(),ssl:{rejectUnauthorized:process.env.DATABASE_SSL_INSECURE!=="true"}}); await c.connect();
-for (const s of MARKETING_DDL) { await c.query(s); console.log("ok", s.split("\n")[0].slice(0,70)); }
-console.log((await c.query(`select to_regclass($$geo.kin_questions$$) kq, to_regclass($$geo.kin_runs$$) kr, (select count(*) from information_schema.columns where table_schema=$$geo$$ and table_name=$$marketing_posts$$ and column_name=$$kin_question_id$$)::int col, (select count(*) from information_schema.columns where table_schema=$$geo$$ and table_name=$$kin_runs$$ and column_name in ($$status$$,$$note$$))::int runcols`)).rows[0]);
-await c.end();'
-```
+- web/lib/task-actions.ts:93-94,118 (confidence: 6/10) — 30분 막기는 읽고 나서 쓰는 순서라 원자적이지 않다. `if (Number.isFinite(요청) && Date.now() - 요청 < 30 * 60000 && !p.merge_result) return;` 다음에 dispatch 하고, 그 뒤에야 merge_requested_at 을 쓴다. 두 번 거의 동시에 누르면 dispatch 가 두 번 나간다. 피해는 없다: repair.yml `concurrency: group: repair` 가 차례로 돌리고, 두 번째 실행은 「승인 기다리는 수리안이 없음」에서 멈춘다. 다만 이 merge_result 가 이미 「완료」된 승인 일감에 남는다(화면에는 안 나옴). 고치려면 dispatch 전에 `update … set payload = payload || {merge_requested_at} where id=$1 and status='사람 대기' and (payload->>'merge_requested_at' is null or … < now()-30분 or payload ? 'merge_result') returning id` 처럼 한 문장으로 자리를 잡는다. 5분 넘으면 BUILD-LOG 로.
+- academy/scripts/repair.mjs:799 (confidence: 5/10) — `if (!손으로) { … await 합치기결과("사람이 띄운 실행이 아님"); return; }`. 봇이 띄운 merge 실행이 merge_result 를 쓰면 카드에 「합치지 못함」이 뜨고 30분 막기도 풀린다. 원장이 누른 진짜 실행이 줄 서 있을 때 화면이 헷갈린다. 봇이 merge 를 띄우는 길이 지금은 없으니 Open Question 5 그대로 BUILD-LOG 에만 둬도 된다.
 
 ## Escalate to Architect
-- 없음.
+- (E1 재확인) 승인 버튼이 실제로 합치려면 REPAIR_ENABLED=1 이 있어야 한다. D80 으로 ENABLED=1 은 이제 「승인된 합치기만」이라 켜도 무인 합치기는 안 열린다. E1 의 위험 근거가 사라졌다 — 원장에게 다시 묻을 때 이 점을 같이 전할 것.
+
+## 최우선 점검 결과
+1. 승인 없이 main 에 합치는 길 — 없음. main 푸시는 합치기() 한 곳(repair.mjs:641)이고 부르는 곳은 두 곳뿐이다. :764 무인 길은 `무인합치기(process.env, …)` = `REPAIR_ENABLED === "1" && REPAIR_UNATTENDED === "1" && 견습끝 === true && !needs_owner` 뒤에만 열린다. UNATTENDED 가 빈 값이거나 키가 없으면 무인허용()도 안 부른다(:757). :831 승인 길은 손으로·ENABLED·멈춤 아님·승인 일감 「사람 대기」·가지 머리 같음·가드 재검사·base 가 움직였으면 재검토를 모두 거친다. 자동재개()는 repair_paused 만 푼다. 합치기는 여전히 승인 또는 UNATTENDED+무인허용(되돌림 이력 r===0, 그대로)을 거쳐야 한다. 견습·needs_owner·무인허용 본문은 바뀌지 않았다.
+2. [합치기] 서버 동작 — approveRepair·discardRepair 둘 다 첫 줄이 `isAdmin()` 이고, 키 없이 부르니 쿠키로만 열린다. 대상은 `kind='repair-approval' and status='사람 대기'` 일감만이다. 토큰은 서버 env 에서 읽어 authorization 헤더에만 쓴다. 활동·payload·console 에는 why 문자열(「토큰 없음」「요청 실패 {status}」)만 남는다. Todo.tsx 로 넘어가는 값은 id 뿐이다. 반복 클릭은 30분 막기와 Actions concurrency 로 무해하다(위 Should Fix 참고).
+3. 「되돌리기 실패」 멈춤 — 재개시각()이 revert-failed·legacy·모르는 종류에 null 을 돌려주고, 재개판정은 그 경우 ok:false 다. 멈춤합치기는 무거운 쪽(3)을 지킨다. 되돌림 2번(2)이나 불합격 3번(1)이 와도 덮이지 않는다. 사람이 손으로 풀어야만 풀린다.
+4. 가드 — guard-test 21건 「전부 맞음」, test-repair-core 27/27 을 직접 돌려 확인했다. 금지·허용 정규식, 무인허용, 손으로 줄은 무변이다.
+5. Bob 의 자기 판단 — (a) 만료를 「사람 대기」 승인 일감에만 건 것: 맞다. 원장의 버리기가 만료로 덮여 같은 조사를 다시 고치는 일을 막는다. (b) `jsonb_typeof(review)='object'`: 맞다. 수리기록()이 `JSON.stringify(row.review ?? null)` 로 jsonb 'null' 을 넣으니 `is not null` 은 틀린다. (c) merge_result 가 있으면 30분 막기를 푼 것: 받아들인다. 재실행은 concurrency 와 「승인 대기 없음」으로 무해하다. (d) legacy 문구: 맞다. 셋 다 브리프보다 안전한 쪽이다.
 
 ## Cleared
-0b34146 이 KG-41-9(원장이 실제로 열 수 있는 캡차 창)와 Escalate 2(질문 숫자를 근거에서 뺌)를 맞게 고쳤다. 등록 코드는 없고 시험·tsc 모두 통과다.
-Step 41 is clear.
+repair-core.mjs 전체, repair.mjs 의 수리()·승인합치기()·합치기()·되돌리고기록()·자동재개()·연속확인()·지난수리확인() 만료, task-actions approveRepair/discardRepair, Todo.tsx 카드, repair.yml env 를 검수했다. 원장 승인 없는 합치기 길은 없고 기존 가드도 약해지지 않았다.
