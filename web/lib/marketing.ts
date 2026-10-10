@@ -1,6 +1,6 @@
 import { pool } from "./ops";
 import { countUsed, readSpots, searchLink, type Channel, type UsedCount } from "./marketing-core.mjs";
-import { 창상태말, 공급말 } from "./kin-core.mjs";
+import { 창상태말, 공급상태 } from "./kin-core.mjs";
 
 /**
  * 「오늘 올릴 글」 카드 읽기 (Step 35 D54·D56). 쓰기(서버 동작)는 marketing-actions.ts.
@@ -82,13 +82,11 @@ export async function readMarketing(clientId: number): Promise<Marketing> {
       used = countUsed(posted, cites);
     }
     // 지식iN 공급(KG-41-6) — 찾기를 한 번이라도 돈 고객만. 표가 아직 없으면 줄을 안 띄운다
-    const kinSupply = await db.query(
-      `select (select count(*)::int from geo.kin_runs where client_id = $1) as runs,
-              (select coalesce(sum(read), 0)::int from geo.kin_runs where client_id = $1 and at > now() - interval '7 days') as read,
-              (select coalesce(sum(matched), 0)::int from geo.kin_runs where client_id = $1 and at > now() - interval '7 days') as matched,
-              (select count(*)::int from geo.kin_questions where client_id = $1 and found_at > now() - interval '7 days' and note = '채택된 답 있음') as missed`, [clientId])
-      .then(({ rows: [s] }) => (s && s.runs > 0 ? 공급말({ 읽음: s.read, 맞음: s.matched, 놓침: s.missed }) : null))
-      .catch(() => null);
+    const kinSupply = await Promise.all([
+      db.query(`select status, read, matched, note from geo.kin_runs where client_id = $1 and at > now() - interval '7 days' order by at desc`, [clientId]),
+      db.query(`select (select count(*)::int from geo.kin_questions where client_id = $1 and found_at > now() - interval '7 days' and note = '채택된 답 있음') as missed,
+                       (select to_char(max(at) at time zone 'Asia/Seoul', 'YYYY-MM-DD') from geo.kin_runs where client_id = $1) as last`, [clientId]),
+    ]).then(([r, { rows: [s] }]) => 공급상태(r.rows, s?.missed ?? 0, s?.last ?? null)).catch(() => null);
     return { ok: true, enabled: true, drafts, todo, used, firstPosted, kinSupply };
   } catch (e) {
     if (noTable(e)) return { ok: true, enabled: false, drafts: [], todo: 0, used: null, firstPosted: null };

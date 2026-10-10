@@ -4,7 +4,7 @@ import fs from "node:fs";
 import { CLIENTS, bySlug } from "../clients.mjs";
 import {
   질문주소, 목록주소, 목록읽기, 분야주소, 분야읽기, 질문읽기, 날짜풀기, 막힘, 후보거름, 답차례, 붙일글,
-  kin요청검사, kin창요청, 오래된kin요청닫기, 창상태말, 창결과, 채움말, 도구맞음, 공급말,
+  kin요청검사, kin창요청, 오래된kin요청닫기, 창상태말, 창결과, 채움말, 도구맞음, 공급말, 공급상태,
 } from "../../web/lib/kin-core.mjs";
 import { MARKETING_DDL } from "../../web/lib/marketing-core.mjs";
 import { 프롬프트, 관문, 대조표, 매일채널, 질문맞는줄 } from "./marketing-draft.mjs";
@@ -75,7 +75,15 @@ for (const t of ["여권 발급 서류 뭐 필요한가요", "여권 만료 로 
 for (const t of ["여권 사진 규격이 어떻게 되나요", "정부24 pdf 용량 초과", "증명사진 용량 줄이는 법", "hwpx 파일 열기", "큐넷 사진 사이즈"]) {
   봄(`도구 질문은 맞음 — ${t}`, 도구맞음(t, 맞는페이지) !== null);
 }
-봄("공급말", 공급말({ 읽음: 170, 맞음: 4, 놓침: 3 }) === "최근 7일 읽은 질문 170개 · 맞는 질문 4개 · 이미 채택돼 놓침 3개");
+봄("공급말", 공급말({ 찾기: 3, 읽음: 170, 맞음: 4, 놓침: 3 }) === "찾기 3번 · 최근 7일 분야 목록에서 읽은 질문 170개 · 맞는 질문 4개 · 이미 채택돼 놓침 3개");
+// 공급 줄 — 못 잰 것을 0 으로 띄우지 않는다(Richard Must Fix b)
+봄("공급상태 — 7일 안 실행 없음", 공급상태([], 0, "2026-10-01") === "지식iN 최근 7일 안 돌았습니다(마지막 찾기 2026-10-01)", 공급상태([], 0, "2026-10-01"));
+봄("공급상태 — 한 번도 안 돈 고객은 줄 없음", 공급상태([], 0, null) === null);
+봄("공급상태 — 마지막이 막힘이면 캡차 말", 공급상태([{ status: "막힘", read: 0, matched: 0, note: "" }, { status: "돎", read: 50, matched: 1, note: "" }], 0, "2026-10-10")
+  === "지식iN 캡차로 멈춤 — 원장님이 한 번 로그인 창에서 풀어 주세요");
+봄("공급상태 — 실패·안 돎뿐이면 숫자 없음", (() => { const s = 공급상태([{ status: "실패", read: 0, matched: 0, note: "로그인 필요" }, { status: "안 돎", read: 0, matched: 0, note: "하루 상한" }], 0, "2026-10-10"); return s === "지식iN 최근 7일 찾기 2번 다 못 돎 — 마지막: 로그인 필요" && !/읽은 질문 0/.test(s); })());
+봄("공급상태 — 돈 실행만 더함", 공급상태([{ status: "안 돎", read: 0, matched: 0, note: "" }, { status: "돎", read: 40, matched: 1, note: "" }, { status: "돎", read: "50", matched: 2, note: "" }], 3, "2026-10-10")
+  === "지식iN 찾기 2번 · 최근 7일 분야 목록에서 읽은 질문 90개 · 맞는 질문 3개 · 이미 채택돼 놓침 3개");
 봄("거름 — 본문으로 맞음", 후보거름({ ...기본, title: "급해요", body: "정부24 에 올릴 pdf 가 너무 커요" }, "2026-10-10", 맞는페이지) === null);
 봄("거름 — 날짜 모름·못 읽음", 후보거름({ ...기본, asked: null }, "2026-10-10", 맞는페이지) === "질문 날짜 모름" && 후보거름(null, "2026-10-10", 맞는페이지) === "질문을 못 읽음");
 봄("거름 — fixture 최근 질문은 도구와 안 맞음", 후보거름({ ...최근, asked: 날짜풀기(최근.askedText, 지금) }, "2026-10-10", 맞는페이지) === "도구와 안 맞음");
@@ -144,7 +152,23 @@ const 에이전트코드 = 주석뺌(읽기("../../tools/kin-agent.mjs"));
 // ─────────────────────────────────────────── 표
 const 표 = MARKETING_DDL.join("\n");
 봄("표 — kin_questions url unique · 상태 셋", /create table if not exists geo\.kin_questions/.test(표) && /url text not null unique/.test(표) && /status in \('후보','씀','버림'\)/.test(표));
-봄("표 — kin_runs", /create table if not exists geo.kin_runs/.test(표) && ["../db/schema.sql", "../../web/db/schema.sql"].every((f) => /geo.kin_runs/.test(읽기(f))));
+// 캡차 날(Richard Must Fix a) — 그날 다시 브라우저를 안 띄우고, 정리 스크립트는 더 부르지 않는다
+{
+  const 막힌날검사 = 찾기코드.indexOf("날기록.blocked === 오늘");
+  봄("kin-find — 막힌 날 검사가 브라우저 띄우기 전", 막힌날검사 > 0 && 막힌날검사 < 찾기코드.indexOf("launchPersistentContext"));
+  봄("kin-find — 막힘 분기에서 그날을 적고 kin_runs 「막힘」", /날기록\.blocked = 오늘; 날저장\(\)/.test(찾기코드) && /실행기록\("막힘"/.test(찾기코드));
+  봄("kin-find — 막힌 날은 종료코드 4 · 「캡차」 글자(kin-agent·backlog 가 읽음)", /그만\(4, "막힘"[^\n]*캡차/.test(찾기코드));
+  봄("kin-find — 질문 열기 하루 10번", /열기하루 = 10/.test(찾기코드) && /날기록\.opens >= 열기하루/.test(찾기코드));
+  봄("kin-find — 실패·안 돎도 kin_runs", /실행기록\("실패"/.test(찾기코드) && /그만\(0, "안 돎"/.test(찾기코드));
+  const 정리 = 주석뺌(읽기("../../tools/kin-backlog.mjs"));
+  const 막힘줄 = 정리.indexOf("/로그인이 필요|캡차|하루 상한/");
+  봄("kin-backlog — 캡차·로그인·상한이면 break(continue 아님)", 막힘줄 > 0 && /^\s*break;/m.test(정리.slice(막힘줄, 막힘줄 + 300)) && !/^\s*continue;/m.test(정리.slice(막힘줄, 막힘줄 + 300)));
+  봄("kin-backlog — 찍기만이면 kin-find 를 안 부름", 정리.indexOf("if (!APPLY)") > 0 && 정리.indexOf("if (!APPLY)") < 정리.indexOf('돌리기("kin-find.mjs"') && !/--dry/.test(정리));
+  봄("kin-backlog — 하루 1건(오늘씀)", /if \(오늘씀\)/.test(정리) && /오늘씀 = true/.test(정리));
+  봄("kin-agent — 캡차면 초안도 건너뜀", /\/로그인이 필요\|캡차\/\.test\(r\.out\)\) continue/.test(에이전트코드));
+}
+봄("표 — kin_runs 상태 넷", /status in \('돎','막힘','실패','안 돎'\)/.test(표));
+봄("표 — kin_runs",/create table if not exists geo.kin_runs/.test(표) && ["../db/schema.sql", "../../web/db/schema.sql"].every((f) => /geo.kin_runs/.test(읽기(f))));
 봄("표 — marketing_posts.kin_question_id", /add column if not exists kin_question_id bigint/.test(표));
 봄("표 — schema.sql 두 벌에도", ["../db/schema.sql", "../../web/db/schema.sql"].every((f) => /geo\.kin_questions[\s\S]*kin_question_id bigint/.test(읽기(f))));
 

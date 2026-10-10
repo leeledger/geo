@@ -13,7 +13,8 @@ export function 날짜풀기(text: string | null | undefined, now?: Date): strin
 export function 막힘(text: string, url?: string): boolean;
 export const 도구말: RegExp;
 export function 도구맞음<T>(글: string, 맞는페이지: (t: string) => T | null): T | null;
-export function 공급말(s: { 읽음: number; 맞음: number; 놓침: number }): string;
+export function 공급말(s: { 찾기: number; 읽음: number; 맞음: number; 놓침: number }): string;
+export function 공급상태(runs7: { status: string; read: number; matched: number; note: string }[], 놓침: number, 마지막: string | null): string | null;
 export function 후보거름(x: (질문 & { asked: string | null }) | null, 오늘: string, 맞는페이지: (t: string) => unknown): string | null;
 export function 답차례(
   오늘글: { kin_question_id: number | string | null }[],

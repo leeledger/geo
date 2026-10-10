@@ -135,8 +135,23 @@ export const 도구말 = /사진|규격|사이즈|용량|kb|픽셀|px|hwpx?|한�
 /** 고객 페이지 줄에 맞고 도구 낱말도 있나 → 페이지 줄 | null */
 export const 도구맞음 = (글, 맞는페이지) => (도구말.test(글) ? 맞는페이지(글) : null);
 
-/** 현황판 한 줄 — 공급이 얇으면 원장이 숫자로 보게(KG-41-6) */
-export const 공급말 = (s) => `최근 7일 읽은 질문 ${s.읽음}개 · 맞는 질문 ${s.맞음}개 · 이미 채택돼 놓침 ${s.놓침}개`;
+/** 현황판 숫자 줄 — 공급이 얇으면 원장이 숫자로 보게(KG-41-6). 돈 실행이 있을 때만 쓴다 */
+export const 공급말 = (s) => `찾기 ${s.찾기}번 · 최근 7일 분야 목록에서 읽은 질문 ${s.읽음}개 · 맞는 질문 ${s.맞음}개 · 이미 채택돼 놓침 ${s.놓침}개`;
+
+/**
+ * 현황판 지식iN 공급 한 줄(Richard Must Fix b) — 못 잰 것을 0 으로 띄우지 않는다.
+ *   runs7  [{ status, read, matched, note }]  최근 7일 kin_runs, 최신 먼저
+ *   놓침   최근 7일 「채택된 답 있음」 질문 수
+ *   마지막  최근 7일 밖이라도 마지막 찾기 KST 'YYYY-MM-DD' | null
+ * 실행이 한 번도 없던 고객이면 null(줄 없음)
+ */
+export function 공급상태(runs7, 놓침, 마지막) {
+  if (!runs7.length) return 마지막 ? `지식iN 최근 7일 안 돌았습니다(마지막 찾기 ${마지막})` : null;
+  if (runs7[0].status === "막힘") return "지식iN 캡차로 멈춤 — 원장님이 한 번 로그인 창에서 풀어 주세요";
+  const 돈 = runs7.filter((r) => r.status === "돎");
+  if (!돈.length) return `지식iN 최근 7일 찾기 ${runs7.length}번 다 못 돎 — 마지막: ${runs7[0].note || runs7[0].status}`;
+  return `지식iN ${공급말({ 찾기: 돈.length, 읽음: 돈.reduce((a, r) => a + Number(r.read), 0), 맞음: 돈.reduce((a, r) => a + Number(r.matched), 0), 놓침 })}`;
+}
 
 /**
  * 후보로 둘 질문인가 → null(된다) | 안 되는 까닭.

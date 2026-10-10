@@ -3,6 +3,14 @@ Date: 2026-10-10
 Ready for Review: YES
 Status: DONE_WITH_CONCERNS — 코드·시험 통과. 실제 kin-find 첫 실행 후보 0(아래), 운영 DB 표는 아직 없음(KG-41-1)
 
+## 4차 — REVIEW-FEEDBACK 반영 (실제 실행 안 함)
+- Must Fix a: tools/kin-find.mjs — 캡차 → blocked=오늘 + kin_runs 「막힘」, 같은 날은 브라우저 전에 exit 4(「캡차」). tools/kin-backlog.mjs — 캡차·로그인·상한이면 break. kin-agent 는 「캡차」면 초안도 건너뜀(그대로)
+- Must Fix b: geo.kin_runs status·note(marketing-core · schema.sql 두 벌), kin-find 가 실패·막힘·안 돎도 남김. web/lib/kin-core.mjs 공급상태 — 안 돎·막힘·다 못 돎·숫자. web/lib/marketing.ts 가 7일 안 실행·마지막 날(KST)로 부름
+- Should Fix: 질문 열기 하루 10 · 문구 「분야 목록에서 읽은 질문」 · backlog 찍기만은 검색 안 씀 · backlog 가 저장된 후보를 먼저 씀(잘못된 「실제 질문 없음」 고침)
+- 결정: backlog --apply 도 하루 1건(나머지 질문은 후보로 남김)
+- 시험 test-kin 101(공급상태 5 · 막힌 날 순서·기록 · backlog break·찍기만·하루 1건 · 열기 하루 상한) · 나머지 회귀 0 실패 · tsc 둘 다 0
+- 남은 것: KG-41-9(캡차를 풀 창), Escalate 2(질문 숫자 근거)
+
 ## 3차 — KG-41-5·6 결정 반영
 - web/lib/kin-core.mjs 도구말·도구맞음(후보거름이 씀)·공급말 · kin-core.d.mts
 - tools/kin-agent.mjs (새) — 지식iN 찾기·답 초안, local-agent 에서 옮김(tools/local-agent.mjs 해당 블록 지움) · tools/pc-runner.mjs JOBS kin-agent 09·13·19
@@ -37,7 +45,7 @@ Status: DONE_WITH_CONCERNS — 코드·시험 통과. 실제 kin-find 첫 실행
 - academy/scripts/test-kin.mjs (새, 64) · test-docttak.mjs:173-188 (+3) · fixtures/kin/ (원문 5개, 로그인 아이디 지움)
 
 ## 시험
-test-kin 86 · test-docttak 35 · test-marketing 51 · 스냅샷 같음 · test-login 56 · test-clients 99 · test-client-core 186 · test-ops-words 532 · test-todo-words 14 — 실패 0. web tsc 0 · academy tsc 0
+test-kin 101 · test-docttak 35 · test-marketing 51 · 스냅샷 같음 · test-login 56 · test-clients 99 · test-client-core 186 · test-ops-words 532 · test-todo-words 14 — 실패 0. web tsc 0 · academy tsc 0
 
 ## Open Questions
 - 하루 1건을 local-agent(답차례)에만 둔 것 — marketing-draft 를 손으로 부르면 상한 밖. 밀린 초안 정리 때문에 이렇게 했다

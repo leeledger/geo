@@ -273,6 +273,8 @@ create table if not exists geo.kin_runs (
   id bigserial primary key,
   client_id int not null references geo.clients(id),
   at timestamptz not null default now(),
+  status text not null default '돎' check (status in ('돎','막힘','실패','안 돎')),
+  note text not null default '',
   read int not null default 0,
   matched int not null default 0,
   candidates int not null default 0

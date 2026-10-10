@@ -5,8 +5,10 @@
  *                         옛 초안은 버림 「실제 질문에 맞춰 다시 씀(#새 초안)」, 없으면 버림 「실제 질문 없음(D70)」
  *
  * 원장 PC 에서 돈다(고객 네이버 프로필). 로컬 에이전트와 겹치지 않게 그 잠금을 같이 쓴다. kin-find 의 하루 검색 상한(10회)을 같이 센다.
+ * 이미 저장된 7일 안 후보 질문을 먼저 쓴다. 초안은 그날 실제 질문 답 1건 안에서만(나머지는 후보로 남아 kin-agent 가 하루 1건씩).
+ * 캡차·로그인·상한을 만나면 멈춘다 — 남은 초안은 그대로 둔다.
  *
- *   node tools/kin-backlog.mjs --client docttak            무엇을 할지 찍기만(kin-find --dry, DB 안 바꿈)
+ *   node tools/kin-backlog.mjs --client docttak            무엇을 할지 찍기만(검색 안 씀 · 저장된 질문만 · DB 안 바꿈)
  *   node tools/kin-backlog.mjs --client docttak --apply    실제로 정리
  */
 import fs from "node:fs";
@@ -55,24 +57,45 @@ try {
     console.log(`  #${m.id} 카페 「${m.target_query}」 → 버림 「카페 멈춤(D69)」`);
     await 버림(m.id, "카페 멈춤(D69)");
   }
+  // 이미 저장된 7일 안 후보 질문 — kin-find 는 본 주소를 건너뛰어 FOUND 를 안 찍으니 먼저 DB 에서 찾는다
+  const 표있음 = 칸있음 && (await q(`select to_regclass('geo.kin_questions') t`))[0]?.t != null;
+  const 저장된 = async (query) => (표있음 ? (await q(`select id, url from geo.kin_questions where client_id = $1 and query = $2 and status = '후보'
+      and asked_at >= (now() at time zone 'Asia/Seoul')::date - 6 order by asked_at desc, id limit 1`, [c.id, query]))[0] ?? null : null);
+  // 하루 1건(세션 결정) — 밀린 정리도 그날 실제 질문 답 1건 안에서만 쓴다. 나머지 질문은 후보로 남아 kin-agent 가 하루 1건씩 쓴다
+  let 오늘씀 = 표있음 && (await q(`select 1 from geo.marketing_posts where client_id = $1 and channel = 'jisikin' and kin_question_id is not null
+      and created_on = (now() at time zone 'Asia/Seoul')::date limit 1`, [c.id])).length > 0;
   for (const m of 밀림.filter((x) => x.channel === "jisikin")) {
-    const r = 돌리기("kin-find.mjs", ["--client", SLUG, "--query", m.target_query, ...(APPLY ? [] : ["--dry"])], 10);
-    if (/로그인이 필요|캡차|하루 상한/.test(r.out) || !r.ok) {
-      console.log(`  #${m.id} 지식iN 「${m.target_query}」 — 질문을 못 찾아봄, 그대로 둠: ${r.out.trim().split("\n").pop()}`);
+    let 질문 = await 저장된(m.target_query);
+    // 찍기만일 때는 검색을 쓰지 않는다(그날 kin-agent 몫을 먹지 않게) — 저장된 것만 본다
+    if (!APPLY) {
+      console.log(`  #${m.id} 지식iN 「${m.target_query}」 → ${질문 ? `저장된 실제 질문 #${질문.id} 있음 — 다시 씀(하루 1건)` : "저장된 실제 질문 없음 — --apply 때 그 검색어로 한 번 찾아보고, 없으면 버림"}`);
       continue;
     }
-    const 찾음 = /^FOUND (\d+) (\S+)/m.exec(r.out);
-    const 후보줄 = /^\s+후보 .+$/m.exec(r.out)?.[0].trim();
-    if (!APPLY) { console.log(`  #${m.id} 지식iN 「${m.target_query}」 → ${후보줄 ? `실제 질문 있음(${후보줄}) — 다시 씀` : "실제 질문 없음 — 버림"}`); continue; }
-    if (!찾음) {
+    if (!질문) {
+      const r = 돌리기("kin-find.mjs", ["--client", SLUG, "--query", m.target_query], 10);
+      // 캡차·로그인·상한이면 멈춘다 — 막힌 화면을 초안마다 다시 두드리지 않는다. 남은 초안은 그대로 둔다
+      if (/로그인이 필요|캡차|하루 상한/.test(r.out) || !r.ok) {
+        console.log(`  #${m.id} 지식iN 「${m.target_query}」 — 더 찾지 않고 멈춤(남은 초안 그대로): ${r.out.trim().split("\n").pop()}`);
+        break;
+      }
+      const f = /^FOUND (\d+) (\S+)/m.exec(r.out);
+      질문 = f ? { id: f[1], url: f[2] } : null;
+    }
+    if (!질문) {
       console.log(`  #${m.id} 지식iN 「${m.target_query}」 → 실제 질문 없음 — 버림`);
       await 버림(m.id, "실제 질문 없음(D70)");
       continue;
     }
-    const 쓰기 = 돌리기(path.join(HERE, "../academy/scripts/marketing-draft.mjs"), ["--client", SLUG, "--kin-question", 찾음[1]], 12);
-    const [새] = await q(`select id from geo.marketing_posts where kin_question_id = $1 and status = '초안' order by id desc limit 1`, [Number(찾음[1])]);
-    console.log(`  #${m.id} 지식iN 「${m.target_query}」 → 질문 #${찾음[1]} ${찾음[2]} · ${새 ? `새 초안 #${새.id}` : `다시 쓰기 실패: ${쓰기.out.trim().split("\n").pop()}`} — 옛 초안 버림`);
-    await 버림(m.id, 새 ? `실제 질문에 맞춰 다시 씀(#${새.id})` : `실제 질문 #${찾음[1]} 에 다시 쓰다 탈락`);
+    if (오늘씀) {
+      console.log(`  #${m.id} 지식iN 「${m.target_query}」 → 질문 #${질문.id} 후보로 둠(오늘 1건 씀 — kin-agent 가 다음 날부터) — 옛 초안 버림`);
+      await 버림(m.id, `실제 질문 #${질문.id} 로 넘김 — 답은 하루 1건씩`);
+      continue;
+    }
+    const 쓰기 = 돌리기(path.join(HERE, "../academy/scripts/marketing-draft.mjs"), ["--client", SLUG, "--kin-question", String(질문.id)], 12);
+    오늘씀 = true;   // 탈락(버림 행)도 그날 1건으로 센다 — kin-core 답차례와 같은 셈
+    const [새] = await q(`select id from geo.marketing_posts where kin_question_id = $1 and status = '초안' order by id desc limit 1`, [Number(질문.id)]);
+    console.log(`  #${m.id} 지식iN 「${m.target_query}」 → 질문 #${질문.id} ${질문.url} · ${새 ? `새 초안 #${새.id}` : `다시 쓰기 실패: ${쓰기.out.trim().split("\n").pop()}`} — 옛 초안 버림`);
+    await 버림(m.id, 새 ? `실제 질문에 맞춰 다시 씀(#${새.id})` : `실제 질문 #${질문.id} 에 다시 쓰다 탈락`);
   }
 } finally {
   fs.rmSync(LOCK, { force: true });

@@ -6,6 +6,8 @@
  * 검색은 분야에서 후보를 다 못 채웠을 때만(보조).
  * 화면 글자만 읽는다. 누르는 것은 없다(주소 이동뿐). 캡차·차단이 뜨면 멈추고 사람 일감 — 우회하지 않는다.
  * 요청 사이 3~6초 쉼, 분야 목록 하루 15쪽(한 번에 5) · 검색 하루 10회(한 번에 4) — .kin-find-day.json 에 따로 셈, 후보 하루 3개.
+ * 질문 열기는 하루 10번. 캡차를 만난 날은 .kin-find-day.json blocked 로 적고 그날 다시 열지 않는다(종료코드 4).
+ * 실행마다 geo.kin_runs 한 줄(돎·막힘·실패·안 돎) — 현황판 공급 줄이 못 잰 날을 0 으로 띄우지 않게.
  * 하루 세 번(kin-agent.mjs, pc-runner 09·13·19시) 돈다. 분야마다 본 가장 큰 docId 를 적어 두고 그보다 새 질문만 본다.
  *
  * 거름: 질문 날 7일 안(오늘 포함) · 채택 답 없음 · 답 3개 미만 · 제목·본문이 고객 페이지 줄(marketing.pages)에 맞음.
@@ -42,7 +44,7 @@ const DRY = process.argv.includes("--dry") || LOOK;
 const ONE = arg("--query");
 
 // 하루 세 번 돈다(kin-agent, 09·13·19시). 분야 목록은 하루 15쪽 · 한 번에 5쪽, 검색은 하루 10회 · 한 번에 4회
-const 검색상한 = 10, 분야상한 = 15, 분야한번 = 5, 검색한번 = ONE ? 1 : 4, 후보상한 = ONE ? 1 : 3, 열기상한 = ONE ? 4 : 8;
+const 검색상한 = 10, 분야상한 = 15, 분야한번 = 5, 검색한번 = ONE ? 1 : 4, 후보상한 = ONE ? 1 : 3, 열기상한 = ONE ? 4 : 8, 열기하루 = 10;
 const 오늘 = kst날();
 const 일주일전 = new Date(Date.parse(`${오늘}T00:00:00Z`) - 6 * 86400000).toISOString().slice(0, 10);
 const 쉼 = () => new Promise((r) => setTimeout(r, 3000 + Math.floor(Math.random() * 3000)));
@@ -79,39 +81,50 @@ const 프로필 = path.join(HERE, c.marketing.blogProfile);
 const 로그인일감 = (why) => 사람일감(c.id, `login-naver-blog-${c.slug}`, `${c.name} 네이버 로그인 필요`,
   `${why} 지식iN 질문 찾기·답 창이 이 프로필(${c.marketing.blogProfile})을 씁니다. 현황판 「로그인 창 열기」를 누르거나 PC 에서 node tools/open-session.mjs --blog ${c.marketing.blogProfile} 로 로그인해 주세요.`);
 
+if (!DRY) for (const s of MARKETING_DDL) await q(s);
+/**
+ * 실행 한 번 = kin_runs 한 줄(KG-41-6 · Richard Must Fix b). 돈 것만이 아니라 막힘·실패·안 돎도 남긴다 — 현황판이 못 잰 날을 0 으로 띄우지 않게.
+ * status 돎 · 막힘(캡차) · 실패(로그인·화면 바뀜·오류) · 안 돎(상한·창 떠 있음). --dry 는 안 남긴다
+ */
+const 실행기록 = (status, note, n = {}) => DRY ? Promise.resolve() :
+  q(`insert into geo.kin_runs (client_id, status, note, read, matched, candidates) values ($1,$2,$3,$4,$5,$6)`,
+    [c.id, status, String(note).slice(0, 300), n.read ?? 0, n.matched ?? 0, n.candidates ?? 0]).catch((e) => console.log(`  ⚠ kin_runs 못 남김: ${e.message}`));
+const 그만 = async (code, status, note, line) => { console.log(line); await 실행기록(status, note); process.exit(code); };
+
 if (!fs.existsSync(프로필)) {
-  console.log(`✗ 로그인이 필요합니다 — 프로필 ${c.marketing.blogProfile} 이 없습니다`);
   await 로그인일감("네이버 프로필이 아직 없습니다.");
   await 활동(false, "로그인 필요 — 프로필 없음", c.id);
-  process.exit(2);
+  await 그만(2, "실패", "로그인 필요 — 프로필 없음", `✗ 로그인이 필요합니다 — 프로필 ${c.marketing.blogProfile} 이 없습니다`);
 }
 // 로그인 창(login-poll → open-session·kin-open)이 같은 프로필을 쓰고 있으면 안 연다 — 크로미움이 깨진다
 if (fs.existsSync(OS_LOCK) && Date.now() - fs.statSync(OS_LOCK).mtimeMs < 13 * 60000) {
-  console.log("✗ 로그인·답 창이 떠 있습니다 — 다음 차례에 다시");
-  process.exit(1);
+  await 그만(1, "안 돎", "로그인·답 창이 떠 있음", "✗ 로그인·답 창이 떠 있습니다 — 다음 차례에 다시");
 }
 
-// 검색 하루 10회 · 분야 목록 하루 15쪽 — 따로 센다. --dry·--look 도 실제 요청이라 센다
+// 검색 하루 10회 · 분야 목록 하루 15쪽 · 질문 열기 하루 10번 — 따로 센다. --dry·--look 도 실제 요청이라 센다
 // seen — 분야마다 지금까지 본 가장 큰 docId. 다음 실행은 그보다 새 질문만 「읽은 질문」으로 센다(세 번 돌아도 겹쳐 세지 않게)
+// blocked — 캡차를 만난 날. 그날은 다시 열지 않는다(13·19시 차례·밀린 초안 정리 모두)
 const 날기록 = (() => {
   try {
     const j = JSON.parse(fs.readFileSync(DAY_FILE, "utf8"));
-    return j.day === 오늘 ? { lists: 0, seen: {}, ...j } : { day: 오늘, searches: 0, lists: 0, next: j.next ?? 0, seen: j.seen ?? {} };
-  } catch { return { day: 오늘, searches: 0, lists: 0, next: 0, seen: {} }; }
+    return j.day === 오늘 ? { lists: 0, opens: 0, seen: {}, ...j } : { day: 오늘, searches: 0, lists: 0, opens: 0, next: j.next ?? 0, seen: j.seen ?? {} };
+  } catch { return { day: 오늘, searches: 0, lists: 0, opens: 0, next: 0, seen: {} }; }
 })();
 const 날저장 = () => fs.writeFileSync(DAY_FILE, JSON.stringify(날기록));
+if (날기록.blocked === 오늘) await 그만(4, "막힘", "오늘 캡차 — 다시 안 엶", "✗ 오늘 캡차가 떴던 날입니다 — 우회하지 않고 건너뜀(캡차)");
 const 분야남음 = !ONE && (c.marketing.kinDirs ?? []).length > 0 && 날기록.lists < 분야상한;
-if (날기록.searches >= 검색상한 && !분야남음) { console.log(`오늘 검색 ${날기록.searches}회·분야 목록 ${날기록.lists}쪽 — 하루 상한이라 건너뜀`); process.exit(0); }
+if ((날기록.searches >= 검색상한 && !분야남음) || 날기록.opens >= 열기하루) {
+  await 그만(0, "안 돎", "하루 상한", `오늘 검색 ${날기록.searches}회·분야 목록 ${날기록.lists}쪽·질문 열기 ${날기록.opens}번 — 하루 상한이라 건너뜀`);
+}
 
-if (!DRY) for (const s of MARKETING_DDL) await q(s);
 const 표없음 = (e) => (e?.code === "42P01" ? [] : Promise.reject(e));
 const 승인 = (await q(`select pq.text from geo.pilot_questions pq join geo.pilots p on p.id = pq.pilot_id
   where p.client_id = $1 and pq.approved and pq.stage = 'keyword' order by pq.position`, [c.id])).map((r) => r.text);
 const 검색어들 = ONE ? [ONE] : 승인.filter((t) => 맞는페이지(t));
-if (!검색어들.length) { console.log("승인 검색어가 없습니다 — 건너뜀"); process.exit(0); }
+if (!검색어들.length) await 그만(0, "안 돎", "승인 검색어 없음", "승인 검색어가 없습니다 — 건너뜀");
 const 오늘후보 = ONE ? 0 : Number((await q(`select count(*)::int n from geo.kin_questions where client_id = $1 and status = '후보'
   and (found_at at time zone 'Asia/Seoul')::date = $2::date`, [c.id, 오늘]).catch(표없음))[0]?.n ?? 0);
-if (오늘후보 >= 후보상한) { console.log(`오늘 후보 ${오늘후보}개 — 하루 상한 ${후보상한}개라 건너뜀`); process.exit(0); }
+if (오늘후보 >= 후보상한) await 그만(0, "안 돎", "후보 하루 상한", `오늘 후보 ${오늘후보}개 — 하루 상한 ${후보상한}개라 건너뜀`);
 const 본주소 = new Set((await q(`select url from geo.kin_questions where client_id = $1`, [c.id]).catch(표없음)).map((r) => r.url));
 
 const ctx = await chromium.launchPersistentContext(프로필, {
@@ -128,6 +141,7 @@ try {
     console.log("✗ 로그인이 필요합니다 — 네이버 로그인이 풀렸습니다");
     await 로그인일감("네이버 로그인이 풀렸습니다.");
     await 활동(false, "로그인 필요", c.id);
+    await 실행기록("실패", "로그인 필요");
     끝코드 = 2;
   } else {
     const 시작 = ONE ? 0 : 날기록.next % 검색어들.length;
@@ -139,12 +153,12 @@ try {
       if (막힘(text, page.url())) throw Object.assign(new Error(`캡차·차단 화면: ${page.url()}`), { 막힘: true });
       return page.content();
     };
-    const 다참 = () => 찾음.length + 오늘후보 >= 후보상한 || 열어봄 >= 열기상한;
+    const 다참 = () => 찾음.length + 오늘후보 >= 후보상한 || 열어봄 >= 열기상한 || 날기록.opens >= 열기하루;
     // 질문 하나를 열어 읽고 거르고 남긴다. false 면 화면을 못 읽은 것
     const 살펴보기 = async (url, query) => {
       await 쉼();
       const d = await 열기(url);
-      열어봄++;
+      열어봄++; 날기록.opens++; 날저장();
       본주소.add(url);
       if (LOOK) fs.writeFileSync(path.join(FIXTURE, `detail-${new URL(url).searchParams.get("docId")}.html`), 원문줄임(d));
       const r = 질문읽기(d);
@@ -222,14 +236,18 @@ try {
   }
 } catch (e) {
   if (e.막힘) {
-    console.log(`✗ ${e.message} — 우회하지 않고 멈춥니다`);
+    console.log(`✗ ${e.message} — 우회하지 않고 멈춥니다(캡차)`);
+    // 그날은 다시 열지 않는다 — --dry·--look 도 실제 요청이었으니 같이 적는다
+    날기록.blocked = 오늘; 날저장();
     await 사람일감(c.id, `kin-captcha-${c.slug}`, "지식iN 이 자동 접근을 막았습니다(캡차)",
-      `${오늘} 지식iN 질문 찾기 중 캡차·차단 화면이 떴습니다. 우회하지 않습니다. PC 에서 ${c.marketing.blogProfile} 프로필로 kin.naver.com 을 열어 직접 풀어 주시면 다음 날부터 다시 찾습니다.`);
-    await 활동(false, `캡차·차단 — 멈춤 (검색 ${검색}회 · 열어 본 질문 ${열어봄})`, c.id);
+      `${오늘} 지식iN 질문 찾기 중 캡차·차단 화면이 떴습니다. 우회하지 않습니다. 오늘은 더 열지 않습니다. PC 에서 ${c.marketing.blogProfile} 프로필로 kin.naver.com 을 열어 한 번 풀어 주시면 다음 날부터 다시 찾습니다.`);
+    await 활동(false, `캡차·차단 — 오늘 멈춤 (검색 ${검색}회 · 열어 본 질문 ${열어봄})`, c.id);
+    await 실행기록("막힘", "캡차·차단 화면");
     끝코드 = 4;
   } else {
     console.log(`✗ ${e.message}`);
     await 활동(false, `실패: ${e.message}`, c.id);
+    await 실행기록("실패", e.message);
     끝코드 = 1;
   }
 } finally {
@@ -243,12 +261,13 @@ if (끝코드 === 0) {
   if (못읽음) {
     console.log(`✗ ${못읽음}`);
     await 활동(false, `${못읽음} — ${요약}`, c.id);
+    await 실행기록("실패", 못읽음);
     끝코드 = 1;
   } else {
     await 활동(true, 요약, c.id);
-    // 현황판 「최근 7일 읽은 질문 · 맞는 질문」 — 맞는 질문은 열어 보고 도구와 맞았던 것(채택돼 놓친 것 포함)
-    if (!DRY) await q(`insert into geo.kin_runs (client_id, read, matched, candidates) values ($1,$2,$3,$4)`,
-      [c.id, 분야셈.칠일, [...찾음, ...떨어짐].filter((x) => !["도구와 안 맞음", "질문을 못 읽음", "7일 지남", "질문 날짜 모름"].includes(x.까닭 ?? "")).length, 찾음.length]).catch((e) => console.log(`  ⚠ kin_runs 못 남김: ${e.message}`));
+    // 현황판 「분야 목록에서 읽은 질문 · 맞는 질문」 — 맞는 질문은 열어 보고 도구와 맞았던 것(채택돼 놓친 것 포함, 검색으로 연 것도)
+    await 실행기록("돎", 요약, { read: 분야셈.칠일, candidates: 찾음.length,
+      matched: [...찾음, ...떨어짐].filter((x) => !["도구와 안 맞음", "질문을 못 읽음", "7일 지남", "질문 날짜 모름"].includes(x.까닭 ?? "")).length });
     // 캡차 일감은 다시 읽히면 풀린 것이다
     if (!DRY) await q(`update geo.agent_tasks set status='완료', done_at=now(), updated_at=now(), evidence=left(coalesce(evidence,'') || E'\n' || $3, 4000)
       where client_id=$1 and dedupe_key=$2 and status='사람 대기'`, [c.id, `kin-captcha-${c.slug}`, `${오늘} 지식iN 다시 읽힘`]).catch(() => {});
