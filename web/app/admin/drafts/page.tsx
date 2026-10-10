@@ -143,7 +143,7 @@ function 자동카드({ p }: { p: AutoPost }) {
           <summary>내리기</summary>
           <form action={takedownPost}>
             <input type="hidden" name="slug" value={p.slug} />
-            <p className="why">사이트에서는 5분 안에 사라집니다. 네이버 글은 「오늘 하실 일」로 따로 올라갑니다.</p>
+            <p className="why">글 주소는 5분 안에, 홈·목록·RSS 는 바로(안 되면 15분 안에) 사라집니다. 네이버 글은 「오늘 하실 일」로 따로 올라갑니다.</p>
             <select name="reason" defaultValue="">
               <option value="">이유 안 고름</option>
               {TAKEDOWN_REASONS.map((r) => <option key={r} value={r}>{r}</option>)}

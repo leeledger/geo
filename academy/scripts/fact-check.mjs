@@ -14,7 +14,7 @@
  */
 import fs from "node:fs";
 import { fileURLToPath } from "node:url";
-import { 주장뽑기, 본문문장, 창찾기, 판정읽기, 문장지우기, 접기 } from "../../web/lib/post-auto-core.mjs";
+import { 주장뽑기, 본문문장, 창찾기, 판정읽기, 문장지우기, 접기, 학원표지 } from "../../web/lib/post-auto-core.mjs";
 
 /** 설문·조사·통계를 들먹이는 문장. 우리는 설문을 한 적이 없다. */
 const 조사표현 = /설문|조사에 따르면|통계|응답자|리서치|연구 결과|자료에 따르면/;
@@ -36,22 +36,51 @@ export const 글만 = (html) => 엔티티(String(html)
   .replace(/[ \t\f\v]+/g, " ").replace(/\s*\n\s*/g, "\n").trim();
 
 /**
- * 주소 하나를 가져온다. 15초·2MB·리다이렉트 따라감(그라운딩 리다이렉트 포함). 최종 주소를 남긴다.
- * PDF·HTML 아닌 것 = 「못 읽음」(근거 아님). DNS·타임아웃 = 「네트워크」(전부 그러면 미룸)
+ * PDF 텍스트층만 읽는다(D96). 스캔본(글자가 그림)은 텍스트가 거의 안 나와 「못 읽음」 그대로다.
+ * pdfjs-dist 가 없으면(설치 안 된 환경) 던진다 — 부르는 쪽이 「못 읽음」으로 적는다
  */
-export async function 출처가져오기(주소, { fetch: f = fetch, 시간 = 15000, 상한 = 2 * 1024 * 1024 } = {}) {
-  const 끝 = (상태, 왜, 덧 = {}) => ({ 주소, 최종: 덧.최종 ?? 주소, 상태, 왜, 글: 덧.글 ?? "" });
-  const ac = new AbortController();
-  const 타이머 = setTimeout(() => ac.abort(), 시간);
+export const PDF상한 = { 바이트: 5 * 1024 * 1024, 쪽: 50 };
+export async function PDF글(바이트, { 쪽 = PDF상한.쪽 } = {}) {
+  const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
+  const 작업 = pdfjs.getDocument({ data: new Uint8Array(바이트), isEvalSupported: false, disableFontFace: true, useSystemFonts: false, verbosity: 0 });
+  const doc = await 작업.promise;
   try {
-    const res = await f(주소, { redirect: "follow", signal: ac.signal, headers: { "user-agent": UA, accept: "text/html,application/xhtml+xml;q=0.9,*/*;q=0.5", "accept-language": "ko,en;q=0.5" } });
+    const 줄 = [];
+    for (let i = 1; i <= Math.min(doc.numPages, 쪽); i++) {
+      const page = await doc.getPage(i);
+      const t = await page.getTextContent();
+      줄.push(t.items.map((it) => `${it.str ?? ""}${it.hasEOL ? "\n" : ""}`).join(" "));
+      page.cleanup();
+    }
+    return { 글: 줄.join("\n").replace(/[ \t]+/g, " ").trim(), 쪽수: doc.numPages };
+  } finally {
+    await 작업.destroy().catch(() => {});
+  }
+}
+
+/**
+ * 주소 하나를 가져온다. 15초·2MB·리다이렉트 따라감(그라운딩 리다이렉트 포함). 최종 주소를 남긴다.
+ * PDF 는 따로 30초·5MB·50쪽까지 텍스트층을 읽는다(D96) — 스캔본·상한 넘음은 「못 읽음」.
+ * HTML·PDF 아닌 것 = 「못 읽음」(근거 아님). DNS·타임아웃 = 「네트워크」(전부 그러면 미룸)
+ */
+export async function 출처가져오기(주소, { fetch: f = fetch, 시간 = 15000, 상한 = 2 * 1024 * 1024, pdf = PDF글 } = {}) {
+  const 끝 = (상태, 왜, 덧 = {}) => ({ 주소, 최종: 덧.최종 ?? 주소, 상태, 왜, 글: 덧.글 ?? "", ...(덧.PDF ? { PDF: true } : {}) });
+  const ac = new AbortController();
+  let 타이머 = setTimeout(() => ac.abort(), 시간);
+  try {
+    const res = await f(주소, { redirect: "follow", signal: ac.signal, headers: { "user-agent": UA, accept: "text/html,application/xhtml+xml,application/pdf;q=0.9,*/*;q=0.5", "accept-language": "ko,en;q=0.5" } });
     const 최종 = res.url || 주소;
     if (!res.ok) return 끝("못 읽음", `HTTP ${res.status}`, { 최종 });
     const 종류 = String(res.headers.get("content-type") ?? "").toLowerCase();
-    if (/pdf/.test(종류) || /\.pdf(?:$|[?#])/i.test(최종)) return 끝("PDF", "PDF 는 본문을 못 읽음", { 최종 });
-    if (종류 && !/html|text\/plain|xml/.test(종류)) return 끝("못 읽음", `HTML 아님(${종류.split(";")[0]})`, { 최종 });
+    const PDF같음 = /pdf/.test(종류) || /\.pdf(?:$|[?#])/i.test(최종);
+    // 글자 아닌 것(octet-stream 등)은 PDF 일 수 있어 PDF 상한으로 받아 머리를 본다
+    const 글자종류 = !종류 || /html|text\/plain|xml/.test(종류);
+    if (!PDF같음 && !글자종류 && !/octet-stream|download|force-download/.test(종류)) return 끝("못 읽음", `HTML 아님(${종류.split(";")[0]})`, { 최종 });
+    const 이번상한 = 글자종류 && !PDF같음 ? 상한 : PDF상한.바이트;
+    if (이번상한 !== 상한) { clearTimeout(타이머); 타이머 = setTimeout(() => ac.abort(), Math.max(시간, 30000)); }
     const 조각 = [];
     let 크기 = 0;
+    let 넘음 = false;
     const r = res.body?.getReader?.();
     if (r) {
       for (;;) {
@@ -59,14 +88,25 @@ export async function 출처가져오기(주소, { fetch: f = fetch, 시간 = 15
         if (done) break;
         조각.push(value);
         크기 += value.length;
-        if (크기 >= 상한) { await r.cancel().catch(() => {}); break; }
+        if (크기 >= 이번상한) { 넘음 = true; await r.cancel().catch(() => {}); break; }
       }
     } else {
       const b = new Uint8Array(await res.arrayBuffer());
-      조각.push(b.slice(0, 상한));
+      넘음 = b.length > 이번상한;
+      조각.push(b.slice(0, 이번상한));
     }
     const 바이트 = Buffer.concat(조각.map((x) => Buffer.from(x)));
-    if (바이트.subarray(0, 5).toString("latin1") === "%PDF-") return 끝("PDF", "PDF 는 본문을 못 읽음", { 최종 });
+    if (바이트.subarray(0, 5).toString("latin1") === "%PDF-") {
+      if (넘음) return 끝("못 읽음", `PDF 가 ${PDF상한.바이트 / 1024 / 1024}MB 를 넘음`, { 최종, PDF: true });
+      try {
+        const { 글, 쪽수 } = await pdf(바이트);
+        if (글.replace(/\s/g, "").length < 200) return 끝("못 읽음", "PDF 에 글자층이 없음(스캔본)", { 최종, PDF: true });
+        return 끝("읽음", 쪽수 > PDF상한.쪽 ? `PDF ${쪽수}쪽 중 앞 ${PDF상한.쪽}쪽만` : "", { 최종, 글, PDF: true });
+      } catch (e) {
+        return 끝("못 읽음", `PDF 를 못 읽음(${String(e?.message ?? e).slice(0, 60)})`, { 최종, PDF: true });
+      }
+    }
+    if (!글자종류) return 끝("못 읽음", `HTML 아님(${종류.split(";")[0]})`, { 최종 });
     const 머리 = 바이트.subarray(0, 4096).toString("latin1");
     const 인코딩 = (/charset=([\w-]+)/i.exec(종류)?.[1] ?? /<meta[^>]+charset=["']?([\w-]+)/i.exec(머리)?.[1] ?? "utf-8").toLowerCase();
     let 원문;
@@ -131,6 +171,13 @@ export async function 출처대조(post, notes = {}, { fetch: f = fetch, 클로�
     d.재료 = [...d.재료, ...(Array.isArray(n.재료) ? n.재료.map(String) : [])];
     대상.set(s.문장, d);
   }
+  // 학원 1인칭 표지(우리 반·상담에서 …)가 든 문장은 주장 목록과 상관없이 「학원」 — 라벨 재료가 없으면 창 0 → 지움
+  for (const { 문장: s } of 문장들) {
+    if (!학원표지.test(s)) continue;
+    const d = 대상.get(s) ?? { 문장: s, 숫자: [], 고유명사: [], 제도어: [], 출처: [], 재료: [] };
+    d.종류 = "학원";
+    대상.set(s, d);
+  }
 
   // 창 — 학원 문장은 라벨 재료 원문이 곧 창(짧다). 나머지는 지정 출처(없으면 모든 출처·재료)에서 창찾기
   const 목록 = [...대상.values()].map((d, n) => ({ ...d, id: `s${n + 1}`, 창들: [], 창출처: [] }));
@@ -169,6 +216,10 @@ export async function 출처대조(post, notes = {}, { fetch: f = fetch, 클로�
     if (r?.한도) return { 결과: "미룸", 왜: `판정 한도 — ${String(r.error ?? "").slice(0, 80)}`, body, 지운것: [], 첫문단지움: false, 출처표: 출처표밖, 문장: [] };
     if (!r?.ok) return { 결과: "미룸", 왜: `판정 호출 실패 — ${String(r?.error ?? "").slice(0, 80)}`, body, 지운것: [], 첫문단지움: false, 출처표: 출처표밖, 문장: [] };
     판 = 판정읽기(r.text, 물을것);
+    // 답을 못 읽은 것은 판정이 아니다 — 전부 지우지 말고 미룬다(회차 안 셈). 원인을 잡게 답 앞 500자를 남긴다
+    if (판.못읽음) {
+      return { 결과: "미룸", 왜: "판정 답을 못 읽음(JSON 아님)", 답원문: String(r.text ?? "").slice(0, 500), body, 지운것: [], 첫문단지움: false, 출처표: 출처표밖, 문장: [] };
+    }
   }
 
   const 문장 = 목록.map((d) => {

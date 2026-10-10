@@ -46,7 +46,7 @@ import { 프로필 } from "./profile.mjs";
 import { PM보고 } from "./pm-report.mjs";
 import { PC무소식, PC무소식글 } from "./pc-silent.mjs";
 import { 파일럿칸준비, 파일럿날짜맞추기, 구축대기한도 } from "../pilot-plan.mjs";
-import { 이번주글SQL, 기록하기, KST날, 자동발행켜짐, 발행가능, 발행 } from "../../web/lib/post-auto-core.mjs";
+import { 이번주글SQL, 묵은초안SQL, 감수기한일, 기록하기, KST날, 자동발행켜짐, 발행가능, 발행, 버리기 } from "../../web/lib/post-auto-core.mjs";
 
 for (const l of fs.readFileSync(new URL("../.env.local", import.meta.url), "utf8").split(/\r?\n/)) {
   const m = /^([A-Z_]+)=(.*)$/.exec(l);
@@ -780,10 +780,15 @@ const EXEC = {
      * 주제·쓰기는 auto-post.mjs --pick 한 곳(write.yml 도 같은 길). 질문 겨냥 초안도 여기 후보로만 들어온다(D92).
      * 쓰기 건너뜀(78)은 고장이 아니다 — 원장에게 올리지 않는다(2026-09-24 「없으면 패스」)
      */
+    // 감수 중 자동 초안이 14일 넘게 묵으면 놓아준다 — 스위치가 꺼진 채 원장이 안 내면 그 초안 하나가 매주 새 주제를 막는다(D97)
+    for (const p of await q(묵은초안SQL, [c.id])) {
+      const r = await 버리기(q, p.slug, { 이유: "감수 기한 지남", 왜: `${감수기한일}일 동안 발행되지 않음` });
+      if (r.ok) await 활동(c.id, "content", "묵은 초안 놓아줌", true, `${p.title} — 감수 기한 ${감수기한일}일 지남, 다음 주제로`, t.id);
+    }
     const 이번주 = await q(이번주글SQL, [c.id]);
     if (이번주.some((p) => p.published)) return { status: "대기", nextTry: 다음월요일(), evidence: `${오늘()} 이번 주 글이 이미 나감(주 1편)` };
     if (이번주.length) return { status: "대기", nextTry: 내일(), evidence: `${오늘()} 감수 중인 초안이 있어 새로 쓰지 않음 (/blog/${이번주[0].slug})` };
-    const [주] = await q(`select count(*) filter (where kind='버림')::int 버림, count(*) filter (where kind='못냄')::int 못냄
+    const [주] = await q(`select count(*) filter (where kind='버림' and coalesce(why, '') not like '%감수 기한 지남%')::int 버림, count(*) filter (where kind='못냄')::int 못냄
         from academy.post_reviews where client_id=$1 and at >= (date_trunc('week', now() at time zone 'Asia/Seoul') at time zone 'Asia/Seoul')`, [c.id])
       .catch(() => [null]);
     if (!주) return { status: "실패", attempt: true, error: "글 기록 표(academy.post_reviews)를 못 읽음 — setup-post-reviews.mjs 를 먼저" };

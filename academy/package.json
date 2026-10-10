@@ -18,6 +18,7 @@
     "@types/node": "22.10.2",
     "@types/pg": "8.11.10",
     "@types/react": "19.0.2",
+    "pdfjs-dist": "^6.4.299",
     "typescript": "5.7.2"
   }
 }

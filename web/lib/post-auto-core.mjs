@@ -224,10 +224,17 @@ export function 재료판정(후보, 라벨들) {
 }
 
 /** 이번 주(KST) 발행된 글 또는 감수 중(주제 있음·미발행·내리지 않음) 초안 — 주 1편 확인(D88) */
+export const 감수기한일 = 14;
 export const 이번주글SQL = `select slug, published from academy.posts
   where client_id = $1 and (
     (published and published_at >= ${주시작SQL})
-    or (not published and coalesce(review_notes, '{}'::jsonb) ? '주제' and not (coalesce(review_notes, '{}'::jsonb) ? '비공개이유')))`;
+    or (not published and coalesce(review_notes, '{}'::jsonb) ? '주제' and not (coalesce(review_notes, '{}'::jsonb) ? '비공개이유')
+        and created_at > now() - interval '${감수기한일} days'))`;
+
+/** 감수 중 자동 초안이 이보다 오래되면 놓아준다 — 「버림 — 감수 기한 지남」, 다음 주제가 이어진다(D97) */
+export const 묵은초안SQL = `select slug, title from academy.posts
+  where client_id = $1 and not published and coalesce(review_notes, '{}'::jsonb) ? '주제'
+    and not (coalesce(review_notes, '{}'::jsonb) ? '비공개이유') and created_at <= now() - interval '${감수기한일} days'`;
 
 // ─────────────────────────────────────────── 출처 대조 (D85)
 const 반각 = (s) => String(s ?? "").replace(/[０-９]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xfee0));
@@ -252,6 +259,13 @@ const 흔한말 = new Set(["시대", "세대", "기대", "반대", "최대", "�
   "정원", "회원", "병원", "모집인원", "가운데", "대부분", "방법", "어떤방법", "문법", "해법", "과정", "대회", "전형", "학부", "학원", "원", "부", "대", "청", "법"]);
 const 조사떼기 = (w) => w.replace(/(?:으로부터|에서부터|에서는|에서도|에게서|으로는|으로도|이라는|이라고|으로|에서|에게|까지|부터|처럼|보다|이라|에는|에도|와의|과의|은|는|이|가|을|를|의|에|와|과|도|만|로)$/, "");
 const 제도말 = /의무화|도입|신설|시행|폐지|개정|확대|축소|필수/g;
+
+/**
+ * 학원만 아는 사실이라는 표지 — 이 말이 든 문장은 쓰기 모델이 주장 목록에 뭐라 달았든 「학원」 주장이다.
+ * 창은 그 문장에 단 라벨 재료뿐이고, 라벨이 없으면 지운다(9/28 옛 지점 글과 같은 사고를 기계로 막는다).
+ * 「수업에서」는 학교·정보·교과 수업이 아닐 때만
+ */
+export const 학원표지 = /우리 ?학원|저희|우리 ?반|원생|우리 ?수업|상담에서|상담(?:을)? ?(?:온|오는|오신|와서|하다 보면)|가르쳐 보면|(?<!(?:학교|정보|교과|정규|학교의|교실|온라인)\s?)수업에서/;
 
 /** 숫자 토큰. 목록 번호·「n단계」·(n) 은 fact-check.mjs 규칙 그대로 뺀다 */
 function 숫자들(문장) {
@@ -401,6 +415,8 @@ export function 판정읽기(text, 대상) {
   const j = JSON꺼내기(text);
   const 줄들 = Array.isArray(j?.판정) ? j.판정 : null;
   const out = new Map();
+  // 답 자체를 못 읽은 것은 판정이 아니다 — 부르는 쪽(출처대조)이 미룸으로 돌린다
+  out.못읽음 = !줄들;
   for (const d of 대상) {
     if (!줄들) { out.set(d.id, { 판정: "없음", 근거: "", 왜: "판정 답을 못 읽음" }); continue; }
     const r = 줄들.find((x) => String(x?.id) === String(d.id));
@@ -408,8 +424,9 @@ export function 판정읽기(text, 대상) {
     const 근거 = String(r?.근거 ?? "").trim();
     if (판정 === "없음") { out.set(d.id, { 판정, 근거: "", ...(r ? {} : { 왜: "판정이 빠짐" }) }); continue; }
     const k = 접은(근거);
-    const 창안 = k.length >= 4 && d.창들.some((w) => 접은(w).includes(k));
-    out.set(d.id, 창안 ? { 판정, 근거 } : { 판정: "없음", 근거: "", 왜: "근거가 원문에 없음" });
+    // 프롬프트는 20~150자를 요구한다. 「국민대학」 4자로 맞음이 서지 않게 15자 아래는 근거로 안 친다
+    const 창안 = k.length >= 15 && d.창들.some((w) => 접은(w).includes(k));
+    out.set(d.id, 창안 ? { 판정, 근거 } : { 판정: "없음", 근거: "", 왜: k.length < 15 ? "근거가 너무 짧음" : "근거가 원문에 없음" });
   }
   return out;
 }
@@ -463,6 +480,9 @@ export function 다듬기검사(전, 후) {
   if (!후 || 후.length < 전.length * 0.9 || 후.length > 전.length * 1.15) return `길이가 ${전.length}→${String(후 ?? "").length}자로 너무 바뀜`;
   if (숫자(후) !== 숫자(전)) return "숫자가 원문과 달라짐";
   if (소제목(후) !== 소제목(전) || 링크(후) !== 링크(전)) return "소제목이나 링크가 바뀜";
+  // 다듬기는 출처 대조 뒤에 본문을 바꾼다. 이름·제도어가 바뀌면(국민대→서울대, 신설→폐지) 대조를 안 거친 사실이 된다
+  const 말모음 = (s) => [...new Set(주장뽑기(s).flatMap((c) => [...c.고유명사, ...c.제도어]))].sort().join(",");
+  if (말모음(후) !== 말모음(전)) return "기관 이름이나 제도어가 바뀜";
   return null;
 }
 
@@ -504,7 +524,26 @@ export function 관점읽기(text, body) {
  * post_reviews 행들 → 사람 말 한 줄(현황판 규칙: 로그 조각·영문 키·JSON 금지). 없으면 null.
  *   rows [{kind, slug, attempt, passed, why, at}] — 최근 것부터든 아니든 상관없다
  */
-export function 글기록말(rows = [], now = Date.now()) {
+export function 글기록말(rows = [], now = Date.now(), 대기 = null) {
+  const 줄 = 글기록한줄(rows, now);
+  const 묵음 = 묵은말(대기, now);
+  return 줄 && 묵음 ? `${줄} · ${묵음}` : 줄 ?? 묵음;
+}
+
+/**
+ * 감수 중 초안이 며칠째인가(Should Fix — 한도 아닌 호출 실패도 미룸이라 인증이 깨지면 영영 미룸이 된다).
+ *   대기 {만든날, 마지막감수} — 2일 넘게 감수 기록이 없으면 「N일째 감수가 안 됨」, 감수는 도는데 2일 넘었으면 「N일째 감수 중」
+ */
+function 묵은말(대기, now) {
+  if (!대기?.만든날) return null;
+  const 일수 = Math.floor((now - Date.parse(String(대기.만든날))) / 하루);
+  if (일수 < 2) return null;
+  const 마지막 = 대기.마지막감수 ? Date.parse(String(대기.마지막감수)) : null;
+  if (!마지막 || now - 마지막 > 2 * 하루) return `초안이 ${일수}일째 감수가 안 됨(${마지막 ? `마지막 ${KST월일(마지막)}` : "한 번도 안 봄"}) — ${감수기한일}일이면 놓아줌`;
+  return `초안 ${일수}일째 감수 중 — ${감수기한일}일이면 놓아줌`;
+}
+
+function 글기록한줄(rows, now) {
   const 주 = 주시작(now);
   const 이번주 = rows.filter((r) => Date.parse(String(r.at)) >= 주).sort((a, b) => Date.parse(String(b.at)) - Date.parse(String(a.at)));
   const 최근 = (k) => 이번주.find((r) => r.kind === k);
@@ -532,7 +571,12 @@ export async function 글기록읽기(q, client = 1) {
   try {
     const rows = await q(`select kind, slug, attempt, passed, why, at from academy.post_reviews
       where client_id = $1 and at > now() - interval '8 days' order by at desc limit 50`, [client]);
-    return 글기록말(rows);
+    const [대기] = await q(`select p.created_at 만든날,
+        (select max(r.at) from academy.post_reviews r where r.slug = p.slug and r.kind = '감수') 마지막감수
+       from academy.posts p
+      where p.client_id = $1 and not p.published and coalesce(p.review_notes, '{}'::jsonb) ? '주제'
+        and not (coalesce(p.review_notes, '{}'::jsonb) ? '비공개이유') order by p.created_at limit 1`, [client]);
+    return 글기록말(rows, Date.now(), 대기 ?? null);
   } catch { return null; }
 }
 
@@ -592,7 +636,9 @@ export async function 발행(q, slug, { 누가 = "원장" } = {}) {
         and not (coalesce(review_notes, '{}'::jsonb) ? '비공개이유')
         and not exists (select 1 from regexp_matches(body, '/blog/img/([^/)\\s]+)/([a-z0-9-]+)\\.svg', 'g') m
                          where not exists (select 1 from academy.post_images i where i.slug = m[1] and i.name = m[2]))
-      returning client_id, title, review_notes->'주제'->>'키' 주제키`, [slug]);
+        -- 자동이면 감수 통과 기록이 이 update 순간에도 있어야 한다(발행가능과 update 사이에 저장이 끼는 틈)
+        and ($2::boolean is not true or review_notes->'감수'->>'통과' = 'true')
+      returning client_id, title, review_notes->'주제'->>'키' 주제키`, [slug, 누가 === "자동"]);
   if (!p) return { ok: false };
   const 자동 = 누가 === "자동";
   // sticky: 정찰 같은 신호에서 나온 일이 아니다. 없으면 회사 루프가 「신호 사라짐」으로 바로 닫는다
@@ -649,28 +695,29 @@ export async function 내리기(q, slug, { 이유 = "", 블로그 = "force11", n
         `https://blog.naver.com/${블로그}/${p.naver_log_no}`],
     ).catch((e) => 활동(q, p.client_id, "네이버 내리기 일감 만들기 실패", String(e), false));
   }
-  return { ok: true, title: p.title };
+  return { ok: true, title: p.title, clientId: p.client_id };
 }
 
 /**
  * 3회차 실패 — 버린다(D87). 버린 이유를 남기고, 초안·도해를 지우고, 재료를 돌려주고, 기록한다.
  * 지우기 전에 이유를 남긴다 — 지운 뒤에는 본문을 못 읽는다(discardDraft 와 같은 순서)
  */
-export async function 버리기(q, slug, { 왜 = "" } = {}) {
+export async function 버리기(q, slug, { 왜 = "", 이유 = "자동 감수 3회 실패" } = {}) {
   const [p] = await q(`select client_id, title, body, coalesce(review_notes->'주제'->>'키', '') 주제키 from academy.posts where slug=$1 and not published`, [slug]);
   if (!p) return { ok: false };
   await q(
     `insert into academy.draft_feedback (client_id, slug, title, reasons, note, excerpt) values ($1, $2, $3, $4::text[], $5, $6)`,
-    [p.client_id, slug, p.title, ["자동 감수 3회 실패"], String(왜).slice(0, 300), String(p.body ?? "").slice(0, 600)]).catch(() => {});
+    [p.client_id, slug, p.title, [이유], String(왜).slice(0, 300), String(p.body ?? "").slice(0, 600)]).catch(() => {});
   const 지움 = await q(`delete from academy.posts where slug=$1 and not published returning slug`, [slug]);
   if (!지움.length) return { ok: false };
   await q(`delete from academy.post_images where slug=$1`, [slug]).catch(() => {});
   await q(`update academy.materials set used_in = array_remove(used_in, $1) where $1 = any(used_in)`, [slug]).catch(() => {});
   await q(
-    `update geo.agent_tasks set status='닫힘', done_at=now(), updated_at=now(), evidence = evidence || '\n자동 감수 3회 실패로 버림'
+    `update geo.agent_tasks set status='닫힘', done_at=now(), updated_at=now(), evidence = evidence || $3
       where client_id=$1 and dedupe_key = any($2)`,
-    [p.client_id, [`review-${slug}`, `illustrate-${slug}`, `illustrate-human-${slug}`]]).catch(() => {});
-  await 기록하기(q, { client: p.client_id, slug, topic_key: p.주제키 || `slug:${slug}`, kind: "버림", passed: false, why: `「${p.title}」 3번 걸려 버림 — ${왜}` }).catch(() => {});
+    [p.client_id, [`review-${slug}`, `illustrate-${slug}`, `illustrate-human-${slug}`], `\n${이유}로 버림`]).catch(() => {});
+  const 말 = 이유 === "자동 감수 3회 실패" ? "3번 걸려 버림" : `버림 — ${이유}`;
+  await 기록하기(q, { client: p.client_id, slug, topic_key: p.주제키 || `slug:${slug}`, kind: "버림", passed: false, why: `「${p.title}」 ${말}${왜 ? ` — ${왜}` : ""}` }).catch(() => {});
   await 활동(q, p.client_id, "자동 글 버림", `${p.title} — ${왜}`);
   return { ok: true, title: p.title };
 }

@@ -96,6 +96,18 @@ export async function POST(req: Request) {
   return NextResponse.json({ ok: true, slug: saved });
 }
 
+/**
+ * 목록 다시 그리기 — 관리 화면(사이티드 web)에서 글을 내리면 부른다(Step 43 D91).
+ * 글 쪽은 revalidate 300 이지만 홈 「최근 글」·RSS·사이트맵은 900 이라 내린 제목이 15분까지 남는다. 그걸 바로 지운다
+ */
+export async function PATCH(req: Request) {
+  if (!authed(req)) return deny();
+  const slug = new URL(req.url).searchParams.get("slug");
+  if (!slug) return NextResponse.json({ error: "slug 가 필요합니다." }, { status: 400 });
+  for (const p of ["/", "/blog", `/blog/${slug}`, "/sitemap.xml", "/rss.xml"]) revalidatePath(p);
+  return NextResponse.json({ ok: true });
+}
+
 export async function DELETE(req: Request) {
   if (!authed(req)) return deny();
   const slug = new URL(req.url).searchParams.get("slug");

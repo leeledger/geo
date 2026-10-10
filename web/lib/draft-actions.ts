@@ -64,6 +64,18 @@ export async function publishDraft(form: FormData) {
   revalidatePath("/admin/ops");
 }
 
+/** 학원 사이트 목록(홈·RSS·사이트맵·블로그)을 바로 다시 그리게 한다 — academy/app/api/posts PATCH */
+async function 학원목록새로(slug: string) {
+  const pw = process.env.ACADEMY_ADMIN_PASSWORD;
+  if (!pw) throw new Error("ACADEMY_ADMIN_PASSWORD 가 없어 목록은 15분 안에 저절로 빠짐");
+  const base = process.env.ACADEMY_SITE_URL || "https://robotncoding.com";
+  const res = await fetch(`${base}/api/posts?slug=${encodeURIComponent(slug)}`, {
+    method: "PATCH", headers: { "x-admin-pw": pw, ...(process.env.ACADEMY_ADMIN_ID ? { "x-admin-id": process.env.ACADEMY_ADMIN_ID } : {}) },
+    signal: AbortSignal.timeout(10000),
+  });
+  if (!res.ok) throw new Error(`학원 사이트 응답 ${res.status}`);
+}
+
 /** 내린 이유 — 고르기만 하면 된다. 다음 글 고를 때·아침 보고에서 사람이 읽는다 */
 export async function takedownPost(form: FormData) {
   await guard();
@@ -73,7 +85,10 @@ export async function takedownPost(form: FormData) {
   const 덧 = String(form.get("note") ?? "").trim();
   const 이유 = [고름, 덧].filter(Boolean).join(" — ").slice(0, 200);
   // 사이트는 revalidate 300 이라 5분 안에 사라진다. 네이버 글은 로그인이 필요해 사람 일감으로 남는다(D91)
-  await 내리기(q, slug, { 이유, 블로그: process.env.NAVER_BLOG_ID || "force11" });
+  const r = await 내리기(q, slug, { 이유, 블로그: process.env.NAVER_BLOG_ID || "force11" });
+  // 홈 「최근 글」·RSS·사이트맵은 학원 사이트 캐시(900초)라 여기 revalidatePath 가 안 닿는다 — 학원 사이트에 바로 다시 그리라고 부른다.
+  // 비밀번호가 없거나 실패하면 목록은 15분 안에 저절로 빠진다. 실패를 활동에 남긴다
+  if (r.ok) await 학원목록새로(slug).catch((e) => log(r.clientId ?? 1, "내린 글 목록 새로 고침 실패", String(e), false));
   revalidatePath("/admin/drafts");
   revalidatePath("/admin/ops");
 }

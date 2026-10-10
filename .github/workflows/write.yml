@@ -45,7 +45,7 @@ jobs:
           node-version: "22"
 
       - name: pg 설치
-        run: npm install pg --no-save --silent
+        run: npm install pg pdfjs-dist@6.4.299 --no-save --silent  # pdfjs — 자동 감수가 출처 PDF 글자층을 읽는다(Step 43 D96)
 
       # 원장 Max 구독으로 도는 Claude Code. API 크레딧 없이 측정·초안·분석을 한다(2026-09-22)
       - name: Claude Code 설치

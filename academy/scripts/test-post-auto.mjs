@@ -4,7 +4,7 @@
 import assert from "node:assert/strict";
 import {
   주제키, 학원사실필요, 후보모으기, 거르기, 재료모으기, 재료판정, 주장뽑기, 창찾기, 판정읽기, 문장지우기, 본문해시,
-  다음행동, 관점읽기, 글기록말, 발행가능, 발행, 내리기, 다듬기검사, 이번주글SQL,
+  다음행동, 관점읽기, 글기록말, 발행가능, 발행, 내리기, 다듬기검사, 이번주글SQL, 묵은초안SQL, 학원표지,
 } from "../../web/lib/post-auto-core.mjs";
 
 let fail = 0, pass = 0;
@@ -196,13 +196,17 @@ t("창찾기 — 1,500·전각 숫자 · 공백 무시 · 300자 안 이름 없�
 });
 
 // ── 판정 파서
-t("판정 파서 — 근거가 창 밖 → 없음 · 공백 달라도 창 안이면 맞음 · JSON 깨짐 → 전부 없음", () => {
-  const 대상 = [{ id: "s1", 창들: ["국민대 알고리즘우수자 전형 모집인원 10명"] }, { id: "s2", 창들: ["광운대 72명"] }];
-  const r = 판정읽기('```json\n{"판정":[{"id":"s1","판정":"맞음","근거":"알고리즘우수자전형 모집인원 10명"},{"id":"s2","판정":"맞음","근거":"광운대 80명"}]}\n```', 대상);
+t("판정 파서 — 근거가 창 밖 → 없음 · 15자 안 되는 근거 → 없음 · 공백 달라도 창 안이면 맞음 · JSON 깨짐 → 못읽음", () => {
+  const 대상 = [{ id: "s1", 창들: ["국민대 알고리즘우수자 전형 모집인원 10명"] }, { id: "s2", 창들: ["광운대 소프트웨어우수인재 전형은 72명을 선발한다"] }, { id: "s3", 창들: ["국민대학교 입학처"] }];
+  const r = 판정읽기('```json\n{"판정":[{"id":"s1","판정":"맞음","근거":"알고리즘우수자전형 모집인원 10명"},{"id":"s2","판정":"맞음","근거":"광운대 소프트웨어우수인재 전형은 80명을 선발한다"},{"id":"s3","판정":"맞음","근거":"국민대학"}]}\n```', 대상);
   assert.equal(r.get("s1").판정, "맞음");
   assert.equal(r.get("s2").판정, "없음");
   assert.match(r.get("s2").왜, /원문에 없음/);
+  assert.equal(r.get("s3").판정, "없음");
+  assert.match(r.get("s3").왜, /너무 짧음/);
+  assert.equal(r.못읽음, false);
   const 깨짐 = 판정읽기("{판정: [", 대상);
+  assert.equal(깨짐.못읽음, true);
   assert.ok([...깨짐.values()].every((x) => x.판정 === "없음"));
   assert.equal(판정읽기('{"판정":[]}', 대상).get("s1").판정, "없음");            // 빠진 판정
   assert.equal(판정읽기('{"판정":[{"id":"s1","판정":"모름"}]}', 대상).get("s1").판정, "없음");
@@ -278,6 +282,11 @@ t("글기록말 — 영문 키·JSON 조각 없음 · 우선순위(못냄 > 발�
   assert.equal(줄들[5], "최근 7일 원장이 내린 글 1편");
   for (const s of 줄들) assert.ok(!금지.test(s), s);
   assert.equal(글기록말([{ kind: "감수", at: "2026-09-28T00:00:00Z" }], NOW), null); // 지난주
+  // N일째 미룸 — 감수 기록이 2일 넘게 없으면(Should Fix)
+  const 묵음 = 글기록말([], NOW, { 만든날: "2026-10-04T23:00:00Z", 마지막감수: null });
+  assert.equal(묵음, "초안이 5일째 감수가 안 됨(한 번도 안 봄) — 14일이면 놓아줌");
+  assert.match(글기록말([{ kind: "감수", attempt: 2, passed: false, why: "걸림", at: "2026-10-09T22:00:00Z" }], NOW, { 만든날: "2026-10-05T00:00:00Z", 마지막감수: "2026-10-09T22:00:00Z" }), /· 초안 5일째 감수 중/);
+  assert.ok(!금지.test(묵음));
 });
 
 // ── 이번 주 글 SQL
@@ -285,7 +294,9 @@ t("이번 주 글 — 발행 기준(published_at) + 감수 중 초안(주제 있
   assert.match(이번주글SQL, /published_at >=/);
   assert.match(이번주글SQL, /\? '주제'/);
   assert.match(이번주글SQL, /'비공개이유'/);
-  assert.ok(!/created_at/.test(이번주글SQL));
+  assert.ok(!/created_at >=/.test(이번주글SQL));
+  assert.match(이번주글SQL, /created_at > now\(\) - interval '14 days'/);   // 14일 넘은 감수 중 초안은 막지 않는다(D97)
+  assert.match(묵은초안SQL, /created_at <= now\(\) - interval '14 days'/);
 });
 
 // ── 다듬기검사
@@ -295,6 +306,10 @@ t("다듬기검사 — 숫자·소제목·링크·길이", () => {
   assert.match(다듬기검사(전, 전.replace("10명", "12명")), /숫자/);
   assert.match(다듬기검사(전, 전.replace("## 절", "## 다른")), /소제목/);
   assert.match(다듬기검사(전, "짧음"), /길이/);
+  // 출처 대조 뒤에 바뀐 이름·제도어는 대조를 안 거친 사실이다 — 다듬은 글을 버린다(Must Fix 1)
+  const 제도 = "## 절\n\n국민대가 알고리즘우수자 전형을 신설했습니다. 모집은 10명입니다. 문장이 깁니다 문장이 깁니다.";
+  assert.match(다듬기검사(제도, 제도.replace("신설", "폐지")), /제도어/);
+  assert.match(다듬기검사(제도, 제도.replace("국민대가", "서울대가")), /기관 이름/);
 });
 
 // ── 발행가능
@@ -344,6 +359,8 @@ t("발행 — 자동: 활동 「자동 감수 통과 발행」 + post_reviews '�
   const { q, 호출 } = 가짜((sql) => (sql.startsWith("update academy.posts") ? [{ client_id: 1, title: "제목", 주제키: "q:abc" }] : []));
   await 발행(q, "s", { 누가: "자동" });
   assert.equal(호출[3].params[1], "자동 감수 통과 발행");
+  assert.match(호출[0].sql, /review_notes->'감수'->>'통과' = 'true'/);
+  assert.equal(호출[0].params[1], true);
   assert.match(호출[4].sql, /insert into academy\.post_reviews/);
   assert.equal(호출[4].params[3], "발행");
   const 빈 = 가짜(() => []);
@@ -409,9 +426,41 @@ t("출처 대조 — 같은 본문 「10명」→「12명」 가짜 초안: 그 
   assert.equal(맞는.결과, "통과");
   assert.equal(맞는.지운것.length, 0);
 });
+t("출처 대조 — 라벨 없는 학원 1인칭 문장(저희 반·상담에서)은 주장 목록과 상관없이 지움 · 라벨 있으면 재료가 창", async () => {
+  const { 출처대조 } = await import("./fact-check.mjs");
+  const 몸 = 글몸(10).replace("## 무엇을 볼까", "저희 반 아이들은 스크래치로 시작합니다. 상담에서 학부모는 대부분 학년부터 묻습니다. 정보 수업에서 배우는 내용과 다릅니다.\n\n## 무엇을 볼까");
+  const r = await 출처대조({ title: "t", body: 몸 }, { 출처: ["https://news.example/a"] }, { fetch: 가짜fetch({ "https://news.example/a": 응답(기사) }), 클로드: 다맞음 });
+  const 저희 = r.문장.find((x) => x.문장.startsWith("저희 반"));
+  assert.equal(저희.종류, "학원");
+  assert.equal(저희.판정, "없음");
+  assert.ok(r.지운것.some((x) => x.includes("저희 반")));
+  assert.ok(r.지운것.some((x) => x.includes("상담에서")));
+  assert.ok(!r.문장.some((x) => x.문장.startsWith("정보 수업에서")));            // 학교 수업은 표지 아님
+  const 라벨 = await 출처대조({ title: "t", body: 몸 }, { 출처: ["https://news.example/a"], 재료표: [{ 라벨: "i1", 원문: "저희 반 아이들은 스크래치로 시작합니다 — 원장 상담 기록" }],
+    주장: [{ 문장: "저희 반 아이들은 스크래치로 시작합니다.", 종류: "학원", 재료: ["i1"] }] }, { fetch: 가짜fetch({ "https://news.example/a": 응답(기사) }), 클로드: 다맞음 });
+  assert.equal(라벨.문장.find((x) => x.문장.startsWith("저희 반")).판정, "맞음");
+  assert.ok(학원표지.test("우리 학원 수업에서는") && !학원표지.test("학교 수업에서 배운다"));
+});
+t("출처 대조 — 판정 답을 못 읽으면 지우지 않고 미룸 + 답 원문 앞 500자", async () => {
+  const { 출처대조 } = await import("./fact-check.mjs");
+  const r = await 출처대조({ title: "t", body: 글몸(10) }, { 출처: ["https://news.example/a"] }, { fetch: 가짜fetch({ "https://news.example/a": 응답(기사) }), 클로드: async () => ({ ok: true, text: "죄송합니다, 판정할 수 없습니다" }) });
+  assert.equal(r.결과, "미룸");
+  assert.equal(r.답원문, "죄송합니다, 판정할 수 없습니다");
+  assert.equal(r.지운것.length, 0);
+});
 t("출처 대조 — PDF·HTML 아님 = 못 읽음 · 전부 네트워크 오류 = 미룸 · 판정 한도 = 미룸", async () => {
   const { 출처대조, 출처가져오기 } = await import("./fact-check.mjs");
-  assert.equal((await 출처가져오기("https://x/a.pdf", { fetch: async () => 응답("%PDF-1.4", "application/pdf") })).상태, "PDF");
+  // PDF 는 텍스트층을 읽는다(D96) — 글자층 있음 → 읽음 · 없음(스캔본) → 못 읽음 · 5MB 넘음 → 못 읽음 · octet-stream 도 머리로 알아봄
+  const 글자층 = async () => ({ 글: "국제인재 전형 15명 신설. ".repeat(20), 쪽수: 3 });
+  const 읽은PDF = await 출처가져오기("https://x/a.pdf", { fetch: async () => 응답("%PDF-1.4", "application/pdf"), pdf: 글자층 });
+  assert.equal(읽은PDF.상태, "읽음");
+  assert.equal(읽은PDF.PDF, true);
+  assert.equal((await 출처가져오기("https://x/d.php", { fetch: async () => 응답("%PDF-1.4", "application/octet-stream"), pdf: 글자층 })).상태, "읽음");
+  const 스캔 = await 출처가져오기("https://x/a.pdf", { fetch: async () => 응답("%PDF-1.4", "application/pdf"), pdf: async () => ({ 글: " ", 쪽수: 9 }) });
+  assert.match(스캔.왜, /스캔본/);
+  assert.equal(스캔.상태, "못 읽음");
+  const 큰 = await 출처가져오기("https://x/a.pdf", { fetch: async () => 응답(`%PDF-${"x".repeat(5 * 1024 * 1024 + 10)}`, "application/pdf"), pdf: 글자층 });
+  assert.match(큰.왜, /5MB/);
   assert.equal((await 출처가져오기("https://x/b", { fetch: async () => 응답("{}", "application/json") })).상태, "못 읽음");
   const dns = Object.assign(new TypeError("fetch failed"), { cause: { code: "ENOTFOUND" } });
   assert.equal((await 출처가져오기("https://x/c", { fetch: async () => { throw dns; } })).상태, "네트워크");
