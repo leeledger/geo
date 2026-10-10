@@ -393,7 +393,8 @@ export function judge(role: Role, input: JudgeInput, now: number): AgentRow {
 
   if (pcMiss) return row("pcoff", pcMiss);
 
-  // 수리공 — 최근 7일 합친 수리가 없으면 「정상」이 아니다
+  // 수리공 — 쌓인 일이 있으면 그 상태(만드는 중·승인 기다림)를, 없을 때만 「최근 7일 고친 것 없음」
+  if (repairState && repairState.kind !== "none") return row("idle", repairState.text);
   if (isRepair && input.merged7 === 0) return row("idle", "최근 7일 고친 것이 없습니다");
 
   // 쉬는 중 — 정해진 시각이 없는 역할만
