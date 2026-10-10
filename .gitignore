@@ -53,3 +53,6 @@ tools/.pc-runner.lock
 
 # 파일럿 보고서·손 확인 캡처 — 고객 이름과 측정 원문이 들어간다. 저장소에 두지 않는다 (academy/scripts/pilot-report.mjs)
 deliverables/*/pilot-reports/
+
+# 지식iN 질문 찾기 하루 검색 수 (tools/kin-find.mjs)
+tools/.kin-find-day.json

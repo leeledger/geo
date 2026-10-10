@@ -39,6 +39,7 @@ import { MARKETING_DDL } from "../../web/lib/marketing-core.mjs";
 import { GROWTH_DDL } from "../../web/lib/growth-core.mjs";
 import { 세팅재점검 } from "../../web/lib/client-core.mjs";
 import { 오래된창요청닫기 } from "../../web/lib/login-core.mjs";
+import { 오래된kin요청닫기 } from "../../web/lib/kin-core.mjs";
 import { 오픈라우터, 재시도, 모델들, 공급자들 } from "./writer-common.mjs";
 import { 프로필 } from "./profile.mjs";
 import { PM보고 } from "./pm-report.mjs";
@@ -574,6 +575,10 @@ const 계획 = async (clients, { latest: latestRuns, ok: ghOk }) => {
   // 현황판 「로그인 창 열기」를 PC 가 30분 안에 안 집으면(꺼짐) 실패로 — 원장이 눌러 놓고 기다리지 않게(Step 39b)
   for (const r of await 오래된창요청닫기(q).catch((e) => { console.log("  ⚠ 로그인 창 요청 정리 실패", 끝(e.message, 200)); return []; })) {
     await 활동(r.client_id, "deliver", "로그인 창 못 엶", false, r.last_error, r.id);
+  }
+  // 「이 질문에 답하기」(Step 41)도 같은 규칙 — 30분 안에 PC 가 안 집으면 실패로
+  for (const r of await 오래된kin요청닫기(q).catch((e) => { console.log("  ⚠ 지식iN 답 창 요청 정리 실패", 끝(e.message, 200)); return []; })) {
+    await 활동(r.client_id, "deliver", "지식iN 답 창 못 엶", false, r.last_error, r.id);
   }
   await 파일럿업무(읽음);
   await 세션글열기(clients);

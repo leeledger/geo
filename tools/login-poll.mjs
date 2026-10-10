@@ -7,6 +7,8 @@
  *        → 실행 중 · .open-session.lock · open-session.mjs (최대 12분) · 「✓ <이름> 로그인 확인」 줄로 판정
  *          요청한 곳 전부 ✓ → open-login 완료 + login 일감 완료 / 아니면 open-login 실패, login 일감은 사람 대기 그대로
  *
+ * open-kin(Step 41 「이 질문에 답하기」)도 같은 차례·같은 잠금으로 집어 kin-open.mjs 를 띄운다(최대 12분). 등록은 원장.
+ *
  * 로컬 에이전트는 실행 한 번에 학원 프로필(.browser-profile)과 고객 블로그 프로필을 다 열 수 있다.
  * 지금 어느 걸 열고 있는지는 기록이 없어 「같은 프로필을 쓰는 중」으로 본다 — 같은 프로필을 두 번 열면 크로미움이 깨진다.
  *
@@ -20,12 +22,14 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
 import { 창요청검사, 확인된곳, 창이름, kst분, 근거붙임 } from "../web/lib/login-core.mjs";
+import { kin요청검사, 창결과 } from "../web/lib/kin-core.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const LA_LOCK = path.join(HERE, ".local-agent.lock");
 const OS_LOCK = path.join(HERE, ".open-session.lock");
 const LOG = path.join(HERE, "login-poll.log");
 const OPEN_SESSION = process.env.OPEN_SESSION || path.join(HERE, "open-session.mjs");
+const KIN_OPEN = process.env.KIN_OPEN || path.join(HERE, "kin-open.mjs");
 
 const 기록 = (s) => {
   const line = `${new Date().toLocaleString("sv-SE", { timeZone: "Asia/Seoul" })} ${s}`;
@@ -51,14 +55,15 @@ const 활동 = (ok, summary, taskId, clientId) =>
 const 신선 = (f, ms) => { try { return Date.now() - fs.statSync(f).mtimeMs < ms; } catch { return false; } };
 const 기다림말 = "로컬 에이전트가 브라우저를 쓰는 중 — 끝나면 엽니다";
 
-const [t] = await q(`select id, client_id, payload, last_error from geo.agent_tasks
-   where kind = 'open-login' and status = '로컬 대기' order by updated_at, id limit 1`);
+// open-kin(Step 41) — 현황판 「이 질문에 답하기」. 같은 잠금·같은 차례로 kin-open.mjs 를 띄운다
+const [t] = await q(`select id, client_id, kind, payload, last_error from geo.agent_tasks
+   where kind in ('open-login', 'open-kin') and status = '로컬 대기' order by updated_at, id limit 1`);
 if (!t) process.exit(0);
 
-const 요청 = 창요청검사(t.payload);
+const 요청 = t.kind === "open-kin" ? kin요청검사(t.payload) : 창요청검사(t.payload);
 if (!요청) {
   await q(`update geo.agent_tasks set status='실패', updated_at=now(), last_error='요청 모양이 이상해 창을 안 열었습니다' where id=$1`, [t.id]);
-  await 활동(false, `open-login #${t.id} payload 이상 — 안 엶`, t.id, t.client_id);
+  await 활동(false, `${t.kind} #${t.id} payload 이상 — 안 엶`, t.id, t.client_id);
   process.exit(0);
 }
 
@@ -80,6 +85,19 @@ try {
   }
   const [잡음] = await q(`update geo.agent_tasks set status='실행 중', last_error='', updated_at=now() where id=$1 and status='로컬 대기' returning id`, [t.id]);
   if (!잡음) process.exit(0);
+
+  if (t.kind === "open-kin") {
+    기록(`답 창 엶 #${t.id}: 초안 ${요청.post}`);
+    const r = spawnSync(process.execPath, [KIN_OPEN, String(요청.post)], { cwd: HERE, encoding: "utf8", timeout: 13 * 60000, windowsHide: false, maxBuffer: 5 * 1024 * 1024 });
+    const 결과 = 창결과(`${r.stdout ?? ""}${r.stderr ?? ""}`);
+    const 지금 = kst분();
+    await q(`update geo.agent_tasks set status=$2, done_at=case when $2='완료' then now() else done_at end, updated_at=now(), last_error=$3,
+              evidence = right(coalesce(evidence,'') || E'\n' || $4, 4000) where id=$1`,
+      [t.id, 결과.ok ? "완료" : "실패", 결과.ok ? "" : 결과.말, `${지금} ${결과.말}`]);
+    기록(`끝 #${t.id}: ${결과.말}`);
+    await 활동(결과.ok, `지식iN 답 창 — ${결과.말}`, t.id, t.client_id);
+    process.exit(0);
+  }
 
   const 이름들 = 요청.sites.map((s) => 창이름[s]).join(", ");
   기록(`창 엶 #${t.id}: ${이름들} (${요청.profile})`);

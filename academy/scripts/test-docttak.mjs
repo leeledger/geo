@@ -11,6 +11,7 @@ import * as 아이로그패널 from "./seed-ilog-panel.mjs";
 import { 패널점검 } from "./seed-panel.mjs";
 import { 변형후보, 자기점검 } from "./loop-review.mjs";
 import { 대상고르기, 고객수, 측정상한 } from "../measure-targets.mjs";
+import { 매일채널 } from "./marketing-draft.mjs";
 
 let fail = 0, pass = 0;
 const t = (name, f) => {
@@ -168,6 +169,22 @@ t("문서딱 측정 설정 — 이름 정규식·도메인이 잡힘", () => {
   assert.equal(d.conf.domain, "docttak.com");
   assert.ok(d.conf.answerRe.test("문서딱"));
 });
+
+// ── 6. 바깥 글 매일 채널(Step 41 D69·D70) — 카페는 멈춤, 지식iN 은 Actions 에서 빠지고 PC 실제 질문으로만
+t("매일 채널에 카페·지식iN 없음", () => {
+  for (let 요일 = 0; 요일 < 7; 요일++) {
+    const ch = 매일채널(문서딱.marketing.blogDays, 요일);
+    assert.ok(!ch.includes("cafe") && !ch.includes("jisikin"), `${요일}: ${ch}`);
+    assert.equal(ch.includes("blog"), 문서딱.marketing.blogDays.includes(요일));
+  }
+});
+t("Actions 바깥 글 단계가 지식iN·카페를 따로 시키지 않음", () => {
+  const yml = fs.readFileSync(new URL("../../.github/workflows/optimize.yml", import.meta.url), "utf8");
+  const 줄 = yml.split(/\r?\n/).filter((l) => /marketing-draft\.mjs/.test(l));
+  assert.ok(줄.length >= 1, "marketing-draft 단계가 없습니다");
+  for (const l of 줄) assert.ok(!/--channels|--kin-question|jisikin|cafe/.test(l), l);
+});
+t("문서딱은 지식iN 실제 질문을 찾는다(kin)", () => assert.equal(문서딱.marketing.kin, true));
 
 console.log(`\n${pass} 통과 · ${fail} 실패`);
 if (fail) process.exitCode = 1;

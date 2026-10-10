@@ -251,6 +251,23 @@ create table if not exists geo.marketing_posts (
 );
 create index if not exists marketing_posts_client_day_idx on geo.marketing_posts (client_id, created_on);
 alter table geo.marketing_posts enable row level security;
+-- 지식iN 실제 질문(Step 41) — tools/kin-find.mjs 가 원장 PC 에서 찾아 넣는다. web/lib/marketing-core.mjs MARKETING_DDL 과 같은 줄
+create table if not exists geo.kin_questions (
+  id bigserial primary key,
+  client_id int not null references geo.clients(id),
+  url text not null unique,
+  title text not null,
+  body text not null default '',
+  asked_at date not null,
+  answers int not null default 0,
+  adopted boolean not null default false,
+  query text not null,
+  found_at timestamptz not null default now(),
+  status text not null default '후보' check (status in ('후보','씀','버림')),
+  note text not null default ''
+);
+alter table geo.kin_questions enable row level security;
+alter table geo.marketing_posts add column if not exists kin_question_id bigint references geo.kin_questions(id);
 -- 문서딱 저장소 주간 성장 리포트(Step 36) — academy/scripts/growth-import.mjs 가 매일 한 번 쌓는다.
 -- gsc·cf 는 리포트 growth-data JSON 그대로, 표 3칸은 리포트가 반올림한 값. web/lib/growth-core.mjs GROWTH_DDL 과 같은 줄
 create table if not exists geo.growth_reports (

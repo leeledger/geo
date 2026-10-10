@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { isAdmin } from "./admin-auth";
 import { pool } from "./ops";
+import { kin창요청 } from "./kin-core.mjs";
 
 /**
  * 「오늘 올릴 글」 카드의 버튼 (Step 35 D54). "use server" 모듈은 async 함수만 내보낸다 — 상수(BLOG_OK)는 marketing.ts.
@@ -36,6 +37,23 @@ export async function discardDraft(form: FormData) {
   if (!id) return;
   await pool().query(
     `update geo.marketing_posts set status = '버림', note = left('원장 버림 · ' || note, 1000) where id = $1 and status = '초안'`, [id]);
+  revalidatePath("/admin/ops");
+}
+
+/**
+ * 이 질문에 답하기(Step 41) — 원장 PC 의 login-poll 이 1분 안에 집어 질문 페이지를 열고 답을 채운다(kin-open).
+ * 등록은 원장이 그 창에서 누른다. 질문이 붙은 지식iN 초안만(kin-core kin창요청). 두 번 눌러도 창 하나
+ */
+export async function openKin(form: FormData) {
+  await guard();
+  const id = 아이디(form);
+  if (!id) return;
+  const q = (s: string, p: unknown[] = []) => pool().query(s, p).then((r) => r.rows);
+  const r = await kin창요청(q, id);
+  if (r.ok && !r.이미) {
+    await q(`insert into geo.agent_activity (client_id, agent, action, ok, summary, task_id)
+             select client_id, 'deliver', '지식iN 답 창 요청', true, title, id from geo.agent_tasks where id = $1`, [r.id]).catch((e) => console.error("활동 기록 실패", e));
+  }
   revalidatePath("/admin/ops");
 }
 

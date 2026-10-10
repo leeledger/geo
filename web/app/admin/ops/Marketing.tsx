@@ -1,13 +1,15 @@
 import type { Marketing as MarketingData } from "@/lib/marketing";
 import { CHANNEL_NAME } from "@/lib/marketing-core.mjs";
 import { engineName } from "@/lib/agents";
-import { markPosted, discardDraft, approveBlog } from "@/lib/marketing-actions";
+import { markPosted, discardDraft, approveBlog, openKin } from "@/lib/marketing-actions";
 import SubmitButton from "../SubmitButton";
 import CopyButton from "./CopyButton";
 
 /**
  * 「오늘 올릴 글」 (Step 35 D54) — 바깥 글을 쓰는 고객 탭에만.
- * 지식iN·카페: 본문 복사 → 검색 링크로 실제 최근 질문을 골라 붙인다 → 올린 주소를 적고 「올렸어요」. 30초 입력(/admin/inquiry 와 같은 모양)
+ * 지식iN: 원장 PC 가 찾은 실제 질문에 단 답(Step 41). 「이 질문에 답하기」 → PC 에 질문 페이지가 답이 채워진 채 뜬다 → 등록은 원장 →
+ *   「올렸어요」(주소 = 질문 주소로 미리 채움). 질문이 안 붙은 옛 초안은 그 버튼 없이 검색 링크만
+ * 카페(멈춤 D69)·옛 지식iN: 본문 복사 → 검색 링크로 실제 최근 질문을 골라 붙인다 → 올린 주소를 적고 「올렸어요」
  * 블로그: 읽고 「확인했어요」 → 로컬 에이전트가 올린다(D55). 효과는 올린 주소가 AI 답 출처에 나온 수만(D56)
  */
 
@@ -32,6 +34,9 @@ export const MK_CSS = `
 .mk-spot b{color:#F0CE87}
 .mk-spot ul{margin:4px 0 0;padding-left:18px;color:var(--ink)}
 .mk-note{font-size:14px;color:var(--ink2);margin:8px 0 0}
+.mk-kq{margin-top:8px;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px 12px;font-size:14px;word-break:keep-all}
+.mk-kq a{color:var(--ink);font-weight:700}
+.mk-kq p{margin:4px 0 0;color:var(--ink2);white-space:pre-wrap}
 `;
 
 const md = (s: string) => `${Number(s.slice(5, 7))}/${Number(s.slice(8, 10))}`;
@@ -44,7 +49,8 @@ export default function Marketing({ m, name }: { m: MarketingData; name: string 
       {!m.ok ? <p className="sub">못 읽었습니다 — {m.err}</p> : (
         <>
           <p className="sub">
-            지식iN·카페는 원장님 손으로만 올립니다(자동 게시는 계정 정지 위험). 검색 링크에서 최근 질문을 골라 본문을 붙이고, 올린 주소를 적어 주세요.
+            지식iN 은 PC 가 찾은 실제 질문에 단 답입니다. 「이 질문에 답하기」를 누르면 PC 에 질문 페이지가 답이 채워진 채 뜹니다.
+            「등록」은 원장님이 누르고(자동 게시는 하지 않습니다), 「올렸어요」를 눌러 주세요.
           </p>
           {m.drafts.length === 0 ? <p className="mk-note">올릴 초안이 없습니다. 초안은 매일 아침 측정 뒤에 생깁니다</p> : (
             <ol className="mk-list">
@@ -55,6 +61,12 @@ export default function Marketing({ m, name }: { m: MarketingData; name: string 
                     <b>{d.title}</b>
                     <span className="mk-q">검색어 「{d.query}」 · {md(d.createdOn)}</span>
                   </div>
+                  {d.kin && (
+                    <div className="mk-kq">
+                      <a href={d.kin.url} target="_blank" rel="noreferrer">질문: {d.kin.title}</a> · {md(d.kin.askedOn)} 질문
+                      {d.kin.head && <p>{d.kin.head}{d.kin.head.length >= 200 ? "…" : ""}</p>}
+                    </div>
+                  )}
                   {d.spots.length > 0 && (
                     <div className="mk-spot">
                       <b>올리기 전에 확인할 문장 {d.spots.length}개 — 고객 사이트 원문에서 못 찾은 말입니다</b>
@@ -66,6 +78,12 @@ export default function Marketing({ m, name }: { m: MarketingData; name: string 
                     <pre>{d.body}</pre>
                   </details>
                   <div className="mk-act">
+                    {d.kin && (
+                      <form action={openKin}>
+                        <input type="hidden" name="id" value={d.id} />
+                        <SubmitButton className="td-btn">이 질문에 답하기</SubmitButton>
+                      </form>
+                    )}
                     <CopyButton text={d.channel === "jisikin" ? d.body : `${d.title}\n\n${d.body}`} />
                     {d.search && (
                       <a className="td-btn alt" href={d.search} target="_blank" rel="noreferrer">
@@ -82,7 +100,7 @@ export default function Marketing({ m, name }: { m: MarketingData; name: string 
                     ) : (
                       <form action={markPosted}>
                         <input type="hidden" name="id" value={d.id} />
-                        <input type="url" name="url" required placeholder="올린 글 주소" aria-label={`${CHANNEL_NAME[d.channel]}에 올린 글 주소`} />
+                        <input type="url" name="url" required placeholder="올린 글 주소" defaultValue={d.kin?.url} aria-label={`${CHANNEL_NAME[d.channel]}에 올린 글 주소`} />
                         <SubmitButton className="td-btn">올렸어요</SubmitButton>
                       </form>
                     )}
@@ -91,6 +109,7 @@ export default function Marketing({ m, name }: { m: MarketingData; name: string 
                       <SubmitButton className="td-btn alt">버림</SubmitButton>
                     </form>
                   </div>
+                  {d.kinTask && <p className="mk-note">답 창: {d.kinTask.note}</p>}
                 </li>
               ))}
             </ol>

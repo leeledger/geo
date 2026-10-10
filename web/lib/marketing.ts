@@ -1,5 +1,6 @@
 import { pool } from "./ops";
 import { countUsed, readSpots, searchLink, type Channel, type UsedCount } from "./marketing-core.mjs";
+import { 창상태말 } from "./kin-core.mjs";
 
 /**
  * 「오늘 올릴 글」 카드 읽기 (Step 35 D54·D56). 쓰기(서버 동작)는 marketing-actions.ts.
@@ -24,6 +25,10 @@ export type MarketingDraft = {
   /** 원문과 겹침이 낮은 문장 — 올리기 전에 읽을 자리(숫자 없는 지어낸 말 후보) */
   spots: string[];
   search: string | null;
+  /** 지식iN 실제 질문(Step 41) — 있으면 카드가 질문을 보여 주고 「이 질문에 답하기」 버튼을 띄운다 */
+  kin: { url: string; title: string; head: string; askedOn: string } | null;
+  /** 「이 질문에 답하기」 창 요청 상태 — open-kin 일감 */
+  kinTask: { status: string; note: string } | null;
 };
 
 export type Marketing =
@@ -43,14 +48,22 @@ export async function readMarketing(clientId: number): Promise<Marketing> {
     if (!any.length) return { ok: true, enabled: false, drafts: [], todo: 0, used: null, firstPosted: null };
 
     const { rows } = await db.query(
-      `select id::int, channel, target_query, source_url, title, body, created_on::text, note
-         from geo.marketing_posts
-        where client_id = $1 and status = '초안'
-          and created_on > (now() at time zone 'Asia/Seoul')::date - 7
-        order by created_on desc, array_position(array['jisikin','cafe','blog'], channel), id`, [clientId]);
+      `select m.id::int, m.channel, m.target_query, m.source_url, m.title, m.body, m.created_on::text, m.note,
+              k.url as kin_url, k.title as kin_title, left(k.body, 200) as kin_head, k.asked_at::text as kin_asked,
+              t.status as task_status, t.last_error as task_error, t.evidence as task_evidence
+         from geo.marketing_posts m
+         left join geo.kin_questions k on k.id = m.kin_question_id
+         left join geo.agent_tasks t on t.client_id = m.client_id and t.dedupe_key = 'open-kin-' || m.id
+        where m.client_id = $1 and m.status = '초안'
+          and m.created_on > (now() at time zone 'Asia/Seoul')::date - 7
+        order by m.created_on desc, array_position(array['jisikin','cafe','blog'], m.channel), m.id`, [clientId]);
     const drafts: MarketingDraft[] = rows.map((r) => ({
       id: r.id, channel: r.channel, query: r.target_query, sourceUrl: r.source_url, title: r.title, body: r.body,
-      createdOn: r.created_on, blogOk: String(r.note ?? "").startsWith(BLOG_OK), spots: readSpots(r.note), search: searchLink(r.channel, r.target_query),
+      createdOn: r.created_on, blogOk: String(r.note ?? "").startsWith(BLOG_OK), spots: readSpots(r.note),
+      // 실제 질문이 붙은 답은 검색 링크가 필요 없다 — 질문 주소가 있다
+      search: r.kin_url ? null : searchLink(r.channel, r.target_query),
+      kin: r.kin_url ? { url: r.kin_url, title: r.kin_title, head: r.kin_head ?? "", askedOn: r.kin_asked } : null,
+      kinTask: r.task_status ? { status: r.task_status, note: 창상태말(r.task_status, r.task_error, r.task_evidence) } : null,
     }));
     // 원장 몫 — 손으로 올릴 지식iN·카페, 확인을 기다리는 블로그
     const todo = drafts.filter((d) => d.channel !== "blog" || !d.blogOk).length;

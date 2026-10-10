@@ -22,6 +22,22 @@ export const MARKETING_DDL = [
   note text not null default '')`,
   `create index if not exists marketing_posts_client_day_idx on geo.marketing_posts (client_id, created_on)`,
   `alter table geo.marketing_posts enable row level security`,
+  // 지식iN 실제 질문(Step 41) — 원장 PC kin-find 가 찾아 넣는다. 같은 질문에 두 번 답하지 않게 url 하나에 한 줄
+  `create table if not exists geo.kin_questions (
+  id bigserial primary key,
+  client_id int not null references geo.clients(id),
+  url text not null unique,
+  title text not null,
+  body text not null default '',
+  asked_at date not null,
+  answers int not null default 0,
+  adopted boolean not null default false,
+  query text not null,
+  found_at timestamptz not null default now(),
+  status text not null default '후보' check (status in ('후보','씀','버림')),
+  note text not null default '')`,
+  `alter table geo.kin_questions enable row level security`,
+  `alter table geo.marketing_posts add column if not exists kin_question_id bigint references geo.kin_questions(id)`,
 ];
 
 export const CHANNELS = ["jisikin", "cafe", "blog"];

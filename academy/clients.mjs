@@ -193,7 +193,7 @@ export const CODE_CLIENTS = [
       ],
     },
     /**
-     * 바깥 글(Step 35 D53) — 지식iN·카페 매일 1편씩, 블로그 월·목. academy/scripts/marketing-draft.mjs 가 쓴다.
+     * 바깥 글(Step 35 D53) — 블로그 월·목. 카페는 멈춤(D69), 지식iN 은 실제 질문에만(kin, Step 41). academy/scripts/marketing-draft.mjs 가 쓴다.
      * 승인 검색어 → 근거로 읽을 문서딱 페이지. guide 는 안내 페이지(블로그 원문 링크), tool 은 도구 페이지(지식iN 링크).
      * 둘 다 그날 사이트맵에 있어야 쓴다 — 사이트맵에 없는 주소(비공개 도구 등)는 근거로도 링크로도 안 쓴다.
      * 위에서부터 처음 맞는 줄. 맞는 줄이 없는 검색어는 초안을 안 쓴다(지어낼 근거가 없다)
@@ -221,6 +221,8 @@ export const CODE_CLIENTS = [
        * 블로그 아이디는 원장 PC 의 academy/.env.local NAVER_BLOG_ID_DOCTTAK. 프로필·아이디가 없으면 로컬 에이전트가 「로그인 필요」 일감을 한 번 올린다
        */
       blogProfile: ".browser-profile-docttak",
+      /** 지식iN 실제 질문(Step 41 D70) — 로컬 에이전트가 이 프로필로 kin.naver.com 을 읽고 질문 하나에 답 초안. 등록은 원장 */
+      kin: true,
       /**
        * 글에 들어가는 이 고객 고유 말(Step 39a — 전엔 marketing-draft.mjs 에 박혀 있었다). 글자 하나 안 바꾸고 옮겼다(fixtures/marketing-prompt-docttak.txt).
        * facts 는 사람이 확인한 사실만. 비면 글을 안 쓴다
