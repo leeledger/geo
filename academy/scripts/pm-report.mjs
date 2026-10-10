@@ -24,6 +24,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { 확장줄 } from "./loop-grow.mjs";
 import { 수리상태, 수리입력 } from "../../web/lib/repair-core.mjs";
+import { 글기록읽기 } from "../../web/lib/post-auto-core.mjs";
 
 const KST = 9 * 3600 * 1000;
 const 시 = 3600 * 1000;
@@ -187,7 +188,9 @@ export async function 보고짓기(q, now = new Date()) {
   const 색인 = 활동들.filter((a) => a.ok && (["announce", "crawl-push", "brand-defense", "gsc-submit"].includes(a.kind)
     || ["구글 색인 요청", "빙 주소 제출", "자동 작업 snapshot"].includes(a.action))).length;
   const 원장할일 = 열린.filter((t) => t.status === "사람 대기").length;
-  const 산출물 = [`새 초안 ${p.새초안}편`, `발행 ${p.발행}편`, `색인 알림 ${색인}건`];
+  // 학원 주 1편 자동 글(Step 43) — 감수 회차·자동 발행·못 냄을 사람 말 한 줄로. 표가 없으면 안 붙인다
+  const 글줄 = await 글기록읽기(q, 1);
+  const 산출물 = [`새 초안 ${p.새초안}편`, `발행 ${p.발행}편`, `색인 알림 ${색인}건`, ...(글줄 ? [글줄] : [])];
   const 다음 = [
     확인필요.length ? `확인 필요 ${확인필요.length}건을 먼저 봐 주세요` : null,
     원장할일 ? `「오늘 하실 일」 ${원장할일}건` : null,

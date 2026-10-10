@@ -27,6 +27,46 @@ export type Draft = {
   images: Record<string, string>;
 };
 
+/** 내린 이유 — 고르기만 하면 된다(draft-actions.ts takedownPost) */
+export const TAKEDOWN_REASONS = ["사실이 틀림", "광고로 읽힘", "옛 이야기", "문체(AI 티)", "우리 얘기가 아님"] as const;
+
+type 감수단계 = {
+  회차?: number; 다시쓰기?: string;
+  a?: { 통과: boolean; 왜: string; 출처?: { 주소: string; 최종?: string; 상태: string; 왜?: string; 맞음: number }[]; 대조?: number; 맞음?: number; 지운것?: string[] };
+  b?: { 통과: boolean; 걸림?: string[]; 고친것?: string };
+  c?: { 통과: boolean; 왜?: string; 걸림?: { 문장: string; 종류: string }[]; 말리기?: string };
+  d?: { 통과: boolean; 걸림?: string[] };
+};
+/** 자동 글(Step 43) — 감수 중 초안과 최근 30일 자동 발행 글. 검토 화면 맨 위 「자동 글」 절이 읽는다 */
+export type AutoPost = {
+  slug: string; title: string; published: boolean; publishedAt: string | null; domain: string;
+  주제: { 제목?: string; 이유?: string } | null;
+  재료: string[];
+  감수: { 통과?: boolean; 회차?: number; 고침?: string[] } | null;
+  기록: 감수단계 | null;
+};
+
+export async function listAutoPosts(): Promise<AutoPost[]> {
+  const { rows } = await inqPool().query(
+    `select p.slug, p.title, p.published, p.published_at::text published_at, c.domain, coalesce(p.review_notes, '{}'::jsonb) notes
+       from academy.posts p join geo.clients c on c.id = p.client_id
+      where coalesce(p.review_notes, '{}'::jsonb) ? '주제' and not (coalesce(p.review_notes, '{}'::jsonb) ? '비공개이유')
+        and (not p.published or p.published_at > now() - interval '30 days')
+      order by p.published, coalesce(p.published_at, p.created_at) desc`);
+  return rows.map((r) => {
+    const n = r.notes ?? {};
+    const 표 = new Map<string, string>((Array.isArray(n.재료표) ? n.재료표 : []).map((m: { 라벨: string; 원문: string }) => [String(m.라벨), String(m.원문 ?? "")]));
+    const 쓴 = [...new Set((Array.isArray(n.주장) ? n.주장 : []).flatMap((c: { 재료?: unknown }) => (Array.isArray(c?.재료) ? c.재료.map(String) : [])))] as string[];
+    return {
+      slug: r.slug, title: r.title, published: !!r.published, publishedAt: r.published_at, domain: r.domain,
+      주제: n.주제 ?? null,
+      재료: 쓴.filter((l) => 표.has(l)).map((l) => `${l} ${표.get(l)!.slice(0, 40)}`),
+      감수: n.감수 ?? null,
+      기록: n.감수기록 ?? null,
+    };
+  });
+}
+
 export async function listDrafts(clientId?: number): Promise<Draft[]> {
   const { rows } = await inqPool().query(
     `select p.id, p.slug, p.title, coalesce(p.summary,'') summary, coalesce(p.body,'') body, coalesce(p.category,'') category,

@@ -136,4 +136,4 @@ Available agents: Arch (Architect), Bob (Builder), Richard (Reviewer)
 - 영상 촬영과 목소리
 - 상담에서 "어떻게 알고 오셨어요" 묻기 ← 매출 검증의 유일한 고리
   (기록 화면은 만들어져 있다: /admin/inquiry?key=... · 30초면 입력된다)
-- 발행 전 사실 확인
+- 자동 발행된 글 훑어보기 — 이상하면 /admin/drafts 「내리기」 한 번. 발행 전 확인은 자동 감수(출처 원문 대조·AI 티·원장 관점·고객사 가림)가 하고, 하나라도 걸리면 안 나간다

@@ -58,6 +58,7 @@ try {
     ['import { pool } from "./ops";', 'const pool = () => { throw new Error("시험에서 DB 안 씀"); };'],
     ['from "./client-core.mjs"', `from ${JSON.stringify(new URL("../../web/lib/client-core.mjs", import.meta.url).href)}`],
     ['from "./repair-core.mjs"', `from ${JSON.stringify(new URL("../../web/lib/repair-core.mjs", import.meta.url).href)}`],
+    ['from "./post-auto-core.mjs"', `from ${JSON.stringify(new URL("../../web/lib/post-auto-core.mjs", import.meta.url).href)}`],
   ]);
   깎기("todo-text", [['from "./agents";', 'from "./agents.mjs";']]);
   const { todoText } = await import(pathToFileURL(path.join(폴더, "todo-text.mjs")).href);
@@ -130,6 +131,22 @@ for (const f of fs.readdirSync(화면).filter((x) => x.endsWith(".tsx"))) {
     ].filter((x) => /[가-힣]/.test(x) && !상태값.has(x.trim()));
     for (const 글 of 글들) 봄(`${f}:${i + 1}`, 글);
   });
+}
+
+// ── 3. 학원 자동 글 한 줄(Step 43, 현황판 콘텐츠 줄·아침 보고) — 같은 금지어
+{
+  const { 글기록말 } = await import("../../web/lib/post-auto-core.mjs");
+  const 지금 = Date.parse("2026-10-10T03:00:00Z");
+  const 월 = "2026-10-05T01:00:00Z";
+  for (const [이름, rows] of [
+    ["감수", [{ kind: "감수", attempt: 2, passed: false, why: "출처 대조: 지우고 나니 1,200자 — 1,500자에 못 미침", at: 월 }]],
+    ["통과", [{ kind: "감수", attempt: 1, passed: true, why: "4관문 통과", at: 월 }]],
+    ["발행", [{ kind: "발행", why: "「코딩으로 대학 가나요?」", at: 월 }, { kind: "내림", why: "원장 내림 10/9: 옛 이야기", at: "2026-10-09T00:00:00Z" }]],
+    ["못냄", [{ kind: "못냄", why: "주제 2개 다 3번 걸림", at: 월 }]],
+    ["버림", [{ kind: "버림", why: "「제목」 3번 걸려 버림 — 원장 관점: 광고로 읽힐 곳 1곳(학원홍보마무리)", at: 월 }]],
+    ["고름", [{ kind: "고름", why: "「질문」 — AI 답 4곳 중 0곳이 우리를 안 부름(10/8 잼)", at: 월 }]],
+    ["재료부족", [{ kind: "재료부족", why: "「방학 특강」 재료표·상담 말이 하나도 없음", at: 월 }]],
+  ]) 봄(`글기록말 ${이름}`, 글기록말(rows, 지금) ?? "");
 }
 
 console.log(`\n${pass} 통과 · ${fail} 실패`);

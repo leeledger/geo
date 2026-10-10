@@ -33,6 +33,7 @@ try {
     ['import { pool } from "./ops";', 'const pool = () => { throw new Error("시험에서 DB 안 씀"); };'],
     ['from "./client-core.mjs"', `from ${JSON.stringify(코어)}`],
     ['from "./repair-core.mjs"', `from ${JSON.stringify(new URL("../../web/lib/repair-core.mjs", import.meta.url).href)}`],
+    ['from "./post-auto-core.mjs"', `from ${JSON.stringify(new URL("../../web/lib/post-auto-core.mjs", import.meta.url).href)}`],
   ]);
   깎기("todo-text", [['from "./agents";', 'from "./agents.mjs";']]);
   const { todoText } = await import(pathToFileURL(path.join(폴더, "todo-text.mjs")).href);

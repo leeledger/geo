@@ -1,8 +1,8 @@
 import { isAdmin } from "@/lib/admin-auth";
 import { redirect } from "next/navigation";
 
-import { listDrafts, DISCARD_REASONS } from "@/lib/drafts";
-import { saveDraft, publishDraft, discardDraft, revertDraft, requeueIllustrate } from "@/lib/draft-actions";
+import { listDrafts, listAutoPosts, DISCARD_REASONS, TAKEDOWN_REASONS, type AutoPost } from "@/lib/drafts";
+import { saveDraft, publishDraft, discardDraft, revertDraft, requeueIllustrate, takedownPost } from "@/lib/draft-actions";
 import AdminNav from "../AdminNav";
 import SubmitButton from "../SubmitButton";
 
@@ -13,7 +13,8 @@ export const runtime = "nodejs";
 /**
  * 초안 검토 — 읽고, 사실 확인하고, 발행한다.
  *
- * 에이전트가 쓰는 건 초안까지다. 발행 전 사실 확인은 사람만 한다(CLAUDE.md).
+ * 자동 글(Step 43)은 맨 위 「자동 글」 절 — 자동 감수를 다 통과하면 스스로 나가고, 원장은 이상하면 내린다.
+ * 그 밖의 초안(세션 글·스위치가 꺼졌을 때의 자동 글)은 아래 목록에서 원장이 읽고 발행한다.
  * 맨 위 카드에는 결정에 쓰는 것만: 제목 · 사실 확인할 문장 · 도해 썸네일 · 발행/버리기.
  * AI 티·짜임새는 걸렸을 때만 한 줄, 통과면 자세히. 본문·고치기·되돌리기·도해 다시 요청도 자세히.
  */
@@ -96,6 +97,66 @@ function render(md: string, 그림: { slug: string; domain: string; images: Reco
   return out.join("\n");
 }
 
+/**
+ * 자동 글 카드(Step 43) — 감수 중이거나 최근 30일 안에 자동으로 나간 글. 원장이 할 일은 이상하면 「내리기」 한 번.
+ * 고른 이유 · 쓴 재료 · 대조한 출처 · 감수 네 줄 · 회차를 사람 말로만 보여 준다
+ */
+function 자동카드({ p }: { p: AutoPost }) {
+  const g = p.기록;
+  const 줄 = (이름: string, s: { 통과: boolean } | undefined, 말: string) =>
+    <li key={이름}><b>{이름}</b> {s ? (s.통과 ? "통과" : "걸림") : "아직 안 봄"}{s && 말 ? ` — ${말}` : ""}</li>;
+  const 출처 = g?.a?.출처 ?? [];
+  const 못읽음 = 출처.filter((x) => x.상태 !== "읽음");
+  return (
+    <article className="dr-card" id={`auto-${p.slug}`}>
+      <h3>{p.title}</h3>
+      <div className="dr-meta">
+        {p.published ? `자동 발행 ${p.publishedAt ? kst(p.publishedAt) : ""} · ${p.domain}/blog/${p.slug}` : `감수 중 · ${p.감수?.회차 ?? 0}/3회`}
+      </div>
+      <div className="dr-sec">
+        <p>고른 이유: {p.주제?.이유 || "기록 없음"}</p>
+        <p>쓴 재료: {p.재료.length ? p.재료.join(" / ") : "재료 없이 바깥 사실로 씀"}</p>
+      </div>
+      <div className="dr-sec">
+        <b className="t">감수 {g?.회차 ?? p.감수?.회차 ?? 0}/3회</b>
+        <ul>
+          {줄("출처 대조", g?.a, g?.a ? `${g.a.대조 ?? 0}문장 중 ${g.a.맞음 ?? 0} 맞음${g.a.지운것?.length ? ` · 지운 문장 ${g.a.지운것.length}` : ""}${g.a.통과 ? "" : ` · ${g.a.왜}`}` : "")}
+          {줄("AI 티", g?.b, g?.b?.걸림?.[0] ?? g?.b?.고친것 ?? "")}
+          {줄("원장 관점", g?.c, g?.c?.통과 ? (g.c.말리기 ? `말리는 문장 「${g.c.말리기.slice(0, 40)}」` : "") : g?.c?.왜 ?? "")}
+          {줄("가림", g?.d, g?.d?.걸림?.join(", ") ?? "")}
+        </ul>
+        {!p.published && p.감수?.통과 === false && (p.감수.고침?.length ?? 0) > 0 && (
+          <p className="warn">내일 이걸 고쳐 다시 봅니다: {p.감수.고침![0]}</p>
+        )}
+      </div>
+      {출처.length > 0 && (
+        <details className="dr-flag">
+          <summary>대조한 출처 {출처.length}곳{못읽음.length ? ` · 못 읽은 곳 ${못읽음.length}` : ""}{g?.a?.지운것?.length ? ` · 지운 문장 ${g.a.지운것.length}` : ""}</summary>
+          <ul>
+            {출처.map((x, i) => <li key={i}>{x.주소} — {x.상태 === "읽음" ? `맞은 문장 ${x.맞음}` : `${x.상태}${x.왜 ? ` (${x.왜})` : ""}`}</li>)}
+          </ul>
+          {(g?.a?.지운것?.length ?? 0) > 0 && <ul>{g!.a!.지운것!.map((s, i) => <li key={`d${i}`}>지움: {s}</li>)}</ul>}
+        </details>
+      )}
+      {p.published && (
+        <details className="dr-flag dr-kill">
+          <summary>내리기</summary>
+          <form action={takedownPost}>
+            <input type="hidden" name="slug" value={p.slug} />
+            <p className="why">사이트에서는 5분 안에 사라집니다. 네이버 글은 「오늘 하실 일」로 따로 올라갑니다.</p>
+            <select name="reason" defaultValue="">
+              <option value="">이유 안 고름</option>
+              {TAKEDOWN_REASONS.map((r) => <option key={r} value={r}>{r}</option>)}
+            </select>
+            <input type="text" name="note" maxLength={150} placeholder="한 줄 더 (없어도 됩니다)" />
+            <SubmitButton className="adm-btn bad">이 글을 내립니다</SubmitButton>
+          </form>
+        </details>
+      )}
+    </article>
+  );
+}
+
 const kst = (s: string) => new Date(s).toLocaleString("ko-KR", { timeZone: "Asia/Seoul", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false });
 
 export default async function DraftsPage({ searchParams }: { searchParams: Promise<{ key?: string; c?: string }> }) {
@@ -105,6 +166,8 @@ export default async function DraftsPage({ searchParams }: { searchParams: Promi
   if (!(await isAdmin(key))) redirect("/admin/login?to=" + encodeURIComponent(HERE));
   const clientId = c ? Number(c) : undefined;
   const drafts = await listDrafts(Number.isInteger(clientId) ? clientId : undefined);
+  // 자동 글 절은 못 읽어도 화면 전체를 죽이지 않는다 — 아래 초안 목록은 그대로 보여 준다
+  const 자동 = await listAutoPosts().catch((e) => { console.error("자동 글 읽기 실패", e); return null; });
 
   return (
     <main className="adm">
@@ -114,6 +177,20 @@ export default async function DraftsPage({ searchParams }: { searchParams: Promi
           <h1>초안 검토</h1>
           <AdminNav here="/admin/drafts" />
         </div>
+
+        <section className="adm-todo" aria-labelledby="auto-h">
+          <h2 id="auto-h">자동 글{자동 && 자동.length > 0 && <span className="n"> {자동.length}편</span>}</h2>
+          <p className="sub" style={{ margin: 0 }}>
+            {자동 === null ? "자동 글을 못 읽었습니다."
+              : 자동.length === 0 ? "없음 — 감수 중이거나 최근 30일에 자동으로 나간 글이 생기면 여기 뜹니다."
+                : "주제·감수·발행은 자동입니다. 출처 원문 대조·AI 티·원장 관점·가림을 다 통과한 글만 나갑니다. 이상하면 「내리기」 한 번."}
+          </p>
+        </section>
+        {자동 && 자동.length > 0 && (
+          <div className="dr-list" style={{ marginTop: 14, marginBottom: 14 }}>
+            {자동.map((p) => <자동카드 key={p.slug} p={p} />)}
+          </div>
+        )}
 
         <section className="adm-todo" aria-labelledby="dr-h">
           <h2 id="dr-h">검토할 초안{drafts.length > 0 && <span className="n"> {drafts.length}편</span>}</h2>

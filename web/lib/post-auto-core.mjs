@@ -266,10 +266,13 @@ function 숫자들(문장) {
 }
 function 고유명사들(문장) {
   const 말 = [];
-  for (const w of 반각(문장).replace(/\]\([^)]*\)/g, "]").match(/[가-힣]+/g) ?? []) {
+  const 낱 = 반각(문장).replace(/\]\([^)]*\)/g, "]").match(/[가-힣A-Za-z0-9]+/g) ?? [];
+  낱.forEach((w, i) => {
     const x = 조사떼기(w);
-    if (x.length >= 2 && 고유끝.test(x) && !흔한말.has(x)) 말.push(x);
-  }
+    if (/^[가-힣]+$/.test(x) && x.length >= 2 && 고유끝.test(x) && !흔한말.has(x)) 말.push(x);
+    // 「알고리즘우수자 전형」「국제인재 전형」처럼 띄어 쓴 이름 — 앞 낱말과 붙여 하나로 본다(대조는 공백 무시)
+    if (i > 0 && /^(?:전형|과정|대회|방안|위원회|교과서|재단)$/.test(x) && /[가-힣A-Za-z]/.test(낱[i - 1])) 말.push(`${낱[i - 1]}${x}`);
+  });
   for (const w of 문장.replace(/\]\([^)]*\)/g, "]").replace(/https?:\/\/\S+/g, " ").match(/\b[A-Z][A-Za-z0-9]+/g) ?? []) 말.push(w);
   return [...new Set(말)];
 }
@@ -289,7 +292,7 @@ const 그림줄 = (b) => /^!\[[^\]]*\]\([^)]*\)$/.test(b.trim());
 const 출처절 = (b) => /^#{1,4}\s*(?:출처|참고)\s*$/.test(b.trim());
 
 /** 본문의 문장 — 제목·그림·출처 절은 뺀다. 문단 번호를 같이 준다 */
-function 본문문장(body) {
+export function 본문문장(body) {
   const out = [];
   let 출처안 = false;
   블록들(body).forEach((b, 문단) => {
@@ -365,8 +368,11 @@ export function 창찾기(원문, 주장) {
     }
     if (!중심들.length) return [];
   }
+  // 주장의 숫자·말이 많이 모인 자리부터 — 앞쪽 날짜·메뉴에 걸린 숫자로 창 3개를 다 쓰지 않게
+  const 단서 = [...(주장.숫자 ?? []).map((n) => 숫자자리(글, n)), ...[...new Set(말)].map((w) => 말자리(글, w))];
+  const 점수 = (c) => 단서.filter((자리들) => 자리들.some((p) => Math.abs(p - c) <= 300)).length;
   const 창 = [];
-  for (const c of [...new Set(중심들)].sort((a, b) => a - b)) {
+  for (const c of [...new Set(중심들)].sort((a, b) => 점수(b) - 점수(a) || a - b)) {
     if (창.length >= 3) break;
     if (창.some(([a, b]) => c >= a && c < b)) continue;
     const a = Math.max(0, c - 300);

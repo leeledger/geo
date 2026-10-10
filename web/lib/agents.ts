@@ -1,6 +1,7 @@
 import { pool } from "./ops";
 import { 파이프 } from "./client-core.mjs";
 import { 수리상태, 수리입력, type RepairInput } from "./repair-core.mjs";
+import { 글기록읽기 } from "./post-auto-core.mjs";
 
 /**
  * 에이전트 직원 — 지금. 현황판 ② 실시간 줄이 읽는 것.
@@ -538,18 +539,21 @@ export async function readAgents(now = Date.now(), client: (PipeClient & { name:
           where (status = '합침' or merged_at is not null) and coalesce(merged_at, updated_at) > now() - interval '7 days'`);
       merged7 = m.n;
     } catch (e) { console.error("repairs 읽기 실패", e); }
+    // 학원 주 1편 자동 글(Step 43) — 이번 주 감수·발행·못 냄을 사람 말 한 줄로. 표가 없거나 못 읽으면 null(줄을 안 바꾼다)
+    const 글줄 = mine ? null : await 글기록읽기((s, v) => p.query(s, v).then((r) => r.rows), 1);
+    const 글붙이기 = (row: AgentRow): AgentRow => (row.id === "content" && 글줄 ? { ...row, reason: row.reason ? `${row.reason} · ${글줄}` : 글줄 } : row);
 
     return {
       ok: true, at: stamp, claude, client: mine?.name ?? null,
       rows: ROLES.flatMap((r) => mine && (r.id === "content" || r.id === "illustrate" || r.id === "deliver")
         ? clientRows(r, mine, pipe, acts, tasks, now)
-        : [judge(r, {
+        : [글붙이기(judge(r, {
         acts: acts.filter((a) => roleOfAct(a) === r.id),
         tasks: tasks.filter((t) => roleOfAgent(t.agent, t.kind) === r.id),
         repair: r.id === "repair" ? repair : null,
         merged7: r.id === "repair" ? merged7 : null,
         catchups: acts.filter((a) => a.action === "밀린 예약 실행"),
-      }, now)]),
+      }, now))]),
     };
   } catch (e) {
     console.error("에이전트 상태 읽기 실패", e);

@@ -100,6 +100,30 @@ export function 겹치나(a, b, n = 8) {
   return false;
 }
 
+/** 출처 절은 글이 아니라 주소 목록이다 — 목록·반복 검사에서 뺀다 */
+const 출처절빼기 = (본문) => String(본문 ?? "").replace(/\r/g, "").replace(/^#{1,4}\s*(?:출처|참고)\s*$[\s\S]*?(?=^#{1,4}\s|(?![\s\S]))/gm, "");
+
+/**
+ * 결론에서 앞 말 반복 (CLAUDE.md 「앞에서 한 말을 결론에서 그대로 다시 하기」, Step 43).
+ * 마지막 문단에 앞 문단의 20자 이상이 그대로 있으면 잡는다. 8자로 보면 「2027학년도 국민대」 같은 이름만 겹쳐도 걸린다
+ */
+export function 결론반복(본문 = "") {
+  const ps = 문단들(출처절빼기(본문)).filter((p) => !/^!\[/.test(p));
+  if (ps.length < 3) return [];
+  const 끝문단 = ps[ps.length - 1];
+  return ps.slice(0, -1).filter((p) => 겹치나(끝문단, p, 20)).map((p) => p.slice(0, 40));
+}
+
+/**
+ * 목록 남발 (CLAUDE.md 「목록 남발. 목록은 진짜 나열일 때만」, Step 43).
+ * 목록 덩어리 2개 이상 또는 항목 8개 초과면 잡는다. 출처 절은 뺀다
+ */
+export function 목록남발(본문 = "") {
+  const 덩어리 = 출처절빼기(본문).split(/\n{2,}/).map((b) => b.split("\n").filter((l) => /^\s*(?:[-*]|\d+[.)])\s+/.test(l)).length).filter((n) => n > 0);
+  const 항목 = 덩어리.reduce((a, b) => a + b, 0);
+  return 덩어리.length >= 2 || 항목 > 8 ? [`목록 ${덩어리.length}덩어리 · 항목 ${항목}개`] : [];
+}
+
 /**
  * 근거 없는 숫자 (Step 19 — 뉴턴이 근거를 모으고 헤밍웨이는 그 근거로만 쓴다).
  *
@@ -324,6 +348,12 @@ export function 검사(본문 = "", { 재료들 = [], 근거 = "" } = {}) {
     const 선 = 치명선[m.why];
     (선 !== undefined && n >= 선 ? 치명 : 경고).push({ why: m.why, n, sample });
   }
+
+  // ── 5. 짜임새 — 세기만 한다. 자동 감수(auto-post (b))는 이것도 걸림으로 본다
+  const 반복 = 결론반복(본문);
+  if (반복.length) 경고.push({ why: "결론에서 앞 말 반복", n: 반복.length, sample: 반복.slice(0, 2) });
+  const 목록 = 목록남발(본문);
+  if (목록.length) 경고.push({ why: "목록 남발", n: 1, sample: 목록 });
 
   return { 치명, 경고 };
 }

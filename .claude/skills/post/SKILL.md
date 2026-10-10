@@ -60,6 +60,15 @@ cd tools && node svg-to-png.mjs ../academy/public/blog/<슬러그> --scale 1
 
 ## 4. 사이트 발행
 
+발행 전에 자동 감수를 돌린다. 세션이 손으로 쓴 글도 같다 — 네 관문(출처 원문 대조·AI 티·원장 관점·가림)을 다 통과해야 발행한다.
+
+```
+cd academy && node scripts/auto-post.mjs --review <슬러그>
+```
+
+「결과: 통과」가 아니면 발행하지 않는다. 걸린 이유를 고치고 다음 날 다시 돌린다(감수는 하루 1회차).
+`--dry` 는 결과만 찍고 아무것도 안 쓴다.
+
 ```
 cd academy && node scripts/seed-post-<이름>.mjs --publish
 cd academy && npx vercel deploy --prod --yes

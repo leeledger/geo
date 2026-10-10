@@ -17,6 +17,7 @@ export function 재료모으기(q: Q, client?: number): Promise<{ m: 라벨재�
 export function 재료판정(후보: Partial<후보>, 라벨들: { m?: unknown[]; i?: unknown[]; p?: unknown[] }): { 결과: "재료부족" | "재료" | "사실"; 왜: string };
 export const 이번주글SQL: string;
 export function 접기(s: string): { 글: string; 자리: number[]; src: string };
+export function 본문문장(body: string): { 문장: string; 문단: number }[];
 export function 주장뽑기(body: string): 주장[];
 export function 창찾기(원문: string, 주장: Partial<주장>): string[];
 export function JSON꺼내기(text: string): any;

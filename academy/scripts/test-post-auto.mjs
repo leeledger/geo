@@ -374,8 +374,113 @@ t("내리기 — published=false·비공개이유 → '내림' → 활동 → an
   assert.equal(둘.호출[1].params[2], "slug:s");
 });
 
+// ── (a) 출처 대조 — 가짜 fetch·가짜 판정 모델
+const 기사 = `<html><head><script>var x=1;</script></head><body><nav>메뉴 2026-10-10</nav><article>
+  <p>국민대 알고리즘우수자 전형은 10명을 선발하며, 1단계 서류 100%로 3배수를 뽑는다.</p>
+  <p>광운대 소프트웨어우수인재 전형은 72명을 선발한다. ${"기사 본문이 이어진다. ".repeat(20)}</p></article></body></html>`;
+const 응답 = (html, 종류 = "text/html; charset=utf-8") => new Response(html, { status: 200, headers: { "content-type": 종류 } });
+const 가짜fetch = (지도) => async (u) => {
+  const v = 지도[u];
+  if (v instanceof Error) throw v;
+  return v ?? new Response("없음", { status: 404 });
+};
+/** 창 안의 첫 30자를 근거로 「맞음」이라 답하는 판정 모델 — 근거가 창 부분문자열이라 통과한다 */
+const 다맞음 = async (prompt) => {
+  const 판정 = [...prompt.matchAll(/^# (s\d+)\n문장: .*\n창 1: (.+)$/gm)].map((m) => ({ id: m[1], 판정: "맞음", 근거: m[2].slice(0, 30) }));
+  return { ok: true, text: JSON.stringify({ 판정 }) };
+};
+const 글몸 = (숫자) => [
+  `국민대 알고리즘우수자 전형은 모집인원이 ${숫자}명입니다. 광운대 소프트웨어우수인재 전형은 72명을 뽑습니다. ${"이 문단은 판단을 적는 문단입니다. ".repeat(4)}`,
+  "## 무엇을 볼까",
+  "서류와 면접으로 사람을 봅니다. 상장을 모아 내면 끝나는 구조가 아닙니다. ".repeat(45),
+  "## 출처",
+  "- [기사](https://news.example/a)",
+].join("\n\n");
+t("출처 대조 — 같은 본문 「10명」→「12명」 가짜 초안: 그 문장 없음으로 지움 · 나머지 맞음", async () => {
+  const { 출처대조 } = await import("./fact-check.mjs");
+  const r = await 출처대조({ title: "t", body: 글몸(12) }, { 출처: ["https://news.example/a"] }, { fetch: 가짜fetch({ "https://news.example/a": 응답(기사) }), 클로드: 다맞음 });
+  const 틀린 = r.문장.find((x) => x.문장.includes("12명"));
+  assert.equal(틀린.판정, "없음");
+  assert.ok(r.지운것.some((s) => s.includes("12명")));
+  assert.equal(r.문장.find((x) => x.문장.includes("72명")).판정, "맞음");
+  assert.equal(r.출처표[0].상태, "읽음");
+  assert.ok(r.출처표[0].맞음 >= 1);
+  const 맞는 = await 출처대조({ title: "t", body: 글몸(10) }, { 출처: ["https://news.example/a"] }, { fetch: 가짜fetch({ "https://news.example/a": 응답(기사) }), 클로드: 다맞음 });
+  assert.equal(맞는.결과, "통과");
+  assert.equal(맞는.지운것.length, 0);
+});
+t("출처 대조 — PDF·HTML 아님 = 못 읽음 · 전부 네트워크 오류 = 미룸 · 판정 한도 = 미룸", async () => {
+  const { 출처대조, 출처가져오기 } = await import("./fact-check.mjs");
+  assert.equal((await 출처가져오기("https://x/a.pdf", { fetch: async () => 응답("%PDF-1.4", "application/pdf") })).상태, "PDF");
+  assert.equal((await 출처가져오기("https://x/b", { fetch: async () => 응답("{}", "application/json") })).상태, "못 읽음");
+  const dns = Object.assign(new TypeError("fetch failed"), { cause: { code: "ENOTFOUND" } });
+  assert.equal((await 출처가져오기("https://x/c", { fetch: async () => { throw dns; } })).상태, "네트워크");
+  const 막힘 = await 출처대조({ title: "t", body: 글몸(10) }, { 출처: ["https://news.example/a"] }, { fetch: async () => { throw dns; }, 클로드: 다맞음 });
+  assert.equal(막힘.결과, "미룸");
+  const 한도 = await 출처대조({ title: "t", body: 글몸(10) }, { 출처: ["https://news.example/a"] }, { fetch: 가짜fetch({ "https://news.example/a": 응답(기사) }), 클로드: async () => ({ ok: false, 한도: true }) });
+  assert.equal(한도.결과, "미룸");
+});
+t("출처 대조 — 판정 모델이 근거를 지어내면 없음 → 지워서 짧아지면 실패", async () => {
+  const { 출처대조 } = await import("./fact-check.mjs");
+  const 지어냄 = async (prompt) => ({ ok: true, text: JSON.stringify({ 판정: [...prompt.matchAll(/^# (s\d+)$/gm)].map((m) => ({ id: m[1], 판정: "맞음", 근거: "원문에 없는 그럴듯한 문장입니다" })) }) });
+  const r = await 출처대조({ title: "t", body: 글몸(10) }, { 출처: ["https://news.example/a"] }, { fetch: 가짜fetch({ "https://news.example/a": 응답(기사) }), 클로드: 지어냄, 최소: 3000 });
+  assert.ok(r.문장.every((x) => x.판정 === "없음"));
+  assert.equal(r.결과, "실패");
+  assert.match(r.왜, /첫 문단|못 미침/);
+});
+
+// ── (b) AI 티 규칙표 · (d) 가림
+const { 티찾기, 가림찾기, AI티줄, 원장규칙 } = await import("./review-gates.mjs");
+const 규칙표 = [
+  ["서론", "서론으로 여는 말"],
+  ["먼저 / 다음으로 / 마지막으로", "순서를 까는 연결어 세트"],
+  ["결론에서 그대로 다시", "결론에서 앞 말 반복"],
+  ["목록 남발", "목록 남발"],
+  ["빈 강조", "빈 강조"],
+  ["흐리게 끝내기", "흐린 마무리"],
+  ["숫자를 피하는 말", "숫자를 피하는 말"],
+  ["과장된 형용사", "과장 형용사"],
+  ["양비론", "양비론"],
+  ["구체가 없는 일반론", "일반론 문단"],
+  ["아무나 쓸 수 있는 말", "아무나 쓰는 도입"],
+];
+t("AI 티 규칙표 — CLAUDE.md 「AI 가 쓴 티」 줄마다 잡는 규칙 이름이 있고, 그 이름이 slop-rules 에 있다", async () => {
+  const fs = await import("node:fs");
+  const md = fs.readFileSync(new URL("../../CLAUDE.md", import.meta.url), "utf8");
+  const 줄들 = AI티줄(md);
+  assert.ok(줄들.length >= 11, `AI 티 줄 ${줄들.length}개`);
+  const 규칙src = fs.readFileSync(new URL("./slop-rules.mjs", import.meta.url), "utf8");
+  for (const 줄 of 줄들) {
+    const 짝 = 규칙표.find(([열쇠]) => 줄.includes(열쇠));
+    assert.ok(짝, `규칙 없는 줄: ${줄}`);
+    assert.ok(규칙src.includes(짝[1]), `slop-rules 에 「${짝[1]}」 없음`);
+  }
+  assert.ok(원장규칙(md), "절대 규칙 6줄을 못 읽음");
+});
+const 좋은글 = [
+  "국민대가 2027학년도에 알고리즘우수자 전형을 새로 만들었습니다. 모집인원은 10명이고 서류와 면접으로 뽑습니다. 코딩 대회 상장을 모으는 준비와는 결이 다릅니다.",
+  "## 무엇을 보나",
+  "서류를 읽은 사람이 면접에서 되묻습니다. 무엇을 만들었고 왜 그렇게 풀었는지 본인 입으로 설명해야 넘어갑니다. 대회 실적만 쌓는 준비는 하지 마세요. 설명할 수 있는 결과물 하나가 낫습니다.",
+  "## 초등 학부모라면",
+  "지금 초등학생이 치를 입시는 2030년대입니다. 전형 이름은 몇 년 단위로 바뀝니다. 이름을 외우기보다 아이가 만든 것을 말로 설명하게 해 보는 쪽이 남습니다. 스크래치로 만든 게임 하나도 됩니다.",
+].join("\n\n").repeat(1).padEnd(1600, " 스크래치로 만든 결과물을 설명하는 연습이 남습니다.");
+t("AI 티 — 「우리 학원으로 오세요」로 닫으면 (b) 실패 · 제목 질문형 아님 · 소제목 5개", () => {
+  const 끝홍보 = `${좋은글}\n\n궁금하시면 체험 수업으로 우리 학원으로 오세요. 아이에게 맞는 반을 같이 찾아 드립니다. 상담은 언제든 열려 있습니다. 편하게 연락 주세요.`;
+  assert.ok(티찾기("코딩으로 대학 가나요?", 끝홍보).some((x) => x.startsWith("학원 홍보로 닫기")));
+  assert.ok(티찾기("2027학년도 국민대 전형 10명 신설", 좋은글).some((x) => x.startsWith("제목이 질문형이 아님")));
+  const 소제목많음 = `${좋은글}\n\n${Array.from({ length: 4 }, (_, i) => `## 절 ${i}\n\n${"판단을 적는 문단입니다. 스크래치 결과물을 설명합니다. ".repeat(3)}`).join("\n\n")}`;
+  assert.ok(티찾기("코딩으로 대학 가나요?", 소제목많음).some((x) => /^소제목 \d+개/.test(x)));
+  assert.ok(티찾기("코딩으로 대학 가나요?", `${좋은글}\n\n- 하나\n- 둘\n\n가운데 문단입니다. 스크래치 결과물을 설명합니다. 이 문단은 길이를 채우려고 판단을 적습니다. 판단을 적습니다.\n\n- 셋\n- 넷`).some((x) => x.startsWith("목록 남발")));
+});
+t("가림 — DB 고객 이름 → 실패 · 「로보티즈키즈랩」 → 실패 · 「로보티즈 드림」 → 통과 · 자기 글 링크는 통과", () => {
+  const 말들 = ["아이로그", "ilog.kr"];
+  assert.deepEqual(가림찾기("아이로그 같은 앱을 씁니다", 말들), ["아이로그"]);
+  assert.deepEqual(가림찾기("예전 로보티즈키즈랩 반포교육원 시절", 말들), ["로보티즈키즈랩", "반포교육원"]);
+  assert.deepEqual(가림찾기("로보티즈 드림 키트로 시작합니다. 자세한 건 /blog/koding-kurikyulleom-sunseo 에", 말들), []);
+});
+
 for (const [name, f] of 시험들) {
-  try { await f(); pass++; } catch (e) { fail++; console.log(`✗ ${name}\n   ${String(e.message).split("\n")[0]}`); }
+  try { await f(); pass++; } catch (e) { fail++; console.log(`✗ ${name}\n   ${String(e.message).split("\n").filter(Boolean).slice(0, 4).join(" ")}`); }
 }
 console.log(`${fail ? "✗" : "✓"} test-post-auto: ${pass} 통과 · ${fail} 실패`);
 process.exitCode = fail ? 1 : 0;

@@ -4,13 +4,16 @@ import { revalidatePath } from "next/cache";
 import { isAdmin } from "./admin-auth";
 import { inqPool } from "./inquiries";
 import { DISCARD_REASONS } from "./drafts";
+import { 발행, 내리기 } from "./post-auto-core.mjs";
 
 /**
- * 초안 검토 화면의 동작. 발행은 원장이 사실 확인을 끝냈다는 뜻이다 (CLAUDE.md 「발행 전 사실 확인」).
+ * 초안 검토 화면의 동작. 원장 버튼 발행은 원장 판단이 감수라 자동 감수 조건을 안 본다.
+ * 자동 글(Step 43)은 자동 감수를 통과하면 스스로 나가고, 원장은 나간 글을 「내리기」로 내린다.
  * 발행하면 유통 담당 일감(색인 알림)을 바로 만든다 — 다음 회사 루프(매시)가 집어 간다.
  */
 
 const slugOf = (form: FormData) => String(form.get("slug") ?? "").trim();
+const q = (sql: string, params: unknown[] = []) => inqPool().query(sql, params).then((r) => r.rows);
 
 async function guard() {
   if (!(await isAdmin())) throw new Error("관리자만 할 수 있습니다");
@@ -55,33 +58,22 @@ export async function publishDraft(form: FormData) {
   await guard();
   const slug = slugOf(form);
   if (!slug) return;
-  const { rows } = await inqPool().query(
-    `update academy.posts set published=true, published_at=now(), updated_at=now()
-      where slug=$1 and not published and position('![' in body) > 0
-        -- 다른 업체·과거 지점처럼 공식 엔티티를 오염시키는 글은 다시 발행 후보가 될 수 없다
-        and not (coalesce(review_notes, '{}'::jsonb) ? '비공개이유')
-        -- 본문이 가리키는 /blog/img 그림이 post_images 에 다 있어야 한다 — 없는 그림 주소로 발행되면 빈 칸이 나간다
-        and not exists (select 1 from regexp_matches(body, '/blog/img/([^/)\\s]+)/([a-z0-9-]+)\\.svg', 'g') m
-                         where not exists (select 1 from academy.post_images i where i.slug = m[1] and i.name = m[2]))
-      returning client_id, title`,
-    [slug],
-  );
-  const p = rows[0];
-  if (!p) return;
-  // sticky: 정찰 같은 신호에서 나온 일이 아니다. 없으면 회사 루프가 「신호 사라짐」으로 바로 닫는다
-  await inqPool().query(
-    `insert into geo.agent_tasks (client_id, agent, kind, dedupe_key, title, detail, payload, priority)
-     values ($1, 'deliver', 'announce', $2, $3, '원장이 사실 확인 후 발행한 글을 검색엔진에 알리고 네이버 이관·구글 색인 요청을 잡습니다.', $4::jsonb, 20)
-     on conflict (client_id, dedupe_key) do update set status='대기', attempts=0, next_try_at=now(), updated_at=now(),
-       payload = geo.agent_tasks.payload || excluded.payload`,
-    [p.client_id, `announce-${slug}`, `새 글 알리기: ${p.title}`, JSON.stringify({ slug, sticky: true })],
-  ).catch((e) => log(p.client_id, "발행 알림 일감 만들기 실패", String(e), false));
-  await inqPool().query(
-    `update geo.agent_tasks set status='완료', done_at=now(), updated_at=now(), evidence = evidence || $3
-      where client_id=$1 and dedupe_key=$2 and status <> '완료'`,
-    [p.client_id, `review-${slug}`, "\n원장 확인 후 발행"],
-  ).catch(() => {});
-  await log(p.client_id, "원장 승인 발행", `${p.title} (/blog/${slug})`);
+  // 조건(그림 있음·비공개이유 없음·본문 그림이 다 저장됨)·알림 일감·검토 일감 완료·활동은 core 한 곳 — 자동 발행과 같은 길(Step 43 D82)
+  await 발행(q, slug, { 누가: "원장" });
+  revalidatePath("/admin/drafts");
+  revalidatePath("/admin/ops");
+}
+
+/** 내린 이유 — 고르기만 하면 된다. 다음 글 고를 때·아침 보고에서 사람이 읽는다 */
+export async function takedownPost(form: FormData) {
+  await guard();
+  const slug = slugOf(form);
+  if (!slug) return;
+  const 고름 = String(form.get("reason") ?? "").trim();
+  const 덧 = String(form.get("note") ?? "").trim();
+  const 이유 = [고름, 덧].filter(Boolean).join(" — ").slice(0, 200);
+  // 사이트는 revalidate 300 이라 5분 안에 사라진다. 네이버 글은 로그인이 필요해 사람 일감으로 남는다(D91)
+  await 내리기(q, slug, { 이유, 블로그: process.env.NAVER_BLOG_ID || "force11" });
   revalidatePath("/admin/drafts");
   revalidatePath("/admin/ops");
 }

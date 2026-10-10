@@ -46,7 +46,7 @@ import { 프로필 } from "./profile.mjs";
 import { PM보고 } from "./pm-report.mjs";
 import { PC무소식, PC무소식글 } from "./pc-silent.mjs";
 import { 파일럿칸준비, 파일럿날짜맞추기, 구축대기한도 } from "../pilot-plan.mjs";
-import { 이번주글SQL, 기록하기, KST날 } from "../../web/lib/post-auto-core.mjs";
+import { 이번주글SQL, 기록하기, KST날, 자동발행켜짐, 발행가능, 발행 } from "../../web/lib/post-auto-core.mjs";
 
 for (const l of fs.readFileSync(new URL("../.env.local", import.meta.url), "utf8").split(/\r?\n/)) {
   const m = /^([A-Z_]+)=(.*)$/.exec(l);
@@ -608,6 +608,44 @@ const 계획 = async (clients, { latest: latestRuns, ok: ghOk }) => {
 // ─────────────────────────────────────────── 3. 실행기
 const clientOf = (clients, id) => clients.find((c) => c.id === id);
 
+/** 내일 06:30 KST — 감수는 하루 1회차(D87) */
+const 내일아침 = () => { const k = new Date(Date.now() + 9 * 3600 * 1000); return new Date(Date.UTC(k.getUTCFullYear(), k.getUTCMonth(), k.getUTCDate() + 1, 6, 30) - 9 * 3600 * 1000).toISOString(); };
+
+/**
+ * 감수를 통과한 글을 내보낸다. 발행가능(자동) — 그림·비공개이유·저장된 그림 + 감수 통과·본문해시·스위치 on — 이 아니면 안 나간다.
+ * 감수 기록이 없는 초안이면 빈 글자를 준다(원장 몫 그대로)
+ */
+const 자동발행 = async (slug) => {
+  const [p] = await q(`select coalesce(review_notes, '{}'::jsonb) ? '감수' 있음 from academy.posts where slug=$1`, [slug]);
+  if (!p?.있음) return "";
+  const 가능 = await 발행가능(q, slug, { 자동: true });
+  if (!가능.ok) return `아직 안 나감 — ${가능.왜}`;
+  const r = await 발행(q, slug, { 누가: "자동" });
+  return r.ok ? "자동 감수 통과 발행" : "발행 조건이 그사이 바뀜";
+};
+
+/** 자동 감수(auto-post.mjs --review) 결과 → 일감 상태. 버리면 주간 초안이 내일 다음 주제를 쓴다(주당 2주제까지, D88) */
+const 자동감수 = async (slug) => {
+  const r = 실행(["scripts/auto-post.mjs", "--review", slug], 35 * 60 * 1000);
+  let o = null;
+  try { o = JSON.parse(/^AUTOPOST=(.+)$/m.exec(r.out)?.[1] ?? ""); } catch { o = null; }
+  const link = `${ADMIN}/admin/drafts#${slug}`;
+  switch (o?.행동) {
+    case "통과": {
+      const 나감 = await 자동발행(slug);
+      return { status: "완료", link, evidence: `${오늘()} 자동 감수 통과${o.이미 ? "" : ` (${o.회차}회차)`}${나감 ? ` · ${나감}` : ""}` };
+    }
+    case "내일다시": return { status: "대기", nextTry: 내일아침(), link, evidence: `${오늘()} 자동 감수 ${o.회차}/3회 걸림 — ${끝(o.왜, 160)} · 내일 고쳐 다시 봄` };
+    case "버림":
+      await q(`update geo.agent_tasks set status='대기', next_try_at=$1, updated_at=now()
+                where client_id=1 and kind='weekly-draft' and status <> '실행 중'`, [내일()]).catch(() => {});
+      return { status: "닫힘", evidence: `${오늘()} 자동 감수 3회 실패로 버림 — ${끝(o.왜, 160)} · 내일 다음 주제` };
+    case "미룸": return { status: "대기", nextTry: 뒤(6), link, evidence: `${오늘()} 자동 감수 미룸 — ${끝(o.왜, 160)}` };
+    case "대상없음": return { status: "닫힘", evidence: `${오늘()} ${o.왜}` };
+    default: return { status: "실패", attempt: true, error: 끝(o?.왜 ?? r.out) };
+  }
+};
+
 const EXEC = {
   // ── 운영
   async "workflow-failed"(t) {
@@ -790,6 +828,8 @@ const EXEC = {
     const slug = t.payload.slug;
     const [post] = await q(`select slug, body, published, updated_at::text as updated, coalesce(review_notes,'{}'::jsonb) notes from academy.posts where slug=$1`, [slug]);
     if (!post || post.published) return { status: "닫힘", evidence: `${오늘()} 이미 발행됐거나 없음` };
+    // 자동 글(Step 43) — 스위치가 켜져 있고 주제 기록이 있으면 사람 대신 자동 감수 4관문. 꺼져 있거나 세션 초안이면 아래 그대로(사람 대기)
+    if (post.notes.주제 && (await 자동발행켜짐(q))) return 자동감수(slug);
     const 검사 = () => {
       const r = 실행(["scripts/slop-check.mjs", slug], 2 * 60 * 1000);
       return [...r.out.matchAll(/^\s{4}(.+?) (\d+)곳 — (.+)$/gm)].map((m) => ({ why: m[1], sample: m[3].split(", ") }));
@@ -855,7 +895,11 @@ const EXEC = {
     try { o = JSON.parse(/^ILLUSTRATE=(.+)$/m.exec(r.out)?.[1] ?? ""); } catch { o = null; }
     const link = `${ADMIN}/admin/drafts#${slug}`;
     switch (o?.상태) {
-      case "붙임": return { status: "완료", link, evidence: `${오늘()} 도해 ${o.장수}장 붙임${o.버린것?.length ? ` · 버림 ${o.버린것.length}장 (${끝(o.버린것.join(" / "), 200)})` : ""}` };
+      case "붙임": {
+        // 감수를 통과한 자동 글은 도해가 붙는 즉시 나간다. 해시·스위치·그림 조건은 발행가능이 본다(D89)
+        const 나감 = await 자동발행(slug);
+        return { status: "완료", link, evidence: `${오늘()} 도해 ${o.장수}장 붙임${o.버린것?.length ? ` · 버림 ${o.버린것.length}장 (${끝(o.버린것.join(" / "), 200)})` : ""}${나감 ? ` · ${나감}` : ""}` };
+      }
       // 도해는 무조건 — 다 버려졌어도 닫지 않고 다시 그린다. 두 번까지는 다음 시간, 그 뒤로는 6시간 간격(구독 한도를 원장과 같이 쓴다)
       case "다버림": return { status: "대기", attempt: true, nextTry: 뒤(o.시도 >= 2 ? 6 : 1), link,
         evidence: `${오늘()} 도해 ${o.시도}번째 시도 — 다 버림, 다시 그림 (${끝(o.버린것.join(" / "), 300)})` };
@@ -870,6 +914,15 @@ const EXEC = {
   },
 
   // ── 유통
+  /** 원장이 내린 글(Step 43 D91) — 사이트에서 사라진 주소를 검색엔진에 다시 알린다. 실행기는 indexnow.mjs 그대로 */
+  async "announce-removal"(t, c) {
+    const slug = t.payload.slug;
+    const r = 실행(["scripts/indexnow.mjs", "--client", c.slug, `/blog/${slug}`, "/blog", "/"]);
+    const sent = r.ok && /접수됨/.test(r.out);
+    return sent ? { status: "완료", evidence: `${오늘()} 내린 글 주소를 IndexNow 로 알림 (Bing·Naver)` }
+      : { status: "실패", attempt: true, nextTry: 뒤(1), error: `IndexNow ${끝(r.out, 200)}` };
+  },
+
   async announce(t, c) {
     const slug = t.payload.slug;
     const r = 실행(["scripts/indexnow.mjs", "--client", c.slug, `/blog/${slug}`, "/blog", "/"]);
