@@ -33,7 +33,7 @@ function Act({ id, a }: { id: number; a: TodoAction }) {
     return (
       <form action={requestLogin}>
         <input type="hidden" name="id" value={id} />
-        <SubmitButton className="td-btn">로그인 창 열기</SubmitButton>
+        <SubmitButton className="td-btn">{a.label ?? "로그인 창 열기"}</SubmitButton>
       </form>
     );
   }

@@ -7,6 +7,7 @@ import {
   kin요청검사, kin창요청, 오래된kin요청닫기, 창상태말, 창결과, 채움말, 도구맞음, 공급말, 공급상태,
 } from "../../web/lib/kin-core.mjs";
 import { MARKETING_DDL } from "../../web/lib/marketing-core.mjs";
+import { 로그인대상, 창요청검사, 확인된곳 } from "../../web/lib/login-core.mjs";
 import { 프롬프트, 관문, 대조표, 매일채널, 질문맞는줄 } from "./marketing-draft.mjs";
 
 let 통과 = 0, 실패 = 0;
@@ -80,7 +81,21 @@ for (const t of ["여권 사진 규격이 어떻게 되나요", "정부24 pdf �
 봄("공급상태 — 7일 안 실행 없음", 공급상태([], 0, "2026-10-01") === "지식iN 최근 7일 안 돌았습니다(마지막 찾기 2026-10-01)", 공급상태([], 0, "2026-10-01"));
 봄("공급상태 — 한 번도 안 돈 고객은 줄 없음", 공급상태([], 0, null) === null);
 봄("공급상태 — 마지막이 막힘이면 캡차 말", 공급상태([{ status: "막힘", read: 0, matched: 0, note: "" }, { status: "돎", read: 50, matched: 1, note: "" }], 0, "2026-10-10")
-  === "지식iN 캡차로 멈춤 — 원장님이 한 번 로그인 창에서 풀어 주세요");
+  === "지식iN 캡차로 멈춤 — 할 일의 「지식iN 캡차 풀 창 열기」로 한 번 풀어 주세요(찾기는 다음 날부터)");
+// 캡차 풀 창(KG-41-9) — 로그인 창과 같은 길
+봄("로그인대상 — kin-captcha-<slug> → 고객 프로필 지식iN 창", JSON.stringify(로그인대상("kin-captcha-docttak", "docttak")) === JSON.stringify({ sites: ["kin"], profile: ".browser-profile-docttak" }) && 로그인대상("kin-captcha-docttak", "ilog") === null);
+봄("창요청검사 — 지식iN 창은 고객 프로필 하나만", 창요청검사({ profile: ".browser-profile-docttak", sites: ["kin"] }) !== null && 창요청검사({ profile: ".browser-profile", sites: ["kin"] }) === null && 창요청검사({ profile: ".browser-profile-docttak", sites: ["kin", "blog"] }) === null);
+봄("확인된곳 — 「✓ 지식iN 캡차 창 닫힘」", 확인된곳("  ✓ 지식iN 캡차 창 닫힘\n", ["kin"]).됨.join() === "kin" && 확인된곳("12분이 지나 창을 닫습니다. 아직 확인 안 된 곳: 지식iN 캡차 창", ["kin"]).안됨.join() === "kin");
+봄("login-poll — kin 이면 open-session --kin", /요청\.sites\.includes\("kin"\) \? \["--kin", 요청\.profile\]/.test(읽기("../../tools/login-poll.mjs")));
+{
+  const os = 읽기("../../tools/open-session.mjs");
+  const k = os.slice(os.indexOf('process.argv.indexOf("--kin")'), os.indexOf("const PROFILE"));
+  봄("open-session --kin — 누르지 않고 닫힐 때까지 둠 · 다음 날부터", k.length > 0 && !/\.click\(|\.fill\(|keyboard\./.test(k) && k.includes("✓ ${지식iN창} 닫힘") && os.includes(`const 지식iN창 = "지식iN 캡차 창"`) && !/blocked/.test(k));
+}
+{
+  const 할일 = 읽기("../../web/lib/todo-text.ts");
+  봄("할 일 — kin-captcha 일감에 「지식iN 캡차 풀 창 열기」 버튼", /\^kin-captcha-/.test(할일) && /label: "지식iN 캡차 풀 창 열기"/.test(할일));
+}
 봄("공급상태 — 실패·안 돎뿐이면 숫자 없음", (() => { const s = 공급상태([{ status: "실패", read: 0, matched: 0, note: "로그인 필요" }, { status: "안 돎", read: 0, matched: 0, note: "하루 상한" }], 0, "2026-10-10"); return s === "지식iN 최근 7일 찾기 2번 다 못 돎 — 마지막: 로그인 필요" && !/읽은 질문 0/.test(s); })());
 봄("공급상태 — 돈 실행만 더함", 공급상태([{ status: "안 돎", read: 0, matched: 0, note: "" }, { status: "돎", read: 40, matched: 1, note: "" }, { status: "돎", read: "50", matched: 2, note: "" }], 3, "2026-10-10")
   === "지식iN 찾기 2번 · 최근 7일 분야 목록에서 읽은 질문 90개 · 맞는 질문 3개 · 이미 채택돼 놓침 3개");
@@ -180,7 +195,7 @@ const 글 = "PDF 압축 안내\n압축 강도는 세 단계예요.\n출처: 구�
 const p = {
   query: "pdf 용량 줄이기", 사실: "문서딱 고정 사실: 안내 글 31편", 페이지: [{ url: "https://docttak.com/guide/pdf-compress/", 글 }],
   사이트맵: new Set(["/pdf-compress/", "/guide/pdf-compress/"]), 바깥: [], guide: "https://docttak.com/guide/pdf-compress/", tool: "https://docttak.com/pdf-compress/",
-  기관: [], 대안: [], 근거: ["문서딱 고정 사실: 안내 글 31편", 글, 질문.title, 질문.body].join("\n"), 질문,
+  기관: [], 대안: [], 근거: ["문서딱 고정 사실: 안내 글 31편", 글].join("\n"), 질문,   // main() 과 같이 — 질문 글은 근거가 아니다
 };
 const 프 = 프롬프트(c, "jisikin", p);
 봄("프롬프트 — 질문 본문", 프.includes(질문.body) && 프.includes(`제목: ${질문.title}`));
@@ -190,9 +205,12 @@ const 프 = 프롬프트(c, "jisikin", p);
 봄("프롬프트 — 질문 없으면 옛 꼴 그대로", !프롬프트(c, "jisikin", { ...p, 질문: null }).includes("## 질문"));
 const 답 = ["25MB 를 넘으면 압축으로 줄여요. 압축 강도는 세 단계예요.", "https://docttak.com/pdf-compress/ 에서 해요. 다른 길은 제출처 공고에서 확인해 주세요.", c.marketing.disclosure].join("\n\n");
 const 걸림 = 관문("jisikin", { title: 질문.title, body: 답 }, p, c);
-봄("관문 — 질문자가 적은 숫자(25MB)는 지어낸 것 아님", !걸림.some((x) => /25/.test(x)), 걸림.join(" / "));
+봄("관문 — 질문 속 숫자(25MB)는 근거가 아니라 걸림", 걸림.some((x) => /25/.test(x)), 걸림.join(" / "));
+봄("관문 — 숫자 없이 「말씀하신 파일」은 숫자로 안 걸림", !관문("jisikin", { title: 질문.title, body: 답.replace("25MB 를 넘으면", "말씀하신 파일은") }, p, c).some((x) => /25/.test(x)));
 봄("관문 — 질문에도 원문에도 없는 숫자는 걸림", 관문("jisikin", { title: 질문.title, body: 답.replace("25MB", "30MB") }, p, c).some((x) => /30/.test(x)));
-봄("대조표 — 질문 숫자는 질문 주소로", 대조표("25MB", p).some((x) => x.url === 질문.url));
+봄("대조표 — 질문 숫자는 원문에서 못 찾음", 대조표("25MB", p).every((x) => x.url !== 질문.url && x.원문 === "(원문에서 못 찾음)"));
+봄("프롬프트 — 질문 숫자를 규격으로 옮겨 쓰지 않게", 프.includes("질문 글에 나온 숫자(용량·크기·쪽수·날짜)를 규격·한도처럼 옮겨 쓰지 않는다"));
+봄("marketing-draft — 근거에 질문 글을 안 넣음", (() => { const m = 읽기("./marketing-draft.mjs"); const i = m.indexOf("근거: [사실,"); return i > 0 && !/질문/.test(m.slice(i, m.indexOf("\n", i))); })());
 
 // ─────────────────────────────────────────── 매일 채널 — 카페·지식iN 빠짐
 봄("매일채널 — 블로그 날만 블로그", JSON.stringify(매일채널([1, 4], 1)) === '["blog"]' && JSON.stringify(매일채널([1, 4], 2)) === "[]");

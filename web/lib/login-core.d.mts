@@ -1,5 +1,5 @@
 type Q = (sql: string, params?: unknown[]) => Promise<any[]>;
-export type 창곳 = "google" | "naver" | "microsoft" | "blog";
+export type 창곳 = "google" | "naver" | "microsoft" | "blog" | "kin";
 
 export const 창이름: Record<창곳, string>;
 export function 로그인대상(dedupe: string, clientSlug: string | null | undefined): { sites: 창곳[]; profile: string } | null;

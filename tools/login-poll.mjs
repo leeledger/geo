@@ -101,7 +101,7 @@ try {
 
   const 이름들 = 요청.sites.map((s) => 창이름[s]).join(", ");
   기록(`창 엶 #${t.id}: ${이름들} (${요청.profile})`);
-  const args = 요청.sites.includes("blog") ? ["--blog", 요청.profile] : ["--only", 요청.sites.join(",")];
+  const args = 요청.sites.includes("blog") ? ["--blog", 요청.profile] : 요청.sites.includes("kin") ? ["--kin", 요청.profile] : ["--only", 요청.sites.join(",")];
   const r = spawnSync(process.execPath, [OPEN_SESSION, ...args], { cwd: HERE, encoding: "utf8", timeout: 13 * 60000, windowsHide: false, maxBuffer: 5 * 1024 * 1024 });
   const out = `${r.stdout ?? ""}${r.stderr ?? ""}${r.error ? `\n${r.error.message}` : ""}`;
   const { 됨, 안됨 } = 확인된곳(out, 요청.sites);

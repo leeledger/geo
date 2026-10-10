@@ -14,7 +14,10 @@
  *        고객 블로그용 따로 둔 프로필에 네이버 로그인만(Step 35 D55). 학원 블로그 세션(.browser-profile)과 섞이지 않는다.
  *        그 고객 네이버 계정으로 로그인한다. 로컬 에이전트가 이 프로필로 원장이 확인한 블로그 초안을 올린다
  *
- * 출력 「✓ <이름> 로그인 확인」 줄은 login-poll.mjs(현황판 「로그인 창 열기」)가 읽는다 — 글자를 바꾸지 않는다.
+ *   node open-session.mjs --kin .browser-profile-docttak
+ *        지식iN 캡차를 원장이 풀 창(Step 41). 원장이 닫을 때까지 둔다
+ *
+ * 출력 「✓ <이름> 로그인 확인」·「✓ <이름> 닫힘」 줄은 login-poll.mjs(현황판 「로그인 창 열기」)가 읽는다 — 글자를 바꾸지 않는다.
  */
 import { chromium } from "playwright";
 import path from "node:path";
@@ -26,6 +29,38 @@ if (bi >= 0 && (!BLOG_PROFILE || BLOG_PROFILE === ".browser-profile")) {
   console.log("--blog 다음에 따로 둘 프로필 폴더 이름을 주세요. 예: --blog .browser-profile-docttak (학원 프로필은 안 됩니다)");
   process.exit(1);
 }
+/**
+ * --kin <고객 프로필> (Step 41 KG-41-9) — 지식iN 캡차를 원장이 풀 창. 그 프로필로 지식iN 분야 목록을 열고 원장이 닫을 때까지 둔다(상한 12분).
+ * 캡차는 사람이 푼다. 여기서는 아무것도 누르지 않는다. 닫히면 「✓ 지식iN 캡차 창 닫힘」(login-poll 이 읽는다).
+ * 찾기는 그날 다시 하지 않고 다음 날부터 다시 돈다(kin-find blocked — 보수적으로)
+ */
+const 지식iN창 = "지식iN 캡차 창";   // login-core 창이름.kin 과 같은 글자
+const ki = process.argv.indexOf("--kin");
+if (ki >= 0) {
+  const kp = process.argv[ki + 1];
+  if (!kp || !/^\.browser-profile-[a-z0-9-]{1,40}$/.test(kp)) {
+    console.log("--kin 다음에 고객 프로필 폴더 이름을 주세요. 예: --kin .browser-profile-docttak (학원 프로필은 안 됩니다)");
+    process.exit(1);
+  }
+  const kctx = await chromium.launchPersistentContext(path.resolve(process.cwd(), kp), {
+    headless: false, viewport: { width: 1280, height: 940 }, locale: "ko-KR", timezoneId: "Asia/Seoul",
+    args: ["--disable-blink-features=AutomationControlled"],
+  });
+  let 닫힘 = false;
+  kctx.on("close", () => { 닫힘 = true; });
+  const kpage = kctx.pages()[0] ?? await kctx.newPage();
+  await kpage.goto("https://kin.naver.com/qna/list.naver?dirId=102", { waitUntil: "domcontentloaded" }).catch(() => {});
+  console.log(`\n지식iN 창을 띄웠습니다(프로필 ${kp}). 캡차(자동입력 방지)가 보이면 풀고, 질문 목록이 보이면 창을 닫아 주세요.\n찾기는 내일부터 다시 돕니다.\n`);
+  const t0 = Date.now();
+  while (!닫힘 && Date.now() - t0 < 12 * 60 * 1000 && kctx.pages().some((p) => !p.isClosed())) await new Promise((r) => setTimeout(r, 2000));
+  const 사람이닫음 = 닫힘 || !kctx.pages().some((p) => !p.isClosed());
+  if (사람이닫음) console.log(`  ✓ ${지식iN창} 닫힘`);
+  else console.log("\n12분이 지나 창을 닫습니다. 아직 확인 안 된 곳: 지식iN 캡차 창");
+  await new Promise((r) => setTimeout(r, 3000));
+  await kctx.close().catch(() => {});
+  process.exit(0);
+}
+
 const PROFILE = path.resolve(process.cwd(), BLOG_PROFILE ?? ".browser-profile");
 
 const 학원 = [

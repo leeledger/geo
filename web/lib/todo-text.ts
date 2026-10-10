@@ -26,7 +26,7 @@ export type TodoAction =
   | { type: "link"; label: string; href: string }
   | { type: "finish" }
   | { type: "naver" }
-  | { type: "login" }
+  | { type: "login"; label?: string }
   | { type: "details"; label: string; body: string };
 
 export type TodoText = {
@@ -187,6 +187,16 @@ export function todoText(t: TodoTask, now = Date.now()): TodoText {
       : cut(plain(first(t.detail)), 90);
     const href = slug ? `/admin/clients/${slug}` : t.link ? localHref(t.link) : "/admin/clients";
     return { title: cut(t.title, 60), why, action: { type: "link", label: "고객 화면 열기", href }, doing };
+  }
+
+  // 지식iN 캡차(Step 41 KG-41-9) — 같은 길(login-core 창요청)로 원장 PC 에 지식iN 창을 띄운다. 원장이 풀고 닫는다
+  if (t.kind === "human" && /^kin-captcha-/.test(t.dedupe ?? "")) {
+    return {
+      title: cut(plain(t.title), 60),
+      why: "버튼을 누르면 원장 PC 에 지식iN 창이 뜹니다. 캡차를 풀고 창을 닫아 주세요. 질문 찾기는 다음 날부터 다시 돕니다",
+      action: { type: "login", label: "지식iN 캡차 풀 창 열기" },
+      doing,
+    };
   }
 
   // 로그인 풀림(local-agent 사람로그인·고객 블로그) — 버튼 하나로 원장 PC 에 창을 띄운다(Step 39b, login-core 창요청)

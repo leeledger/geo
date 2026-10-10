@@ -11,6 +11,8 @@ export const 창이름 = {
   naver: "네이버 서치어드바이저",
   microsoft: "빙 웹마스터",
   blog: "네이버 블로그",
+  // 지식iN 캡차 풀 창(Step 41 KG-41-9) — 로그인 확인이 아니라 원장이 창을 닫으면 끝. open-session --kin 이 닫힐 때 이 이름으로 ✓ 를 찍는다
+  kin: "지식iN 캡차 창",
 };
 
 const 슬러그 = /^[a-z0-9-]{1,40}$/;
@@ -26,6 +28,10 @@ export function 로그인대상(dedupe, clientSlug) {
   if (typeof clientSlug === "string" && 슬러그.test(clientSlug) && dedupe === `login-naver-blog-${clientSlug}`) {
     return { sites: ["blog"], profile: `.browser-profile-${clientSlug}` };
   }
+  // kin-find 캡차 일감 — 같은 고객 프로필로 지식iN 을 열어 원장이 푼다
+  if (typeof clientSlug === "string" && 슬러그.test(clientSlug) && dedupe === `kin-captcha-${clientSlug}`) {
+    return { sites: ["kin"], profile: `.browser-profile-${clientSlug}` };
+  }
   return null;
 }
 
@@ -35,10 +41,10 @@ export function 창요청검사(payload) {
   const profile = typeof p.profile === "string" && /^\.browser-profile(-[a-z0-9-]{1,40})?$/.test(p.profile) ? p.profile : null;
   const sites = Array.isArray(p.sites) && p.sites.length && p.sites.every((s) => s in 창이름) ? [...new Set(p.sites)] : null;
   if (!profile || !sites) return null;
-  // 블로그는 고객 프로필 하나에 네이버 블로그만 — 학원 프로필에 블로그 창을 열지 않는다
-  const 블로그 = sites.includes("blog");
-  if (블로그 && (sites.length !== 1 || profile === ".browser-profile")) return null;
-  if (!블로그 && profile !== ".browser-profile") return null;
+  // 블로그·지식iN 은 고객 프로필 하나에 그 한 곳만 — 학원 프로필에 열지 않는다
+  const 고객창 = sites.includes("blog") || sites.includes("kin");
+  if (고객창 && (sites.length !== 1 || profile === ".browser-profile")) return null;
+  if (!고객창 && profile !== ".browser-profile") return null;
   // id 는 bigint — pg 가 글자로 준다. 숫자로 맞춘다
   const from = Number(p.from);
   return { profile, sites, from: Number.isInteger(from) && from > 0 ? from : null };
@@ -46,7 +52,8 @@ export function 창요청검사(payload) {
 
 /** open-session 출력에서 확인된 곳 */
 export function 확인된곳(out, sites) {
-  const 줄 = new Set([...String(out ?? "").matchAll(/✓ (.+?) 로그인 확인/g)].map((m) => m[1].trim()));
+  // 지식iN 캡차 창은 로그인 확인이 아니라 원장이 닫은 것으로 끝낸다(「✓ 지식iN 캡차 창 닫힘」)
+  const 줄 = new Set([...String(out ?? "").matchAll(/✓ (.+?) (?:로그인 확인|닫힘)/g)].map((m) => m[1].trim()));
   return { 됨: sites.filter((s) => 줄.has(창이름[s])), 안됨: sites.filter((s) => !줄.has(창이름[s])) };
 }
 
@@ -63,7 +70,7 @@ export const 근거붙임 = (q, id, line) =>
  */
 export async function 창요청(q, taskId, now = new Date()) {
   const [t] = await q(`select t.id, t.client_id, t.dedupe_key, t.title, c.slug from geo.agent_tasks t left join geo.clients c on c.id = t.client_id
-     where t.id = $1 and t.status = '사람 대기' and t.kind = 'human' and t.dedupe_key like 'login-%'`, [taskId]);
+     where t.id = $1 and t.status = '사람 대기' and t.kind = 'human' and (t.dedupe_key like 'login-%' or t.dedupe_key like 'kin-captcha-%')`, [taskId]);
   if (!t) return { ok: false, err: "not-login" };
   const 대상 = 로그인대상(t.dedupe_key, t.slug);
   if (!대상) return { ok: false, err: "unknown" };

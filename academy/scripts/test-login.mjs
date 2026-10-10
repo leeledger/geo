@@ -125,7 +125,7 @@ const la원문 = fs.readFileSync(new URL("../../tools/local-agent.mjs", import.m
   r = await 창요청(가짜({ 찾음: false }), 8, 때);
   봄("창요청 — login-* 사람 대기가 아니면 거부", !r.ok && r.err === "not-login");
   const 원문2 = fs.readFileSync(new URL("../../web/lib/login-core.mjs", import.meta.url), "utf8");
-  봄("창요청 SQL — 사람 대기·human·login-% 만", /t\.status = '사람 대기' and t\.kind = 'human' and t\.dedupe_key like 'login-%'/.test(원문2));
+  봄("창요청 SQL — 사람 대기·human·login-%·kin-captcha-% 만", /t\.status = '사람 대기' and t\.kind = 'human' and \(t\.dedupe_key like 'login-%' or t\.dedupe_key like 'kin-captcha-%'\)/.test(원문2));
   봄("창요청 SQL — 로컬 대기·실행 중이면 안 덮음", /where geo\.agent_tasks\.status not in \('로컬 대기', '실행 중'\)/.test(원문2));
   const 닫음 = await 오래된창요청닫기(async (s, p = []) => (/^\s*update geo\.agent_tasks set status = '실패'/.test(s)
     ? [{ id: 99, client_id: 3, payload: { from: 7 }, last_error: "PC 가 꺼져 있어 창을 못 열었습니다" }] : (로그.push([s, p]), [])), 때);

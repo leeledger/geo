@@ -3,6 +3,11 @@ Date: 2026-10-10
 Ready for Review: YES
 Status: DONE_WITH_CONCERNS — 코드·시험 통과. 실제 kin-find 첫 실행 후보 0(아래), 운영 DB 표는 아직 없음(KG-41-1)
 
+## 5차 — round-4 Must Fix 2건 (실제 실행 안 함)
+- KG-41-9: tools/open-session.mjs --kin(고객 프로필로 지식iN 분야 목록, 원장이 닫을 때까지 · 누르지 않음 · 「✓ 지식iN 캡차 창 닫힘」) · web/lib/login-core.mjs(kin 창이름 · kin-captcha-<slug> 대상 · 창요청이 kin-captcha-% 받음 · 닫힘 줄 읽기) · login-core.d.mts · tools/login-poll.mjs(--kin) · web/lib/todo-text.ts + Todo.tsx(「지식iN 캡차 풀 창 열기」 버튼, 라벨만 다른 같은 길) · kin-find 일감 문구 · kin-core 카드 문구. 그날 막힘은 안 풂(다음 날부터)
+- Escalate 2: academy/scripts/marketing-draft.mjs — 질문 글을 근거·대조표에서 뺌, jisikin 질문 프롬프트에 「질문 숫자를 규격·한도로 옮겨 쓰지 않는다」
+- 시험: test-kin 110(+9) · test-login 56(창요청 SQL 정규식 갱신) · test-docttak 35 · test-marketing 51 · 스냅샷 같음 · test-clients 99 · test-ops-words 532 · test-todo-words 14 · tsc 둘 다 0
+
 ## 4차 — REVIEW-FEEDBACK 반영 (실제 실행 안 함)
 - Must Fix a: tools/kin-find.mjs — 캡차 → blocked=오늘 + kin_runs 「막힘」, 같은 날은 브라우저 전에 exit 4(「캡차」). tools/kin-backlog.mjs — 캡차·로그인·상한이면 break. kin-agent 는 「캡차」면 초안도 건너뜀(그대로)
 - Must Fix b: geo.kin_runs status·note(marketing-core · schema.sql 두 벌), kin-find 가 실패·막힘·안 돎도 남김. web/lib/kin-core.mjs 공급상태 — 안 돎·막힘·다 못 돎·숫자. web/lib/marketing.ts 가 7일 안 실행·마지막 날(KST)로 부름

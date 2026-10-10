@@ -147,7 +147,7 @@ export const 공급말 = (s) => `찾기 ${s.찾기}번 · 최근 7일 분야 목
  */
 export function 공급상태(runs7, 놓침, 마지막) {
   if (!runs7.length) return 마지막 ? `지식iN 최근 7일 안 돌았습니다(마지막 찾기 ${마지막})` : null;
-  if (runs7[0].status === "막힘") return "지식iN 캡차로 멈춤 — 원장님이 한 번 로그인 창에서 풀어 주세요";
+  if (runs7[0].status === "막힘") return "지식iN 캡차로 멈춤 — 할 일의 「지식iN 캡차 풀 창 열기」로 한 번 풀어 주세요(찾기는 다음 날부터)";
   const 돈 = runs7.filter((r) => r.status === "돎");
   if (!돈.length) return `지식iN 최근 7일 찾기 ${runs7.length}번 다 못 돎 — 마지막: ${runs7[0].note || runs7[0].status}`;
   return `지식iN ${공급말({ 찾기: 돈.length, 읽음: 돈.reduce((a, r) => a + Number(r.read), 0), 맞음: 돈.reduce((a, r) => a + Number(r.matched), 0), 놓침 })}`;
