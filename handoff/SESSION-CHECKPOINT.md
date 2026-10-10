@@ -2,6 +2,15 @@
 *Read this before reading anything else. If it covers current state, skip BUILD-LOG.*
 
 
+## Where We Stopped (2026-10-10 낮) — Step 40·41 배포(632f9f1)
+
+- 40 운영 현황 은어·로그 조각 걷기, 고객 상태 칸(돌고 있음/느림/멈춤/아직 시작 전 — 손댄 날 = 글 발행·바깥 글 올림·가이드 반영만), 못 잰 값 「안 잼」, 일감 정리 26건 적용, 아침 보고 새 코드로 --force 다시 씀
+- 41 문서딱 지식iN: 분야 목록에서 실제 질문 → 그 질문에 답 → 「이 질문에 답하기」(등록은 원장). 카페 멈춤. kin DDL 운영 적용 확인. kin-backlog --apply: 카페 4건 버림, 지식iN 4건은 상한으로 내일
+- 첫 실제 실행: 최근 질문 170·90개 중 도구 낱말 맞는 질문 0 — 공급이 얇다. 1~2주 kin_runs 숫자 보고 접을지 결정(KG-41-8)
+- pc-runner 12:28 다시 띄움(kin-agent 09·13·19시). LOGIN_POLL_HOURS 빈 값 그대로 — 「로그인 창」「캡차 풀 창」 버튼은 Neon 요금 확인 전엔 안 집힌다(BUILD-LOG 1508). 캡차는 `node tools/open-session.mjs --kin …`(어디서 쳐도 진짜 프로필, 02391c1)
+- 아이로그 멈춤(손댄 날 9/18): 세션 글 일감 1건에 질문 12개. 원장 몫 — 아이로그 저장소 세션 + 9/30 초안 사실 확인(출결 내보내기 없음·예약 발송 없음)
+- 남은 은어: 「자세히」의 지난 일감 제목·커밋 기록, 「최근 한 일」 줄(DB 제목 그대로)
+
 ## Where We Stopped (2026-10-10) — Step 40 브리프 · Step 41 다음 브리프
 
 - handoff/ARCHITECT-BRIEF.md = Step 40(40a 데이터: 검색 판정 7일 최신·notracker·bytedance 제외·brand-defense 건너뜀·네이버 이관 닫기·세션 일감 고객당 1개·listing 자동 닫기·정리 스크립트 / 40b 화면: 고객 상태 칸·은어 걷기·「안 잼」). 다음: Bob(builder)
