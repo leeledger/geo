@@ -1,5 +1,6 @@
 import { pool } from "./ops";
 import { 파이프 } from "./client-core.mjs";
+import { 수리상태, 수리입력, type RepairInput } from "./repair-core.mjs";
 
 /**
  * 에이전트 직원 — 지금. 현황판 ② 실시간 줄이 읽는 것.
@@ -308,8 +309,8 @@ export type JudgeInput = {
   acts: Act[];
   /** 이 역할의 안 끝난 일감 */
   tasks: OpenTask[];
-  /** geo.settings repair_paused (수리공만 의미 있음) */
-  paused?: boolean;
+  /** 수리 멈춤·승인 대기·수리 대기·비상 스위치 (수리공만 의미 있음, repair-core 수리입력) */
+  repair?: RepairInput | null;
   /** 최근 7일 geo.repairs 에서 합친 수 (수리공만). null = 못 읽음 */
   merged7?: number | null;
   /** 매시 점검이 남긴 「밀린 예약 실행」 활동 전부 (운영 줄 것이지만 각 작업의 늦음 판정에 쓴다) */
@@ -332,15 +333,9 @@ export function judge(role: Role, input: JudgeInput, now: number): AgentRow {
   };
   const row = (state: AgentState, reason: string | null): AgentRow => ({ ...base, state, reason });
 
-  // 꺼짐 — 수리공 스위치. 켜는 건 원장님 (에이전트가 켜지 않는다)
-  if (isRepair) {
-    if (input.paused) {
-      const why = own.find((a) => a.summary.startsWith("수리공 멈춤 — "));
-      const text = why ? plain(why.summary.replace(/^수리공 멈춤 — /, "").replace(/\s*\(.*$/, "")) : "";
-      return row("off", `멈춰 있습니다 — ${text || "사람이 풀 때까지"}`);
-    }
-    if (shown && shown.summary.startsWith("스위치 꺼짐")) return row("off", "꺼져 있음 — 코드 문제가 쌓입니다. 켤지는 원장님 결정");
-  }
+  // 멈춤 — 수리는 스스로 멈추고 스스로 다시 시작한다(Step 42). 문구는 repair-core 한 곳
+  const repairState = isRepair && input.repair ? 수리상태(input.repair) : null;
+  if (repairState?.kind === "paused") return row("off", repairState.text);
 
   // 막힘 — 가장 최근 활동이 실패. 수리공의 「검토 불합격」은 검토 관문이 제 일을 한 것이라 막힘으로 안 친다
   const failing = isRepair ? acts.filter((a) => !(a.agent === "repair" && a.summary.includes("검토 불합격"))) : acts;
@@ -410,7 +405,7 @@ export function judge(role: Role, input: JudgeInput, now: number): AgentRow {
 
   // 「정상」인데 마지막 한 일이 「기록 없음」이면 거짓말이다(Step 40) — 10일 안 활동이 없으면 쉬는 중
   if (!shown) return row("idle", "최근 10일 한 일이 없습니다");
-  return row("ok", null);
+  return row("ok", repairState?.text ?? null);
 }
 
 function countToday(role: Role, acts: Act[], now: number) {
@@ -511,7 +506,8 @@ export async function readAgents(now = Date.now(), client: (PipeClient & { name:
         order by a.at desc`);
     const { rows: tr } = await p.query(
       `select agent, kind, status, title, created_at, updated_at, client_id from geo.agent_tasks where status not in ('완료', '닫힘')`);
-    const { rows: sr } = await p.query(`select value from geo.settings where key = 'repair_paused'`);
+    let repair: RepairInput | null = null;
+    try { repair = await 수리입력((s, v) => p.query(s, v).then((r) => r.rows)); } catch (e) { console.error("수리 상태 읽기 실패", e); }
     let claude: Agents["claude"] = null;
     try {
       const { rows: [c] } = await p.query(
@@ -534,7 +530,6 @@ export async function readAgents(now = Date.now(), client: (PipeClient & { name:
 
     const acts: Act[] = ar.map((r) => ({ agent: r.agent, action: r.action, ok: !!r.ok, summary: r.summary, at: iso(r.at), kind: r.kind ?? null, clientId: r.client_id ?? null }));
     const tasks: OpenTask[] = tr.map((r) => ({ agent: r.agent, kind: r.kind, status: r.status, title: r.title, updatedAt: iso(r.updated_at), createdAt: iso(r.created_at), clientId: r.client_id ?? null }));
-    const paused = sr[0]?.value === "true";
     let merged7: number | null = null;
     try {
       const { rows: [m] } = await p.query(
@@ -550,7 +545,7 @@ export async function readAgents(now = Date.now(), client: (PipeClient & { name:
         : [judge(r, {
         acts: acts.filter((a) => roleOfAct(a) === r.id),
         tasks: tasks.filter((t) => roleOfAgent(t.agent, t.kind) === r.id),
-        paused: r.id === "repair" ? paused : false,
+        repair: r.id === "repair" ? repair : null,
         merged7: r.id === "repair" ? merged7 : null,
         catchups: acts.filter((a) => a.action === "밀린 예약 실행"),
       }, now)]),

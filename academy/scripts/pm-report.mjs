@@ -11,7 +11,7 @@
  *   (a) 5번 이상 시도하고도 안 끝난 열린 일감 (company.mjs 가 payload.escalated 를 적는다)
  *   (b) 감사 조사가 사람 대기
  *   (c) 정해진 작업이 24시간 넘게 늦음
- *   (d) 수리공이 7일 넘게 꺼짐
+ *   (d) 자동 코드 수리가 스스로 멈췄거나 수리안이 원장 승인을 기다림 (repair-core 수리상태)
  *
  * 회사 루프(company.mjs)가 매시 끝에 부른다. KST 08시 이후이고 오늘 보고가 없을 때만 만든다.
  *
@@ -23,6 +23,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { 확장줄 } from "./loop-grow.mjs";
+import { 수리상태, 수리입력 } from "../../web/lib/repair-core.mjs";
 
 const KST = 9 * 3600 * 1000;
 const 시 = 3600 * 1000;
@@ -124,13 +125,8 @@ export async function 보고짓기(q, now = new Date()) {
     s.마지막 = a;
   }
 
-  // ── 수리공 꺼짐 — 마지막 활동이 「스위치 꺼짐」이면 그 전 다른 활동 뒤로 처음 꺼진 때부터 센다
-  const [수리] = await q(
-    `with 켠 as (select max(at) at from geo.agent_activity where agent = 'repair' and summary not like '스위치 꺼짐%')
-     select (select summary like '스위치 꺼짐%' from geo.agent_activity where agent = 'repair' order by at desc limit 1) 꺼짐,
-            (select min(a.at) from geo.agent_activity a, 켠 where a.agent = 'repair' and a.summary like '스위치 꺼짐%'
-                and (켠.at is null or a.at > 켠.at)) 꺼진때`);
-  const 꺼진날 = 수리?.꺼짐 && 수리.꺼진때 ? Math.floor((now - new Date(수리.꺼진때)) / 86400000) : null;
+  // ── 자동 코드 수리 — 현황판과 같은 셈(repair-core). 멈춤·승인 기다림만 원장님 확인 줄에 올린다
+  const 수리 = 수리상태(await 수리입력(q));
 
   // ── 정해진 작업의 마지막 기록
   const 늦음 = [];
@@ -146,17 +142,14 @@ export async function 보고짓기(q, now = new Date()) {
   // ── 확인 필요
   const 되풀이 = 열린.filter((t) => (t.attempts >= 5 || t.escalated) && t.status !== "사람 대기");
   const 조사 = 열린.filter((t) => t.agent === "audit" && t.kind === "investigate" && t.status === "사람 대기");
-  const 수리대기 = 열린.filter((t) => t.status === "수리 대기").length;
   const 확인필요 = [
     // attempts 는 시도 수다(관찰로 다시 띄운 것도 센다). 실패 수로 쓰지 않는다(Richard 19)
     ...되풀이.map((t) => `「${cut(t.title, 50)}」 — ${t.attempts}번 해 봤는데 안 끝났습니다. 자동으로 계속 다시 합니다`),
     // 조사는 건마다 적지 않는다 — 할 일은 「오늘 하실 일」에 있다
     ...(조사.length ? [`자동 점검이 원장님 판단을 기다리는 일 ${조사.length}건 — 「오늘 하실 일」에 있습니다`] : []),
     ...늦음.map((x) => x.말),
-    ...(꺼진날 !== null && 꺼진날 >= 7
-      ? [`자동 코드 수리가 ${꺼진날}일째 꺼져 있습니다. 그동안 코드 문제 ${수리대기}건이 손대지 않은 채 쌓였습니다. ` +
-         "켜면 매일 06:50 에 1건씩 Claude 가 고치고, 검토를 통과한 것만 반영합니다. 켤지는 원장님 결정입니다 — Claude 세션에 「자동 수리 켜 줘」"]
-      : []),
+    ...(수리.kind === "paused" ? [`자동 코드 수리: ${수리.text}`] : []),
+    ...(수리.kind === "waiting" ? [`자동 코드 수리: ${수리.text} — 현황판에서 합치기/버리기`] : []),
   ];
 
   // ── 직원별 지금 상태
@@ -176,7 +169,7 @@ export async function 보고짓기(q, now = new Date()) {
       활동 ? `일 ${활동}건 · 실패 ${c.실패}건` : id === "pm" && c.점검 ? null : "어제 9시부터 한 일이 없습니다",
     ].filter(Boolean).join(" · ");
     const 지금 = [
-      id === "repair" && 수리?.꺼짐 ? `스위치가 꺼져 있습니다${꺼진날 !== null ? ` (${꺼진날 ? `${꺼진날}일째` : "오늘부터"})` : ""}` : null,
+      id === "repair" && 수리.kind !== "none" ? 수리.text : null,
       o.n ? `열린 일 ${o.n}건` : "열린 일이 없습니다",
       o.사람 ? `그중 ${o.사람}건은 원장님 손을 기다립니다` : null,
       o.되풀이 ? `${o.되풀이}건은 5번 이상 시도하고도 안 끝났습니다` : null,

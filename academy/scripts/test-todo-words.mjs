@@ -32,6 +32,7 @@ try {
   깎기("agents", [
     ['import { pool } from "./ops";', 'const pool = () => { throw new Error("시험에서 DB 안 씀"); };'],
     ['from "./client-core.mjs"', `from ${JSON.stringify(코어)}`],
+    ['from "./repair-core.mjs"', `from ${JSON.stringify(new URL("../../web/lib/repair-core.mjs", import.meta.url).href)}`],
   ]);
   깎기("todo-text", [['from "./agents";', 'from "./agents.mjs";']]);
   const { todoText } = await import(pathToFileURL(path.join(폴더, "todo-text.mjs")).href);
@@ -115,6 +116,35 @@ try {
     const 역할 = { id: "x", name: "x", does: "", agents: ["x"], jobs: [] };
     const r = judge(역할, { acts: [{ agent: "x", action: "일", ok: true, summary: "", at: "2026-10-10T00:00:00Z", kind: null }], tasks: [] }, 지금);
     assert.equal(r.state, "ok");
+  });
+
+  // ── todo-text repair-approval (Step 42) — 「수리안 n — 사람말」 · 숫자에 닿음 · [합치기][버리기]
+  const 승인 = (payload, o = {}) => todoText({ agent: "repair", kind: "repair-approval", title: "수리안 12 — 요약", detail: "", error: "", evidence: "",
+    link: "https://github.com/leeledger/geo/compare/main...auto/fix-319", payload, ...o }, Date.parse("2026-10-10T03:00:00Z"), { repairSwitch: false });
+  t("repair-approval — 제목은 수리안 번호와 사람말", () => {
+    const x = 승인({ repair_id: 12, task_id: 319, 사람말: "빙 측정이 하루씩 밀려 적혔습니다. 고치면 날짜가 맞습니다", 왜: "측정 날짜가 UTC 로 찍힘",
+      verdict: "pass", notes: "원인과 맞음", touches_numbers: true });
+    assert.equal(x.title, "수리안 12 — 빙 측정이 하루씩 밀려 적혔습니다. 고치면 날짜가 맞습니다");
+    assert.equal(x.why, "측정 날짜가 UTC 로 찍힘 · 검토 통과 — 원인과 맞음");
+    assert.equal(x.numbers, true);
+    assert.equal(x.action.type, "repair");
+    assert.equal(x.action.taskId, 319);
+    assert.equal(x.action.switchOn, false);
+    assert.equal(x.action.href, "https://github.com/leeledger/geo/compare/main...auto/fix-319");
+    assert.equal(x.action.result, null);
+  });
+  t("repair-approval — 숫자에 안 닿으면 numbers false · 못 합친 이유", () => {
+    const x = 승인({ repair_id: 13, task_id: 320, 사람말: "a", verdict: "fail", touches_numbers: false,
+      merge_requested_at: "2026-10-10T02:00:00Z", merge_result: { at: "2026-10-10T02:05:00Z", why: "비상 스위치 꺼짐" } });
+    assert.equal(x.numbers, false);
+    assert.match(x.why, /^검토 불합격/);
+    assert.deepEqual(x.action.result, { at: "2026-10-10T02:05:00Z", why: "비상 스위치 꺼짐" });
+    assert.equal(x.action.requestedAt, "2026-10-10T02:00:00Z");
+  });
+  t("repair-approval — 옛 일감(payload 없음)은 제목에서", () => {
+    const x = 승인({ task_id: 9 }, { title: "자동 수리 승인 대기: 빙 날짜 고침" });
+    assert.equal(x.title, "자동 수리안 — 빙 날짜 고침");
+    assert.equal(x.numbers, false);
   });
 } finally {
   fs.rmSync(폴더, { recursive: true, force: true });

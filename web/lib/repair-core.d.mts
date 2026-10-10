@@ -1,0 +1,18 @@
+type Q = (sql: string, params?: unknown[]) => Promise<any[]>;
+export type PauseKind = "revert-failed" | "legacy" | "revert-twice" | "review-fail-3";
+export type Pause = { kind: PauseKind | string; reason?: string; at?: string; last_revert_at?: string; repairs?: number[] };
+export type RepairInput = { paused: boolean; pause: Pause | null; pending: number; queue: number; switchOn: boolean | null };
+export type RepairState = { kind: "none" | "making" | "waiting" | "paused"; text: string };
+export const 멈춤무게: Record<string, number>;
+export function 멈춤합치기(지금: Pause | null, 새것: Pause): Pause;
+export function 멈춤읽기(pausedValue: string | null | undefined, pauseJson: string | null | undefined): Pause | null;
+export function 재개시각(pause: Pause | null): number | null;
+export function KST월일(t: number): string;
+export function 재개판정(pause: Pause | null, n?: { revertsSince?: number; recurring?: number }, now?: number): { ok: boolean; why: string };
+export function 연속불합격(rows: { status: string }[]): boolean;
+export function 만료인가(row: { status: string; created_at: string | Date }, now?: number): boolean;
+export const 숫자경로: string[];
+export function 숫자닿음(files: string[] | null | undefined): boolean;
+export function 무인합치기(env: Record<string, string | undefined>, 견습끝: boolean, needs_owner: boolean): boolean;
+export function 수리상태(input?: Partial<RepairInput>): RepairState;
+export function 수리입력(q: Q): Promise<RepairInput>;

@@ -17,7 +17,9 @@
  *   node scripts/repair.mjs --guard-test   가드가 막아야 할 줄을 막는지 본다 (DB·claude 없음)
  *   Actions 에서는 REPAIR_MODE·REPAIR_TASK·REPAIR_EVENT 로 받는다 — 입력을 셸에 끼워 넣지 않으려고
  *
- * REPAIR_ENABLED=1 이 아니면: 정해진 시각 실행은 지난 수리 확인(되돌리기)만 한다. 사람이 띄운 run 은 승인 대기까지만 간다. merge 는 안 된다
+ * REPAIR_ENABLED=1 일 때만 main 에 합친다(비상 스위치). 수리안 만들기(가지·가드·검토·승인 일감)는 스위치와 무관하게 06:50 에 돈다(Step 42 D72)
+ * 무인 합치기(견습 5건 뒤 스스로)는 REPAIR_UNATTENDED=1 까지 있어야 열린다 — 원장 「합치기는 늘 승인」(D80). 비어 있으면 무인 합치기 없음
+ * 멈춤·재개는 스스로 한다(D74·D75): 되돌리기 실패는 사람만, 7일 두 번 되돌림·검토 연속 3번 불합격은 7일 뒤 조건을 보고 수리안 만들기만 다시
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -26,6 +28,7 @@ import { fileURLToPath } from "node:url";
 import { Pool } from "pg";
 import { 클로드코드, 클로드코드있음, 클로드기록연결 } from "./claude-code.mjs";
 import { 프로필 } from "./profile.mjs";
+import { 멈춤합치기, 멈춤읽기, 재개시각, 재개판정, KST월일, 연속불합격, 만료인가, 숫자닿음, 무인합치기 } from "../../web/lib/repair-core.mjs";
 
 const envFile = new URL("../.env.local", import.meta.url);
 if (fs.existsSync(envFile)) {
@@ -43,6 +46,7 @@ const TASK = (() => { const v = 인자("--task") ?? process.env.REPAIR_TASK; ret
 const 정수 = (v, d) => { if (v === undefined || v === null || String(v).trim() === "") return d; const n = Number(v); return Number.isInteger(n) && n >= 0 ? n : d; };
 const MAX_PER_DAY = 정수(process.env.REPAIR_MAX_PER_DAY, 1);
 const ENABLED = process.env.REPAIR_ENABLED === "1";
+const UNATTENDED = process.env.REPAIR_UNATTENDED === "1";
 // 사람이 띄운 실행인가 — dispatch 이면서 띄운 이가 봇이 아닐 때만. 회사 루프가 실패한 작업을 다시 띄우면 dispatch 로 보인다(Richard 9/22).
 // 봇이 띄운 실행은 확인만 한다(수리 claude·승인 일감 없음, merge 거절). 정해진 시각 실행은 킬 스위치가 꺼져 있으면 확인만
 const 띄운이 = String(process.env.REPAIR_ACTOR ?? "").trim();
@@ -110,6 +114,14 @@ const ensure = async () => {
   await q(`alter table geo.repairs add column if not exists approved boolean not null default false`);
   await q(`alter table geo.repairs add column if not exists merged_at timestamptz`);
   await q(`create table if not exists geo.settings (key text primary key, value text not null, updated_at timestamptz not null default now())`);
+  // 비상 스위치는 GitHub 변수라 현황판이 못 읽는다 — 실행마다 적어 둔다
+  await 설정("repair_switch", ENABLED ? "1" : "0");
+};
+const 설정 = (key, value) => q(`insert into geo.settings (key, value) values ($1, $2) on conflict (key) do update set value=excluded.value, updated_at=now()`, [key, value]);
+/** 지금 멈춤(멈춤읽기) · 마지막 재개 시각 */
+const 멈춤상태 = async () => {
+  const s = Object.fromEntries((await q(`select key, value from geo.settings where key in ('repair_paused','repair_pause','repair_resumed_at')`)).map((r) => [r.key, r.value]));
+  return { pause: 멈춤읽기(s.repair_paused, s.repair_pause), resumed_at: s.repair_resumed_at ?? null };
 };
 const 수리기록 = async (row) => {
   const [r] = await q(`insert into geo.repairs (task_id, branch, base_sha, head_sha, files, lines, review, checks, status, note)
@@ -132,10 +144,49 @@ const 일감 = (id, status, patch = {}) => q(`update geo.agent_tasks set status=
   [id, status, patch.evidence ?? "", patch.detail ?? "", JSON.stringify(patch.payload ?? {})]);
 const 활동 = (ok, summary, taskId = null) => q(`insert into geo.agent_activity (client_id, agent, action, ok, summary, task_id) values ($1,'repair','수리',$2,$3,$4)`,
   [HOUSE, ok, 한줄(summary, 1000), taskId]).catch(() => {});
-const 멈추기 = async (이유) => {
-  await q(`insert into geo.settings (key, value) values ('repair_paused', 'true') on conflict (key) do update set value='true', updated_at=now()`);
-  await 활동(false, `수리공 멈춤 — ${이유} (geo.settings repair_paused=true, 사람이 풀 때까지)`);
-  console.log(`  ⛔ 수리공 멈춤 — ${이유}`);
+/** 멈춤 종류를 남긴다. 무거운 멈춤(되돌리기 실패)은 가벼운 것이 덮지 못한다 — 깨진 main 위에서 스스로 재개하면 안 된다 */
+const 멈추기 = async (kind, 이유, extra = {}) => {
+  const { pause: 지금 } = await 멈춤상태();
+  const 남김 = 멈춤합치기(지금, { kind, reason: 한줄(이유, 300), at: new Date().toISOString(), ...extra });
+  await 설정("repair_pause", JSON.stringify(남김));
+  await 설정("repair_paused", "true");
+  const 재개 = 재개시각(남김);
+  await 활동(false, `수리공 멈춤 — ${이유} · ${재개 ? `${KST월일(재개)} 이후 스스로 다시 시작` : "사람이 풀 때까지"}`);
+  console.log(`  ⛔ 수리공 멈춤 — ${이유} (남긴 멈춤 ${남김.kind})`);
+};
+
+/** 멈춤이 스스로 풀릴 조건이 되면 푼다. 수리안 만들기만 다시 — 무인 합치기는 무인허용의 「되돌림 이력 0」이 계속 막는다(D76) */
+const 자동재개 = async () => {
+  const { pause } = await 멈춤상태();
+  if (!pause) return;
+  let revertsSince = 0, recurring = 0;
+  if (pause.kind === "revert-twice") {
+    [{ n: revertsSince }] = await q(`select count(*)::int n from geo.repairs where status in ('되돌림','되돌림 실패') and updated_at > $1::timestamptz`,
+      [pause.last_revert_at ?? pause.at]);
+    // 재발 = 지난수리확인()과 같은 셈(사라졌다가 다시 보임). 시각 글끼리 비교라 collate "C"
+    [{ n: recurring }] = await q(`select count(*)::int n from geo.repairs r join geo.agent_tasks t on t.id = r.task_id
+      where r.status = '합침'
+        and (t.payload->>'absent_at') collate "C" > coalesce(t.payload->>'merged_at', to_char(r.merged_at at time zone 'Asia/Seoul', 'YYYY-MM-DD HH24:MI')) collate "C"
+        and (t.payload->>'seen_at') collate "C" > (t.payload->>'absent_at') collate "C"`);
+  }
+  const 판정 = 재개판정(pause, { revertsSince, recurring }, Date.now());
+  if (!판정.ok) { console.log(`  멈춤 유지 (${pause.kind}) — ${판정.why}`); return; }
+  await 설정("repair_paused", "false");
+  await q(`delete from geo.settings where key='repair_pause'`);
+  await 설정("repair_resumed_at", new Date().toISOString());
+  await 활동(true, `수리공 다시 시작 — ${판정.why}. 수리안 만들기만 — 합치기는 원장 승인`);
+  console.log(`  ▶ 수리공 다시 시작 — ${판정.why}`);
+};
+
+/** 검토 불합격 뒤 — 마지막 재개 뒤 검토받은 수리가 3번 연속 불합격이면 멈춘다(D75). 일감마다 이유는 이미 evidence 에 있다 */
+const 연속확인 = async () => {
+  const { resumed_at } = await 멈춤상태();
+  // review 가 jsonb null 인 행(실패·못 고침·가드 걸림)은 검토를 안 받은 것이다 — 연속을 끊지도 잇지도 않는다
+  const rows = await q(`select id, status, note from geo.repairs where jsonb_typeof(review) = 'object'
+      and status not in ('dry','dry 폐기','revert-test') and created_at > coalesce($1::timestamptz, 'epoch'::timestamptz) order by id desc limit 3`, [resumed_at]);
+  if (!연속불합격(rows)) return;
+  const ids = rows.map((r) => Number(r.id)).reverse();
+  await 멈추기("review-fail-3", `검토 연속 3번 불합격 (수리 ${ids.join("·")})`, { repairs: ids });
 };
 
 // ─────────────────────────────────────────── 가드 (claude 밖, 이 스크립트가 본다)
@@ -275,7 +326,7 @@ const 수리지침 = (t) => [
   "- 셸은 없다. 문법 검사·커밋·푸시는 스크립트가 한다. 고칠 수 없거나 금지 파일을 고쳐야 풀리면 아무것도 고치지 말고 이유를 적는다",
   "- 턴은 30번이 끝이다. Grep 으로 줄을 찾고 필요한 부분만 읽는다",
   "",
-  '끝나면 JSON 하나만: {"요약":"무엇을 왜 — 한두 문장","파일":["academy/scripts/…"],"못고침":"고치지 못했으면 이유, 고쳤으면 빈 문자열"}',
+  '끝나면 JSON 하나만: {"요약":"무엇을 왜 — 한두 문장","사람말":"원장님이 읽을 한두 문장 — 무엇이 틀렸고 고치면 무엇이 달라지나. 파일·함수 이름 쓰지 않는다","파일":["academy/scripts/…"],"못고침":"고치지 못했으면 이유, 고쳤으면 빈 문자열"}',
   "",
   `조사 ${t.id}: ${t.title}`,
   "진단:",
@@ -360,7 +411,7 @@ const 되돌리고기록 = async (rep, task, 이유) => {
     if (task) await 일감(task.id, "사람 대기", { evidence: `${KST()} 자동 되돌리기 실패 — ${r.error}`,
       detail: `수리 ${rep.merge_sha.slice(0, 7)} 를 되돌려야 하는데 자동으로 못 했습니다(${한줄(이유, 120)}). ${rep.files.join(", ")} 를 ${rep.merge_sha.slice(0, 7)}^ 모양으로 직접 되돌립니다.` });
     // 되돌려야 할 코드가 main 에 남았다. 그 위에 다음 수리를 얹지 않는다(Richard 9/22)
-    await 멈추기(`되돌리기 실패 (수리 ${rep.id})`);
+    await 멈추기("revert-failed", `되돌리기 실패 (수리 ${rep.id})`);
     return false;
   }
   await 수리갱신(rep.id, { status: "되돌림", reverted: r.sha, note: `${KST()} ${이유}` });
@@ -369,7 +420,11 @@ const 되돌리고기록 = async (rep, task, 이유) => {
   await 활동(true, `되돌림 ${rep.merge_sha.slice(0, 7)} → ${r.sha.slice(0, 7)} · ${이유}`, task?.id);
   console.log(`  ↩ 되돌림 ${rep.merge_sha.slice(0, 7)} → ${r.sha.slice(0, 7)} · ${이유}`);
   const [{ n }] = await q(`select count(*)::int n from geo.repairs where status='되돌림' and updated_at > now() - interval '7 days'`);
-  if (n >= 2) await 멈추기(`7일에 되돌림 ${n}번`);
+  if (n >= 2) {
+    // 재개 셈(updated_at > last_revert_at)이 방금 이 행을 세지 않게 DB 시각을 그대로 쓴다 — 러너 시계와 어긋나도
+    const [{ at }] = await q(`select to_char(updated_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') at from geo.repairs where id=$1`, [rep.id]);
+    await 멈추기("revert-twice", `7일에 되돌림 ${n}번`, { last_revert_at: at });
+  }
   return true;
 };
 
@@ -428,6 +483,22 @@ const 거절처리 = async (rep, task, 상태) => {
 };
 
 const 지난수리확인 = async () => {
+  // 7일 안 눌린 승인 대기는 만료 — 거절 루프보다 먼저(안 그러면 아래에서 닫힌 승인 일감을 거절로 읽어 그 조사를 영영 자동 수리하지 않는다).
+  // 원장이 이미 닫은 것(승인 일감이 사람 대기가 아님)은 만료가 아니라 거절이다 — 아래 루프에 맡긴다
+  const 오래된 = await q(`select r.id, r.task_id, r.status, r.created_at, t.client_id, t.status 조사상태, a.status 승인상태 from geo.repairs r
+      join geo.agent_tasks t on t.id = r.task_id
+      left join geo.agent_tasks a on a.client_id = t.client_id and a.dedupe_key = 'repair-approve-' || r.task_id
+    where r.status = '승인 대기'`);
+  for (const rep of 오래된) {
+    if (rep.승인상태 !== "사람 대기" || !만료인가(rep, Date.now())) continue;
+    await 수리갱신(rep.id, { status: "만료", note: `${KST()} 승인 대기 7일 — 만료` });
+    await q(`update geo.agent_tasks set status='닫힘', done_at=now(), updated_at=now(), evidence = left(evidence || E'
+' || $3, 4000)
+      where client_id=$1 and dedupe_key=$2 and status='사람 대기'`, [rep.client_id, `repair-approve-${rep.task_id}`, `${KST()} 7일 안 눌림 — 닫음`]);
+    if (rep.조사상태 === "수리 승인 대기") await 일감(rep.task_id, "수리 대기", { evidence: `${KST()} 수리안 ${rep.id} 7일 만료 — 다시 대기` });
+    await 활동(true, `수리안 ${rep.id} 7일 만료 — 다시 수리 대기`, rep.task_id);
+    console.log(`  ⌛ 수리 ${rep.id} 만료 — 조사 ${rep.task_id} 다시 수리 대기`);
+  }
   const 대기 = await q(`select r.*, a.status 승인상태 from geo.repairs r join geo.agent_tasks t on t.id = r.task_id
       left join geo.agent_tasks a on a.client_id = t.client_id and a.dedupe_key = 'repair-approve-' || r.task_id
     where r.status = '승인 대기'`);
@@ -503,6 +574,7 @@ const 만들기 = async (t, base) => {
   }
   const j = JSON읽기(r.text) ?? {};
   const 요약 = 한줄(j.요약, 300);
+  const 사람말 = 한줄(j.사람말, 200);
   if (j.못고침) {
     await 일감(t.id, "사람 대기", { evidence: `${KST()} 수리공이 못 고침 — ${한줄(j.못고침, 300)}`, detail: `자동 수리가 못 고친 이유: ${한줄(j.못고침, 300)}` });
     await 수리기록({ task_id: t.id, branch: 가지, base_sha: base, status: "못 고침", note: j.못고침 });
@@ -531,7 +603,7 @@ const 만들기 = async (t, base) => {
   const pb = 푸시(`+HEAD:refs/heads/${가지}`);
   console.log(`  가지 ${가지} ${head.slice(0, 7)} 푸시 ${pb.ok ? "됨" : `실패 ${끝(pb.out, 160)}`}`);
   if (!pb.ok) throw new Error(`가지 푸시 실패 ${끝(pb.out, 160)}`);
-  return { 가지, base, head, files: g.files, 줄: g.줄, 요약, 검토, diff, needs_owner: g.needs_owner };
+  return { 가지, base, head, files: g.files, 줄: g.줄, 요약, 사람말, 검토, diff, needs_owner: g.needs_owner };
 };
 
 // ─────────────────────────────────────────── 2. 합치기
@@ -539,6 +611,7 @@ const 만들기 = async (t, base) => {
  * base 위에 「수리 파일 + BUILD-LOG 항목」 한 커밋을 만들어 main 에 fast-forward 한다.
  * 푸시 전에 수리 행을 「합치는 중」과 merge_sha 로 먼저 쓴다 — 잡이 죽어도 다음 실행이 찾아 되돌린다.
  * main 이 움직였으면: 수리 파일이 그사이 안 바뀌었을 때만 새 main 위에 같은 파일로 다시 만든다(검토받은 diff 그대로). 바뀌었으면 포기
+ * 돌려줌 { ok, why } — 승인 합치기가 못 합친 이유를 카드에 남긴다
  */
 const 합치기 = async (t, 안, repId, { approved }) => {
   const 작업 = 확인작업(안.files);
@@ -546,7 +619,7 @@ const 합치기 = async (t, 안, repId, { approved }) => {
   if (지난분() + (작업.length ? 30 : 5) > 잡분 - 5) {
     await 수리갱신(repId, { note: `${KST()} 남은 시간이 모자라 합치지 않음 (지난 ${지난분().toFixed(0)}분)` });
     console.log(`  시간이 모자라 합치지 않음 — 승인 대기로 둔다`);
-    return false;
+    return { ok: false, why: "남은 시간이 모자람 — 다음에 다시 누르면 합칩니다" };
   }
   let base = 안.base;
   let merge = null;
@@ -571,7 +644,7 @@ const 합치기 = async (t, 안, repId, { approved }) => {
     if (파일바뀜(base, 새main, 안.files)) {
       await 수리갱신(repId, { status: "포기", note: `${KST()} 합치는 사이 main 이 같은 파일을 바꿈 — 검토받지 않은 병합을 올리지 않는다` });
       await 일감(t.id, "사람 대기", { evidence: `${KST()} main 이 같은 파일을 바꿔 합치기 포기 (수리 ${repId})`, detail: `가지 ${안.가지} 를 사람이 합칩니다.` });
-      return false;
+      return { ok: false, why: "합치는 사이 main 이 같은 파일을 바꿈" };
     }
     console.log(`  (main 푸시 거절 — main 이 움직였지만 수리 파일은 그대로. 새 main 위에 같은 파일로 다시 만든다)`);
     base = 새main;
@@ -580,7 +653,7 @@ const 합치기 = async (t, 안, repId, { approved }) => {
   if (!merge) {
     await 수리갱신(repId, { status: "포기", note: `${KST()} main 푸시가 두 번 거절됨` });
     await 일감(t.id, "사람 대기", { evidence: `${KST()} main 푸시 두 번 거절 — 합치기 포기 (수리 ${repId})`, detail: `가지 ${안.가지} 를 사람이 합칩니다.` });
-    return false;
+    return { ok: false, why: "main 푸시가 두 번 거절됨" };
   }
   await 수리갱신(repId, { status: "합침", note: `main ${merge.slice(0, 7)}`, verify: 작업.length ? null : "정기 실행에 맡김" });
   await 일감(t.id, "수리 확인", { evidence: `${KST()} 자동 수리 합침 ${merge.slice(0, 7)} (수리 ${repId})${approved ? " · 원장 승인" : ""}`,
@@ -589,7 +662,7 @@ const 합치기 = async (t, 안, repId, { approved }) => {
     where client_id=$1 and dedupe_key=$3 and status='사람 대기'`, [t.client_id, `${KST()} 합침 ${merge.slice(0, 7)}`, `repair-approve-${t.id}`]);
   await 활동(true, `합침 ${merge.slice(0, 7)} · 조사 ${t.id} · ${한줄(안.요약, 120)}`, t.id);
   console.log(`  ✓ main ${merge.slice(0, 7)} — 확인 실행: ${작업.join(", ") || "없음(읽기 위주 작업이 이 파일을 안 씀 — 정기 실행·감사에 맡김)"}`);
-  if (!작업.length) return true;
+  if (!작업.length) return { ok: true };
 
   // 합친 순간이 배포다(Actions 가 매번 checkout). 읽기 위주 자동 작업을 바로 돌려 본다 — GITHUB_TOKEN 푸시는 다른 워크플로를 안 깨우지만 dispatch 는 된다
   const 결과 = await 돌려보기(작업);
@@ -600,7 +673,7 @@ const 합치기 = async (t, 안, repId, { approved }) => {
     const [rep] = await q(`select * from geo.repairs where id=$1`, [repId]);
     await 되돌리고기록(rep, t, `확인 실행 실패: ${실패.map((x) => `${x.wf} ${x.why}`).join(", ")}`);
   }
-  return true;
+  return { ok: true };
 };
 
 // ─────────────────────────────────────────── 3. 흐름
@@ -611,29 +684,30 @@ const 승인일감 = async (t, 안, repId) => {
       values ($1,'repair','repair-approval',$2,$3,$4,'사람 대기',3,$5::jsonb,$6)
     on conflict (client_id, dedupe_key) do update set title=excluded.title, detail=excluded.detail, status='사람 대기', done_at=null,
       payload=excluded.payload, link=excluded.link, updated_at=now()`,
-    [t.client_id, `repair-approve-${t.id}`, `자동 수리 승인 대기: ${한줄(안.요약, 80) || `조사 ${t.id}`}`,
+    [t.client_id, `repair-approve-${t.id}`, `수리안 ${repId} — ${한줄(안.사람말 || 안.요약, 80) || `조사 ${t.id}`}`,
       [`검토 ${안.검토.verdict} — ${한줄(안.검토.notes, 300)}`,
         `바뀐 곳: ${안.files.join(", ")} (줄 ${안.줄})`, 줄수,
         `가지: https://github.com/${REPO}/compare/main...${안.가지}`,
         `승인(합치기): ${명령}`,
-        "거절: /admin/ops 「원장님이 하실 일」에서 이 일감을 「완료」로 표시하면 거절로 봅니다(합치지 않음). 다음 수리공 실행이 거절로 적고 이 조사는 더 자동 수리하지 않습니다. 가지는 남고 main 은 그대로입니다.",
+        "거절: /admin/ops 「원장님이 하실 일」의 「버리기」 버튼. 다음 수리공 실행이 거절로 적고 이 조사는 더 자동 수리하지 않습니다. 가지는 남고 main 은 그대로입니다. 7일 안 누르면 만료되고 다시 수리 대기로 갑니다.",
         `화면을 못 쓰면: update geo.agent_tasks set status='닫힘' where dedupe_key='repair-approve-${t.id}';`].join("\n"),
-      JSON.stringify({ sticky: true, task_id: t.id, repair_id: Number(repId), 명령 }), `https://github.com/${REPO}/compare/main...${안.가지}`]);
+      JSON.stringify({ sticky: true, task_id: t.id, repair_id: Number(repId), 사람말: 안.사람말 ?? "",
+        왜: 한줄(t.payload?.diagnosis?.결론 ?? t.title, 200), verdict: 안.검토.verdict, notes: 한줄(안.검토.notes, 200),
+        touches_numbers: 숫자닿음(안.files), 숫자파일: 안.files.filter((f) => 숫자닿음([f])), 명령 }),
+      `https://github.com/${REPO}/compare/main...${안.가지}`]);
   await 일감(t.id, "수리 승인 대기", { evidence: `${KST()} 수리안 가지 ${안.가지} ${안.head.slice(0, 7)} · 검토 ${안.검토.verdict} — 원장 승인 대기 (수리 ${repId})` });
   console.log(`  → 승인 대기: ${명령}`);
 };
 
 const 수리 = async () => {
+  await 자동재개();
   const [멈춤] = await q(`select value from geo.settings where key='repair_paused'`);
   if (멈춤?.value === "true") { console.log("  수리공 멈춤 (geo.settings repair_paused=true) — 사람이 풀어야 한다"); return; }
   if (!손으로 && !정해진) { console.log(`  사람이 띄운 실행이 아니다 (${process.env.REPAIR_EVENT ?? ""} · ${띄운이 || "띄운 이 없음"}) — 지난 수리 확인만 한다`); return; }
-  if (!ENABLED && !손으로) {
-    console.log("  REPAIR_ENABLED 꺼짐 — 정해진 시각 실행은 지난 수리 확인만 한다");
-    // 스위치는 GitHub 변수라 현황판이 못 읽는다. 활동으로 남겨야 수리공 줄이 「꺼짐」으로 보인다
-    await 활동(true, "스위치 꺼짐 — 지난 수리 확인만 했습니다");
-    return;
-  }
   if (MODE === "run" && (await 오늘수리수()) >= MAX_PER_DAY) { console.log(`  오늘 수리 ${MAX_PER_DAY}건을 했다 — 내일`); return; }
+  // 안 눌린 수리안이 쌓이면 Claude 를 더 부르지 않는다 — 7일 만료가 자리를 비운다(D78)
+  const [{ n: 대기수 }] = await q(`select count(*)::int n from geo.repairs where status='승인 대기'`);
+  if (대기수 >= 3) { console.log(`  승인 대기 수리안 ${대기수}건 — 새로 만들지 않는다`); return; }
   if (!클로드코드있음()) { console.log("  Claude Code 없음 — 건너뜀"); return; }
   const [t] = await q(`select * from geo.agent_tasks where kind='investigate' and status='수리 대기' and payload->'diagnosis'->>'분류' = 'code'
     ${TASK ? "and id=$1" : ""} order by priority, id limit 1`, TASK ? [TASK] : []);
@@ -663,7 +737,8 @@ const 수리 = async () => {
   const base = 가져오기();
   const 안 = await 만들기(t, base);
   if (!안) return;
-  const 행 = { task_id: t.id, branch: 안.가지, base_sha: base, head_sha: 안.head, files: 안.files, lines: 안.줄, review: 안.검토, checks: { 문제: [], 요약: 안.요약, needs_owner: 안.needs_owner } };
+  const 행 = { task_id: t.id, branch: 안.가지, base_sha: base, head_sha: 안.head, files: 안.files, lines: 안.줄, review: 안.검토, checks: { 문제: [], 요약: 안.요약, needs_owner: 안.needs_owner,
+    사람말: 안.사람말, touches_numbers: 숫자닿음(안.files), 숫자파일: 안.files.filter((f) => 숫자닿음([f])) } };
   if (MODE === "dry") {
     const id = await 수리기록({ ...행, status: "dry", note: "--dry: 가지만 푸시, main 무관, 합칠 수 없음" });
     console.log(`  --dry 끝 (수리 ${id}). main 은 그대로`);
@@ -674,11 +749,14 @@ const 수리 = async () => {
     await 일감(t.id, "사람 대기", { evidence: `${KST()} 자동 수리안 검토 불합격 — ${한줄((안.검토.must ?? []).join(" / "), 300)}`,
       detail: `자동 수리안(가지 ${안.가지})이 검토에서 떨어졌습니다: ${한줄((안.검토.must ?? []).join(" / "), 300)}. 가지 diff 를 보고 Claude 세션에서 고칩니다.` });
     await 활동(false, `수리안 검토 불합격 (수리 ${id})`, t.id);
+    await 연속확인();
     return;
   }
-  const 무인 = ENABLED ? await 무인허용() : { ok: false, n: 0 };
-  if (!무인.ok || 안.needs_owner) {
-    const id = await 수리기록({ ...행, status: "승인 대기", note: 안.needs_owner ? "네트워크·환경에 닿는 줄이 있어 늘 원장 승인" : `견습 — 승인해 합친 수리 ${무인.n}/${견습건수}` });
+  // 무인 합치기는 REPAIR_UNATTENDED=1 일 때만 묻는다(D80). 비어 있으면 견습이 끝나도 늘 원장 승인
+  const 무인 = ENABLED && UNATTENDED ? await 무인허용() : { ok: false, n: 0 };
+  if (!무인합치기(process.env, 무인.ok, 안.needs_owner)) {
+    const id = await 수리기록({ ...행, status: "승인 대기", note: 안.needs_owner ? "네트워크·환경에 닿는 줄이 있어 늘 원장 승인"
+      : !UNATTENDED ? "무인 합치기 꺼짐(REPAIR_UNATTENDED) — 늘 원장 승인" : `견습 — 승인해 합친 수리 ${무인.n}/${견습건수}` });
     await 승인일감(t, 안, id);
     return;
   }
@@ -686,29 +764,40 @@ const 수리 = async () => {
   await 합치기(t, 안, id, { approved: false });
 };
 
+/**
+ * 승인 합치기가 못 합치고 나가면 승인 일감 payload.merge_result 에 이유를 남긴다 — 버튼을 눌렀는데 조용히 아무 일도 없으면 안 된다.
+ * 조사 id(TASK)만으로 찾는다. 그 시각은 DB 시각
+ */
+const 합치기결과 = (why) => (TASK ? q(`update geo.agent_tasks set updated_at=now(),
+    payload = payload || jsonb_build_object('merge_result', jsonb_build_object('at', now(), 'why', $2::text))
+  where dedupe_key = 'repair-approve-' || $1 and client_id = (select client_id from geo.agent_tasks where id = $1::bigint)`, [String(TASK), 한줄(why, 200)])
+  .catch((e) => console.log(`  (merge_result 못 남김 ${끝(e.message, 120)})`)) : Promise.resolve());
+
 /** 원장 승인 — 승인 대기 수리안을 다시 검사하고 합친다. base 가 움직였으면 검토를 다시 받는다(Richard 9/22) */
 const 승인합치기 = async () => {
-  if (!손으로) { console.log(`  merge 는 사람만 띄운다 (${띄운이 || "띄운 이 없음"}) — 합치지 않는다`); return; }
+  if (!손으로) { console.log(`  merge 는 사람만 띄운다 (${띄운이 || "띄운 이 없음"}) — 합치지 않는다`); await 합치기결과("사람이 띄운 실행이 아님"); return; }
   if (!ENABLED) {
-    console.log("  REPAIR_ENABLED 꺼짐 — 합치지 않는다 (원장이 저장소 변수를 켜야 한다)");
-    await 활동(true, "스위치 꺼짐 — 합치지 않았습니다");
+    console.log("  REPAIR_ENABLED 꺼짐 — 합치지 않는다 (비상 스위치)");
+    await 활동(true, "비상 스위치 꺼짐 — 합치지 않았습니다");
+    await 합치기결과("비상 스위치 꺼짐");
     return;
   }
   if (!TASK) throw new Error("merge 는 task 가 있어야 한다 (-f task=<조사 id>)");
   const [멈춤] = await q(`select value from geo.settings where key='repair_paused'`);
-  if (멈춤?.value === "true") { console.log("  수리공 멈춤 — 합치지 않는다"); return; }
+  if (멈춤?.value === "true") { console.log("  수리공 멈춤 — 합치지 않는다"); await 합치기결과("자동 수리가 멈춰 있음"); return; }
   const [rep] = await q(`select * from geo.repairs where task_id=$1 and status='승인 대기' order by id desc limit 1`, [TASK]);
-  if (!rep) { console.log(`  조사 ${TASK} 에 승인 대기 수리안이 없다`); return; }
+  if (!rep) { console.log(`  조사 ${TASK} 에 승인 대기 수리안이 없다`); await 합치기결과("승인 기다리는 수리안이 없음"); return; }
   const [t] = await q(`select * from geo.agent_tasks where id=$1`, [TASK]);
   // 승인 일감이 아직 사람 대기일 때만 합친다. 닫았거나 완료 표시했으면 거절이다 — 나중에 누가 merge 를 돌려도 거절한 안이 들어가면 안 된다
   const [승인] = await q(`select status from geo.agent_tasks where client_id=$1 and dedupe_key=$2`, [t.client_id, `repair-approve-${TASK}`]);
-  if (승인?.status !== "사람 대기") { await 거절처리(rep, t, 승인?.status ?? "승인 일감 없음"); return; }
+  if (승인?.status !== "사람 대기") { await 거절처리(rep, t, 승인?.status ?? "승인 일감 없음"); await 합치기결과("이미 버린 수리안"); return; }
   const base = 가져오기();
   const 머리 = 가져오기(rep.branch);
   if (머리 !== rep.head_sha) throw new Error(`가지 ${rep.branch} 머리가 바뀜 (${머리.slice(0, 7)} ≠ ${rep.head_sha.slice(0, 7)}) — 검토받은 diff 가 아니다`);
   if (base !== rep.base_sha && 파일바뀜(rep.base_sha, base, rep.files)) {
     await 수리갱신(rep.id, { status: "포기", note: `${KST()} 승인 사이 main 이 같은 파일을 바꿈` });
     await 일감(t.id, "수리 대기", { evidence: `${KST()} 승인 사이 main 이 같은 파일을 바꿔 수리안 폐기 — 다음 수리에서 새로 만든다` });
+    await 합치기결과("그사이 같은 파일이 바뀌어 수리안을 버림 — 다음에 새로 만듦");
     console.log("  main 이 같은 파일을 바꿈 — 수리안 폐기, 다음 실행에서 새로 만든다");
     return;
   }
@@ -722,21 +811,25 @@ const 승인합치기 = async () => {
   if (g.문제.length) {
     await 수리갱신(rep.id, { status: "가드 걸림", note: g.문제.join(" / ") });
     await 일감(t.id, "사람 대기", { evidence: `${KST()} 승인 뒤 다시 건 가드에 걸림 — ${g.문제.join(" / ")}` });
+    await 합치기결과("다시 건 안전 검사에 걸림");
     return;
   }
   let 검토 = rep.review;
   if (base !== rep.base_sha) {
     const diff = git("diff", base, "--", ...rep.files);
     검토 = await 검토받기(t, diff, rep.checks?.요약 ?? "");
-    if (검토.한도) { console.log(`  한도 — 다시 검토 못 함: ${끝(검토.error, 160)}`); return; }
+    if (검토.한도) { console.log(`  한도 — 다시 검토 못 함: ${끝(검토.error, 160)}`); await 합치기결과("오늘 Claude 한도 — 다시 검토 못 함"); return; }
     console.log(`  main 이 움직여 다시 검토: ${검토.verdict} · ${한줄(검토.notes, 200)}`);
     if (검토.verdict !== "pass") {
       await 수리갱신(rep.id, { status: "검토 불합격", note: `다시 검토 fail — ${한줄((검토.must ?? []).join(" / "), 300)}` });
       await 일감(t.id, "사람 대기", { evidence: `${KST()} 승인 뒤 다시 검토에서 fail` });
+      await 합치기결과("다시 검토에서 떨어짐");
+      await 연속확인();
       return;
     }
   }
-  await 합치기(t, { 가지: rep.branch, base, head: rep.head_sha, files: rep.files, 줄: rep.lines, 요약: rep.checks?.요약 ?? "", 검토 }, rep.id, { approved: true });
+  const r = await 합치기(t, { 가지: rep.branch, base, head: rep.head_sha, files: rep.files, 줄: rep.lines, 요약: rep.checks?.요약 ?? "", 검토 }, rep.id, { approved: true });
+  if (!r.ok) await 합치기결과(r.why);
 };
 
 // ─────────────────────────────────────────── 시험
@@ -834,7 +927,7 @@ const 가드시험 = () => {
 };
 
 try {
-  console.log(`수리공 · ${KST()} KST · ${MODE}${TASK ? ` · 조사 ${TASK}` : ""} · REPAIR_ENABLED=${ENABLED ? 1 : 0}${손으로 ? " · 사람이 띄움" : ""}`);
+  console.log(`수리공 · ${KST()} KST · ${MODE}${TASK ? ` · 조사 ${TASK}` : ""} · REPAIR_ENABLED=${ENABLED ? 1 : 0} · REPAIR_UNATTENDED=${UNATTENDED ? 1 : 0}${손으로 ? " · 사람이 띄움" : ""}`);
   if (!MODES.includes(MODE)) throw new Error(`모르는 모드 ${MODE}`);
   if (MODE === "guard-test") 가드시험();
   else {
@@ -859,6 +952,7 @@ try {
 } catch (e) {
   console.error("수리 실패", 가림(e.message));
   if (pool) await 활동(false, `수리 실패 (${MODE}): ${가림(e.message)}`);
+  if (pool && MODE === "merge") await 합치기결과(`실패 — ${가림(e.message)}`);
   process.exitCode = 1;
 } finally {
   if (pool) await pool.end();

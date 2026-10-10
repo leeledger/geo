@@ -80,6 +80,8 @@ export type Ops = {
     ok: boolean;
     tasks: { id: number; agent: string; kind: string; status: string; title: string; detail: string; evidence: string; error: string; link: string | null; createdAt: string; updatedAt: string; doneAt: string | null; payload: Record<string, unknown> | null; dedupe: string | null }[];
     activity: { agent: string; action: string; ok: boolean; summary: string; at: string; runUrl: string | null }[];
+    /** 자동 수리 비상 스위치(repair.mjs 가 실행마다 geo.settings repair_switch 에 적음). null = 모름 */
+    repairSwitch: boolean | null;
   };
   recent: { title: string; slug: string; at: string }[];
   /**
@@ -229,7 +231,7 @@ export async function readOps(client?: Client): Promise<Ops> {
     ai: { day: null, engine: null, method: null, prompts: 0, cited: 0, mentioned: 0, rounds: 0, comparable: false },
     sales: { scans30d: 0, leads30d: 0, newLeads: 0, unresolvedInquiries: 0, scanToLeadPct: 0 },
     agentLoop: { day: null, status: "기록 없음", diagnosis: "실행 기록 없음", action: "오늘의 개선 루프를 실행합니다.", evidence: "", startedAt: null, completedAt: null, engines: "", history: [], selfcheck: [] },
-    company: { ok: false, tasks: [], activity: [] },
+    company: { ok: false, tasks: [], activity: [], repairSwitch: null },
     recent: [],
     lastAt: { content: null, deliver: null, crawler: null, measure: null, next: null },
     totalHits: 0,
@@ -351,8 +353,13 @@ export async function readOps(client?: Client): Promise<Ops> {
          limit 120`);
       const activity = await q(`select agent, action, ok, summary, at::text as at, run_url
           from geo.agent_activity where client_id=${c.id} or client_id is null order by at desc limit 80`);
+      let repairSwitch: boolean | null = null;
+      try {
+        const [sw] = await q(`select value from geo.settings where key='repair_switch'`);
+        repairSwitch = sw?.value === "1" ? true : sw?.value === "0" ? false : null;
+      } catch (e) { console.error("repair_switch 읽기 실패", e); }
       company = {
-        ok: true,
+        ok: true, repairSwitch,
         tasks: tasks.map((t) => ({ id: Number(t.id), agent: t.agent, kind: t.kind, status: t.status, title: t.title, detail: t.detail, evidence: t.evidence, error: t.last_error, link: t.link, createdAt: t.created, updatedAt: t.updated, doneAt: t.done, payload: t.payload ?? null, dedupe: t.dedupe_key ?? null })),
         activity: activity.map((a) => ({ agent: a.agent, action: a.action, ok: a.ok, summary: a.summary, at: a.at, runUrl: a.run_url })),
       };

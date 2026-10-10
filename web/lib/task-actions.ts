@@ -68,3 +68,73 @@ export async function requestLogin(form: FormData) {
   }
   revalidatePath("/admin/ops");
 }
+
+/** 승인 기다리는 수리안 일감(Step 42). 사람 대기가 아니면(이미 합침·버림·만료) 아무것도 안 한다 */
+async function 수리안일감(id: number) {
+  const { rows } = await inqPool().query(
+    `select id, client_id, title, payload from geo.agent_tasks where id=$1 and kind='repair-approval' and status='사람 대기'`, [id]);
+  return rows[0] as { id: number; client_id: number; title: string; payload: Record<string, unknown> | null } | undefined;
+}
+
+/**
+ * 「합치기」 — GitHub 에 repair.yml mode=merge 를 띄운다. 사람 계정(leeledger) 토큰이라 repair.mjs 의 「손으로」 가드가 그대로 산다.
+ * 합치는 판단(비상 스위치·멈춤·가지 머리·가드·재검토)은 전부 repair.mjs 가 한다 — 여기서는 요청만.
+ * 상태는 사람 대기 그대로 둔다(승인합치기는 사람 대기만 합친다). 30분 안에 또 누르면 무시
+ */
+export async function approveRepair(form: FormData) {
+  if (!(await isAdmin())) throw new Error("관리자만 할 수 있습니다");
+  const id = Number(form.get("id"));
+  if (!Number.isInteger(id)) return;
+  const t = await 수리안일감(id);
+  if (!t) return;
+  const p = t.payload ?? {};
+  const 요청 = typeof p.merge_requested_at === "string" ? Date.parse(p.merge_requested_at) : NaN;
+  if (Number.isFinite(요청) && Date.now() - 요청 < 30 * 60000 && !p.merge_result) return;
+  const task = Number(p.task_id);
+  const db = inqPool();
+  const 남김 = (patch: Record<string, unknown>) =>
+    db.query(`update geo.agent_tasks set payload = coalesce(payload, '{}'::jsonb) || $2::jsonb, updated_at=now() where id=$1`, [id, JSON.stringify(patch)]);
+  const 활동 = (ok: boolean, summary: string) =>
+    db.query(`insert into geo.agent_activity (client_id, agent, action, ok, summary, task_id) values ($1,'repair','원장 합치기 요청',$2,$3,$4)`,
+      [t.client_id, ok, summary, id]).catch((e) => console.error("활동 기록 실패", e));
+  const token = process.env.GH_DISPATCH_TOKEN?.trim();
+  let why: string | null = null;
+  if (!token) why = "토큰 없음";
+  else if (!Number.isInteger(task) || task <= 0) why = "수리안 번호 없음";
+  else {
+    try {
+      const r = await fetch("https://api.github.com/repos/leeledger/geo/actions/workflows/repair.yml/dispatches", {
+        method: "POST",
+        headers: { authorization: `Bearer ${token}`, accept: "application/vnd.github+json", "content-type": "application/json" },
+        body: JSON.stringify({ ref: "main", inputs: { mode: "merge", task: String(task) } }),
+      });
+      if (r.status !== 204) why = `요청 실패 ${r.status}`;
+    } catch (e) {
+      console.error("합치기 요청 실패", e);
+      why = "요청 실패 0";
+    }
+  }
+  if (why) {
+    await 남김({ merge_result: { at: new Date().toISOString(), why } });
+    await 활동(false, `${t.title} · ${why}`);
+  } else {
+    await 남김({ merge_requested_at: new Date().toISOString(), merge_result: null });
+    await 활동(true, t.title);
+  }
+  revalidatePath("/admin/ops");
+}
+
+/** 「버리기」 — 승인 일감을 닫는다. 다음 수리 실행의 거절처리가 수리안을 「거절」로 적고 그 조사는 더 자동으로 고치지 않는다(기존 길) */
+export async function discardRepair(form: FormData) {
+  if (!(await isAdmin())) throw new Error("관리자만 할 수 있습니다");
+  const id = Number(form.get("id"));
+  if (!Number.isInteger(id)) return;
+  const t = await 수리안일감(id);
+  if (!t) return;
+  const db = inqPool();
+  await db.query(`update geo.agent_tasks set status='닫힘', done_at=now(), updated_at=now(), evidence = left(evidence || E'\n원장이 버림', 4000)
+    where id=$1 and status='사람 대기'`, [id]);
+  await db.query(`insert into geo.agent_activity (client_id, agent, action, ok, summary, task_id) values ($1,'repair','원장 버림',true,$2,$3)`,
+    [t.client_id, t.title, id]).catch((e) => console.error("활동 기록 실패", e));
+  revalidatePath("/admin/ops");
+}

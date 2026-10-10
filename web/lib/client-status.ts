@@ -1,5 +1,6 @@
 import { pool } from "./ops";
 import { 상태문장, 이번주, 오늘KST, type StatusRaw, type StatusText, type Backlog } from "./client-status-core.mjs";
+import { 수리상태, 수리입력 } from "./repair-core.mjs";
 
 /**
  * 고객 상태 칸(Step 40 D63) — 원장이 고객 탭 맨 위에서 「이번 주 실제로 한 일 / 밀린 일·며칠째」를 읽는다.
@@ -21,7 +22,7 @@ export async function readClientStatus(client: { id: number; name: string }): Pr
     const { from, to } = 이번주(오늘);
     const 주 = [client.id, from, to];
     const 주안 = (col: string) => `(${col} at time zone 'Asia/Seoul')::date between $2::date and $3::date`;
-    const [[posts], outside, [guides], acts, [last], backlog, [repair]] = await Promise.all([
+    const [[posts], outside, [guides], acts, [last], backlog, repair] = await Promise.all([
       q<{ n: number }>(`select count(*)::int n from academy.posts where client_id=$1 and published and ${주안("published_at")}`, 주),
       q<{ channel: string; n: number }>(`select channel, count(*)::int n from geo.marketing_posts
           where client_id=$1 and status='올림' and ${주안("posted_at")} group by channel`, 주),
@@ -41,8 +42,8 @@ export async function readClientStatus(client: { id: number; name: string }): Pr
             (min(created_at) at time zone 'Asia/Seoul')::date::text oldest,
             sum(case when jsonb_typeof(payload->'questions') = 'array' then greatest(jsonb_array_length(payload->'questions'), 1) else 1 end)::int qn
           from geo.agent_tasks where client_id=$1 and status = any($2::text[]) group by status`, [client.id, Object.keys(밀린상태)]),
-      // 자동 코드 수리 스위치 — pm-report 와 같은 셈(마지막 repair 활동이 「스위치 꺼짐」)
-      q<{ off: boolean | null }>(`select summary like '스위치 꺼짐%' off from geo.agent_activity where agent = 'repair' order by at desc limit 1`, []),
+      // 자동 코드 수리 지금 상태 — 현황판·아침 보고와 같은 셈(repair-core)
+      수리입력((s, v = []) => q(s, v)),
     ]);
     const k = (key: string) => acts.find((a) => a.k === key)?.n ?? 0;
     const ch = (c: string) => outside.find((o) => o.channel === c)?.n ?? 0;
@@ -58,7 +59,7 @@ export async function readClientStatus(client: { id: number; name: string }): Pr
       measure: k("measure"), posts: posts?.n ?? 0,
       outside: { blog: ch("blog"), jisikin: ch("jisikin"), cafe: ch("cafe") },
       guides: guides?.n ?? 0, gsc: k("gsc"), bing: k("bing"), naver: k("naver"),
-      touched: { post: last?.post ?? null, outside: last?.outside ?? null, guide: last?.guide ?? null }, backlog: b, repairOff: !!repair?.off,
+      touched: { post: last?.post ?? null, outside: last?.outside ?? null, guide: last?.guide ?? null }, backlog: b, repairText: 수리상태(repair).text,
     };
     return { ok: true, s: 상태문장(raw, 오늘) };
   } catch (e) {

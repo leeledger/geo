@@ -11,7 +11,8 @@ export type StatusRaw = {
   /** 손댄 마지막 날 — 실제 작업만(글 발행·바깥 글·가이드 반영). 색인 요청·측정 같은 자동 일은 안 넣는다 */
   touched: { post?: string | null; outside?: string | null; guide?: string | null };
   backlog: { owner?: Backlog; session?: Backlog; local?: Backlog; repair?: Backlog; failed?: Backlog };
-  repairOff: boolean;
+  /** 자동 코드 수리 지금 상태 한 줄(repair-core 수리상태) */
+  repairText?: string | null;
 };
 export type StatusText = { 제목: string; 뱃지: "돌고 있음" | "느림" | "멈춤" | "아직 시작 전"; 한일: string; 손댄날: string; 밀린일: string[] };
 export function 월일(d: string): string;

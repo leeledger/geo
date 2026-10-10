@@ -100,6 +100,10 @@ const CSS = `
   border-radius:8px;padding:7px 12px;cursor:pointer;white-space:nowrap;text-decoration:none}
 .td-btn.alt{background:#2a333f;color:var(--ink)}
 .td-naver{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.td-repair{display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:flex-end}
+.td-note{flex-basis:100%;text-align:right;font-size:13px;color:var(--ink2);word-break:keep-all}
+.td-note.bad{color:var(--crit)}
+.td-num{font-style:normal;font-weight:700;color:#F0CE87;margin-right:8px}
 .td-naver input{background:var(--sunk);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 9px;font:inherit;font-size:14px;min-width:150px}
 .td-more{margin:8px 0 0;font-size:14px;color:var(--ink2)}
 .td-session{margin:10px 2px 0;font-size:14px;color:var(--ink2);word-break:keep-all}

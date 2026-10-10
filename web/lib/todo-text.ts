@@ -27,7 +27,9 @@ export type TodoAction =
   | { type: "finish" }
   | { type: "naver" }
   | { type: "login"; label?: string }
-  | { type: "details"; label: string; body: string };
+  | { type: "details"; label: string; body: string }
+  /** 수리안 승인(Step 42) — [합치기][버리기] + 바뀐 곳. result = 수리 실행이 못 합친 이유 */
+  | { type: "repair"; taskId: number | null; href: string | null; switchOn: boolean | null; requestedAt: string | null; result: { at: string; why: string } | null };
 
 export type TodoText = {
   title: string;
@@ -35,7 +37,12 @@ export type TodoText = {
   action: TodoAction;
   /** 최근 조치가 근거에 적혀 있으면 「조치 중 · 9/22 …」 — 화면은 흐리게, 맨 뒤로 */
   doing: string | null;
+  /** 측정·판정 숫자를 만드는 파일을 고친 수리안 — 카드에 「숫자에 닿음」 */
+  numbers?: boolean;
 };
+
+/** 화면만 아는 것 — 비상 스위치(geo.settings repair_switch, null = 모름) */
+export type TodoContext = { repairSwitch?: boolean | null };
 
 const VENDOR: Record<string, [string, string]> = {
   // [이름, 주격]
@@ -118,7 +125,7 @@ function doingOf(evidence: string, now: number): string | null {
   return `조치 중 · ${Number(m[2])}/${m[3]} ${cut(plain(text), 40)}`;
 }
 
-export function todoText(t: TodoTask, now = Date.now()): TodoText {
+export function todoText(t: TodoTask, now = Date.now(), ctx: TodoContext = {}): TodoText {
   const p = obj(t.payload);
   const doing = doingOf(t.evidence ?? "", now);
 
@@ -142,11 +149,26 @@ export function todoText(t: TodoTask, now = Date.now()): TodoText {
   }
 
   if (t.kind === "repair-approval") {
-    const what = plain(t.title.replace(/^자동 수리 승인 대기:\s*/, ""));
+    // 사람말은 수리 claude 가 원장님께 쓴 한두 문장(repair.mjs). 옛 승인 일감은 제목에서
+    const rid = num(p.repair_id);
+    const said = typeof p.사람말 === "string" && p.사람말.trim() ? p.사람말
+      : t.title.replace(/^자동 수리 승인 대기:\s*/, "").replace(/^수리안 \d+ —\s*/, "");
+    const what = plain(said);
+    const reason = typeof p.왜 === "string" ? plain(p.왜) : "";
+    const notes = typeof p.notes === "string" ? plain(p.notes) : "";
+    const verdict = p.verdict === "pass" ? "통과" : p.verdict === "fail" ? "불합격" : null;
+    const why = [reason ? cut(reason, 80) : null, verdict ? `검토 ${verdict}${notes ? ` — ${cut(notes, 100)}` : ""}` : null]
+      .filter(Boolean).join(" · ");
+    const mr = obj(p.merge_result);
     return {
-      title: "자동 수리안 — 합칠지 정해 주세요",
-      why: what ? cut(what, 80) : "검토를 통과한 수리안입니다",
-      action: t.link ? { type: "link", label: "보고 정하기", href: localHref(t.link) } : { type: "finish" },
+      title: cut(`${rid !== null ? `수리안 ${rid}` : "자동 수리안"} — ${what || "합칠지 정해 주세요"}`, 80),
+      why: why || "검토를 통과한 수리안입니다",
+      numbers: p.touches_numbers === true,
+      action: {
+        type: "repair", taskId: num(p.task_id), href: t.link ? localHref(t.link) : null, switchOn: ctx.repairSwitch ?? null,
+        requestedAt: typeof p.merge_requested_at === "string" ? p.merge_requested_at : null,
+        result: typeof mr.why === "string" ? { at: String(mr.at ?? ""), why: mr.why } : null,
+      },
       doing,
     };
   }

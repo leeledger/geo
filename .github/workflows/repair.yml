@@ -1,7 +1,7 @@
 # 수리공 — 감사관이 「code」로 분류한 조사를 고쳐 합치고, 틀렸으면 되돌린다 (academy/scripts/repair.mjs)
 #
-# 킬 스위치: 저장소 변수 REPAIR_ENABLED=1 일 때만 main 에 합친다. 꺼져 있으면 정해진 시각 실행은 지난 수리 확인(되돌리기)만,
-# 사람이 띄운 run 은 승인 대기까지만 간다. 견습: 처음 5건은 원장이 mode=merge 로 승인해야 합쳐진다.
+# 비상 스위치: 저장소 변수 REPAIR_ENABLED=1 일 때만 main 에 합친다. 수리안 만들기(가지·검토·승인 일감)는 스위치와 무관 (Step 42).
+# 합치기는 원장 승인(현황판 「합치기」 버튼 → mode=merge dispatch). 무인 합치기(견습 5건 뒤)는 REPAIR_UNATTENDED=1 까지 있어야 열린다 (D80).
 # 가드(허용 경로·줄 수·토큰·문법·검토)는 전부 스크립트 안에 있다 — 브랜치 보호가 없다(무료 비공개 플랜).
 # GITHUB_TOKEN 은 workflows 권한이 없어 .github/ 를 고치는 수리는 원래 못 한다.
 #
@@ -58,6 +58,7 @@ jobs:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           CLAUDE_MEASURE_RESERVE: ${{ vars.CLAUDE_MEASURE_RESERVE }}
           REPAIR_ENABLED: ${{ vars.REPAIR_ENABLED }}
+          REPAIR_UNATTENDED: ${{ vars.REPAIR_UNATTENDED }}   # 비면 무인 합치기 없음 — 늘 원장 승인
           REPAIR_MAX_PER_DAY: ${{ vars.REPAIR_MAX_PER_DAY }}
           CLAUDE_DAILY_MAX: ${{ vars.CLAUDE_DAILY_MAX }}
           REPAIR_MODE: ${{ inputs.mode || 'run' }}

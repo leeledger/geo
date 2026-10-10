@@ -23,14 +23,14 @@ const 봄 = (어디, 글) => {
 };
 
 // ── 1. 순수 함수 출력
-const 빈 = { measure: 0, posts: 0, outside: { blog: 0, jisikin: 0, cafe: 0 }, guides: 0, gsc: 0, bing: 0, naver: 0, touched: {}, backlog: {}, repairOff: false };
+const 빈 = { measure: 0, posts: 0, outside: { blog: 0, jisikin: 0, cafe: 0 }, guides: 0, gsc: 0, bing: 0, naver: 0, touched: {}, backlog: {} };
 const 밀림 = { n: 2, q: 12, oldest: "2026-09-17" };
 for (const [이름, raw] of [
   ["빈", { ...빈, name: "새 고객" }],
   ["아이로그", { ...빈, name: "아이로그", measure: 42, touched: { post: "2026-09-18" }, backlog: { session: 밀림 } }],
   ["전부", { ...빈, name: "학원", measure: 1, posts: 1, outside: { blog: 1, jisikin: 1, cafe: 1 }, guides: 1, gsc: 1, bing: 1, naver: 1, touched: { post: "2026-10-10" },
-    backlog: { owner: 밀림, session: 밀림, local: 밀림, repair: 밀림, failed: 밀림 }, repairOff: true }],
-  ["수리 켜짐", { ...빈, name: "x", touched: { post: "2026-10-10" }, backlog: { repair: 밀림 } }],
+    backlog: { owner: 밀림, session: 밀림, local: 밀림, repair: 밀림, failed: 밀림 }, repairText: "스스로 멈춤 — 7일 안에 두 번 되돌림 · 10/17 이후 재발 없으면 수리안 만들기 다시 시작" }],
+  ["수리 상태 없음", { ...빈, name: "x", touched: { post: "2026-10-10" }, backlog: { repair: 밀림 } }],
 ]) {
   const s = 상태문장(raw, "2026-10-10");
   for (const [k, v] of Object.entries(s)) 봄(`상태문장 ${이름} ${k}`, Array.isArray(v) ? v.join(" / ") : v);
@@ -57,6 +57,7 @@ try {
   깎기("agents", [
     ['import { pool } from "./ops";', 'const pool = () => { throw new Error("시험에서 DB 안 씀"); };'],
     ['from "./client-core.mjs"', `from ${JSON.stringify(new URL("../../web/lib/client-core.mjs", import.meta.url).href)}`],
+    ['from "./repair-core.mjs"', `from ${JSON.stringify(new URL("../../web/lib/repair-core.mjs", import.meta.url).href)}`],
   ]);
   깎기("todo-text", [['from "./agents";', 'from "./agents.mjs";']]);
   const { todoText } = await import(pathToFileURL(path.join(폴더, "todo-text.mjs")).href);
@@ -100,7 +101,17 @@ try {
   }
   for (const r of ROLES) 봄(`ROLES ${r.id}`, `${r.name} / ${r.does} / ${r.jobs.map((j) => j.name).join(" · ")}`);
   const 수리 = ROLES.find((r) => r.id === "repair");
-  봄("judge 수리 꺼짐", judge(수리, { acts: [{ agent: "repair", action: "수리", ok: true, summary: "스위치 꺼짐", at: "2026-10-10T00:00:00Z", kind: null }], tasks: [] }, 지금).reason);
+  // 수리 줄(Step 42) — 멈춤·승인 기다림·고칠 것 없음. 「켤지」「켜기」「원장님 결정」은 어느 쪽에도 없다
+  const 한일 = [{ agent: "repair", action: "수리", ok: true, summary: "수리안 검토 통과", at: "2026-10-10T00:00:00Z", kind: null }];
+  for (const [이름, repair] of [
+    ["멈춤", { paused: true, pause: { kind: "revert-twice", at: "2026-10-03T00:00:00Z", last_revert_at: "2026-10-03T00:00:00Z" }, pending: 1, queue: 2, switchOn: true }],
+    ["승인 기다림", { paused: false, pause: null, pending: 1, queue: 2, switchOn: false }],
+    ["고칠 것 없음", { paused: false, pause: null, pending: 0, queue: 0, switchOn: true }],
+  ]) {
+    const 줄 = judge(수리, { acts: 한일, tasks: [], repair, merged7: 1 }, 지금).reason ?? "";
+    봄(`judge 수리 ${이름}`, 줄);
+    if (/켤지|켜기|원장님 결정/.test(줄)) { fail++; console.log(`✗ judge 수리 ${이름}: 「켤지·켜기·원장님 결정」 — ${줄}`); } else pass++;
+  }
 } finally {
   fs.rmSync(폴더, { recursive: true, force: true });
 }

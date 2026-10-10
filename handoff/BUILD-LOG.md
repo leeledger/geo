@@ -1649,3 +1649,32 @@ Known Gaps (26)
   - 결정(세션): 창을 닫아도 그날 막힘(blocked)은 풀지 않는다 — 다음 날부터 다시 찾는다. 창이 닫히면 kin-captcha 일감은 완료(login-poll 기존 규칙)
   - Escalate 2 결정(세션): 질문 글은 근거에서 뺀다(숫자 게이트·대조표·읽을 자리 비교 원문 모두). 프롬프트 「질문」 절에만 두고 「질문 글에 나온 숫자를 규격·한도처럼 옮겨 쓰지 않는다 … 숫자 없이 『말씀하신 파일』처럼」 줄을 더함. 시험: 질문 속 25MB 는 이제 관문에 걸림 · 숫자 없이 쓰면 안 걸림 · 대조표 못 찾음 · 근거 줄에 질문 없음
   - 시험 test-kin 110 · test-login 56(창요청 SQL 시험을 kin-captcha 포함으로 고침) · 나머지 회귀 0 실패 · tsc 둘 다 0
+
+### 2026-10-10 — Step 42 설계: 자동 코드 수리 스스로 시작·멈춤·재개, 합치기는 원장 버튼 (원장 1안 승인) — Step 42 BRIEFED (handoff/ARCHITECT-BRIEF.md)
+- 확인: REPAIR_ENABLED 저장소 변수 없음(gh variable list) — 17일째 「꺼짐」은 켠 적이 없어서. 코드 일감 수리 대기 2건
+- D72 수리안 만들기(가지·가드·검토·승인 일감)는 스위치와 무관하게 06:50 에 돈다. repair.mjs 수리() 의 `!ENABLED && !손으로` 끝내기를 지운다. REPAIR_ENABLED 의 뜻은 그대로 — main 에 합치는 비상 스위치
+- D73 견습 5건·무인허용·needs_owner·가드·금지 경로·손으로·승인 일감 사람 대기 확인·재검토는 한 줄도 안 바꾼다
+- D74 멈춤 종류를 geo.settings repair_pause(JSON)에 남긴다: revert-failed(사람만) > revert-twice(마지막 되돌림 7일 뒤 되돌림·재발 0 이면 수리안 만들기만 재개) > review-fail-3. 무거운 멈춤을 가벼운 것이 못 덮는다. 이유 없는 옛 멈춤은 사람만. repair_paused 키·사람이 'false' 로 푸는 길 유지
+- D75 연속 검토 불합격 3번(마지막 재개 뒤 행만)이면 멈춤. Arch 결정: 이 멈춤은 7일 뒤 스스로 풀린다 — main 에 닿은 것이 없어서
+- D76 재개 뒤에도 무인 합치기는 열리지 않는다 — 기존 무인허용의 「되돌림 이력 0」 조건이 막는다(손대지 않음)
+- D77 현황판 승인 카드: 「수리안 n — 사람말」·왜·검토 결과·숫자에 닿음 + [합치기][버리기]. 합치기 = web server action 이 GitHub dispatch(mode=merge, PAT leeledger → 손으로 가드 통과). 버리기 = 승인 일감 닫힘 → 기존 거절처리. 못 합치면 repair.mjs 가 승인 일감 payload.merge_result 에 이유
+- D78 승인 대기 7일 → 수리 '만료', 일감 다시 수리 대기(거절 루프보다 먼저). 승인 대기 3건 이상이면 새 수리안 안 만듦
+- D79 현황판·아침 보고 수리 줄: 고칠 것 없음 / 수리안 만드는 중 / 승인 기다림 n건 / 스스로 멈춤 — 이유·다시 시작 날짜. 「켤지는 원장님 결정」「수리 켜기」 제거. 판정은 web/lib/repair-core.mjs 한 곳
+- Escalate E1: 승인 버튼이 실제로 합치려면 REPAIR_ENABLED=1 이 필요(뜻을 안 바꾸면). 켜면 기존 견습 규칙대로 5건 뒤 무인 합치기도 가능해진다. 원장 OK 대기
+- Escalate E2: GH_DISPATCH_TOKEN(세분화 PAT, geo 하나, Actions 만) 사람이 만들어 Vercel 에. 없으면 카드가 「합치지 못함 — 토큰 없음」
+- KG-42-1 현황판 「멈춤 풀기」 버튼 없음(revert-failed 는 여전히 DB 손작업) · KG-42-2 같은 조사가 7일 만료를 되풀이하면 상한 없음 · KG-42-3 숫자경로 목록은 손 목록 — 새 측정 스크립트가 생기면 넣어야 함
+- D80 (세션, 원장 결정 2026-10-10) 합치기는 늘 승인. 견습 5건 뒤 무인 합치기는 새 저장소 변수 **REPAIR_UNATTENDED=1** 일 때만 열린다 — 빈 값이면 무인 합치기 절대 없음(가드를 더하는 쪽). REPAIR_ENABLED=1 은 「승인된 합치기 허용」만 뜻한다. repair-core `무인합치기(env, 견습끝, needs_owner)` + repair.mjs 는 UNATTENDED 가 아니면 무인허용()을 부르지도 않는다(「견습 끝 — 이제 스스로 합친다」 활동이 거짓으로 안 남게). repair.yml env 에 `REPAIR_UNATTENDED: ${{ vars.REPAIR_UNATTENDED }}`. 변수는 만들지 않음
+
+### Step 42 — 자동 코드 수리 스스로 시작·멈춤·재개, 합치기는 원장 버튼 (D72~D80) — BUILT · Richard 대기 (2026-10-10, Bob) · DONE_WITH_CONCERNS
+- 새 `web/lib/repair-core.mjs`(+d.mts, 의존성 0): 멈춤무게·멈춤합치기·멈춤읽기·재개시각·재개판정·연속불합격·만료인가·숫자경로/숫자닿음·무인합치기(D80)·수리상태·수리입력(q). 현황판·고객 상태·아침 보고·repair.mjs 가 이 한 곳을 쓴다
+- repair.mjs: ensure 뒤 repair_switch 기록 · 멈추기(kind, 이유, extra) — repair_pause JSON, 무거운 멈춤 유지, revert-twice 의 last_revert_at 은 DB updated_at(러너 시계 어긋남 방지) · 자동재개()가 수리() 맨 앞 · `!ENABLED && !손으로` 블록 삭제 · 승인 대기 >= 3 이면 안 만듦 · 검토 불합격 두 곳 뒤 연속확인() · 지난수리확인() 맨 앞에 7일 만료 · 수리지침 「사람말」 · 승인 일감 payload(사람말·왜·verdict·notes·touches_numbers·숫자파일)·제목 「수리안 n — 사람말」 · 승인합치기의 모든 못 합침 길 + merge 모드 예외에 merge_result · 합치기()는 {ok, why} 반환
+- 결정(Bob): 만료는 승인 일감이 아직 「사람 대기」일 때만. 원장이 이미 닫은 것은 거절로(기존 루프). 조사 일감은 「수리 승인 대기」일 때만 수리 대기로 되돌린다(그사이 감사가 닫은 조사를 다시 열지 않게)
+- 결정(Bob): 연속확인 SQL 은 브리프의 `review is not null` 대신 `jsonb_typeof(review)='object'` — 수리기록()이 검토 없는 행(실패·못 고침·가드 걸림)에 jsonb 'null' 을 넣어 `is not null` 이 참이 된다(운영 DB revert-test 3행 rv='null' 확인)
+- 결정(Bob): 「수리 멈춤」 legacy 문구는 「사람이 풀어야 다시 시작」(브리프의 「되돌리기가 실패해…」는 revert-failed 만)
+- 결정(Bob): approveRepair 30분 무시는 merge_result 가 없을 때만 — 실패가 돌아왔으면 바로 다시 누를 수 있다
+- 숫자경로 확정(grep insert/update 대상): 브리프 12개 + daily-agent(ai_probe_questions) · loop-grow(ai_probe_questions·pilot_questions). 근거는 REVIEW-REQUEST
+- 현황판: judge 는 수리상태 paused → off+문구, 정상일 때 reason 에 문구. 「스위치 꺼짐」 판정·「켤지는 원장님 결정」·pm-report 「꺼진날」·「자동 수리 켜 줘」 삭제. Todo 카드 [바뀐 곳 보기][합치기][버리기]·숫자에 닿음·합치는 중/합치지 못함. Ops.company.repairSwitch
+- 시험: test-repair-core 27 ✓ · test-todo-words 17 · test-ops-words 544 · test-client-status 14 · guard-test 21 ✓ · 나머지 회귀 0 실패(test-visit 은 .ts import 로 원래 안 돎 — 손 안 댐) · tsc web·academy 0
+- 운영 DB 읽기 전용(begin read only … rollback): 수리입력 → making 「수리안 만드는 중 — 2건 대기」· 멈춤·만료 후보 0 · 연속확인 1행(수리 4 검토 불합격)
+- KG-42-4 사람이 repair_paused 를 'false' 로 손으로 풀면 repair_resumed_at 이 안 적혀 옛 불합격 행이 다음 연속확인에 다시 세진다(자동재개 길만 적음)
+- KG-42-5 「원장 합치기 요청」 실패 활동(ok=false)이 수리 줄을 「막힘」으로 보이게 한다(브리프대로). 카드에도 같은 이유가 뜬다

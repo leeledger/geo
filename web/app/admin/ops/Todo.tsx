@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import type { Ops } from "@/lib/ops";
 import { todoText, type TodoAction } from "@/lib/todo-text";
 import { 오늘KST, 며칠전 } from "@/lib/client-status-core.mjs";
-import { finishTask, resolveNaverAttempt, requestLogin } from "@/lib/task-actions";
+import { finishTask, resolveNaverAttempt, requestLogin, approveRepair, discardRepair } from "@/lib/task-actions";
 import SubmitButton from "../SubmitButton";
 
 /**
@@ -16,9 +16,32 @@ import SubmitButton from "../SubmitButton";
 
 const MAX = 5;
 
-type Item = { key: string; title: string; why: string; act: ReactNode; doing: string | null };
+type Item = { key: string; title: string; why: string; act: ReactNode; doing: string | null; numbers?: boolean };
+
+const 시분 = (iso: string) => new Date(iso).toLocaleTimeString("ko-KR", { timeZone: "Asia/Seoul", hour: "2-digit", minute: "2-digit", hour12: false });
 
 function Act({ id, a }: { id: number; a: TodoAction }) {
+  if (a.type === "repair") {
+    // 합치는 판단은 수리 실행(GitHub)이 한다. 여기는 요청과 그 결과만 보인다
+    const 막힘 = a.switchOn === false;
+    const 상태 = a.result ? `합치지 못함 — ${a.result.why}`
+      : a.requestedAt ? `합치는 중 (요청 ${시분(a.requestedAt)})`
+      : 막힘 ? "비상 스위치가 꺼져 있어 합칠 수 없음" : null;
+    return (
+      <div className="td-repair">
+        {a.href && <a className="td-btn alt" href={a.href} target="_blank" rel="noreferrer">바뀐 곳 보기 →</a>}
+        <form action={approveRepair}>
+          <input type="hidden" name="id" value={id} />
+          <SubmitButton className="td-btn" disabled={막힘}>합치기</SubmitButton>
+        </form>
+        <form action={discardRepair}>
+          <input type="hidden" name="id" value={id} />
+          <SubmitButton className="td-btn alt">버리기</SubmitButton>
+        </form>
+        {상태 && <span className={a.result ? "td-note bad" : "td-note"}>{상태}</span>}
+      </div>
+    );
+  }
   if (a.type === "naver") {
     return (
       <form action={resolveNaverAttempt} className="td-naver">
@@ -71,8 +94,8 @@ export default function Todo({ name, company, unresolved, marketing = 0 }: { nam
 
   const human = company.tasks.filter((t) => t.status === "사람 대기");
   const items: Item[] = human.map((t) => {
-    const x = todoText(t);
-    return { key: `t${t.id}`, title: x.title, why: x.why, doing: x.doing, act: <Act id={t.id} a={x.action} /> };
+    const x = todoText(t, Date.now(), { repairSwitch: company.repairSwitch });
+    return { key: `t${t.id}`, title: x.title, why: x.why, doing: x.doing, numbers: x.numbers, act: <Act id={t.id} a={x.action} /> };
   });
 
   // 상담 결과 미입력 — 큐에 같은 일감(문의 기록 링크)이 이미 있으면 겹쳐 적지 않는다
@@ -138,7 +161,7 @@ export default function Todo({ name, company, unresolved, marketing = 0 }: { nam
             <li key={x.key} className={x.doing ? "doing" : undefined}>
               <div className="td-t">
                 <b>{x.title}</b>
-                <span className="td-why">{x.doing ?? x.why}</span>
+                <span className="td-why">{x.numbers && <em className="td-num">숫자에 닿음</em>}{x.doing ?? x.why}</span>
               </div>
               <div className="td-act">{x.act}</div>
             </li>
