@@ -3,7 +3,7 @@
 import fs from "node:fs";
 import { CLIENTS, bySlug } from "../clients.mjs";
 import {
-  질문주소, 목록주소, 목록읽기, 질문읽기, 날짜풀기, 막힘, 후보거름, 답차례, 붙일글,
+  질문주소, 목록주소, 목록읽기, 분야주소, 분야읽기, 질문읽기, 날짜풀기, 막힘, 후보거름, 답차례, 붙일글,
   kin요청검사, kin창요청, 오래된kin요청닫기, 창상태말, 창결과, 채움말,
 } from "../../web/lib/kin-core.mjs";
 import { MARKETING_DDL } from "../../web/lib/marketing-core.mjs";
@@ -15,6 +15,7 @@ const 읽기 = (f) => fs.readFileSync(new URL(f, import.meta.url), "utf8");
 const 픽 = (f) => 읽기(`./fixtures/kin/${f}`);
 
 const c = bySlug("docttak", CLIENTS);
+const 지금0 = new Date("2026-10-10T03:00:00Z");
 const 맞는페이지 = (t) => c.marketing.pages.find((x) => x.re.test(t)) ?? null;
 
 // ─────────────────────────────────────────── 주소
@@ -31,6 +32,15 @@ const 영 = 새.줄.find((x) => x.url.endsWith("docId=495488580"));
 봄("목록 — 굵게 표시 벗긴 제목·답 0·토막", 영?.title === "파일 사진크기 축소질문" && 영.answers === 0 && 영.snippet.startsWith("파일의 크기를 줄이면"), JSON.stringify(영));
 봄("목록 — 결과 없음 문구", 목록읽기("<div>검색결과가 없습니다</div>").없음 === true);
 봄("목록 — 화면이 바뀌면 0줄(없음 아님)", (() => { const r = 목록읽기("<ul class=\"list\"><li>x</li></ul>"); return r.줄.length === 0 && !r.없음; })());
+
+// ─────────────────────────────────────────── 분야 새 질문 목록 원문(주 출처, KG-41-3)
+const 분야 = 분야읽기(픽("dir-102.html"));
+봄("분야 — 20줄 · 주소·제목·답 수·작성", 분야.length === 20 && 분야.every((x) => x.url.startsWith("https://kin.naver.com/qna/detail.naver?dirId=") && x.title && Number.isInteger(x.answers) && x.when), String(분야.length));
+봄("분야 — 첫 줄", 분야[0].title === "캐드 사용시 상단 줄바가 사라졌어요. 설정방법을 알고싶어요" && 분야[0].answers === 1 && 분야[0].when === "21분 전" && 분야[0].url.endsWith("docId=495488739"));
+봄("분야 — 작성 글자는 날짜풀기로", 분야.every((x) => 날짜풀기(x.when, 지금0) !== null));
+봄("분야 — 화면이 바뀌면 0줄", 분야읽기("<table><tr><td>x</td></tr></table>").length === 0);
+봄("분야주소 — 쪽", 분야주소(102) === "https://kin.naver.com/qna/list.naver?dirId=102" && 분야주소(601, 2) === "https://kin.naver.com/qna/list.naver?dirId=601&page=2");
+봄("문서딱 분야 목록", JSON.stringify(c.marketing.kinDirs) === "[102,10607,314,601,605]");
 
 // ─────────────────────────────────────────── 질문 페이지 원문
 const 채택 = 질문읽기(픽("detail-306668905.html"));

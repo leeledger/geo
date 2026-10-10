@@ -3,6 +3,12 @@ Date: 2026-10-10
 Ready for Review: YES
 Status: DONE_WITH_CONCERNS — 코드·시험 통과. 실제 kin-find 첫 실행 후보 0(아래), 운영 DB 표는 아직 없음(KG-41-1)
 
+## 2차 — KG-41-3 결정 반영: 분야 새 질문 목록이 주 출처, 검색은 보조
+- tools/kin-find.mjs — ① 분야 목록(marketing.kinDirs, 하루 10쪽 따로 셈) → ② 검색(남을 때). 질문 열기·저장은 살펴보기 하나로 묶음
+- web/lib/kin-core.mjs 분야주소·분야읽기 · kin-core.d.mts · academy/clients.mjs kinDirs [102,10607,314,601,605] · test-kin +6(70) · fixtures/kin/dir-102.html
+- 실측(--dry): 분야 10쪽 · 질문 200 · 7일 안 170 · 제목 도구 말 맞음 4 · 열어 본 3 모두 채택됨 → 후보 0. 캡차 없음
+- KG-41-2 는 세션이 받아들임(PC 는 찾기·초안뿐, 등록 없음). 새 KG-41-5(/여권/ 정규식이 발급 절차도 잡음)·KG-41-6(맞는 질문이 몇 시간 안에 채택)
+
 ## 첫 실행 결과 (실측)
 `node tools/kin-find.mjs --client docttak --dry --look` — 검색 9회 · 질문 7개 열어 봄 · 후보 0. 7개 모두 7일 지남(2013~2023 질문이 최신순 목록 위에 뜸 — 목록 날은 마지막 답 날). 캡차 없음 · 로그인 유지 · 오늘 검색 상한 10회 다 씀
 
@@ -23,7 +29,7 @@ Status: DONE_WITH_CONCERNS — 코드·시험 통과. 실제 kin-find 첫 실행
 - academy/scripts/test-kin.mjs (새, 64) · test-docttak.mjs:173-188 (+3) · fixtures/kin/ (원문 5개, 로그인 아이디 지움)
 
 ## 시험
-test-kin 64 · test-docttak 35 · test-marketing 51 · 스냅샷 같음 · test-login 56 · test-clients 99 · test-client-core 186 · test-ops-words 532 · test-todo-words 14 — 실패 0. web tsc 0 · academy tsc 0
+test-kin 70 · test-docttak 35 · test-marketing 51 · 스냅샷 같음 · test-login 56 · test-clients 99 · test-client-core 186 · test-ops-words 532 · test-todo-words 14 — 실패 0. web tsc 0 · academy tsc 0
 
 ## Open Questions
 - 하루 1건을 local-agent(답차례)에만 둔 것 — marketing-draft 를 손으로 부르면 상한 밖. 밀린 초안 정리 때문에 이렇게 했다

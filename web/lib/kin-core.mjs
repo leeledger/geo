@@ -62,8 +62,28 @@ export function 목록읽기(html) {
   return { 없음: 없음 && !줄.length, 줄 };
 }
 
+/** 분야 새 질문 목록 주소(Step 41 KG-41-3) — 최신 질문 순, 한 쪽 20개 */
+export const 분야주소 = (dirId, page = 1) => `https://kin.naver.com/qna/list.naver?dirId=${Number(dirId)}${page > 1 ? `&page=${Number(page)}` : ""}`;
+
 /**
- * 질문 페이지 → { title, body, askedText, answers, adopted } | null(질문 칸을 못 찾음 = 화면이 바뀜)
+ * 분야 새 질문 목록 한 쪽 → [{ url, title, answers, when }]. when 은 작성 글자(「52분 전」「2026.10.09.」) — 날짜풀기로 푼다.
+ * 칸 순서: 제목 · 분야 · UP · 답변 · 작성(2026-10-10 원문 fixtures/kin/dir-102.html)
+ */
+export function 분야읽기(html) {
+  const h = String(html ?? "");
+  const 줄 = [];
+  for (const tr of h.split(/<tr\b/).slice(1)) {
+    const a = /<td class="title">\s*<a href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/.exec(tr);
+    const url = a && 질문주소(a[1]);
+    if (!url) continue;
+    const 수 = [...tr.matchAll(/<td class="t_num">([\s\S]*?)<\/td>/g)].map((m) => 글자(m[1]).replace(/^UP\s*/, "").trim());
+    줄.push({ url, title: 글자(a[2]).replace(/\n/g, " "), answers: /^\d+$/.test(수[1] ?? "") ? Number(수[1]) : null, when: 수[2] ?? null });
+  }
+  return 줄;
+}
+
+/**
+ * 질문 페이지 →{ title, body, askedText, answers, adopted } | null(질문 칸을 못 찾음 = 화면이 바뀜)
  * 채택은 「질문자가 채택한 답변입니다」 문구로만 본다
  */
 export function 질문읽기(html) {

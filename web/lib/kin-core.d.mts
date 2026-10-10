@@ -5,6 +5,8 @@ export type 질문 = { title: string; body: string; askedText: string | null; an
 export function 질문주소(raw: string | null | undefined): string | null;
 export function 목록주소(query: string): string;
 export function 목록읽기(html: string): { 없음: boolean; 줄: 목록줄[] };
+export function 분야주소(dirId: number, page?: number): string;
+export function 분야읽기(html: string): { url: string; title: string; answers: number | null; when: string | null }[];
 export function 질문읽기(html: string): 질문 | null;
 export function kst날(d?: Date): string;
 export function 날짜풀기(text: string | null | undefined, now?: Date): string | null;

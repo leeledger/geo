@@ -1,9 +1,11 @@
 /**
- * 지식iN 실제 질문 찾기(Step 41) — 고객 네이버 프로필로 kin.naver.com 을 검색해, 고객 도구로 풀리는 최근 질문을 geo.kin_questions 에 넣는다.
+ * 지식iN 실제 질문 찾기(Step 41) — 고객 네이버 프로필로 kin.naver.com 을 읽어, 고객 도구로 풀리는 최근 질문을 geo.kin_questions 에 넣는다.
  * 로컬 에이전트가 하루 한 번(12:40 차례) 부른다. 답은 marketing-draft.mjs --kin-question 이 쓰고, 등록은 원장이 누른다.
  *
- * 화면 글자만 읽는다. 누르는 것은 검색·질문 열기(주소 이동)뿐이다. 캡차·차단이 뜨면 멈추고 사람 일감 — 우회하지 않는다.
- * 요청 사이 3~6초 쉼, 검색은 하루 10회(.kin-find-day.json), 후보는 하루 3개.
+ * 주 출처는 분야 새 질문 목록(clients.mjs marketing.kinDirs)이다. 검색 최신순은 「마지막 답 날」 순이라 옛 질문으로 찬다(첫 실행 후보 0, KG-41-3).
+ * 검색은 분야에서 후보를 다 못 채웠을 때만(보조).
+ * 화면 글자만 읽는다. 누르는 것은 없다(주소 이동뿐). 캡차·차단이 뜨면 멈추고 사람 일감 — 우회하지 않는다.
+ * 요청 사이 3~6초 쉼, 분야 목록 하루 10쪽 · 검색 하루 10회(.kin-find-day.json, 따로 셈), 후보 하루 3개.
  *
  * 거름: 질문 날 7일 안(오늘 포함) · 채택 답 없음 · 답 3개 미만 · 제목·본문이 고객 페이지 줄(marketing.pages)에 맞음.
  * 목록 제목·토막이 페이지 줄에 안 맞으면 질문을 열지 않는다(목록 글은 잘려 있어 몇 개는 놓친다 — 요청 수를 아끼는 쪽).
@@ -24,7 +26,7 @@ import { chromium } from "playwright";
 import pg from "pg";
 import { loadClients } from "../academy/clients.mjs";
 import { 네이버쿠키 } from "./login-rules.mjs";
-import { 목록주소, 목록읽기, 질문읽기, 날짜풀기, 막힘, 후보거름, kst날 } from "../web/lib/kin-core.mjs";
+import { 목록주소, 목록읽기, 분야주소, 분야읽기, 질문읽기, 날짜풀기, 막힘, 후보거름, kst날 } from "../web/lib/kin-core.mjs";
 import { MARKETING_DDL } from "../web/lib/marketing-core.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -38,7 +40,7 @@ const LOOK = process.argv.includes("--look");
 const DRY = process.argv.includes("--dry") || LOOK;
 const ONE = arg("--query");
 
-const 검색상한 = 10, 후보상한 = ONE ? 1 : 3, 열기상한 = ONE ? 4 : 12;
+const 검색상한 = 10, 분야상한 = 10, 후보상한 = ONE ? 1 : 3, 열기상한 = ONE ? 4 : 12;
 const 오늘 = kst날();
 const 일주일전 = new Date(Date.parse(`${오늘}T00:00:00Z`) - 6 * 86400000).toISOString().slice(0, 10);
 const 쉼 = () => new Promise((r) => setTimeout(r, 3000 + Math.floor(Math.random() * 3000)));
@@ -87,10 +89,11 @@ if (fs.existsSync(OS_LOCK) && Date.now() - fs.statSync(OS_LOCK).mtimeMs < 13 * 6
   process.exit(1);
 }
 
-// 검색 횟수 — 하루 10회. --dry·--look 도 실제 요청이라 센다
-const 날기록 = (() => { try { const j = JSON.parse(fs.readFileSync(DAY_FILE, "utf8")); return j.day === 오늘 ? j : { day: 오늘, searches: 0, next: j.next ?? 0 }; } catch { return { day: 오늘, searches: 0, next: 0 }; } })();
+// 검색 하루 10회 · 분야 목록 하루 10쪽 — 따로 센다. --dry·--look 도 실제 요청이라 센다
+const 날기록 = (() => { try { const j = JSON.parse(fs.readFileSync(DAY_FILE, "utf8")); return j.day === 오늘 ? { lists: 0, ...j } : { day: 오늘, searches: 0, lists: 0, next: j.next ?? 0 }; } catch { return { day: 오늘, searches: 0, lists: 0, next: 0 }; } })();
 const 날저장 = () => fs.writeFileSync(DAY_FILE, JSON.stringify(날기록));
-if (날기록.searches >= 검색상한) { console.log(`오늘 검색 ${날기록.searches}회 — 하루 상한 ${검색상한}회라 건너뜀`); process.exit(0); }
+const 분야남음 = !ONE && (c.marketing.kinDirs ?? []).length > 0 && 날기록.lists < 분야상한;
+if (날기록.searches >= 검색상한 && !분야남음) { console.log(`오늘 검색 ${날기록.searches}회·분야 목록 ${날기록.lists}쪽 — 하루 상한이라 건너뜀`); process.exit(0); }
 
 if (!DRY) for (const s of MARKETING_DDL) await q(s);
 const 표없음 = (e) => (e?.code === "42P01" ? [] : Promise.reject(e));
@@ -110,7 +113,8 @@ const ctx = await chromium.launchPersistentContext(프로필, {
 const page = ctx.pages()[0] ?? await ctx.newPage();
 let 끝코드 = 0;
 const 찾음 = [], 떨어짐 = [];
-let 검색 = 0, 열어봄 = 0, 못읽음 = "";
+let 검색 = 0, 분야읽음 = 0, 열어봄 = 0, 못읽음 = "";
+const 분야셈 = { 읽음: 0, 칠일: 0, 맞음: 0 };
 try {
   if (네이버쿠키(await ctx.cookies("https://nid.naver.com").catch(() => [])) === "없음") {
     console.log("✗ 로그인이 필요합니다 — 네이버 로그인이 풀렸습니다");
@@ -127,9 +131,58 @@ try {
       if (막힘(text, page.url())) throw Object.assign(new Error(`캡차·차단 화면: ${page.url()}`), { 막힘: true });
       return page.content();
     };
+    const 다참 = () => 찾음.length + 오늘후보 >= 후보상한 || 열어봄 >= 열기상한;
+    // 질문 하나를 열어 읽고 거르고 남긴다. false 면 화면을 못 읽은 것
+    const 살펴보기 = async (url, query) => {
+      await 쉼();
+      const d = await 열기(url);
+      열어봄++;
+      본주소.add(url);
+      if (LOOK) fs.writeFileSync(path.join(FIXTURE, `detail-${new URL(url).searchParams.get("docId")}.html`), 원문줄임(d));
+      const r = 질문읽기(d);
+      if (!r) { 못읽음 = `질문 페이지를 못 읽었습니다(화면이 바뀜): ${url}`; return false; }
+      const asked = 날짜풀기(r.askedText);
+      const 까닭 = 후보거름({ ...r, asked }, 오늘, 맞는페이지);
+      console.log(`  ${까닭 ? "·" : "✓"} ${asked ?? r.askedText ?? "날짜?"} 답 ${r.answers}${r.adopted ? " 채택" : ""} | ${r.title.slice(0, 60)} | ${url}${까닭 ? ` — ${까닭}` : ""}`);
+      (까닭 ? 떨어짐 : 찾음).push({ ...r, asked, url, query, 까닭 });
+      if (DRY || !asked) return true;
+      const [row] = await q(`insert into geo.kin_questions (client_id, url, title, body, asked_at, answers, adopted, query, status, note)
+           values ($1,$2,$3,$4,$5::date,$6,$7,$8,$9,$10) on conflict (url) do nothing returning id`,
+        [c.id, url, r.title.slice(0, 300), r.body.slice(0, 4000), asked, r.answers, r.adopted, query, 까닭 ? "버림" : "후보", 까닭 ?? ""]);
+      if (row && !까닭) console.log(`FOUND ${row.id} ${url}`);
+      return true;
+    };
+
+    /**
+     * ① 분야 새 질문 목록(주 출처, KG-41-3) — 최신 질문 순이라 7일 안 질문이 바로 보인다. 쪽 1 을 분야마다 먼저, 남으면 쪽 2.
+     * 목록에는 본문이 없어 제목만으로 고객 페이지 줄에 맞는지 거른다. 검색어 칸은 같은 페이지 줄에 맞는 승인 검색어(없으면 「분야 <번호>」)
+     */
+    const 분야들 = ONE ? [] : (c.marketing.kinDirs ?? []);
+    const 차례쪽 = [1, 2].flatMap((쪽) => 분야들.map((dir) => ({ dir, 쪽 })));
+    for (const { dir, 쪽 } of 차례쪽) {
+      if (날기록.lists >= 분야상한 || 다참() || 못읽음) break;
+      if (분야읽음 > 0) await 쉼();
+      const html = await 열기(분야주소(dir, 쪽));
+      분야읽음++; 날기록.lists++; 날저장();
+      const 줄 = 분야읽기(html);
+      if (LOOK) { fs.mkdirSync(FIXTURE, { recursive: true }); const a = html.indexOf("<table"); fs.writeFileSync(path.join(FIXTURE, `dir-${dir}-${쪽}.html`), a >= 0 ? html.slice(a, html.indexOf("</table>", a) + 8) : html); }
+      if (!줄.length) { 못읽음 = `분야 ${dir} 질문 목록을 못 읽었습니다(화면이 바뀜)`; break; }
+      const 안 = 줄.filter((x) => { const d = 날짜풀기(x.when); return d && d >= 일주일전; });
+      const 맞음 = 안.filter((x) => 맞는페이지(x.title));
+      분야셈.읽음 += 줄.length; 분야셈.칠일 += 안.length; 분야셈.맞음 += 맞음.length;
+      console.log(`\n분야 ${dir} 쪽 ${쪽}: 질문 ${줄.length} · 7일 안 ${안.length} · 도구 말 맞음 ${맞음.length}${맞음.length ? ` (${맞음.map((x) => x.title.slice(0, 30)).join(" / ")})` : ""}`);
+      for (const x of 맞음) {
+        if (본주소.has(x.url) || (x.answers != null && x.answers >= 3)) continue;
+        if (다참()) break;
+        const p줄 = 맞는페이지(x.title);
+        if (!(await 살펴보기(x.url, 승인.find((t) => 맞는페이지(t) === p줄) ?? `분야 ${dir}`))) break;
+      }
+    }
+
+    // ② 검색(보조) — 분야에서 다 못 채웠을 때
     for (const [i, query] of 차례.entries()) {
-      if (날기록.searches >= 검색상한 || 찾음.length + 오늘후보 >= 후보상한 || 열어봄 >= 열기상한) break;
-      if (검색 > 0) await 쉼();
+      if (못읽음 || 날기록.searches >= 검색상한 || 다참()) break;
+      if (검색 > 0 || 분야읽음 > 0) await 쉼();
       const html = await 열기(목록주소(query));
       검색++; 날기록.searches++; 날기록.next = ONE ? 날기록.next : (시작 + i + 1) % 검색어들.length; 날저장();
       const 목록 = 목록읽기(html);
@@ -146,24 +199,8 @@ try {
         if (본주소.has(x.url)) continue;
         if (x.answers != null && x.answers >= 3) continue;
         if (!맞는페이지(`${x.title}\n${x.snippet}`)) continue;
-        if (열어봄 >= 열기상한 || 찾음.length + 오늘후보 >= 후보상한) break;
-        await 쉼();
-        const d = await 열기(x.url);
-        열어봄++;
-        본주소.add(x.url);
-        if (LOOK) fs.writeFileSync(path.join(FIXTURE, `detail-${new URL(x.url).searchParams.get("docId")}.html`), 원문줄임(d));
-        const r = 질문읽기(d);
-        if (!r) { 못읽음 = `질문 페이지를 못 읽었습니다(화면이 바뀜): ${x.url}`; break; }
-        const asked = 날짜풀기(r.askedText);
-        const 까닭 = 후보거름({ ...r, asked }, 오늘, 맞는페이지);
-        console.log(`  ${까닭 ? "·" : "✓"} ${asked ?? r.askedText ?? "날짜?"} 답 ${r.answers}${r.adopted ? " 채택" : ""} | ${r.title.slice(0, 60)} | ${x.url}${까닭 ? ` — ${까닭}` : ""}`);
-        const 줄 = { ...r, asked, url: x.url, query };
-        (까닭 ? 떨어짐 : 찾음).push({ ...줄, 까닭 });
-        if (DRY || !asked) continue;
-        const [row] = await q(`insert into geo.kin_questions (client_id, url, title, body, asked_at, answers, adopted, query, status, note)
-             values ($1,$2,$3,$4,$5::date,$6,$7,$8,$9,$10) on conflict (url) do nothing returning id`,
-          [c.id, x.url, r.title.slice(0, 300), r.body.slice(0, 4000), asked, r.answers, r.adopted, query, 까닭 ? "버림" : "후보", 까닭 ?? ""]);
-        if (row && !까닭) console.log(`FOUND ${row.id} ${x.url}`);
+        if (다참()) break;
+        if (!(await 살펴보기(x.url, query))) break;
       }
       if (못읽음) break;
     }
@@ -185,7 +222,7 @@ try {
 }
 
 if (끝코드 === 0) {
-  const 요약 = `검색 ${검색}회 · 열어 본 질문 ${열어봄} · 후보 ${찾음.length}${떨어짐.length ? ` · 떨어짐 ${떨어짐.length}` : ""}`;
+  const 요약 = `분야 목록 ${분야읽음}쪽(질문 ${분야셈.읽음} · 7일 안 ${분야셈.칠일} · 도구 말 맞음 ${분야셈.맞음}) · 검색 ${검색}회 · 열어 본 질문 ${열어봄} · 후보 ${찾음.length}${떨어짐.length ? ` · 떨어짐 ${떨어짐.length}` : ""}`;
   console.log(`\n${c.name} 지식iN — ${요약}${DRY ? " · --dry(저장 안 함)" : ""}`);
   for (const x of 찾음) console.log(`  후보 ${x.asked} 답 ${x.answers} | ${x.title} | ${x.url}`);
   if (못읽음) {

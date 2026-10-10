@@ -224,6 +224,11 @@ export const CODE_CLIENTS = [
       /** 지식iN 실제 질문(Step 41 D70) — 로컬 에이전트가 이 프로필로 kin.naver.com 을 읽고 질문 하나에 답 초안. 등록은 원장 */
       kin: true,
       /**
+       * 지식iN 분야 새 질문 목록(KG-41-3 — 검색보다 이것이 주 출처). 2026-10-10 kin.naver.com 분야 메뉴 원문에서 고름:
+       * 102 IT/테크>소프트웨어(한글·PDF·오피스) · 10607 인터넷>파일공유 · 314 엔터테인먼트, 예술>사진 · 601 사회, 정치>민원, 행정 · 605 외교(여권)
+       */
+      kinDirs: [102, 10607, 314, 601, 605],
+      /**
        * 글에 들어가는 이 고객 고유 말(Step 39a — 전엔 marketing-draft.mjs 에 박혀 있었다). 글자 하나 안 바꾸고 옮겼다(fixtures/marketing-prompt-docttak.txt).
        * facts 는 사람이 확인한 사실만. 비면 글을 안 쓴다
        */
