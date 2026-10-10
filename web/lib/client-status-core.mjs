@@ -39,7 +39,7 @@ export const 이번주 = (오늘) => ({ from: 날더하기(오늘, -7), to: 날�
  *   backlog: { owner, session, local, repair, failed }  각 { n, oldest: 'YYYY-MM-DD' } | 없음. session 은 q(묶인 질문 수)도
  *   repairOff                      자동 코드 수리 스위치가 꺼져 있나
  * }
- * 돌려주는 것 { 제목, 뱃지: '돎'|'느림'|'멈춤', 한일, 손댄날, 밀린일: string[] }
+ * 돌려주는 것 { 제목, 뱃지: '돌고 있음'|'느림'|'멈춤'|'아직 시작 전', 한일, 손댄날, 밀린일: string[] }
  */
 export function 상태문장(raw, 오늘) {
   const { from, to } = 이번주(오늘);
@@ -73,10 +73,9 @@ export function 상태문장(raw, 오늘) {
   if (b.repair?.n) 밀린일.push(`자동 코드 수리 — ${b.repair.n}건 · ${며칠째(나이(b.repair))} (${raw.repairOff ? "수리가 꺼져 있어 안 움직입니다" : "매일 06:50 에 1건씩"})`);
   if (b.failed?.n) 밀린일.push(`자동 작업 실패 — ${b.failed.n}건 · ${며칠째(나이(b.failed))}`);
 
-  // 뱃지 — 손댄 날이 없으면(한 번도 손 안 댐) 멈춤
-  const 가장밀린 = Math.max(0, ...["owner", "session", "local", "repair", "failed"].filter((k) => b[k]?.n).map((k) => 나이(b[k])));
-  const 늦음 = Math.max(손댄지 ?? Infinity, 가장밀린);
-  const 뱃지 = 늦음 >= 14 ? "멈춤" : 늦음 >= 7 ? "느림" : "돎";
+  // 뱃지 — 우리가 이 고객에게 한 일(손댄 날)만으로 정한다(KG-40-4 결정). 밀린 일이 오래된 것은 뱃지를 안 바꾸고 「밀린 일」 줄에만 보인다
+  // — 학원처럼 발행·이관이 도는데 원장님 몫이 오래됐다고 「멈춤」이면 틀린 화면이다. 손댄 날이 없으면 「아직 시작 전」
+  const 뱃지 = 손댄지 === null ? "아직 시작 전" : 손댄지 >= 14 ? "멈춤" : 손댄지 >= 7 ? "느림" : "돌고 있음";
 
   return {
     제목: `${raw.name} · 이번 주 (${월일(from)}~${월일(to)})`,

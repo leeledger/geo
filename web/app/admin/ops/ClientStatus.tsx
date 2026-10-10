@@ -4,7 +4,7 @@ import type { ClientStatus as Data } from "@/lib/client-status";
  * 고객 상태 칸(Step 40 D63) — 고객 탭 맨 위, 아침 보고 위. 「이번 주 실제로 한 일 / 손댄 날 / 밀린 일·며칠째」.
  * 문장은 client-status-core.mjs 가 숫자로 만든 것 — 여기서 고치지 않는다. 못 읽으면 못 읽었다고 적는다(빈 칸·0 금지).
  */
-const 뱃지색 = { 돎: "ok", 느림: "warn", 멈춤: "crit" } as const;
+const 뱃지색 = { "돌고 있음": "ok", 느림: "warn", 멈춤: "crit", "아직 시작 전": "warn" } as const;
 
 export const CS_CSS = `
 .cs{margin-top:14px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px}

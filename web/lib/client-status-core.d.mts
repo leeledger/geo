@@ -12,7 +12,7 @@ export type StatusRaw = {
   backlog: { owner?: Backlog; session?: Backlog; local?: Backlog; repair?: Backlog; failed?: Backlog };
   repairOff: boolean;
 };
-export type StatusText = { 제목: string; 뱃지: "돎" | "느림" | "멈춤"; 한일: string; 손댄날: string; 밀린일: string[] };
+export type StatusText = { 제목: string; 뱃지: "돌고 있음" | "느림" | "멈춤" | "아직 시작 전"; 한일: string; 손댄날: string; 밀린일: string[] };
 export function 월일(d: string): string;
 export function 오늘KST(now?: number): string;
 export function 며칠전(ts: string | null | undefined, 오늘: string): number | null;
