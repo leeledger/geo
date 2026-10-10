@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
+import { timingSafeEqual } from "node:crypto";
 import { q, dbEnabled } from "@/lib/db";
 
 export const runtime = "nodejs";
@@ -20,6 +21,19 @@ function authed(req: Request) {
   const id = process.env.ADMIN_ID;
   if (!id) return true;                         // 아이디를 안 쓰면 비번만으로 통과
   return req.headers.get("x-admin-id") === id;
+}
+
+/**
+ * 목록 다시 그리기(PATCH) 전용 비밀 — ACADEMY_REVALIDATE_SECRET. GET·POST·DELETE 는 이 비밀을 안 받는다.
+ * 상수 시간 비교. 길이가 다르면 바로 거절
+ */
+function revalidateAuthed(req: Request) {
+  const secret = process.env.ACADEMY_REVALIDATE_SECRET;
+  const got = req.headers.get("x-revalidate-secret");
+  if (!secret || !got) return false;
+  const a = Buffer.from(got);
+  const b = Buffer.from(secret);
+  return a.length === b.length && timingSafeEqual(a, b);
 }
 
 /** 틀렸을 때 잠깐 멈춘다. 초당 수천 번 두드리는 걸 막는 최소한이다. */
@@ -101,9 +115,10 @@ export async function POST(req: Request) {
  * 글 쪽은 revalidate 300 이지만 홈 「최근 글」·RSS·사이트맵은 900 이라 내린 제목이 15분까지 남는다. 그걸 바로 지운다
  */
 export async function PATCH(req: Request) {
-  if (!authed(req)) return deny();
-  const slug = new URL(req.url).searchParams.get("slug");
-  if (!slug) return NextResponse.json({ error: "slug 가 필요합니다." }, { status: 400 });
+  // 관리 비밀번호가 아니라 이 일 전용 비밀만 받는다 — 목록 다시 그리기 하나 하자고 글 쓰기·발행 권한을 web 에 복사하지 않는다
+  if (!revalidateAuthed(req)) return deny();
+  const slug = new URL(req.url).searchParams.get("slug") ?? "";
+  if (!/^[\w가-힣-]{1,100}$/.test(slug)) return NextResponse.json({ error: "slug 형식이 아닙니다." }, { status: 400 });
   for (const p of ["/", "/blog", `/blog/${slug}`, "/sitemap.xml", "/rss.xml"]) revalidatePath(p);
   return NextResponse.json({ ok: true });
 }

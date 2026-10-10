@@ -66,11 +66,12 @@ export async function publishDraft(form: FormData) {
 
 /** 학원 사이트 목록(홈·RSS·사이트맵·블로그)을 바로 다시 그리게 한다 — academy/app/api/posts PATCH */
 async function 학원목록새로(slug: string) {
-  const pw = process.env.ACADEMY_ADMIN_PASSWORD;
-  if (!pw) throw new Error("ACADEMY_ADMIN_PASSWORD 가 없어 목록은 15분 안에 저절로 빠짐");
+  // 목록 다시 그리기 전용 비밀만 갖는다 — 학원 사이트 관리 비밀번호(글 쓰기·발행 권한)는 web 에 두지 않는다
+  const secret = process.env.ACADEMY_REVALIDATE_SECRET;
+  if (!secret) throw new Error("ACADEMY_REVALIDATE_SECRET 가 없어 목록은 15분 안에 저절로 빠짐");
   const base = process.env.ACADEMY_SITE_URL || "https://robotncoding.com";
   const res = await fetch(`${base}/api/posts?slug=${encodeURIComponent(slug)}`, {
-    method: "PATCH", headers: { "x-admin-pw": pw, ...(process.env.ACADEMY_ADMIN_ID ? { "x-admin-id": process.env.ACADEMY_ADMIN_ID } : {}) },
+    method: "PATCH", headers: { "x-revalidate-secret": secret },
     signal: AbortSignal.timeout(10000),
   });
   if (!res.ok) throw new Error(`학원 사이트 응답 ${res.status}`);

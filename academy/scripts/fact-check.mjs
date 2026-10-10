@@ -39,7 +39,7 @@ export const 글만 = (html) => 엔티티(String(html)
  * PDF 텍스트층만 읽는다(D96). 스캔본(글자가 그림)은 텍스트가 거의 안 나와 「못 읽음」 그대로다.
  * pdfjs-dist 가 없으면(설치 안 된 환경) 던진다 — 부르는 쪽이 「못 읽음」으로 적는다
  */
-export const PDF상한 = { 바이트: 5 * 1024 * 1024, 쪽: 50 };
+export const PDF상한 = { 바이트: 5 * 1024 * 1024, 쪽: 50, 파싱초: 20 };
 export async function PDF글(바이트, { 쪽 = PDF상한.쪽 } = {}) {
   const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
   const 작업 = pdfjs.getDocument({ data: new Uint8Array(바이트), isEvalSupported: false, disableFontFace: true, useSystemFonts: false, verbosity: 0 });
@@ -99,7 +99,10 @@ export async function 출처가져오기(주소, { fetch: f = fetch, 시간 = 15
     if (바이트.subarray(0, 5).toString("latin1") === "%PDF-") {
       if (넘음) return 끝("못 읽음", `PDF 가 ${PDF상한.바이트 / 1024 / 1024}MB 를 넘음`, { 최종, PDF: true });
       try {
-        const { 글, 쪽수 } = await pdf(바이트);
+        // 30초 타이머는 내려받기만 끊는다. 파싱은 20초 안에 끊는다 — 큰 내용 스트림 하나가 회사 루프 예산을 다 먹지 않게
+        let 멈춤;
+        const 시간초과 = new Promise((_, no) => { 멈춤 = setTimeout(() => no(new Error("PDF 읽기 20초 넘음")), PDF상한.파싱초 * 1000); });
+        const { 글, 쪽수 } = await Promise.race([pdf(바이트), 시간초과]).finally(() => clearTimeout(멈춤));
         if (글.replace(/\s/g, "").length < 200) return 끝("못 읽음", "PDF 에 글자층이 없음(스캔본)", { 최종, PDF: true });
         return 끝("읽음", 쪽수 > PDF상한.쪽 ? `PDF ${쪽수}쪽 중 앞 ${PDF상한.쪽}쪽만` : "", { 최종, 글, PDF: true });
       } catch (e) {

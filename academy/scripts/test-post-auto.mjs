@@ -528,6 +528,32 @@ t("가림 — DB 고객 이름 → 실패 · 「로보티즈키즈랩」 → 실
   assert.deepEqual(가림찾기("로보티즈 드림 키트로 시작합니다. 자세한 건 /blog/koding-kurikyulleom-sunseo 에", 말들), []);
 });
 
+// ── 재검수: 원장 목소리 표지 · 다듬기가 학원 문장을 넣는 길 · PDF 파싱 시간
+t("학원표지 — 「제가 상담해 보면」「수강생」「가르치다 보면」 라벨 없으면 지움 · 「문제가」·「학교 수업 시간에」는 아님", async () => {
+  const { 출처대조 } = await import("./fact-check.mjs");
+  const 셋 = ["제가 상담해 보면 학부모님들은 학년부터 묻습니다.", "수강생 대부분이 스크래치부터 합니다.", "가르치다 보면 아이마다 막히는 곳이 다릅니다."];
+  for (const s of 셋) assert.ok(학원표지.test(s), s);
+  assert.ok(!학원표지.test("이 문제가 어렵습니다") && !학원표지.test("학교 수업 시간에 배운다"));
+  const 몸 = 글몸(10).replace("## 무엇을 볼까", `${셋.join(" ")} 판단을 적는 문장을 더 둡니다.\n\n## 무엇을 볼까`);
+  const r = await 출처대조({ title: "t", body: 몸 }, { 출처: ["https://news.example/a"] }, { fetch: 가짜fetch({ "https://news.example/a": 응답(기사) }), 클로드: 다맞음 });
+  for (const s of 셋) assert.ok(r.지운것.some((x) => x.includes(s.slice(0, 10))), s);
+});
+t("다듬기검사 — 학원 1인칭 문장이 늘면 버림 · 이미 있는 이름을 한 번 더 써도 버림", () => {
+  const 전 = "## 절\n\n국민대가 알고리즘우수자 전형을 신설했습니다. 모집은 10명입니다. 이 글은 판단을 돕습니다.";
+  assert.match(다듬기검사(전, 전.replace("이 글은 판단을 돕습니다.", "저희 반 아이들이 붙었습니다.")), /학원 경험 문장/);
+  assert.match(다듬기검사(전, 전.replace("이 글은 판단을 돕습니다.", "국민대는 면접을 봅니다.")), /기관 이름/);
+});
+t("PDF — 파싱이 시간을 넘기면 못 읽음", async () => {
+  const { 출처가져오기, PDF상한 } = await import("./fact-check.mjs");
+  const 원래 = PDF상한.파싱초;
+  PDF상한.파싱초 = 0.05;
+  try {
+    const r = await 출처가져오기("https://x/a.pdf", { fetch: async () => 응답("%PDF-1.4", "application/pdf"), pdf: () => new Promise(() => {}) });
+    assert.equal(r.상태, "못 읽음");
+    assert.match(r.왜, /20초/);
+  } finally { PDF상한.파싱초 = 원래; }
+});
+
 for (const [name, f] of 시험들) {
   try { await f(); pass++; } catch (e) { fail++; console.log(`✗ ${name}\n   ${String(e.message).split("\n").filter(Boolean).slice(0, 4).join(" ")}`); }
 }
