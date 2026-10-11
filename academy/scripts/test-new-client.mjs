@@ -113,7 +113,7 @@ try {
   // 2. 색인 알림 — 키 없음 → 안 보냄. 키를 넣어도 파일이 없으면 안 보냄
   const in1 = 돌림(["scripts/indexnow.mjs", "--client", SLUG]);
   찍기("indexnow --client e2e-test (키 없음)", in1.out);
-  봄("키 없음 — 안 보냄", in1.out.includes(`${SLUG}: 키 없음 — 안 보냄`) && !/접수됨|HTTP \d/.test(in1.out));
+  봄("키 없음 — 안 보냄", in1.out.includes(`${SLUG}: 키 설정이 없습니다. 건너뜁니다.`) && !/접수됨|HTTP \d/.test(in1.out));
   const 키 = crypto.randomBytes(16).toString("hex");
   await q(`update geo.clients set config = jsonb_set(config, '{indexnow}', $2::jsonb) where id = $1`, [id, JSON.stringify({ mode: "우리", key: 키 })]);
   const in2 = 돌림(["scripts/indexnow.mjs", "--client", SLUG]);
