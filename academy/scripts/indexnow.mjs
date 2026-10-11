@@ -92,7 +92,8 @@ for (const c of clients) {
     const mode = c.indexnow?.mode ?? "우리";
     if (!c.domain) { console.log(`  ${c.slug}: domain 없음 — 건너뜀`); continue; }
     if (mode !== "우리") { console.log(`  ${c.slug}: IndexNow 「${mode}」 — 안 보냄`); continue; }
-    if (!c.indexnowKey) { console.log(`  ${c.slug}: 키 없음 — 안 보냄`); continue; }
+    // 메시지를 "키 설정이 없습니다"로 맞춘다 — 색인결과()가 이 문구로 "키없음"을 "실패"와 구분한다(#1385, 문서딱이 "키 없음"으로만 찍혀 못 걸러짐)
+    if (!c.indexnowKey) { console.log(`  ${c.slug}: 키 설정이 없습니다. 건너뜁니다.`); continue; }
     const 확인 = await fetch(`https://${c.domain}/${c.indexnowKey}.txt`, { redirect: "follow" })
       .then(async (r) => ({ ok: r.ok && (await r.text()).trim() === c.indexnowKey, code: r.ok ? "본문 다름" : r.status }))
       .catch((e) => ({ ok: false, code: String(e.message).slice(0, 40) }));

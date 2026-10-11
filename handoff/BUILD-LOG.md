@@ -1760,3 +1760,9 @@ Should Fix:
 - PDF 파싱 20초 Promise.race(PDF상한.파싱초) · pdfjs-dist 6.4.299 정확 고정(package.json·lock)
 - KG-43-10 기존 GET/POST/DELETE 의 x-admin-pw 비교가 상수 시간이 아님(이번 단계 밖)
 - 시험: test-post-auto 35 ✓ · 회귀 0 실패 · tsc web·academy 0
+
+### 자동 수리 — 조사 1385 · 2026-10-11 10:07 KST
+- 무엇: indexnow.mjs가 DB 등록 고객(문서딱)의 키 없음 상태를 '키 없음 — 안 보냄'으로 찍었는데, company.mjs가 쓰는 색인결과() 판별 함수는 '키 설정이 없습니다' 문구만 '키없음'(정상 대기)으로 구분해 이 경우를 걸러내지 못하고 '실패'로 세고 있었다. 두 경로의 메시지를 같은 문구로 맞췄다.
+- 왜: 문서딱은 IndexNow 키가 아직 없어 indexnow.mjs가 전송 없이 건너뛰는데, company.mjs의 brand-defense가 그 건너뜀을 '색인 알림 실패'로 찍어 3일 내리 같은 문구가 반복됐다. 키 설정 자체는 문서딱 저장소(사람) 몫이고, 이 저장소에서 고칠 건 '건너뜀'과 '실패'를 구분해 잘못된 사람 대기 안내(구글 서치콘솔·네이버 
+- 파일: academy/scripts/indexnow.mjs, academy/scripts/test-new-client.mjs (바뀐 줄 5) · 검토 pass · 원장 승인
+- 가지: auto/fix-1385 (8c74ce6) · 확인 실행: company.yml
