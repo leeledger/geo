@@ -129,8 +129,12 @@ async function naverAll(q, c) {
   return { ok: true, hit, rank: null, note: where };
 }
 
+/**
+ * 빙은 여기서 안 잰다(2026-10-12). fetch 로 긁으면 빙이 질의와 무관한 결과를 채워 준다 — 결과 수뿐 아니라 링크까지 가짜다.
+ * 그래서 학원 빙은 시작부터 늘 미노출로 찍혔지만, 같은 날 진짜 브라우저로는 브랜드 1위·「송파구 코딩학원」 2위였다.
+ * 빙은 PC 의 tools/bing-serp.mjs(진짜 브라우저 + 대조 검색)가 engine='bing' 으로 같은 표에 넣는다. 위 bing() 은 되살리지 않는다
+ */
 const ENGINES = [
-  { id: "bing", name: "Bing", run: bing },
   { id: "naver", name: "네이버 웹문서", run: naver },
   { id: "naver_all", name: "네이버 통합검색", run: naverAll },
 ];

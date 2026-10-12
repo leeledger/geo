@@ -210,12 +210,14 @@ export async function readGrowth(client: Client): Promise<Growth> {
     return out;
   });
 
-  /* 경쟁 검색어 — kind='경쟁' 만. 엔진이 덜 돈 날은 불완전 → 빈칸 */
+  /* 경쟁 검색어 — kind='경쟁' 만. 엔진이 덜 돈 날은 불완전 → 빈칸
+   * 날짜 줄은 네이버 두 엔진(Actions)으로만 센다. 빙은 2026-10-12 부터 PC(tools/bing-serp.mjs)가 재서 PC 가 꺼진 날·대조 실패한 날 빠진다 —
+   * 빙을 엔진 수에 넣으면 그 날마다 줄 전체가 빈칸이 된다(Richard 10-12). 빙은 아래 「엔진별」에만 보인다 */
   const rivalAll = await part("경쟁 검색어(전체)", () => q<{ day: string; engines: number; total: number; won: number }>(
     `select day::text as day, count(distinct engine)::int as engines, count(distinct query)::int as total,
             count(distinct query) filter (where hit)::int as won
        from ${S}.serp_checks
-      where client_id = $1 and kind = '경쟁' and day >= least($2::date - 13, $3::date)
+      where client_id = $1 and kind = '경쟁' and engine <> 'bing' and day >= least($2::date - 13, $3::date)
       group by day order by day`, [id, T, W0]));
 
   const rival = await part("경쟁 검색어", async () => {

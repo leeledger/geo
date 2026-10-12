@@ -377,6 +377,9 @@ try {
     if (빙.ok) await q(`update geo.agent_tasks set status='완료', done_at=now(), updated_at=now() where client_id=$1 and dedupe_key=$2 and status='사람 대기'`, [c.id, dedupe]);
     await 활동("deliver", "빙 주소 제출", 빙.ok, `${c.name} · ${끝(빙.out, 200)}`, null, c.id);
   }
+  // ── 빙 노출 측정: Actions 의 fetch 는 빙이 가짜 결과를 줘서 못 쓴다(2026-10-12). 진짜 브라우저로 전 고객을 하루 한 번
+  const 빙측정 = 돌리기("bing-serp.mjs", [], 10);
+  await 활동("measure", "빙 노출 측정", 빙측정.ok, 끝(빙측정.out, 200));
   기록(`끝 (네이버 ${네이버막힘 ? "로그인 필요" : "정상"})`);
 } catch (e) {
   기록(`실패 ${e.message}`);

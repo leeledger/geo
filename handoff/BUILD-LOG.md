@@ -1766,3 +1766,11 @@ Should Fix:
 - 왜: 문서딱은 IndexNow 키가 아직 없어 indexnow.mjs가 전송 없이 건너뛰는데, company.mjs의 brand-defense가 그 건너뜀을 '색인 알림 실패'로 찍어 3일 내리 같은 문구가 반복됐다. 키 설정 자체는 문서딱 저장소(사람) 몫이고, 이 저장소에서 고칠 건 '건너뜀'과 '실패'를 구분해 잘못된 사람 대기 안내(구글 서치콘솔·네이버 
 - 파일: academy/scripts/indexnow.mjs, academy/scripts/test-new-client.mjs (바뀐 줄 5) · 검토 pass · 원장 승인
 - 가지: auto/fix-1385 (8c74ce6) · 확인 실행: company.yml
+
+### 케이스 리포트 쉬운 말 · 빙 측정 바로잡기 (2026-10-12, 세션)
+- 케이스 리포트(academy/scripts/case-report.mjs) 쉬운 말로, 「한눈에 — 처음과 지금」 신설. AI 비교는 9/24 부터 처음 7일 vs 최근 7일, 같은 질문만, 이름 질문 제외. 판정 10%p 넘어야 「늘었다」, 5~10%p 는 「흔들림일 수 있음」(Richard 에스컬레이션 → 세션 결정). 22319c4 배포
+- 발견: 빙은 fetch 요청에 검색어와 무관한 결과를 준다. check-index.mjs 의 빙 727줄(9/8~10/12)은 노출 0 — 전부 측정 오류. 같은 날 빙 웹마스터 27쪽 색인, 브라우저 검색 브랜드 1위·「송파구 코딩학원」 2위
+- 결정: 빙은 PC 의 tools/bing-serp.mjs(로그인 프로필 + 「네이버」 대조 검색 고객마다 앞뒤)로만 잰다. local-agent 가 하루 한 번. check-index ENGINES 에서 빙 뺌. 옛 727줄은 academy.serp_checks_bing_fetch_void 로 옮기고 본 표에서 지움
+- 결정: growth.ts 경쟁 날짜 줄은 빙 빼고 센다(PC 꺼진 날 줄 전체가 빈칸 되는 것 막음, Richard Must). brief-core·case-report 는 엔진 첫 측정일에 이미 나온 것을 「처음 노출」로 안 센다
+- 빙 웹마스터 추천: meta description 짧음 · 좋은 도메인 백링크 부족 — 다음 할 일
+- 컬츠업 납품 사이트 검토: research/2026-10-12-cultsup-redginsenghoney-review.md

@@ -186,9 +186,15 @@ for (const r of serpRaw) {
   if (!p || (r.hit && (!p.hit || (r.rank ?? 99) < (p.rank ?? 99)))) serpBy.set(k, r);
 }
 const serp = [...serpBy.values()];
+/**
+ * 처음 나온 날이 그 엔진을 처음 잰 날과 같으면 「처음 나온 날」이 아니라 「재기 시작한 날 이미 나와 있었다」다.
+ * 빙은 10-12 부터 진짜 브라우저로 잰다(그 전 fetch 기록은 가짜 결과라 academy.serp_checks_bing_fetch_void 로 옮겼다)
+ */
 const serpFirst = (await pool.query(
-  `select engine, query, min(day) d from academy.serp_checks
-    where client_id=$1 and hit group by engine, query order by min(day), engine`, [CLIENT_ID],
+  `select h.engine, h.query, min(h.day) d,
+          min(h.day) = (select min(day) from academy.serp_checks a where a.client_id=$1 and a.engine=h.engine) as at_start
+     from academy.serp_checks h
+    where h.client_id=$1 and h.hit group by h.engine, h.query order by min(h.day), h.engine`, [CLIENT_ID],
 )).rows;
 
 // 사이트 점수 (probe 측정 결과)
@@ -499,7 +505,14 @@ ${serpFirst.length ? `
   <div class="box"><p>
     <b>처음 나온 날.</b>
     ${serpFirst.map((f) =>
-      `${esc(eng(f.engine))} &middot; ${esc(f.query)} &mdash; ${day(f.d)}`).join("<br>")}
+      `${esc(eng(f.engine))} &middot; ${esc(f.query)} &mdash; ${day(f.d)}${f.at_start ? " (재기 시작한 날 이미 나와 있었음)" : ""}`).join("<br>")}
+  </p></div>` : ""}
+${serp.some((r) => r.engine === "bing") ? `
+  <div class="box"><p>
+    <b>Bing 기록을 바로잡았습니다 (${day(`2026-10-12T12:00:00+09:00`)}).</b> 그 전까지는 Bing 에 「안 나옴」으로 적혀 있었습니다.
+    재는 방법이 틀렸습니다. 프로그램으로 Bing 을 검색하면, Bing 은 검색어와 상관없는 결과를 내줍니다. 그걸 그대로 셌습니다.
+    지금은 진짜 브라우저로 검색합니다. 그날 Bing 이 이상한 결과를 내면 「못 잼」으로 빼고 저장하지 않습니다.
+    그래서 Bing 에 언제부터 나왔는지는 <b>모릅니다</b>. Bing 관리 화면에는 그날 이미 이 사이트 27쪽이 등록돼 있었습니다.
   </p></div>` : ""}
   <div class="box"><p>
     구글은 자동으로 검색해 보면 막혀서 여기서 세지 않습니다. 구글이 제공하는 관리 화면에서 쪽마다 따로 확인합니다.

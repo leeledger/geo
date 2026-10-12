@@ -1,24 +1,20 @@
-# Review Feedback — case-report plain words + 처음 vs 지금 (re-review)
+# Review Feedback — Bing SERP via real browser (bing-serp.mjs) — re-check
 Date: 2026-10-12
 Ready for Builder: YES
 
 ## Must Fix
-None.
+- None. The growth.ts finding from round 1 is resolved. `rivalAll` now filters `engine <> 'bing'`, so days the PC skips no longer blank the 경쟁 series. Bing still shows in the latest-day `byEngine` query, which is unfiltered.
 
 ## Should Fix
-- academy/scripts/case-report.mjs, TODO Bing entry (confidence: 7) — The text says `Bing 에는 아직 한 번도 안 나왔다`, but the condition checks only `serp`, which is the latest day per engine. If Bing hits once and then drops, the TODO still says 「한 번도」 and is false. — Fix: also require no Bing row in `serpFirst`, or change the wording to 「지금 Bing 에는 안 나온다」.
-- academy/scripts/case-report.mjs, above `판정` (confidence: 9) — The old doc comment `/** 5%p 넘게 움직였을 때만 늘었다/줄었다 … */` is still there above the new 10%p comment and now contradicts the code. — Fix: delete it.
+- None outstanding. Round 1 items, all verified:
+  - brief-core.mjs: firsts now drop a hit when its KST day equals that client+engine's first measured day. The window `min(min(checked_at)) over (partition by client_id, engine)` is valid on the grouped rows.
+  - bing-serp.mjs:27-31: `내주소` takes the host, strips scheme and www, then requires an exact match or a `.domain` suffix. That rules out `mydocttak.com` and cites with the domain in the path.
+  - bing-serp.mjs:71,82: the control query runs before and after each client, and a failure drops only that client. Exit code 1 if any client failed.
+  - bing-serp.mjs:22: PROFILE resolves from import.meta.url to tools/.browser-profile, the same profile local-agent used before.
+  - bing-serp.mjs:84: rows are saved per client, so a timeout no longer loses the whole day.
 
 ## Escalate to Architect
-None. The coordinator decided the threshold: 10%p for 「늘었다」, 5–10%p marked as possible noise.
+- None.
 
 ## Cleared
-Every Must Fix and Should Fix item from the first review is resolved:
-- The column is labelled 「시작 전」, so it no longer clashes with day-1 = 30 posts.
-- The baseline and current query sets are described accurately, and a note says they differ.
-- The engine is labelled 네이버 웹문서.
-- The Bing TODO is conditional.
-- 판정 uses unrounded ratios with the 10/5%p bands.
-- The comparison is anchored at 비교시작 2026-09-24. That is after the 84a6344 detector change, and the ≥14-day check runs in SQL on the filtered days.
-
-In the regenerated HTML, masking is still clean: no academy name, domain, area names, rival brands or /blog/ paths.
+Re-checked the diffs of growth.ts, brief-core.mjs and the rewritten tools/bing-serp.mjs. Every round 1 finding is fixed, and the fixes add no new issues.
