@@ -104,10 +104,6 @@ const 허용크롤러 = 허용봇.filter((b) => !제어토큰.has(b));
 const 허용 = { 전체: 허용봇.length, 토큰: 허용봇.length - 허용크롤러.length,
   AI: 허용크롤러.filter((b) => 분류(b) === "AI").length, 검색: 허용크롤러.filter((b) => 분류(b) === "검색").length, 기타: 허용크롤러.filter((b) => 분류(b) === "기타").length };
 const 판별 = { AI: AI봇.size, 검색: 검색봇.size };
-const 허용글 = `User-agent ${허용.전체}개 명시 허용 — 크롤러 AI ${허용.AI} · 검색 ${허용.검색}${허용.기타 ? ` · 기타 ${허용.기타}` : ""} + 방문하지 않는 학습 허용 토큰 ${허용.토큰}`;
-const hitPaths = (await pool.query(
-  `select path, count(*)::int n from academy.crawl_hits where client_id=$1 group by path order by n desc limit 6`, [CLIENT_ID],
-)).rows;
 
 let aiRounds = [];
 try {
@@ -140,11 +136,46 @@ try {
      group by prompt_id, collection_method`, [CLIENT_ID])).rows;
 } catch { /* 표가 없으면 이 절을 안 쓴다 */ }
 
-// 검색 노출 — 오늘 상태와, 각 질의가 처음 잡힌 날
+/**
+ * 처음과 지금 (2026-10-12). 같은 곳·같은 질문만 비교한다 — 곳마다 처음 잰 7일과 마지막 7일, 이름 질문은 뺀다.
+ * 두 7일에 모두 물은 질문만 센다. ChatGPT 는 첫 주에 동네 질문만 물었던 날이 있어 질문 묶음이 달랐다.
+ * 잰 날이 14일이 안 되면 두 7일이 겹치므로 비교하지 않는다.
+ * 9/24 부터만 센다 — 4곳 매일 측정이 그날 시작했고(Step 20), Claude 는 9/22 오후에 출처 판정이 바뀌었다(84a6344).
+ * 그 전 날을 넣으면 처음 7일에 판정 방식 둘이 섞인다 (Richard 10-12)
+ */
+const 비교시작 = "2026-09-24";
+let 비교 = [];
+try {
+  const rows = (await pool.query(`
+    with d as (select collection_method m, prompt_id, measured_on, mentioned, cited,
+        dense_rank() over (partition by collection_method order by measured_on) r,
+        dense_rank() over (partition by collection_method order by measured_on desc) rr
+      from academy.ai_measurements
+     where client_id=$1 and coalesce(stage,'') <> 'brand' and measured_on >= $2::date)
+    select m, prompt_id, case when r<=7 then 'a' else 'b' end w, min(measured_on)::text f, max(measured_on)::text l,
+           count(*)::int n, count(*) filter (where mentioned or cited)::int k, count(*) filter (where cited)::int c
+      from d where (r<=7 or rr<=7) and m in (select m from d group by m having max(r) >= 14)
+     group by 1,2,3`, [CLIENT_ID, 비교시작])).rows;
+  const 긴곳 = new Set(rows.map((r) => r.m));
+  for (const m of [...긴곳].sort()) {
+    const mine = rows.filter((r) => r.m === m);
+    const 둘다 = new Set(mine.filter((r) => r.w === "a").map((r) => r.prompt_id)
+      .filter((p) => mine.some((r) => r.w === "b" && r.prompt_id === p)));
+    const 합 = (w) => mine.filter((r) => r.w === w && 둘다.has(r.prompt_id)).reduce((s, r) => ({
+      n: s.n + r.n, k: s.k + r.k, c: s.c + r.c, f: !s.f || r.f < s.f ? r.f : s.f, l: !s.l || r.l > s.l ? r.l : s.l,
+    }), { n: 0, k: 0, c: 0, f: "", l: "" });
+    const a = 합("a"), b = 합("b");
+    if (a.n && b.n) 비교.push({ m, 질문: 둘다.size, a, b });
+  }
+} catch { /* 표가 없으면 비교를 안 쓴다 */ }
+
+// 검색 노출 — 엔진마다 마지막으로 잰 날의 상태와, 각 질의가 처음 잡힌 날
+// 전에는 전체에서 가장 최근 날 하나만 봐서, 아침에 빙만 먼저 돈 날은 네이버 줄이 통째로 빠졌다.
 // 하루에 두 번 돌면 같은 질의가 두 줄 들어온다. 질의마다 한 줄, 걸린 쪽을 남긴다.
 const serpRaw = (await pool.query(
   `select engine, kind, query, hit, rank, day::text as day from academy.serp_checks
-    where client_id=$1 and day = (select max(day) from academy.serp_checks where client_id=$1)
+    where client_id=$1 and (engine, day) in
+      (select engine, max(day) from academy.serp_checks where client_id=$1 group by engine)
     order by engine, kind desc, query`,
   [CLIENT_ID],
 )).rows;
@@ -192,35 +223,62 @@ const BASELINE = [
   ["site:robotncoding.com", "색인 0건"],
 ];
 
+/** 진단 항목 이름 — 전문 용어는 괄호에만 남긴다 (2026-10-12 「글귀가 너무 어렵다」) */
 const CHECK_KO = {
-  crawler: "크롤러 허용", llmstxt: "llms.txt", sitemap: "사이트맵",
-  ssr: "JS 없이 본문", schema: "구조화 데이터", chunk: "문단 구조", patterns: "콘텐츠 패턴",
+  crawler: "AI·검색 프로그램 출입 허용", llmstxt: "AI 용 안내문 (llms.txt)", sitemap: "사이트 지도",
+  ssr: "프로그램 없이도 글이 보이나", schema: "학원 정보 표시 (구조화 데이터)", chunk: "잘라 쓰기 좋은 문단", patterns: "질문형 제목 · 숫자",
 };
 
 // 착수일에 손으로 적은 「스키마 19종」은 진단표(20종)와 어긋났고 데이터로 다시 확인할 수 없어 뺐다(2026-09-22)
 const TIMELINE = [
-  ["09.05", "착수 · 검색 계층 기준선 측정", "6개 질의 전부 미노출. 상위에 개별 학원 홈페이지가 하나도 없고 전부 디렉터리였다."],
-  ["09.05", "사이트 구축 · 도메인 연결", `robotncoding.com. 크롤러를 User-agent 별로 명시 허용(지금 robots.txt 기준 ${허용글}), llms.txt, 구조화 데이터(종류 수는 아래 진단표).`],
-  ["09.05", "네이버 블로그 32편 이관", "네이버는 robots.txt 로 AI 크롤러를 전부 막는다. 그 글들은 AI 에게 존재하지 않는 문서였다. 사진 69장 자체 호스팅."],
-  ["09.05", "검색엔진 등록", "구글·빙·네이버 소유확인. 사이트맵 34 URL, RSS 32편 제출."],
-  ["09.05", "크롤러 감지 설치", `크롤러를 판별해 방문을 기록(지금 판별표 기준 AI ${판별.AI}종 · 검색 ${판별.검색}종 · 그 밖은 「기타」). 결과 지표보다 먼저 움직이는 유일한 선행지표.`],
-  ["09.05", "일별 스냅샷 자동화", "GitHub Actions 가 매일 기록을 남긴다."],
-  ["09.06", "구글 비즈니스 프로필 등록", "구글 AI 개요와 Gemini 가 지역 질의에 이 데이터를 직접 쓴다. 대표자 본인인증이 필요해 대행이 불가능한 항목이다."],
-  ["09.06", "오늘학교 아카데미 등재 신청", "「송파구 코딩학원」 목록에 없던 것을 채웠다. 심사 대기중."],
-  ["09.10", "네이버 플레이스 소개글 188자 → 933자", "네이버 AI 가 소개글에서 쓸 문장을 못 찾아 편의시설 태그만 읽고 「무선 인터넷과 남녀 구분 화장실을 제공합니다」라고 답하고 있었다."],
+  ["09.05", "시작 · 검색 결과부터 기록", "학부모가 칠 만한 검색어 6개를 넣었다. 6개 모두 이 학원이 안 나왔다. 위쪽은 전부 학원 모음 사이트였다."],
+  ["09.05", "학원 사이트 열기", `AI·검색 프로그램이 들어와 읽도록 하나하나 허락했다(지금 ${허용.AI + 허용.검색 + 허용.기타}종). AI 가 읽을 안내문과 학원 정보 표시도 넣었다.`],
+  ["09.05", "네이버 블로그 글 32편 옮기기", "네이버 블로그는 AI 프로그램이 못 들어오게 막혀 있다. AI 입장에선 없는 글이었다. 그래서 학원 사이트로 옮겼다. 사진 69장도 같이."],
+  ["09.05", "구글·빙·네이버에 사이트 등록", "검색엔진에 「이 사이트 주인이 나다」를 확인받고, 글 목록(34쪽)을 냈다."],
+  ["09.05", "누가 읽으러 오는지 기록 시작", `AI 프로그램 ${판별.AI}종, 검색 프로그램 ${판별.검색}종을 알아보고 방문을 남긴다. AI 답에 이름이 나오기 전, 가장 먼저 움직이는 숫자다.`],
+  ["09.05", "매일 자동 기록", "날마다 글 수와 방문 수를 자동으로 남긴다."],
+  ["09.06", "구글 지도(비즈니스 프로필) 등록", "구글 AI 와 Gemini 가 동네 학원을 물으면 이 정보를 쓴다. 원장 본인 인증이 필요해 대신 해 줄 수 없는 일이다."],
+  ["09.06", "오늘학교 학원 목록 등록 신청", "「송파구 코딩학원」 목록에 이 학원이 없었다. 심사 대기중."],
+  ["09.10", "네이버 플레이스 소개글 188자 → 933자", "네이버 AI 가 소개글에서 쓸 말을 못 찾았다. 그래서 「무선 인터넷과 남녀 구분 화장실을 제공합니다」라고만 답하고 있었다."],
 ];
 
 const TODO = [
-  ["오늘학교 등재 확인", "심사 대기중. 통과되면 「송파구 코딩학원」 목록에 들어간다."],
-  ["런즈 · 순위닷 등재", "같은 문안을 재사용한다. 표현이 갈리면 AI 가 다른 학원으로 볼 수 있다."],
-  ["같은 방법으로 반복 측정", "엔진·질문·수집 방식을 바꾸지 않고 주기적으로 다시 잰다. 방법이 다른 회차끼리는 비율을 합치지 않는다."],
+  ["오늘학교 등록 확인", "심사 대기중. 통과하면 「송파구 코딩학원」 목록에 들어간다."],
+  ["런즈 · 순위닷 등록", "같은 소개 문장을 그대로 쓴다. 곳마다 말이 다르면 AI 가 다른 학원으로 볼 수 있다."],
+  // 손으로 적은 「아직 안 나왔다」는 늙는다 — 측정에 Bing 노출이 하나도 없을 때만 띄운다
+  ...(serp.some((r) => r.engine === "bing") && !serp.some((r) => r.engine === "bing" && r.hit)
+    ? [["Bing 검색에 나오게 하기", "지금 Bing 에는 안 나온다. ChatGPT 검색이 Bing 을 쓰니 다음으로 풀 일이다."]] : []),
+  ["같은 방법으로 계속 재기", "AI·질문·재는 방법을 바꾸지 않는다. 방법이 다른 숫자는 합치지 않는다."],
 ];
 
-const TITLE = PRIVATE ? "로봇&amp;코딩학원 · AI 노출 리포트" : "자사 실증 기록 · 수도권 코딩·로봇 학원 · AI 노출 리포트";
+const TITLE = PRIVATE ? "로봇&amp;코딩학원 · AI 노출 기록" : "코딩·로봇 학원 한 곳 · AI 답변에 이름이 나오기까지";
 const rivalHit = serp.some((r) => r.hit && r.kind === "경쟁");
 /** 엔진이 셋이다. 전에는 「naver 가 아니면 Bing」이라 통합검색 노출이 Bing 으로 찍혔다. */
 const ENG = { naver: "네이버 웹문서", naver_all: "네이버 통합검색", bing: "Bing" };
 const eng = (e) => ENG[e] ?? e;
+const KIND = { 색인: "사이트 등록 확인", 브랜드: "학원 이름", 경쟁: "동네 검색어" };
+const STAGE = { local: "동네 학원 찾기", problem: "고민 상담", consider: "고르는 기준", brand: "학원 이름 (확인용)" };
+const VENDOR = {
+  openai: "OpenAI (ChatGPT)", anthropic: "Anthropic (Claude)", google: "구글", microsoft: "마이크로소프트 (Bing)",
+  naver: "네이버", apple: "애플", meta: "메타", perplexity: "퍼플렉시티", amazon: "아마존", bytedance: "바이트댄스", duckduckgo: "덕덕고",
+};
+const vendor = (v) => VENDOR[v] ?? v;
+const 퍼센트 = (k, n) => n ? Math.round((k / n) * 100) : 0;
+/**
+ * 같은 질문을 매일 되풀이하니 날마다 흔들리는 폭이 표본 수만 볼 때보다 크다. n≈120 에서 5%p 는 오차 한 칸 정도다 (Richard 10-12).
+ * 그래서 10%p 넘어야 「늘었다」, 5~10%p 는 「흔들림일 수 있음」을 붙인다. 비율은 반올림 전 값으로 뺀다
+ */
+const 판정 = (a, b) => {
+  const d = (b.k / b.n - a.k / a.n) * 100;
+  return d >= 10 ? "늘었다" : d >= 5 ? "조금 늘었다 (흔들림일 수 있음)"
+    : d <= -10 ? "줄었다" : d <= -5 ? "조금 줄었다 (흔들림일 수 있음)" : "비슷";
+};
+// 머리 숫자는 학원 이름 없이 친 동네 검색어만 — 이름 검색은 성과로 세지 않는다
+const 네이버 = serp.filter((r) => r.engine === "naver" && r.kind === "경쟁");
+const 네이버나옴 = 네이버.filter((r) => r.hit);
+const 빙 = serp.filter((r) => r.engine === "bing" && r.kind === "경쟁");
+const AI방문 = crawl.filter((r) => 분류(r.bot) === "AI").reduce((s, r) => s + r.hits, 0);
+const 검색방문 = crawl.filter((r) => 분류(r.bot) === "검색").reduce((s, r) => s + r.hits, 0);
 
 /** 곳 이름과 방법 한 줄 (web/lib/asks.ts howOf 와 같은 말) */
 const 곳이름 = (m) => /^chatgpt/.test(m) ? "ChatGPT" : /^perplexity/.test(m) ? "퍼플렉시티" : /^gemini/.test(m) ? "Gemini"
@@ -238,7 +296,6 @@ const 칠일곳 = [...new Set(칠일.map((r) => r.collection_method))].sort();
 const 칠일질문 = [...new Map(칠일.map((r) => [r.prompt_id, r])).values()]
   .sort((a, b) => (Number(a.prompt_id.replace(/\D/g, "")) || 0) - (Number(b.prompt_id.replace(/\D/g, "")) || 0));
 const 칸 = (pid, m) => 칠일.find((r) => r.prompt_id === pid && r.collection_method === m);
-const 곳합 = (m) => 칠일.filter((r) => r.collection_method === m).reduce((a, r) => ({ n: a.n + r.n, k: a.k + r.k }), { n: 0, k: 0 });
 
 const out = `<title>${TITLE}</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+KR:wght@400;500;700;800;900&display=swap">
@@ -301,34 +358,62 @@ footer{padding:40px 0 68px;margin-top:42px;border-top:1px solid var(--line);colo
 </style>
 
 <header><div class="wrap">
-  <div class="eb">Self-run pilot · 진행중</div>
+  <div class="eb">원장이 직접 운영하는 학원으로 시험 중</div>
   <h1>${TITLE}</h1>
   <p class="dek">
     ${PRIVATE
-      ? `서울 송파구 석촌동 코딩·로봇·AI 학원. 착수 <b>2026년 9월 5일</b>. 생성 시각 ${d(new Date())}.`
-      : `운영자가 직접 운영하는 코딩·로봇 교육 학원에서 수행한 자사 실증입니다. <b>학원 이름·지역·사이트 주소·경쟁 학원은 가렸습니다.</b>
-    날짜는 착수일을 1일차로 셉니다. 착수 ${nth(new Date())}일차에 갱신했습니다.`}
-    이 문서는 <b>DB 에서 자동 생성</b>되며, 아직 확인되지 않은 것은 확인되지 않았다고 적습니다.
+      ? `서울 송파구 석촌동 코딩·로봇·AI 학원. 시작 <b>2026년 9월 5일</b>. 만든 시각 ${d(new Date())}.`
+      : `저희가 직접 운영하는 코딩·로봇 학원에서 먼저 해 본 기록입니다. <b>학원 이름·동네·사이트 주소·다른 학원 이름은 가렸습니다.</b>
+    날짜는 시작한 날을 1일차로 셉니다. 오늘이 ${nth(new Date())}일차입니다.`}
+    숫자는 전부 <b>학원 기록에서 자동으로</b> 가져왔습니다. 아직 모르는 것은 모른다고 적었습니다.
   </p>
 </div></header>
 
 <div class="wrap">
 
-  <h2><span class="n">01</span>착수 시점의 상태</h2>
+  <h2><span class="n">00</span>한눈에 — 처음과 지금</h2>
+  <p class="sub">시작한 날과 오늘을 나란히 놓았습니다.</p>
+  <div class="tw"><table>
+    <thead><tr><th>무엇을 봤나</th><th>시작 전</th><th>지금 (${nth(new Date())}일차)</th></tr></thead>
+    <tbody>
+      <tr><td>학원 사이트에 올린 글</td><td class="no">0편</td><td><b>${posts.n}편</b></td></tr>
+      <tr><td>학원 이름 없이 동네 검색어로 찾을 때</td><td class="no">그때 고른 동네 검색어 4개 모두 안 나옴</td><td>${네이버.length ? `<b>${eng("naver")} — 지금 재는 동네 검색어 ${네이버.length}개 중 ${네이버나옴.length}개 나옴</b>${네이버나옴.some((r) => r.rank === 1) ? ` (1위 ${네이버나옴.filter((r) => r.rank === 1).length}개)` : ""}` : "아직 안 잼"}${빙.length ? `<br>Bing ${빙.length}개 중 ${빙.filter((r) => r.hit).length}개` : ""}</td></tr>
+      <tr><td>AI·검색 프로그램이 읽으러 온 횟수</td><td class="no">0회</td><td><b>${(AI방문 + 검색방문).toLocaleString()}회</b> (AI ${AI방문.toLocaleString()} · 검색 ${검색방문.toLocaleString()})</td></tr>
+      ${scan ? `<tr><td>사이트 점검 점수</td><td class="no">83점</td><td><b>${scan.total}점</b></td></tr>` : ""}
+    </tbody>
+  </table></div>
+${비교.length ? `
+  <p class="sub" style="margin-top:22px"><b>AI 에게 물었을 때 이 학원 이름이 나왔나.</b>
+    같은 질문을 매일 한 번씩 묻습니다. 처음 잰 7일과 최근 7일을 비교했습니다. 학원 이름을 직접 넣은 질문은 뺐습니다.</p>
+  <div class="tw"><table>
+    <thead><tr><th>AI</th><th>처음 7일</th><th>최근 7일</th><th>이 학원 사이트 링크까지</th><th>결과</th></tr></thead>
+    <tbody>${비교.map(({ m, a, b }) => `<tr>
+      <td><b>${esc(곳이름(m))}</b></td>
+      <td class="m">${a.n}번 중 ${a.k}번 (${퍼센트(a.k, a.n)}%)</td>
+      <td class="m"><b>${b.n}번 중 ${b.k}번 (${퍼센트(b.k, b.n)}%)</b></td>
+      <td class="m">${a.c}번 → ${b.c}번</td>
+      <td>${판정(a, b)}</td></tr>`).join("")}
+    </tbody>
+  </table></div>
+  <p class="sub" style="margin-top:8px">${day(`${비교시작}T12:00:00+09:00`)}부터 셉니다. 네 AI 를 매일 같은 방법으로 재기 시작한 날입니다. 두 기간에 모두 물은 질문만 셌습니다.
+    같은 질문을 매일 되풀이하면 답이 조금씩 흔들립니다. 그래서 10%p 넘게 움직여야 「늘었다」고 적고, 5~10%p 는 흔들림일 수 있다고 적습니다. AI 마다 재는 방법이 달라 서로 합치지 않습니다.</p>` : ""}
+  <p class="sub" style="margin-top:8px">검색 줄의 「시작 전」과 「지금」은 검색어 묶음이 다릅니다. 시작 전에는 동네 검색어 4개를 손으로 넣어 봤고, 지금은 매일 동네 검색어 ${네이버.length || 빙.length}개를 자동으로 잽니다. 같은 검색어끼리 비교한 건 아닙니다.</p>
+
+  <h2><span class="n">01</span>시작할 때는 어땠나</h2>
   <p class="sub">
-    학부모가 실제로 쓸 질문 6개를 검색엔진에 넣어 <b>무엇이 나오는지</b> 기록했습니다.
-    이 기준선이 없으면 나중에 "좋아졌다"는 말은 느낌일 뿐입니다.
+    학부모가 실제로 칠 만한 검색어 6개를 넣고 <b>무엇이 나오는지</b> 적었습니다.
+    이걸 먼저 적어 두지 않으면 나중에 「좋아졌다」는 말은 느낌일 뿐입니다.
   </p>
   <div class="tw"><table>
-    <thead><tr><th>질의</th><th>이 학원</th><th>실제로 나온 문서</th></tr></thead>
+    <thead><tr><th>검색어</th><th>이 학원</th><th>대신 나온 곳</th></tr></thead>
     <tbody>${BASELINE.map(([q, w]) =>
-      `<tr><td>${esc(q)}</td><td class="no">미노출</td><td class="m">${esc(w)}</td></tr>`).join("")}
+      `<tr><td>${esc(q)}</td><td class="no">안 나옴</td><td class="m">${esc(w)}</td></tr>`).join("")}
     </tbody>
   </table></div>
   <div class="box"><p>
-    <b>6개 질의 전부 미노출.</b> 그리고 더 중요한 사실 —
-    상위 결과에 <b>개별 학원 홈페이지가 하나도 없었습니다.</b> 전부 디렉터리와 플랫폼이었습니다.
-    홈페이지를 아무리 잘 만들어도 이 질의에서는 디렉터리를 이길 수 없다는 뜻입니다.
+    <b>6개 모두 안 나왔습니다.</b> 더 눈여겨볼 점 —
+    위쪽에 <b>학원 홈페이지가 하나도 없었습니다.</b> 전부 학원 모음 사이트였습니다.
+    홈페이지만 잘 만들어서는 이 검색어에서 모음 사이트를 못 이긴다는 뜻입니다.
   </p></div>
 
   <h2><span class="n">02</span>지금까지 한 일</h2>
@@ -336,149 +421,156 @@ footer{padding:40px 0 68px;margin-top:42px;border-top:1px solid var(--line);colo
     `<div class="e"><div class="d">${dt(when)}</div><div class="t">${esc(t)}</div><p>${esc(p)}</p></div>`).join("")}
   </div>
 
-  <h2><span class="n">03</span>측정 가능한 변화</h2>
+  <h2><span class="n">03</span>사이트는 얼마나 갖춰졌나</h2>
   <div class="kpis">
-    <div class="kpi hi"><div class="v">${scan ? scan.total : "—"}<small>/100</small></div><div class="k">사이트 진단 (착수 시 83)</div></div>
-    <div class="kpi"><div class="v">${posts.n}<small>편</small></div><div class="k">공개 문서 (착수 시 0)</div></div>
-    <div class="kpi"><div class="v">${Number(posts.chars).toLocaleString()}<small>자</small></div><div class="k">본문 합계</div></div>
-    <div class="kpi"><div class="v">${crawl.filter((r) => 분류(r.bot) === "AI").reduce((s, r) => s + r.hits, 0)}<small>회</small></div><div class="k">AI 크롤러 방문</div></div>
-    <div class="kpi"><div class="v">${crawl.filter((r) => 분류(r.bot) === "검색").reduce((s, r) => s + r.hits, 0)}<small>회</small></div><div class="k">검색 크롤러 방문 (구글·빙·네이버·애플 등)</div></div>${crawl.some((r) => 분류(r.bot) === "기타") ? `
-    <div class="kpi"><div class="v">${crawl.filter((r) => 분류(r.bot) === "기타").reduce((s, r) => s + r.hits, 0)}<small>회</small></div><div class="k">분류 안 된 크롤러</div></div>` : ""}
+    <div class="kpi hi"><div class="v">${scan ? scan.total : "—"}<small>/100</small></div><div class="k">사이트 점검 점수 (처음 83)</div></div>
+    <div class="kpi"><div class="v">${posts.n}<small>편</small></div><div class="k">올린 글 (처음 0)</div></div>
+    <div class="kpi"><div class="v">${Number(posts.chars).toLocaleString()}<small>자</small></div><div class="k">글 분량 합계</div></div>
   </div>
 ${scan ? `
+  <p class="sub" style="margin-top:18px">점검 점수는 항목별로 이렇게 나왔습니다. 문단 점수가 낮은 건 한 문단이 너무 길거나 짧아 AI 가 잘라 쓰기 어려운 곳이 많다는 뜻입니다.</p>
   <div class="tw"><table>
-    <thead><tr><th>진단 항목</th><th>점수</th><th>근거</th></tr></thead>
+    <thead><tr><th>점검 항목</th><th>점수</th><th>무엇을 봤나</th></tr></thead>
     <tbody>${Object.entries(scan.checks).map(([k, v]) => `<tr>
       <td>${CHECK_KO[k] || k}</td>
       <td class="m"><span class="bar"><i style="width:${v.score}%"></i></span>${v.score}</td>
-      <td class="m">${esc(
-        k === "crawler" ? `${허용글} (robots.txt)` :
-        k === "sitemap" ? `${v.urls} URL` :
-        k === "ssr" ? `평균 본문 ${v.avgTextLen}자 · 빈약 ${v.thinPages}쪽` :
-        k === "schema" ? `${v.types.length}종 · 오류 ${v.invalid}` :
-        k === "chunk" ? `문단 ${v.paragraphs} 중 인용가능 ${v.inBand}` :
-        k === "patterns" ? `질문형 제목 ${v.questionHeadings} · 수치 ${v.numericFacts}` :
-        `${v.bytes}B · ${v.sections}절`)}</td></tr>`).join("")}
+      <td>${esc(
+        k === "crawler" ? `AI 프로그램 ${허용.AI}종 · 검색 프로그램 ${허용.검색}종${허용.기타 ? ` · 기타 ${허용.기타}종` : ""}에 출입 허락` :
+        k === "sitemap" ? `검색엔진에 알려 준 쪽 ${v.urls}개` :
+        k === "ssr" ? `한 쪽 평균 ${v.avgTextLen}자 · 내용이 빈약한 쪽 ${v.thinPages}개` :
+        k === "schema" ? `학원 정보 ${v.types.length}종 표시 · 오류 ${v.invalid}개` :
+        k === "chunk" ? `문단 ${v.paragraphs}개 중 알맞은 길이 ${v.inBand}개` :
+        k === "patterns" ? `질문으로 된 제목 ${v.questionHeadings}개 · 숫자가 든 문장 ${v.numericFacts}개` :
+        `안내문 ${v.sections}개 항목`)}</td></tr>`).join("")}
     </tbody>
   </table></div>` : ""}
 
-  <h2><span class="n">04</span>크롤러 방문 — AI 와 검색 색인을 나눠 셉니다</h2>
+  <h2><span class="n">04</span>누가 읽으러 왔나</h2>
   <p class="sub">
-    "AI 답변에 불리는가"는 몇 주가 걸리는 결과 지표입니다.
-    그 전에 움직이는 유일한 선행지표가 <b>크롤러가 실제로 왔는가</b>이고,
-    이건 서버가 직접 기록하지 않으면 알 수 없습니다.
+    AI 답에 이름이 나오기까지는 몇 주가 걸립니다. 그 전에 먼저 움직이는 게
+    <b>AI·검색 프로그램이 실제로 사이트를 읽으러 왔는가</b>입니다.
+    이건 사이트가 직접 기록하지 않으면 알 수 없습니다.
   </p>
 ${crawl.length ? `
+  <div class="kpis">
+    <div class="kpi hi"><div class="v">${AI방문.toLocaleString()}<small>회</small></div><div class="k">AI 프로그램이 온 횟수</div></div>
+    <div class="kpi"><div class="v">${검색방문.toLocaleString()}<small>회</small></div><div class="k">검색 프로그램이 온 횟수 (구글·Bing·네이버 등)</div></div>${crawl.some((r) => 분류(r.bot) === "기타") ? `
+    <div class="kpi"><div class="v">${crawl.filter((r) => 분류(r.bot) === "기타").reduce((s, r) => s + r.hits, 0)}<small>회</small></div><div class="k">어느 쪽인지 모르는 프로그램</div></div>` : ""}
+  </div>
   <div class="tw"><table>
-    <thead><tr><th>크롤러</th><th>구분</th><th>소속</th><th>방문</th><th>페이지</th><th>최초</th><th>최근</th></tr></thead>
+    <thead><tr><th>프로그램 이름</th><th>종류</th><th>회사</th><th>온 횟수</th><th>읽은 쪽</th><th>처음 온 날</th><th>마지막 온 날</th></tr></thead>
     <tbody>${crawl.map((r) => `<tr>
-      <td><b>${esc(r.bot)}</b></td><td class="m">${분류(r.bot)}</td><td class="m">${esc(r.vendor)}</td>
+      <td><b>${esc(r.bot)}</b></td><td class="m">${분류(r.bot)}</td><td>${esc(vendor(r.vendor))}</td>
       <td class="m">${r.hits}</td><td class="m">${r.pages}</td>
       <td class="m">${day(r.first_seen)}</td><td class="m">${day(r.last_seen)}</td></tr>`).join("")}
     </tbody>
   </table></div>
   <div class="box"><p>
-    <b>첫 크롤러 방문 ${d(firstHit)}.</b> 도메인을 연결한 다음 날 새벽입니다.
+    <b>처음 온 건 ${d(firstHit)}.</b> 사이트 주소를 연결한 다음 날 새벽입니다.
     ${crawl.some((r) => r.vendor === "anthropic")
-      ? "ClaudeBot 이 robots.txt 를 먼저 읽고 이관한 블로그 글을 가져갔습니다."
+      ? "Claude 를 만드는 회사의 프로그램이 출입 규칙을 먼저 읽고, 옮겨 온 블로그 글을 가져갔습니다."
       : ""}
     ${(() => {
       const search = crawl.filter((r) => 분류(r.bot) === "검색");
-      if (!search.length) return "아직 검색 색인 크롤러는 오지 않았습니다 — 색인 요청 직후라 정상입니다.";
-      return "검색 색인 크롤러도 왔습니다 — "
-        + search.map((r) => `${esc(r.bot)} ${r.hits}회`).join(", ") + ".";
+      if (!search.length) return "검색 프로그램은 아직 안 왔습니다. 등록 직후라 정상입니다.";
+      return "검색 프로그램도 왔습니다 — "
+        + search.map((r) => `${esc(vendor(r.vendor))} ${r.hits}회`).join(", ") + ".";
     })()}
   </p></div>
-${hitPaths.length ? `
-  <div class="tw"><table>
-    <thead><tr><th>많이 읽힌 경로 (AI·검색 합계)</th><th>횟수</th></tr></thead>
-    <tbody>${hitPaths.map((p) => `<tr><td class="m">${esc(p.path)}</td><td class="m">${p.n}</td></tr>`).join("")}</tbody>
-  </table></div>` : ""}
-` : `<div class="box"><p>아직 방문 기록이 없습니다. 색인 요청 직후에는 정상입니다.</p></div>`}
+` : `<div class="box"><p>아직 온 기록이 없습니다. 등록 직후에는 정상입니다.</p></div>`}
 
-  <h2><span class="n">05</span>검색 노출</h2>
+  <h2><span class="n">05</span>검색하면 나오나</h2>
   <p class="sub">
-    크롤러가 왔다는 것과 사람이 검색해서 찾을 수 있다는 것은 다른 단계입니다.
-    아래는 <b>매일 실제로 검색해서 남긴 기록</b>입니다.
-    엔진마다 색인 속도가 다르므로 나눠서 확인합니다.
+    프로그램이 읽고 갔다고 해서 사람이 검색으로 찾을 수 있는 건 아닙니다.
+    아래는 <b>매일 실제로 검색해 본 결과</b>입니다. 검색엔진마다 반영 속도가 달라 따로 봅니다.
   </p>
 ${serp.length ? `
   <div class="tw"><table>
-    <thead><tr><th>엔진</th><th>구분</th><th>검색어</th><th>결과</th></tr></thead>
+    <thead><tr><th>어디서</th><th>무슨 검색어</th><th>검색어</th><th>결과</th></tr></thead>
     <tbody>${serp.map((r) => `<tr>
       <td class="m">${esc(eng(r.engine))}</td>
-      <td class="m">${esc(r.kind)}</td>
+      <td class="m">${esc(KIND[r.kind] ?? r.kind)}</td>
       <td>${esc(r.query)}</td>
-      <td class="m">${r.hit ? (r.rank ? `<b>${r.rank}위</b><br><small>${day(`${r.day}T12:00:00+09:00`)} 측정 · ${esc(eng(r.engine))}</small>` : `<b>노출</b>`) : `<span class="no">미노출</span>`}</td>
+      <td class="m">${r.hit ? (r.rank ? `<b>${r.rank}위</b><br><small>${day(`${r.day}T12:00:00+09:00`)} 확인</small>` : `<b>나옴</b>`) : `<span class="no">안 나옴</span>`}</td>
     </tr>`).join("")}
     </tbody>
   </table></div>
 ${serpFirst.length ? `
   <div class="box"><p>
-    <b>처음 검색에 나온 날.</b>
+    <b>처음 나온 날.</b>
     ${serpFirst.map((f) =>
       `${esc(eng(f.engine))} &middot; ${esc(f.query)} &mdash; ${day(f.d)}`).join("<br>")}
   </p></div>` : ""}
   <div class="box"><p>
-    구글은 결과 페이지를 긁으면 막히기 때문에 여기서 세지 않습니다.
-    대신 Search Console 의 URL 검사로 페이지마다 확인합니다.
+    구글은 자동으로 검색해 보면 막혀서 여기서 세지 않습니다. 구글이 제공하는 관리 화면에서 쪽마다 따로 확인합니다.
     ${rivalHit
-      ? `<b>학원 이름 없이 친 지역 경쟁 검색어도 잡히기 시작했습니다</b> &mdash;
-    브랜드명과 정확한 지역명이 먼저 잡히고, 경쟁 검색어가 나중에 붙었습니다.`
-      : `<b>지역 경쟁 검색어는 아직 잡히지 않았습니다</b> &mdash;
-    브랜드명과 정확한 지역명이 먼저 잡히고 경쟁 검색어가 나중에 붙는 순서입니다.`}
+      ? `<b>학원 이름 없이 동네 이름만 친 검색어에도 나오기 시작했습니다.</b>
+    학원 이름과 정확한 동네 이름으로 먼저 나왔고, 그다음에 동네 검색어가 붙었습니다.`
+      : `<b>학원 이름 없이 동네 이름만 친 검색어에는 아직 안 나옵니다.</b>
+    보통 학원 이름으로 먼저 나오고, 동네 검색어는 그다음입니다.`}
+    ${serp.some((r) => r.engine === "bing") && !serp.some((r) => r.engine === "bing" && r.hit) ? `<b>Bing 에는 아직 하나도 안 나옵니다.</b> 이 기록의 가장 큰 빈칸입니다.` : ""}
   </p></div>
-` : `<div class="box"><p>아직 측정 기록이 없습니다.</p></div>`}
+` : `<div class="box"><p>아직 검색해 본 기록이 없습니다.</p></div>`}
 
-  <h2><span class="n">06</span>아직 모르는 것</h2>
-  <p class="sub">케이스 스터디에서 이 항목을 빼면 신뢰를 잃습니다.</p>
-  <div class="box">
-    <p><b>AI 답변 측정은 ${aiRounds.length ? `${aiRounds.length}회차가 있습니다` : "아직 없습니다"}.</b>
-    ${aiRounds.length ? aiRounds.map((r) => `${day(r.measured_day)} ${esc(r.engine)}: 사이트 인용 ${r.cited}/${r.n}, 출처 없이 이름만 언급 ${r.mentioned}/${r.n}`).join("<br>") : "같은 질문과 조건으로 기준선을 먼저 남겨야 합니다."}
-    ${aiRounds.length === 1 ? "기준선 한 번뿐이므로 개선률을 말할 수 없습니다." : "측정 방법이 같을 때만 전후를 비교합니다."}
-    첫 기준선에서 학원 이름이 나온 답의 출처는 오늘학교·순위닷 같은 학원 목록 사이트였습니다.
-    현재 ChatGPT 부분 측정에서는 공식 사이트 직접 링크가 1건 확인됐습니다. 엔진과 표본이 달라 성과 비율로 합치지 않습니다.</p>
-    ${방법줄.length ? `<p><b>곳마다 잰 방법</b><br>${방법줄.join("<br>")}<br>
-    답 원문과 출처 목록은 질문마다 보관합니다 (${표본합}건 중 ${원문보관}건). 나중에 다시 세어 볼 수 있습니다.</p>` : ""}
-  </div>
-  ${칠일곳.length ? `<p class="sub" style="margin-top:14px">최근 7일, 질문마다 곳별로 「물어본 횟수 중 학원 이름이나 사이트가 나온 횟수」입니다. 한 번 나온 것을 적중으로 세지 않습니다. 합계도 곳별로만 냅니다.</p>
+  <h2><span class="n">06</span>AI 에게 물어보면 나오나</h2>
+  <p class="sub">학부모가 AI 에게 할 법한 질문을 매일 같은 방법으로 묻고, 답에 이 학원 이름이나 사이트가 나오는지 셉니다.
+    한 번 나온 걸로 「나온다」고 하지 않습니다. 7번 물어 몇 번 나왔는지로 셉니다.</p>
+  ${칠일곳.length ? (() => {
+    const 일반 = 칠일질문.filter((x) => x.stage !== "brand");
+    const 이름 = 칠일질문.filter((x) => x.stage === "brand");
+    const 합 = (m, list) => list.reduce((s, x) => { const c = 칸(x.prompt_id, m); return c ? { n: s.n + c.n, k: s.k + c.k } : s; }, { n: 0, k: 0 });
+    return `<p class="sub" style="margin-top:14px"><b>최근 7일, 질문별로.</b></p>
   <div class="tw"><table>
-    <thead><tr><th>질문</th>${칠일곳.map((m) => `<th>${esc(곳이름(m))}</th>`).join("")}</tr></thead>
-    <tbody>${칠일질문.map((x) => `<tr>
-      <td>${esc(x.prompt_id)} · ${esc(x.stage ?? "")}${PRIVATE ? ` · ${esc(x.q)}` : ""}</td>
+    <thead><tr><th>질문 (종류)</th>${칠일곳.map((m) => `<th>${esc(곳이름(m))}</th>`).join("")}</tr></thead>
+    <tbody>${일반.map((x) => `<tr>
+      <td>${esc(x.prompt_id)} · ${esc(STAGE[x.stage] ?? x.stage ?? "")}${PRIVATE ? ` · ${esc(x.q)}` : ""}</td>
       ${칠일곳.map((m) => { const c = 칸(x.prompt_id, m); return `<td class="m">${c ? `${c.n}번 중 ${c.k}번` : "—"}</td>`; }).join("")}</tr>`).join("")}
-      <tr><td><b>곳별 합계</b></td>${칠일곳.map((m) => { const s = 곳합(m); return `<td class="m"><b>${s.n}번 중 ${s.k}번</b></td>`; }).join("")}</tr>
+      <tr><td><b>합계</b> (학원 이름 질문 빼고)</td>${칠일곳.map((m) => { const s = 합(m, 일반); return `<td class="m"><b>${s.n}번 중 ${s.k}번</b></td>`; }).join("")}</tr>
+      ${이름.map((x) => `<tr>
+      <td class="no">${esc(x.prompt_id)} · ${esc(STAGE[x.stage])}${PRIVATE ? ` · ${esc(x.q)}` : ""}</td>
+      ${칠일곳.map((m) => { const c = 칸(x.prompt_id, m); return `<td class="m">${c ? `${c.n}번 중 ${c.k}번` : "—"}</td>`; }).join("")}</tr>`).join("")}
     </tbody>
-  </table></div>` : ""}
-  <div class="box" style="margin-top:14px">
-    <p><b>이 케이스에는 약점이 있습니다.</b> 학원 대표가 곧 이 프로젝트의 의뢰인이라
-    사이트를 즉시 고칠 수 있었습니다. 실제 고객사는 도메인 권한·개발팀·결재 라인이 있어
-    같은 작업에 몇 주가 걸립니다. <b>다음 고객사에서 시험할 것은 기술이 아니라 리드타임입니다.</b></p>
-    <p>첫 기준선에서는 AI 답에 학원 이름이 나올 때 출처가 학원 목록 같은 제3자 지면이었습니다. 그렇다면
-    사이트를 못 건드리는 고객사에서도 성립할 가능성이 높습니다.
-    다만 그때는 홈페이지 점수가 아니라 <b>제3자 지면 진입이 상품</b>이 됩니다.</p>
+  </table></div>
+  ${이름.length ? `<p class="sub" style="margin-top:8px">학원 이름을 넣은 질문은 AI 가 이 학원을 제대로 아는지 보는 확인용입니다. 성과 숫자에 넣지 않습니다.</p>` : ""}`;
+  })() : ""}
+  <details style="margin-top:14px"><summary class="sub" style="cursor:pointer">재는 방법과 날짜별 원래 기록 보기</summary>
+  <div class="box">
+    ${방법줄.length ? `<p><b>AI 마다 잰 방법</b><br>${방법줄.join("<br>")}<br>
+    답 원문과 출처 목록을 질문마다 보관합니다 (${표본합}건 중 ${원문보관}건). 나중에 다시 세어 볼 수 있습니다.</p>` : ""}
+    <p><b>날짜별 기록 ${aiRounds.length}회</b> — 「링크」는 답에 이 학원 사이트 주소가 붙은 것, 「이름만」은 주소 없이 이름만 나온 것입니다.<br>
+    ${aiRounds.map((r) => `${day(r.measured_day)} ${esc(곳이름(r.collection_method))}: 링크 ${r.cited}/${r.n} · 이름만 ${r.mentioned}/${r.n}`).join("<br>")}</p>
+  </div>
+  </details>
+
+  <h2><span class="n">07</span>아직 모르는 것, 약한 점</h2>
+  <div class="box">
+    <p><b>원장 본인 학원이라 바로 고칠 수 있었습니다.</b> 다른 회사는 사이트 권한·담당자·결재가 있어 같은 일에 몇 주가 걸립니다.
+    다음 고객사에서 확인할 것은 기술이 아니라 <b>걸리는 시간</b>입니다.</p>
+    <p>시작할 때 AI 답에 학원 이름이 나오면, 출처는 학원 모음 사이트였습니다.
+    그렇다면 사이트를 못 고치는 회사라도 길은 있습니다. 그때는 홈페이지 점수가 아니라 <b>모음 사이트에 올라가는 것</b>이 할 일이 됩니다.</p>
+    <p>AI 를 보고 상담을 온 사람이 몇 명인지는 이 문서에서 아직 세지 않습니다.</p>
   </div>
 
-  <h2><span class="n">07</span>다음에 할 일</h2>
+  <h2><span class="n">08</span>다음에 할 일</h2>
   <div class="todo">${TODO.map(([h, p]) =>
     `<div class="td"><div class="h">${esc(h)}</div><p>${esc(p)}</p></div>`).join("")}
   </div>
 
 ${snaps.length > 1 ? `
-  <h2><span class="n">08</span>일별 기록</h2>
-  <p class="sub">이 학원 사이트에 온 방문만, 그날 자정(한국 시각)까지 누적해 셉니다. 위 머리 숫자와 같은 정의입니다.</p>
+  <h2><span class="n">09</span>날마다 쌓인 기록</h2>
+  <p class="sub">이 학원 사이트에 온 것만, 그날 밤 12시(한국 시각)까지 쌓인 수입니다. 위 숫자와 같은 방법으로 셉니다.</p>
   <div class="tw"><table>
-    <thead><tr><th>${PRIVATE ? "날짜" : "일차"}</th><th>문서</th><th>누적 AI 크롤러</th><th>누적 검색 크롤러</th><th>엔진</th></tr></thead>
+    <thead><tr><th>${PRIVATE ? "날짜" : "일차"}</th><th>올린 글</th><th>AI 프로그램 (누적)</th><th>검색 프로그램 (누적)</th><th>다녀간 회사 수</th></tr></thead>
     <tbody>${snaps.map((s) => `<tr>
       <td class="m">${day(`${s.day}T12:00:00+09:00`)}</td>
       <td class="m">${s.posts}</td><td class="m">${s.ai_total}</td><td class="m">${s.search_total}</td>
-      <td class="m">${(s.vendors || []).join(", ") || "—"}</td></tr>`).join("")}
+      <td class="m">${(s.vendors || []).length || "—"}</td></tr>`).join("")}
     </tbody>
   </table></div>` : ""}
 
 </div>
 <footer><div class="wrap mono">
-  ${PRIVATE ? "robotncoding.com · " : ""}초안 ${drafts.n}편 대기 · 이 문서는 scripts/case-report.mjs 가 DB 에서 생성합니다
+  ${PRIVATE ? "robotncoding.com · " : ""}올리기 전 글 ${drafts.n}편 · 이 문서는 학원 기록에서 자동으로 만듭니다
 </div></footer>`;
 
 /**

@@ -1,19 +1,24 @@
-# Review Feedback — Step 43 최종 (ef33efe)
-Date: 2026-10-10
+# Review Feedback — case-report plain words + 처음 vs 지금 (re-review)
+Date: 2026-10-12
 Ready for Builder: YES
 
 ## Must Fix
-- 없음.
+None.
 
 ## Should Fix
-- 없음.
+- academy/scripts/case-report.mjs, TODO Bing entry (confidence: 7) — The text says `Bing 에는 아직 한 번도 안 나왔다`, but the condition checks only `serp`, which is the latest day per engine. If Bing hits once and then drops, the TODO still says 「한 번도」 and is false. — Fix: also require no Bing row in `serpFirst`, or change the wording to 「지금 Bing 에는 안 나온다」.
+- academy/scripts/case-report.mjs, above `판정` (confidence: 9) — The old doc comment `/** 5%p 넘게 움직였을 때만 늘었다/줄었다 … */` is still there above the new 10%p comment and now contradicts the code. — Fix: delete it.
 
 ## Escalate to Architect
-- 없음.
-
-## 확인한 것
-- web/lib/post-auto-core.mjs:495-498 — 다듬기검사가 학원표지 문장을 접은 글의 정렬 목록으로 전후 비교한다. 재현 문장(「저희 반은 스크래치로 시작합니다.」→「저희 반 아이들은 모두 붙었습니다.」)은 이제 「학원 경험 문장이 바뀌거나 늘어남」으로 버려진다. 학원 문장이 아닌 문장을 다듬은 것(「면접은 없습니다」→「면접이 없습니다」)은 그대로 통과한다. node 로 직접 확인했다. test-post-auto 는 36 통과·0 실패다.
-- 배포 전 남은 일(이전 피드백에서 이어짐): ACADEMY_REVALIDATE_SECRET 을 학원·web 양쪽에 파일로 넣고 env pull 로 길이를 확인한다. 기존 authed() 의 `!==` 비교는 BUILD-LOG Known Gaps 로 남긴다.
+None. The coordinator decided the threshold: 10%p for 「늘었다」, 5–10%p marked as possible noise.
 
 ## Cleared
-Step 43(a2d532b·62de684·1d8162c·3798699·711f56c·ef33efe) 전체를 확인했다. 지어낸 사실이 발행까지 가는 길은 이제 막혔다. 스위치는 기본 off 이고, 내리기는 관리자만 한다. 막는 것은 없다.
+Every Must Fix and Should Fix item from the first review is resolved:
+- The column is labelled 「시작 전」, so it no longer clashes with day-1 = 30 posts.
+- The baseline and current query sets are described accurately, and a note says they differ.
+- The engine is labelled 네이버 웹문서.
+- The Bing TODO is conditional.
+- 판정 uses unrounded ratios with the 10/5%p bands.
+- The comparison is anchored at 비교시작 2026-09-24. That is after the 84a6344 detector change, and the ≥14-day check runs in SQL on the filtered days.
+
+In the regenerated HTML, masking is still clean: no academy name, domain, area names, rival brands or /blog/ paths.
