@@ -4,7 +4,7 @@ import Link from "next/link";
 const LINKS = [
   { href: "/#why", label: "교육 철학" },
   { href: "/#curriculum", label: "커리큘럼" },
-  { href: "/#ai", label: "AI 리터러시" },
+  { href: "/ai", label: "AI 교육" },
   { href: "/#tutor", label: "학습 프로그램" },
   { href: "/#principal", label: "원장 소개" },
   { href: "/blog", label: "수업 기록" },

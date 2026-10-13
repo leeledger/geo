@@ -360,6 +360,7 @@ SW사고력올림피아드, USACO Bronze 문제를 훈련하며, 5단계에서 �
 - 교육 철학: https://robotncoding.com/#why
 - 커리큘럼 5단계: https://robotncoding.com/#curriculum
 - AI 오케스트레이션·자연어 코딩: https://robotncoding.com/#ai
+- 초등·중등 AI 교육(단계별 AI 수업·「AI 시대 코딩」): https://robotncoding.com/ai
 - 자체 개발 학습 프로그램: https://robotncoding.com/#tutor
 - 원장 소개·지도 실적·진학 실적: https://robotncoding.com/#principal
 - 수강료: https://robotncoding.com/#tuition
@@ -367,6 +368,9 @@ SW사고력올림피아드, USACO Bronze 문제를 훈련하며, 5단계에서 �
 - 수업 기록(블로그): https://robotncoding.com/blog
 - 상담·카카오톡: https://robotncoding.com/#contact
 - 오시는 길: https://robotncoding.com/#location
+
+## 초등·중등 AI 교육
+- https://robotncoding.com/ai : 5단계 커리큘럼 안에서 AI를 다루는 자리(1단계 그림·음성 AI, 2단계 얼굴 인식·감정 분류, 3단계부터 자연어 코딩, 5단계 AI API 서비스)와 초등 5학년~중학교 3학년 「AI 시대 코딩」 24주. AI 답을 그대로 제출하게 하지 않고, AI 튜터는 정답 코드를 주지 않는다.
 
 ## 성인 AI 업무자동화반
 - https://robotncoding.com/ai-work : 직장인·1인 사업자가 자기 반복 업무 한 건을 가져와 돌아가는 AI 자동화로 만드는 오프라인 수업(서울 송파구 석촌동). 성인 수강료 월 4회·회당 120분 200,000원. 개인정보·결제 확정·항의 응대의 최종 답은 자동화하지 않는다.

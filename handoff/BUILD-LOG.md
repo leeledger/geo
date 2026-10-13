@@ -1799,3 +1799,28 @@ Should Fix:
 - D104 기존 13문답 중 4쌍이 홈·스키마 글자가 다르다(순서·자리는 같음). 브리프대로 안 고치고, 테스트에 그 4쌍만 「알려진 어긋남」으로 박아 KNOWN 으로 찍고 통과. 그 밖 어긋남은 전부 FAIL
 - 10/13 출처 절 두 번 붙음 고침: write-news.mjs 가 모델이 쓴 ## 출처 를 지우고 검색 결과 목록만 붙인다. 운영 DB 2편(coding-grade-2026-elementary-34hours, 2027-algorithm-talent-admission-kookmin) 앞 절 지움. 국민대 글 네이버판(224431831182)은 원장 몫 — 로그인 필요
 - ~~Known Gap KG-44-3~~ 닫음(10/13): 홈 질문을 스키마 문구(학원 이름·주제가 든 쪽)로 맞춤, llms 11번도. test-faq-sync 23 PASS, 운영 확인. 원래 기록: 홈↔스키마 FAQ 글자 다름 4쌍 — 10「다른 코딩학원과…」↔「로봇&코딩학원은 다른 코딩학원과…」, 11「아이가 학원에서…」↔「아이가 코딩학원에서…」, 12「몇 살부터…」↔「코딩은 몇 살부터…」, 13「대회 수상이나…」↔「로봇&코딩학원은 대회 수상이나…」. 맞추면 test-faq-sync 의 알려진어긋남에서 지운다
+
+### Step 45 — /ai 초등 AI 교육 페이지 · AI 교육 검색어 측정 — BRIEFED (2026-10-13, Arch) · Bob 대기
+- D105 KG-44-1(D103 /ai 보류)을 원장 지시(10/13)로 푼다. /ai = 어린이·청소년 AI 교육 페이지. 사실은 llms.txt·home.html·/ai-work 에 있는 것만, 문구는 브리프에 잠금(근거 행번호 달림)
+- D106 키워드 정확 횟수 잠금(test-ai-page): 「초등 AI 교육」 2(title·h1) · 「AI 수업」 2(title·FAQ) · 「AI 교육 기관」 1(FAQ) · 「AI 강의」 1(성인 절 제목) · 「AI학원」 0(D99 자리 밖) · 「AI 교육」 ≤5. FAQ 3문답은 홈 FAQ 와 안 겹치는 새 질문(같은 FAQ 두 쪽 표시 금지)
+- D107 새 네이버 검색어 a1~a4(송파 초등 AI 교육·송파 AI 교육 기관·송파 AI 강의하는 곳·송파 AI학원)는 kind 「AI교육」 — 「경쟁」에 섞으면 머리 숫자 분모가 6→10 으로 바뀌어 주간 비교가 거짓으로 줄어 보인다. 합칠지는 2~3주 뒤 원장(KG-45-5)
+- D108 「처음 노출」 판정을 엔진 첫 측정일 → (엔진·검색어) 첫 측정일로(case-report·brief-core). 안 고치면 새 검색어가 첫날 걸린 것이 「처음 노출」 성과로 보고된다 = 지어낸 숫자
+- D109 네비 「AI 리터러시(/#ai)」 → 「AI 교육(/ai)」 같은 자리 교체(Nav.tsx·home.html 둘 다, 테스트로 묶음). 홈 #ai 절은 푸터 링크·/ai 의 링크로 닿는다
+- D110 AI 탐침 p19~ 4개(송파 초등 AI 교육·송파 AI 교육 기관·송파 AI 강의하는 곳·석촌동 초등 AI 수업, form keyword)는 ai_probe_measurements 로만(승인 20문항과 안 섞음). 오늘 기준선은 승인 20문항을 다시 안 돌릴 때만 로컬로
+- D111 /ai 스키마: Course(「AI 시대 코딩」, offers·courseSchedule 없음 — 값·시간표가 사이트에 없다) + FAQPage. 조직은 #org @id 로만 가리킨다(새 조직 사실 없음)
+- Known Gap KG-45-1 (원장 몫): 「AI 시대 코딩」 24주 주차별 목차·도구·결과물. 지금 /ai 는 「주차별 목차는 상담 때 안내」로 둠
+- Known Gap KG-45-2: check-index.mjs 콘솔 「처음 노출된 날」 검색어 첫 측정일 구분 없음(콘솔 전용)
+- Known Gap KG-45-3: 처음 노출 판정 SQL 회귀 시험 없음(운영 DB 전후 diff 로 대신)
+- Known Gap KG-45-4: /ai-work·블로그 본문에서 /ai 링크
+- Known Gap KG-45-5: AI교육 검색어를 경쟁 머리 숫자에 합칠지(원장, 2~3주 뒤)
+- Known Gap KG-45-6: 빙(tools/bing-serp.mjs)에 새 검색어
+
+### Step 45 — 빌드 (2026-10-13, Bob) · DONE_WITH_CONCERNS · Richard 대기 · 배포 전
+- 새 파일: academy/content/ai.json(잠긴 문구 그대로) · academy/app/ai/page.tsx · academy/scripts/test-ai-page.mjs · academy/scripts/seed-probes-step45.mjs(아직 안 돌림 — 7번)
+- 고침: Nav.tsx·home.html nav(/ai 「AI 교육」) · home.html #ai 절 링크 1줄 · sitemap.ts /ai · llms.txt 주요 페이지 1줄·끝 절 · clients.mjs a1~a4 · case-report.mjs KIND·at_start · web/lib/brief-core.mjs firsts
+- D108 전후 운영 DB 비교(10/13): case-report 20줄 중 at_start 달라지는 줄 0, brief-core 전체 기간 18줄 → 18줄 같음. 지금은 빠지는 「처음 노출」 없다(새 검색어 측정 전이라). REVIEW-REQUEST 에 줄 목록
+- 시험: test-ai-page 30 PASS · test-faq-sync 23 PASS · 기존 test-*.mjs 회귀 0(test-visit 은 고치기 전에도 .ts 로더 없어 실패, --live 3개는 사용법만) · tsc academy·web 0 · next build /ai ○ 정적
+- 결정: /ai 의 잠기지 않은 UI 글자(표 머리 「단계·대상·AI를 다루는 자리」, 카드 링크 「관련 글 →」, FAQ 제목 「자주 묻는 것」, lab 영문)는 Bob 이 붙였다. 키워드·숫자 없음
+- **ESCALATE (KG-45-7, 고치지 않음)**: web/lib/ops.ts:130 rivalTally 가 kind 가 「브랜드」 아니면 전부 경쟁으로 센다 → AI교육 4개가 /admin/ops 「노출된 경쟁 검색어」와 **사이티드 랜딩 web/app/page.tsx:180-181·523-530 「0 → N / 6 … 학원 이름 없이 친 검색 6개」** 분모를 10으로 바꾼다. 7번 check-index 기준선을 돌리는 순간 공개 랜딩 숫자가 바뀐다. 한 줄 수정 후보: `const isBrand = …` 대신 kind 가 있으면 `kind === "경쟁"` 만 rival 로, 그 밖 kind 는 건너뜀
+- Known Gap KG-45-8: check-index.mjs:166-167 콘솔 「질의 노출 x/y」 분모에 AI교육도 들어간다(브랜드처럼, 콘솔 전용) · bing-check.mjs 전체 줄 수도 같음
+- Step 45 배포(10/13): Richard 통과(Must Fix 0). 오케스트레이터가 KG-45-7 한 줄(ops.ts rivalTally — AI교육은 경쟁 분모에서 뺌, D107) 넣음. Richard 가 올린 「주차별 목차는 상담 때 안내합니다」는 근거 없는 약속이라 ai.json 에서 지움(KG-45-1 채워지면 과정 절을 커리큘럼으로). academy vercel --prod, 운영 /ai 200·title·Course·FAQPage·sitemap·홈 링크 확인

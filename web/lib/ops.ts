@@ -127,6 +127,8 @@ function rivalTally(rows: { engine: string; query: string; hit: boolean; kind?: 
     if (r.kind === "색인" || /^site:/i.test(r.query)) continue;   // 색인 확인은 순위가 아니다
     // 측정 스크립트가 적어 둔 종류를 믿는다. 학원 이름 조각으로 가르면
     // 아이로그의 「아이로그 학원」 같은 브랜드 검색이 경쟁 검색으로 세진다.
+    // 「AI교육」처럼 따로 재는 종류는 경쟁 분모에 넣지 않는다(D107, KG-45-7) — 넣으면 랜딩 「/6」이 「/10」이 된다
+    if (r.kind && r.kind !== "브랜드" && r.kind !== "경쟁") continue;
     const isBrand = r.kind ? r.kind === "브랜드" : isBrandQuery(r.query);
     const m = isBrand ? brand : rival;
     m.set(r.query, (m.get(r.query) ?? false) || r.hit);

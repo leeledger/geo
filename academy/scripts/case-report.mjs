@@ -188,12 +188,12 @@ for (const r of serpRaw) {
 }
 const serp = [...serpBy.values()];
 /**
- * 처음 나온 날이 그 엔진을 처음 잰 날과 같으면 「처음 나온 날」이 아니라 「재기 시작한 날 이미 나와 있었다」다.
+ * 처음 나온 날이 그 엔진·검색어를 처음 잰 날과 같으면 「처음 나온 날」이 아니라 「재기 시작한 날 이미 나와 있었다」다.
  * 빙은 10-12 부터 진짜 브라우저로 잰다(그 전 fetch 기록은 가짜 결과라 academy.serp_checks_bing_fetch_void 로 옮겼다)
  */
 const serpFirst = (await pool.query(
   `select h.engine, h.query, min(h.day) d,
-          min(h.day) = (select min(day) from academy.serp_checks a where a.client_id=$1 and a.engine=h.engine) as at_start
+          min(h.day) = (select min(day) from academy.serp_checks a where a.client_id=$1 and a.engine=h.engine and a.query=h.query) as at_start
      from academy.serp_checks h
     where h.client_id=$1 and h.hit group by h.engine, h.query order by min(h.day), h.engine`, [CLIENT_ID],
 )).rows;
@@ -263,7 +263,7 @@ const rivalHit = serp.some((r) => r.hit && r.kind === "경쟁");
 /** 엔진이 셋이다. 전에는 「naver 가 아니면 Bing」이라 통합검색 노출이 Bing 으로 찍혔다. */
 const ENG = { naver: "네이버 웹문서", naver_all: "네이버 통합검색", bing: "Bing" };
 const eng = (e) => ENG[e] ?? e;
-const KIND = { 색인: "사이트 등록 확인", 브랜드: "학원 이름", 경쟁: "동네 검색어" };
+const KIND = { 색인: "사이트 등록 확인", 브랜드: "학원 이름", 경쟁: "동네 검색어", AI교육: "AI 교육 검색어" };
 const STAGE = { local: "동네 학원 찾기", problem: "고민 상담", consider: "고르는 기준", brand: "학원 이름 (확인용)" };
 const VENDOR = {
   openai: "OpenAI (ChatGPT)", anthropic: "Anthropic (Claude)", google: "구글", microsoft: "마이크로소프트 (Bing)",

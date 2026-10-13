@@ -80,10 +80,10 @@ export async function gatherDb(q, start, end) {
     // 같은 날 다시 재면 줄이 갱신된다(upsert). 그래서 「몇 번」이 아니라 「몇 개 검색어를, 마지막 언제」로 센다.
     safe(q(`select client_id, count(distinct query)::int queries, max(checked_at) last from academy.serp_checks
              where checked_at >= $1 and checked_at < $2 group by client_id`, P)),
-    // 엔진을 처음 잰 날 이미 나와 있던 건 「처음 노출」이 아니다 — 빙은 10-12 에 재는 방법을 바꿔 그날 15건이 한꺼번에 잡혔다
+    // 그 엔진·검색어를 처음 잰 날 이미 나와 있던 건 「처음 노출」이 아니다 — 빙 10-12 방법 변경, 새 검색어 추가(Step 45) 둘 다
     safe(q(`select client_id, engine, query from (
               select client_id, engine, query, min(checked_at) filter (where hit) f,
-                     min(min(checked_at)) over (partition by client_id, engine) s
+                     min(checked_at) s
                 from academy.serp_checks group by client_id, engine, query) t
              where f >= $1 and f < $2 and (f at time zone 'Asia/Seoul')::date > (s at time zone 'Asia/Seoul')::date
              order by f`, P)),
