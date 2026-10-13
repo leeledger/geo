@@ -2,6 +2,15 @@
 *Read this before reading anything else. If it covers current state, skip BUILD-LOG.*
 
 
+## Where We Stopped (2026-10-14 새벽) — Step 45 배포(73d4706) · /ai 초등 AI 교육
+
+- /ai 운영 200 · title「송파 석촌동 초등 AI 교육 — 단계별 AI 수업」· Course+FAQPage · 사이트맵 · 네비 「AI 교육」. 「주차별 목차는 상담 때 안내」는 근거 없는 약속이라 지움
+- 측정: 네이버 a1~a4(kind AI교육, 경쟁 분모와 따로 — ops.ts rivalTally D107) 기준선 10/13: naver 「송파 AI학원」1위·「송파 초등 AI 교육」5위, 「AI 교육 기관」「AI 강의하는 곳」 미노출. AI 탐침 p19~p22 넣음 — 첫 측정은 10/14·15 자동(하루 2개)
+- IndexNow 빙·네이버 200. GSC /ai 요청 실패(버튼 90초 타임아웃) — 오늘 tools/submit-gsc.mjs --all 다시, 또 실패면 로그인 확인(원장 몫)
+- 같은 날: 출처 절 중복 고침(7dd5ad6, 국민대 네이버판 원장 몫) · 케이스 리포트 새 글 19/옮긴 글 30 가름(72948c9) · 실적 검증(메모리 results-check-2026-10-13)
+- 원장 몫: KG-45-1 「AI 시대 코딩」 24주 주차 목차·도구·결과물 · KG-44-2 스마트플레이스 대표키워드 · 문의 기록 입력
+- 다음: 10/27 쯤 a1~a4·p19~p22 2주치로 /ai 효과 판단, AI교육을 경쟁 머리 숫자에 합칠지(KG-45-5)
+
 ## Where We Stopped (2026-10-13) — Step 44 배포(73b39d5) · AI학원 검색어
 
 - 10/13 측정: 네이버는 플레이스 4번째쯤(위치 기반)만, 웹문서 없음 · 빙 「송파 AI학원」 3위, 나머지 없음(빙 가짜 결과 가능성 — bing-serp.mjs 로 재확인) · 구글 차단으로 못 잼
