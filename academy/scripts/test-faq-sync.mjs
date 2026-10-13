@@ -49,14 +49,8 @@ const org = 그래프.find((n) => n["@id"] === "https://robotncoding.com/#org");
 const 절 = html.match(/<section id="faq">([\s\S]*?)<\/section>/)?.[1] ?? "";
 const 홈질문 = [...절.matchAll(/<summary>([\s\S]*?)<\/summary>/g)].map((m) => 풀기(m[1]));
 const 스키마질문 = (faq?.mainEntity ?? []).map((q) => String(q.name).trim());
-// Step 44 이전부터 글자가 다른 4쌍(같은 자리·같은 뜻). 이번 단계는 고치지 않는다 — BUILD-LOG Known Gaps.
-// 여기 없는 어긋남은 전부 FAIL. 이 4쌍을 고치면 이 목록에서 지운다.
-const 알려진어긋남 = new Map([
-  ["다른 코딩학원과 무엇이 다른가요?", "로봇&코딩학원은 다른 코딩학원과 무엇이 다른가요?"],
-  ["아이가 학원에서 뭘 배웠는지 집에서 알 수 있나요?", "아이가 코딩학원에서 뭘 배웠는지 집에서 알 수 있나요?"],
-  ["몇 살부터 시작할 수 있나요? 글자를 못 읽어도 되나요?", "코딩은 몇 살부터 시작할 수 있나요? 글자를 못 읽어도 되나요?"],
-  ["대회 수상이나 진학 실적이 있나요?", "로봇&코딩학원은 대회 수상이나 진학 실적이 있나요?"],
-]);
+// KG-44-3 4쌍 맞춤(10/13). 어긋남은 전부 FAIL.
+const 알려진어긋남 = new Map();
 const 어긋남 = 홈질문.map((q, i) => [i, q, 스키마질문[i]]).filter(([, h, s]) => h !== s);
 for (const [i, h, s] of 어긋남.filter(([, h, s]) => 알려진어긋남.get(h) === s)) console.log(`KNOWN ${i + 1}번째 글자 다름(Known Gap): home「${h}」 schema「${s}」`);
 const 새어긋남 = 어긋남.filter(([, h, s]) => 알려진어긋남.get(h) !== s);

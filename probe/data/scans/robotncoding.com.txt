@@ -6,8 +6,8 @@
   AI 크롤러 접근          100  ████████████████████  가중 25%
   본문 추출 가능성          100  ████████████████████  가중 20%
   구조화 데이터            100  ████████████████████  가중 20%
-  인용 가능한 문단           47  █████████···········  가중 15%
-  AI 친화 패턴            97  ███████████████████·  가중 10%
+  인용 가능한 문단           51  ██████████··········  가중 15%
+  AI 친화 패턴            95  ███████████████████·  가중 10%
   llms.txt           100  ████████████████████  가중 7%
   sitemap.xml        100  ████████████████████  가중 3%
 
@@ -29,20 +29,20 @@
   Common Crawl       CCBot              ✓ 명시허용
 
 ── 본문 추출 ──────────────────────────────────────────────
-  검사 페이지 6개 · 평균 본문 7582자 · 본문/HTML 비율 8.3%
-  JS 없이 본문이 빈약한 페이지 0개
+  검사 페이지 10개 · 평균 본문 6081자 · 본문/HTML 비율 8.0%
+  JS 없이 본문이 빈약한 페이지 1개
 
 ── 구조화 데이터 ──────────────────────────────────────────
-  JSON-LD 있는 페이지 6/6
-  발견 타입: EducationalOrganization, LocalBusiness, PostalAddress, Place, Offer, Service, OfferCatalog, Course, ContactPoint, Organization, Person, CollegeOrUniversity, WebSite, FAQPage, Question, Answer, Blog, BlogPosting, BreadcrumbList, ListItem
+  JSON-LD 있는 페이지 10/10
+  발견 타입: EducationalOrganization, LocalBusiness, PostalAddress, Place, Offer, Service, OfferCatalog, Course, ContactPoint, Organization, Person, CollegeOrUniversity, WebSite, FAQPage, Question, Answer, Audience, Syllabus, CourseInstance, Schedule, Blog, BlogPosting, BreadcrumbList, ListItem
 
 ── 문단 구조 ──────────────────────────────────────────────
-  산문 문단 334개 중 인용하기 좋은 길이(80~400자) 151개 (45.2%)
-  리스트 항목 108개
-  너무 긴 문단 0개 · 대명사 주어 3회
+  산문 문단 436개 중 인용하기 좋은 길이(80~400자) 236개 (54.1%)
+  리스트 항목 131개
+  너무 긴 문단 0개 · 대명사 주어 5회
 
 ── 콘텐츠 패턴 ────────────────────────────────────────────
-  질문형 제목 47개 · 수치 표현 293개 · 표 있는 페이지 2개
+  질문형 제목 66개 · 수치 표현 470개 · 표 있는 페이지 3개
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   먼저 고칠 것
