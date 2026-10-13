@@ -41,8 +41,9 @@ const pool = new Pool({
 
 // ── 데이터 수집
 const [posts] = (await pool.query(
-  `select count(*)::int n, coalesce(sum(length(body)),0)::int chars
-     from academy.posts where client_id=$1 and published`, [CLIENT_ID],
+  // 새로 쓴 글과 옛 글(시작 전 날짜로 옮겨 온 것)을 가른다 — 합쳐서 「처음 0」 옆에 두면 다 우리가 쓴 것처럼 읽힌다(10/13 검증)
+  `select count(*)::int n, (count(*) filter (where published_at >= $2))::int new, coalesce(sum(length(body)),0)::int chars
+     from academy.posts where client_id=$1 and published`, [CLIENT_ID, START],
 )).rows;
 const [drafts] = (await pool.query(
   `select count(*)::int n from academy.posts where client_id=$1 and not published`, [CLIENT_ID],
@@ -382,7 +383,7 @@ footer{padding:40px 0 68px;margin-top:42px;border-top:1px solid var(--line);colo
   <div class="tw"><table>
     <thead><tr><th>무엇을 봤나</th><th>시작 전</th><th>지금 (${nth(new Date())}일차)</th></tr></thead>
     <tbody>
-      <tr><td>학원 사이트에 올린 글</td><td class="no">0편</td><td><b>${posts.n}편</b></td></tr>
+      <tr><td>학원 사이트에 올린 글</td><td class="no">0편</td><td><b>새로 쓴 글 ${posts.new}편</b> (그 전 블로그 글 ${posts.n - posts.new}편을 옮겨 와 모두 ${posts.n}편)</td></tr>
       <tr><td>학원 이름 없이 동네 검색어로 찾을 때</td><td class="no">그때 고른 동네 검색어 4개 모두 안 나옴</td><td>${네이버.length ? `<b>${eng("naver")} — 지금 재는 동네 검색어 ${네이버.length}개 중 ${네이버나옴.length}개 나옴</b>${네이버나옴.some((r) => r.rank === 1) ? ` (1위 ${네이버나옴.filter((r) => r.rank === 1).length}개)` : ""}` : "아직 안 잼"}${빙.length ? `<br>Bing ${빙.length}개 중 ${빙.filter((r) => r.hit).length}개` : ""}</td></tr>
       <tr><td>AI·검색 프로그램이 읽으러 온 횟수</td><td class="no">0회</td><td><b>${(AI방문 + 검색방문).toLocaleString()}회</b> (AI ${AI방문.toLocaleString()} · 검색 ${검색방문.toLocaleString()})</td></tr>
       ${scan ? `<tr><td>사이트 점검 점수</td><td class="no">83점</td><td><b>${scan.total}점</b></td></tr>` : ""}
@@ -430,7 +431,7 @@ ${비교.length ? `
   <h2><span class="n">03</span>사이트는 얼마나 갖춰졌나</h2>
   <div class="kpis">
     <div class="kpi hi"><div class="v">${scan ? scan.total : "—"}<small>/100</small></div><div class="k">사이트 점검 점수 (처음 83)</div></div>
-    <div class="kpi"><div class="v">${posts.n}<small>편</small></div><div class="k">올린 글 (처음 0)</div></div>
+    <div class="kpi"><div class="v">${posts.new}<small>편</small></div><div class="k">시작 뒤 새로 쓴 글 (옮겨 온 글 ${posts.n - posts.new}편 별도)</div></div>
     <div class="kpi"><div class="v">${Number(posts.chars).toLocaleString()}<small>자</small></div><div class="k">글 분량 합계</div></div>
   </div>
 ${scan ? `
