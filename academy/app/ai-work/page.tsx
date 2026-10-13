@@ -407,6 +407,7 @@ export default function AiWork() {
           </p>
           <p className="lead">
             성인 수강료는 월 4회, 회당 120분, 200,000원(부가세 포함)입니다. 반 편성과 시간표는 상담 시 안내해 드립니다.
+            학원 등록 제7629호(서울특별시강동송파교육지원청).
           </p>
           <div className="aw-cta">
             <a className="pri" href="tel:02-422-0525">02-422-0525</a>

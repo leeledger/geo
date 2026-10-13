@@ -216,6 +216,11 @@
         "@type": "Organization",
         "name": "로보티즈 교육센터",
         "url": "https://www.robotis.com/"
+      },
+      "identifier": {
+        "@type": "PropertyValue",
+        "propertyID": "학원 등록번호 (서울특별시강동송파교육지원청)",
+        "value": "제7629호"
       }
     },
     {

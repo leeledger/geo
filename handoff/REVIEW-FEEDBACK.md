@@ -1,20 +1,15 @@
-# Review Feedback — Bing SERP via real browser (bing-serp.mjs) — re-check
-Date: 2026-10-12
+# Review Feedback — 학원 등록번호 표기 (robotncoding.com)
+Date: 2026-10-13
 Ready for Builder: YES
 
 ## Must Fix
-- None. The growth.ts finding from round 1 is resolved. `rivalAll` now filters `engine <> 'bing'`, so days the PC skips no longer blank the 경쟁 series. Bing still shows in the latest-day `byEngine` query, which is unfiltered.
+None.
 
 ## Should Fix
-- None outstanding. Round 1 items, all verified:
-  - brief-core.mjs: firsts now drop a hit when its KST day equals that client+engine's first measured day. The window `min(min(checked_at)) over (partition by client_id, engine)` is valid on the grouped rows.
-  - bing-serp.mjs:27-31: `내주소` takes the host, strips scheme and www, then requires an exact match or a `.domain` suffix. That rules out `mydocttak.com` and cites with the domain in the path.
-  - bing-serp.mjs:71,82: the control query runs before and after each client, and a failure drops only that client. Exit code 1 if any client failed.
-  - bing-serp.mjs:22: PROFILE resolves from import.meta.url to tools/.browser-profile, the same profile local-agent used before.
-  - bing-serp.mjs:84: rows are saved per client, so a timeout no longer loses the whole day.
+None. The only variation is spacing: ai-work/llms.txt write "제7629호(" and the footers write "제7629호 (". That is cosmetic and the meaning is the same.
 
 ## Escalate to Architect
-- None.
+None.
 
 ## Cleared
-Re-checked the diffs of growth.ts, brief-core.mjs and the rewritten tools/bing-serp.mjs. Every round 1 finding is fixed, and the fixes add no new issues.
+Reviewed `git diff -- academy/` (6 files, +10/-2). Every location uses the same number 제7629호 and the same issuer 서울특별시강동송파교육지원청; the "교육장" suffix is dropped, which is correct for naming the office. The course type 학교교과교습학원 / 기타(로봇) appears in home.html and llms.txt and matches the certificate. No founder name, resident number or 송파대로37길 address appears anywhere in the diff. schema.json parses as valid JSON. Its only change is +5 lines adding `identifier` (PropertyValue) on the #org node (EducationalOrganization/LocalBusiness), not on the memberOf node, with no reformatting. Both JSX footer strings are correct text expressions with spacing kept on both sides of the separators. No other files under academy/ were touched.
