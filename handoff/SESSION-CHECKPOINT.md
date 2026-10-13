@@ -2,6 +2,14 @@
 *Read this before reading anything else. If it covers current state, skip BUILD-LOG.*
 
 
+## Where We Stopped (2026-10-13) — Step 44 배포(73b39d5) · AI학원 검색어
+
+- 10/13 측정: 네이버는 플레이스 4번째쯤(위치 기반)만, 웹문서 없음 · 빙 「송파 AI학원」 3위, 나머지 없음(빙 가짜 결과 가능성 — bing-serp.mjs 로 재확인) · 구글 차단으로 못 잼
+- 제목·설명·스키마 소개 → 코딩·로봇·AI학원. FAQ 1문답(홈·스키마·llms 같은 글자), llms 「AI학원을 찾는 분께」. IndexNow 빙·네이버 200
+- 측정: 탐침 p14~p18(AI학원 검색어형), naver-place-check 에 AI학원 3개
+- 열린 것: KG-44-1 /ai 전용 페이지(2~3주 측정 뒤 결정) · KG-44-2 원장 몫 스마트플레이스 대표키워드 AI학원 · KG-44-3 기존 FAQ 4쌍 홈↔스키마 글자 다름 · llms.txt 3행 「AI 교육 전문 학원」 남음(선택)
+- 다음: 10/27 쯤 p14~p18·플레이스 순위 보고 /ai 페이지 여부 결정
+
 ## Where We Stopped (2026-10-10 오후) — Step 42·43 배포(cee2aaa) · 학원 사이트 vercel --prod
 
 - 42 자동 코드 수리: 스위치 없이 06:50 수리안, 스스로 멈춤·재개, 합치기는 현황판 승인 버튼(GH_DISPATCH_TOKEN web env, 93자 확인). REPAIR_ENABLED=1(원장이 켬) = 승인된 합치기만. 무인 합치기는 REPAIR_UNATTENDED=1 일 때만(D80, 빈 값)
