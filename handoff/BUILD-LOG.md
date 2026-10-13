@@ -1779,3 +1779,22 @@ Should Fix:
 - 원장이 등록증명서를 줌: 제7629호, 서울특별시강동송파교육지원청, 학교교과교습학원 / 기타(로봇). 홈 푸터·블로그 푸터·/ai-work·llms.txt·스키마 #org identifier 에 넣음. 설립자 이름·주민번호는 안 넣음. Richard PASS, 배포·운영 확인(c9a8135).
 - Known Gap: 증명서 위치는 도로명 「송파대로37길 52, 2층」, 사이트는 지번 「석촌동 274-8 2층」. 같은 건물인지 대조 안 함. 공공데이터(전국학원및교습소표준데이터) 표기와 맞춰 볼 것.
 - Known Gap: 이번 주 글 「코딩 몇 학년부터 시키나요?」가 감수 2회차까지 출처 대조 실패(24문장 중 3 맞음, 위키백과를 근거로 들었는데 출처 목록엔 없음). 내일 3회차, 실패면 버려짐 → 이번 주 0편 위험.
+
+### Step 44 — 「AI학원」 검색어: 제목·설명·스키마·FAQ·llms.txt — BRIEFED (2026-10-13, Arch) · Bob 대기
+- D99 「AI학원」은 있는 사실 자리에만: meta title·description, schema #org description, 새 FAQ 1문답(홈·스키마·llms 같은 글), llms.txt 1행·짧은 버전·새 절 「AI학원을 찾는 분께」. name·alternateName·h1·h2·ogTitle 손대지 않음
+- D100 문구는 Arch 가 브리프에 잠금(근거 = llms.txt 기존 줄 행번호). Bob 은 단어를 바꾸지 않는다
+- D101 새 문답 정직하게: 「이름에 AI가 들어간 학원은 아니다」 + 하지 않는 것(AI 답 그대로 제출 안 함, AI 튜터 정답 코드 안 줌) + 고르는 기준으로 닫는다
+- D102 회귀 가드 academy/scripts/test-faq-sync.mjs — 홈 FAQ·스키마 FAQ 순서 일치, AI학원 횟수, alternateName 오염 없음, 새 문구 MARKS 0
+- D103 /ai 어린이 AI 전용 페이지는 이번에 안 만든다 — 기존 사실로는 홈 #ai·FAQ·llms 절의 얇은 복제. p14~p18 측정 2~3주 보고 판단
+- Known Gap KG-44-1: /ai 전용 페이지 보류(D103)
+- Known Gap KG-44-2 (원장 몫): 네이버 스마트플레이스 대표키워드에 「AI학원」 추가 — 플레이스 순위엔 사이트보다 이게 크다
+
+### Step 44 — 빌드 (2026-10-13, Bob) · DONE · Richard 대기 · 배포 전
+- 바꾼 파일: academy/content/meta.json(title·description) · content/schema.json(#org description, FAQPage 6번째 새 Question) · content/home.html(#faq 석촌호수 뒤 <details>) · public/llms.txt(1행·짧은 버전·새 절·FAQ 끝 문답) · 새 academy/scripts/test-faq-sync.mjs
+- 잠긴 문구 단어 그대로. 학년·주수는 llms.txt 154·158·161·172·196·225행과 대조 일치
+- llms.txt FAQ 절엔 석촌호수 문답이 없다 → 브리프대로 FAQ 절 끝(「성인도 배울 수 있나요?」 뒤)에 넣음. 답은 문단당 한 줄(줄바꿈 없이) — 테스트가 글자 그대로 대조
+- 「AI학원」 자리: meta 2 · schema 3(#org·질문·답) · home 3(질문·답 2) · llms 7(1행·짧은 버전·절 제목·절 끝·FAQ 질문·답 2). 그 밖 0
+- test-faq-sync: 23 PASS · 0 FAIL. 음성 대조 — HEAD 내용으로 돌리면 12 FAIL·exit 1, 홈만 새 문답 넣고 스키마는 HEAD 면 순서 FAIL
+- tsc --noEmit 통과
+- D104 기존 13문답 중 4쌍이 홈·스키마 글자가 다르다(순서·자리는 같음). 브리프대로 안 고치고, 테스트에 그 4쌍만 「알려진 어긋남」으로 박아 KNOWN 으로 찍고 통과. 그 밖 어긋남은 전부 FAIL
+- Known Gap KG-44-3: 홈↔스키마 FAQ 글자 다름 4쌍 — 10「다른 코딩학원과…」↔「로봇&코딩학원은 다른 코딩학원과…」, 11「아이가 학원에서…」↔「아이가 코딩학원에서…」, 12「몇 살부터…」↔「코딩은 몇 살부터…」, 13「대회 수상이나…」↔「로봇&코딩학원은 대회 수상이나…」. 맞추면 test-faq-sync 의 알려진어긋남에서 지운다
