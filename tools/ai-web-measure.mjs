@@ -204,6 +204,25 @@ const 멈추고알림 = async (t, key, title, detail, 대기 = false) => {
 
 const 시작시각 = Date.now();
 const main = async () => {
+  // 화면이 답 대신 로그인·캡차를 보인 경우는 0점 측정이 아니다. 실패 원장을 따로 두고
+  // ai_measurements 에는 실제 답만 남긴다. 그래야 대시보드와 개선 루프가 막힌 화면을
+  // 「브랜드 미언급」으로 계산하지 않는다.
+  await q(`create table if not exists academy.ai_measurement_failures (
+    id bigserial primary key,
+    source_measurement_id bigint unique,
+    client_id int not null,
+    measured_on date not null,
+    collection_method text not null,
+    engine text not null,
+    prompt_id text not null,
+    stage text,
+    prompt_text text,
+    attempt int not null default 1,
+    reason text not null,
+    raw jsonb not null default '{}'::jsonb,
+    recorded_at timestamptz not null default now(),
+    unique(client_id, measured_on, collection_method, engine, prompt_id, attempt)
+  )`);
   // 누구를 잴지 — --client 가 없으면 진행 중 파일럿·측정 켠 고객·학원을 순서대로(academy/measure-targets.mjs)
   const 대상 = await 측정대상(q, 오늘, SLUG);
   const 나눔 = 대상.length > 1;   // 학원만 있으면 나누지 않는다 — 지금과 같게
@@ -274,11 +293,13 @@ const main = async () => {
           // 그림·영상·글꼴은 안 받는다(lean-browser) — 답 글자와 링크만 읽으니 결과는 같고, 몇 시간 도는 동안 CPU·메모리를 덜 문다
           await 가볍게(ctx);
           const p = await ctx.newPage();
+          let 실패원문 = {};
           try {
             await p.goto(e.home, { waitUntil: "domcontentloaded", timeout: 45000 });
             await p.waitForTimeout(5000);
             const r = await e.ask(p, x.text);
             const 글 = 답만(r.answer, x.text);
+            실패원문 = { answer: 글.slice(0, 8000), links: r.links.slice(0, 60) };
             if (e.막힘.test(글) || 글.length < 40) throw new Error(e.막힘.test(글) ? "막힘(로그인·캡차)" : "답 없음");
             const mentioned = 이름.test(글);
             const cited = r.links.some((c) => c.domain === CLIENT.domain || c.domain.endsWith(`.${CLIENT.domain}`));
@@ -297,7 +318,16 @@ const main = async () => {
             console.log(`  ${cited ? "◎" : mentioned ? "○" : "·"} ${key} ${나눔 ? `${CLIENT.slug} ` : ""}${x.prompt_id} 링크 ${r.links.length}`);
           } catch (err) {
             연속실패++;
-            console.log(`  ✗ ${key} ${x.prompt_id} ${String(err.message).split("\n")[0].slice(0, 120)}`);
+            const 실패사유 = String(err.message).split("\n")[0].slice(0, 160);
+            console.log(`  ✗ ${key} ${x.prompt_id} ${실패사유.slice(0, 120)}`);
+            await q(
+              `insert into academy.ai_measurement_failures
+                 (client_id, measured_on, collection_method, engine, prompt_id, stage, prompt_text, attempt, reason, raw)
+               values ($1,$2,$3,$4,$5,$6,$7,1,$8,$9::jsonb)
+               on conflict (client_id, measured_on, collection_method, engine, prompt_id, attempt)
+               do update set reason=excluded.reason, raw=excluded.raw, recorded_at=now()`,
+              [CLIENT.id, 오늘, e.method, e.engine, x.prompt_id, x.stage, x.text, 실패사유, JSON.stringify(실패원문)],
+            ).catch((dbErr) => 기록(`측정 실패 원장 기록 실패 ${dbErr.message}`));
             await p.screenshot({ path: path.join(HERE, `ai-web-${key}-fail.png`) }).catch(() => {});
             if (연속실패 >= 3) { 멈춤 = String(err.message).split("\n")[0].slice(0, 80); break; }
           } finally {
