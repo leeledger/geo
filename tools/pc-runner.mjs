@@ -108,7 +108,7 @@ function 고아정리() {
   const ps = `$all = Get-CimInstance Win32_Process; $ids = @{}; $all | % { $ids[[int]$_.ProcessId] = 1 }; ` +
     `$all | ? { $_.ExecutablePath -like '*ms-playwright*' -and -not $ids.ContainsKey([int]$_.ParentProcessId) } | ` +
     `% { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue; $_.ProcessId }`;
-  const r = spawnSync("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", ps], { windowsHide: true, encoding: "utf8", timeout: 60000 });
+  const r = spawnSync(path.join(process.env.SystemRoot || "C:\\Windows", "System32", "WindowsPowerShell", "v1.0", "powershell.exe"), ["-NoProfile", "-NonInteractive", "-Command", ps], { windowsHide: true, encoding: "utf8", timeout: 60000 });
   const 끈것 = String(r.stdout ?? "").split(/\s+/).filter(Boolean);
   if (끈것.length) 기록(`남은 브라우저 ${끈것.length}개 끔 (pid ${끈것.join(",")})`);
 }

@@ -1835,3 +1835,6 @@ Should Fix:
 - D115 퍼플렉시티 막힘에 「가입한 뒤 요청을 다시」 추가 — 이 화면이 답 대신 와도 「이름 안 나옴」으로 저장되고 있었다
 - 확인: 일꾼 BelowNormal · wscript 1개 · 둘째 실행 종료코드 4 · chatgpt/gemini 1문항씩 정상 답(gemini 1,193~1,645자, chatgpt 링크 4~6)
 - **Known Gap KG-PC-1 (원장 결정)**: academy.ai_measurements 퍼플렉시티 821줄 중 412줄(9/30~10/14)이 「가입한 뒤 요청을 다시」 화면 — 측정이 아니다. 지우거나 집계에서 빼야 퍼플렉시티 숫자가 맞다. 세션의 DELETE 는 권한에서 막힘. 10/14 q1 3줄은 이 세션이 만든 것
+- 10/14 13:50 정기 헤드리스 크롬 출처 조사: 63개가 문서딱 세션(C:\dev\doc-tools req-a Playwright 전 브라우저 병렬 70프로세스 8.3GB · req-c Lighthouse) — 원장 결정으로 손대지 않음. 사이티드는 일꾼 아래 16개 781MB·BelowNormal 뿐(측정 따라잡기). 정기 헤드리스(headless:true)를 쓰는 사이티드 일은 없다 — 측정·색인은 화면 밖 창이고 svg-to-png·shot·yt-search 는 손으로만
+- 고아 정리가 powershell.exe 를 이름으로 불러 PATH 에 따라 못 찾음(Git Bash 에서 ENOENT 재현) → SystemRoot 전체 경로
+- 렌더러 제한(--renderer-process-limit=2 등) 시험: 10개 571MB → 7개 518MB. 측정 화면을 바꿀 위험에 비해 작아 안 넣음
