@@ -20,6 +20,7 @@
  * 고객 Search Console 에 이 프로필 계정 권한이 없으면 검사창이 안 뜬다 — 권한은 사람이 받는다.
  */
 import { chromium } from "playwright";
+import { 가볍게 } from "./lean-browser.mjs";
 import path from "node:path";
 import { readFile, writeFile } from "node:fs/promises";
 import { loadClients, 고객고르기, 잠깐DB } from "../academy/clients.mjs";
@@ -66,6 +67,7 @@ const ctx = await chromium.launchPersistentContext(PROFILE, {
   timezoneId: "Asia/Seoul",
   args: ["--disable-blink-features=AutomationControlled"],
 });
+await 가볍게(ctx);
 const page = ctx.pages()[0] ?? (await ctx.newPage());
 
 // 콘솔에 한 번만 들어간다. 이후에는 같은 화면에서 검사창만 다시 쓴다.

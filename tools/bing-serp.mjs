@@ -15,6 +15,7 @@
  *   node tools/bing-serp.mjs --dry            저장하지 않고 보기만
  */
 import { chromium } from "playwright";
+import { 가볍게 } from "./lean-browser.mjs";
 import { fileURLToPath } from "node:url";
 import { 고객고르기, 잠깐DB } from "../academy/clients.mjs";
 
@@ -37,6 +38,7 @@ const ctx = await chromium.launchPersistentContext(PROFILE, {
   headless: false, viewport: { width: 1360, height: 900 }, locale: "ko-KR",
   args: ["--disable-blink-features=AutomationControlled"],
 });
+await 가볍게(ctx);
 const page = ctx.pages()[0] ?? (await ctx.newPage());
 
 /** 결과 목록의 표시 주소(cite)를 차례대로. 광고·뉴스 묶음은 b_algo 가 아니라 빠진다 */

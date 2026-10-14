@@ -9,10 +9,12 @@
  *   node brave-index-check.mjs <slug...>  그 글이 색인에 있나(주소로 검색). 줄마다 「있음|없음|확인 불가  <주소>」
  */
 import { chromium } from "playwright";
+import { 가볍게 } from "./lean-browser.mjs";
 
 const slugs = process.argv.slice(2);
 const b = await chromium.launch({ headless: false });
 const p = await b.newPage({ locale: "ko-KR", viewport: { width: 1200, height: 900 } });
+await 가볍게(p);
 
 /**
  * 캡차·빈 화면이면 결과 링크가 0개라 모든 글이 「없음」으로 찍힌다(Richard 22). 그건 없음이 아니라 못 본 것이다.

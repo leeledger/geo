@@ -12,6 +12,7 @@
  *   node bing-submit-urls.mjs --client docttak   다른 고객사 (인자 없으면 학원)
  */
 import { chromium } from "playwright";
+import { 가볍게 } from "./lean-browser.mjs";
 import fs from "node:fs";
 import path from "node:path";
 import { bingClient } from "./bing-site.mjs";
@@ -27,6 +28,7 @@ const ctx = await chromium.launchPersistentContext(path.join(process.cwd(), ".br
   headless: false, viewport: { width: 1360, height: 900 }, locale: "ko-KR",
   args: ["--disable-blink-features=AutomationControlled"],
 });
+await 가볍게(ctx);
 const page = ctx.pages()[0] ?? (await ctx.newPage());
 await page.goto(`https://www.bing.com/webmasters/submiturl?siteUrl=${encodeURIComponent(SITE)}`, { waitUntil: "domcontentloaded" });
 await page.waitForTimeout(9000);

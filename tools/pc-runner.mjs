@@ -100,14 +100,33 @@ const 환경값 = (key) => {
   return "";
 };
 
+/**
+ * 부모가 사라진 Playwright 브라우저를 끈다 — 일이 시간 초과·오류로 끝나면 Chromium 이 남을 수 있다.
+ * ms-playwright 아래 실행 파일만, 부모 프로세스가 없는 것만. 원장의 크롬·지금 도는 일의 브라우저(부모 살아 있음)는 안 건드린다
+ */
+function 고아정리() {
+  const ps = `$all = Get-CimInstance Win32_Process; $ids = @{}; $all | % { $ids[[int]$_.ProcessId] = 1 }; ` +
+    `$all | ? { $_.ExecutablePath -like '*ms-playwright*' -and -not $ids.ContainsKey([int]$_.ParentProcessId) } | ` +
+    `% { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue; $_.ProcessId }`;
+  const r = spawnSync("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", ps], { windowsHide: true, encoding: "utf8", timeout: 60000 });
+  const 끈것 = String(r.stdout ?? "").split(/\s+/).filter(Boolean);
+  if (끈것.length) 기록(`남은 브라우저 ${끈것.length}개 끔 (pid ${끈것.join(",")})`);
+}
+
 function 돌리기(job, args = []) {
   return new Promise((resolve) => {
     const t0 = Date.now();
     if (!job.quiet) 기록(`시작 ${job.id}`);
     const c = spawn(NODE, [path.join(HERE, job.script), ...args], { cwd: HERE, windowsHide: true, stdio: "ignore" });
-    const kill = setTimeout(() => { 기록(`${job.id} ${job.limitMin}분 넘어 멈춤`); c.kill(); }, job.limitMin * 60000);
+    // c.kill() 은 node 만 죽인다 — 측정이 띄운 Chromium 이 남아 자원을 문다(2026-10-13 측정 180분 멈춤 뒤 다음 날 PC 가 멈춤). 나무째 끈다
+    const kill = setTimeout(() => {
+      기록(`${job.id} ${job.limitMin}분 넘어 멈춤`);
+      const r = spawnSync("taskkill.exe", ["/PID", String(c.pid), "/T", "/F"], { windowsHide: true });
+      if (r.status !== 0) c.kill();
+    }, job.limitMin * 60000);
     c.on("exit", (code) => {
       clearTimeout(kill);
+      if (!job.quiet) 고아정리();   // 매분 도는 login-poll 마다 PowerShell 을 띄우지 않는다
       // 조용한 일(login-poll 매분)은 정상 끝을 안 적는다 — 무슨 일을 했으면 자기 로그(login-poll.log)에 적는다
       if (!job.quiet || code !== 0) 기록(끝줄(job.id, code, Math.round((Date.now() - t0) / 1000)));
       resolve(code);
@@ -133,9 +152,14 @@ function 떠있음() {
 
 const LOGIN_JOB = { id: "login-poll", script: "login-poll.mjs", limitMin: 15, quiet: true };
 
+/** 이미 일꾼이 있으면 이 코드로 끝난다 — VBS 가 보고 반복을 멈춘다(1분마다 node 를 새로 띄우지 않게) */
+const 이미있음 = 4;
+
 async function 일꾼() {
-  if (떠있음()) return;
+  if (떠있음()) { process.exitCode = 이미있음; return; }
   fs.writeFileSync(LOCK, String(process.pid));
+  // 낮은 우선순위 — 윈도는 BELOW_NORMAL 을 자식(측정 Chromium 포함)에 물려준다. 원장이 PC 를 쓸 때 앞을 비켜 준다
+  try { os.setPriority(os.constants.priority.PRIORITY_BELOW_NORMAL); } catch {}
   const 정리 = () => { try { if (Number(fs.readFileSync(LOCK, "utf8")) === process.pid) fs.unlinkSync(LOCK); } catch {} };
   process.on("exit", 정리);
   for (const sig of ["SIGINT", "SIGTERM"]) process.on(sig, () => process.exit(0));
@@ -211,9 +235,10 @@ function 설치() {
     "Microsoft", "Windows", "Start Menu", "Programs", "Startup");
   const vbs = path.join(startup, "Cited PC Runner.vbs");
   // 창 없이 띄우고(0 = 숨김), 끝날 때까지 기다렸다가(True) 1분 뒤 다시 띄운다.
-  // 일꾼이 꺼져도 로그인 전까지 아무도 안 띄워 33시간 멈췄다(2026-09-30~10-01). 이미 떠 있으면 새 일꾼은 바로 끝나고 1분 뒤 또 본다
+  // 일꾼이 꺼져도 로그인 전까지 아무도 안 띄워 33시간 멈췄다(2026-09-30~10-01).
+  // 이미 일꾼이 떠 있으면(종료코드 4) 이 VBS 는 그만둔다 — 예전엔 1분마다 node 를 새로 띄웠고, --install 할 때마다 그런 반복이 하나씩 늘었다(2026-10-14)
   fs.writeFileSync(vbs,
-    `Set sh = CreateObject("WScript.Shell")\r\nDo\r\n  sh.Run """${NODE}"" ""${path.join(HERE, "pc-runner.mjs")}""", 0, True\r\n  WScript.Sleep 60000\r\nLoop\r\n`);
+    `Set sh = CreateObject("WScript.Shell")\r\nDo\r\n  rc = sh.Run("""${NODE}"" ""${path.join(HERE, "pc-runner.mjs")}""", 0, True)\r\n  If rc = ${이미있음} Then Exit Do\r\n  WScript.Sleep 60000\r\nLoop\r\n`);
   console.log(`시작프로그램 등록: ${vbs}`);
   옛작업끄기();
   if (떠있음()) { console.log("일꾼이 이미 떠 있습니다"); return; }

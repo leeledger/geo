@@ -24,6 +24,7 @@
  * 엔진이 막히면(로그인 요구·캡차·답 없음 3번 연속) 그 엔진은 그날 멈춘다. 우회하지 않는다.
  */
 import { chromium } from "playwright";
+import { 가볍게 } from "./lean-browser.mjs";
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
@@ -156,7 +157,8 @@ const ENGINES = {
   },
   perplexity: {
     method: "perplexity-web-logged-out", engine: "perplexity-web", home: "https://www.perplexity.ai/",
-    막힘: /Sign in to continue|로그인해서 계속|verify you are human/i,
+    // 「가입한 뒤 요청을 다시 보내주세요」 — 로그아웃 화면이 답 대신 낸다. 9/30~10/14 821줄 중 412줄이 이 화면인데 「이름 안 나옴」으로 쌓였다
+    막힘: /Sign in to continue|로그인해서 계속|verify you are human|가입한 뒤 요청을 다시/i,
     async ask(p, 질문) {
       await 넣기(p, ["#ask-input", "textarea", "div[contenteditable=true]"], 질문);
       const 답 = await 다될때까지(p, () => p.locator("main").innerText());
@@ -200,6 +202,7 @@ const 멈추고알림 = async (t, key, title, detail, 대기 = false) => {
     [t.id, key, title, detail]).catch((e) => 기록(`일감 올리기 실패 ${e.message}`));
 };
 
+const 시작시각 = Date.now();
 const main = async () => {
   // 누구를 잴지 — --client 가 없으면 진행 중 파일럿·측정 켠 고객·학원을 순서대로(academy/measure-targets.mjs)
   const 대상 = await 측정대상(q, 오늘, SLUG);
@@ -264,8 +267,12 @@ const main = async () => {
         let ok = 0, hit = 0, cite = 0, 연속실패 = 0, 멈춤 = "", 상한걸림 = false, 시도 = 0;
         for (const x of todo) {
           if (오늘보냄 + 보냄 >= 하루상한) { 상한걸림 = true; break; }
+          // pc-runner 가 180분에 끊기 전에 스스로 접는다 — 브라우저를 닫고 「끝」 줄을 남긴다. 못 잰 문항은 16:00 실행이 잇는다
+          if (Date.now() - 시작시각 > 150 * 60000) { 멈춤 = "150분 넘어 다음 실행으로 미룸"; break; }
           보냄++; 시도++;
           const ctx = await b.newContext({ locale: "ko-KR", timezoneId: "Asia/Seoul", viewport: { width: 1280, height: 900 } });
+          // 그림·영상·글꼴은 안 받는다(lean-browser) — 답 글자와 링크만 읽으니 결과는 같고, 몇 시간 도는 동안 CPU·메모리를 덜 문다
+          await 가볍게(ctx);
           const p = await ctx.newPage();
           try {
             await p.goto(e.home, { waitUntil: "domcontentloaded", timeout: 45000 });

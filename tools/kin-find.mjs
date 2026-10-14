@@ -26,6 +26,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
+import { 가볍게 } from "./lean-browser.mjs";
 import pg from "pg";
 import { loadClients } from "../academy/clients.mjs";
 import { 네이버쿠키 } from "./login-rules.mjs";
@@ -131,6 +132,7 @@ const ctx = await chromium.launchPersistentContext(프로필, {
   headless: false, viewport: { width: 1280, height: 900 }, locale: "ko-KR", timezoneId: "Asia/Seoul",
   args: ["--disable-blink-features=AutomationControlled"],
 });
+await 가볍게(ctx);
 const page = ctx.pages()[0] ?? await ctx.newPage();
 let 끝코드 = 0;
 const 찾음 = [], 떨어짐 = [];

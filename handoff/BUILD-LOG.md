@@ -1824,3 +1824,14 @@ Should Fix:
 - **ESCALATE (KG-45-7, 고치지 않음)**: web/lib/ops.ts:130 rivalTally 가 kind 가 「브랜드」 아니면 전부 경쟁으로 센다 → AI교육 4개가 /admin/ops 「노출된 경쟁 검색어」와 **사이티드 랜딩 web/app/page.tsx:180-181·523-530 「0 → N / 6 … 학원 이름 없이 친 검색 6개」** 분모를 10으로 바꾼다. 7번 check-index 기준선을 돌리는 순간 공개 랜딩 숫자가 바뀐다. 한 줄 수정 후보: `const isBrand = …` 대신 kind 가 있으면 `kind === "경쟁"` 만 rival 로, 그 밖 kind 는 건너뜀
 - Known Gap KG-45-8: check-index.mjs:166-167 콘솔 「질의 노출 x/y」 분모에 AI교육도 들어간다(브랜드처럼, 콘솔 전용) · bing-check.mjs 전체 줄 수도 같음
 - Step 45 배포(10/13): Richard 통과(Must Fix 0). 오케스트레이터가 KG-45-7 한 줄(ops.ts rivalTally — AI교육은 경쟁 분모에서 뺌, D107) 넣음. Richard 가 올린 「주차별 목차는 상담 때 안내합니다」는 근거 없는 약속이라 ai.json 에서 지움(KG-45-1 채워지면 과정 절을 커리큘럼으로). academy vercel --prod, 운영 /ai 200·title·Course·FAQPage·sitemap·홈 링크 확인
+
+## PC 자원 점유 — pc-runner·측정 브라우저 가볍게 (2026-10-14, 세션)
+
+- 사실: 10/13 10:00 ai-web-measure 180분에 끊김(117/180질의), 16:00 실행 뒤 pc-runner 로그 끊김, 10/14 12:05 PC 멈춤·강제 재부팅(이벤트 41·6008). 누군가 13:00 에 시작프로그램 VBS 를 tools/_disabled_startup 으로 옮김
+- 까닭: ① VBS 가 일꾼이 이미 있어도 1분마다 node 를 새로 띄움 — --install 할 때마다 그런 고리가 하나씩 늘었다 ② 시간 초과 때 c.kill() 이 node 만 죽여 Chromium 이 남을 수 있음 ③ 측정은 그림·영상·글꼴까지 받으며 화면 있는 Chromium 으로 1.5~3시간
+- D112 pc-runner: 이미 일꾼 있으면 종료코드 4 → VBS 가 고리를 멈춤 · 일꾼은 BELOW_NORMAL(자식 Chromium 이 물려받음) · 시간 초과는 taskkill /T /F 로 나무째 · 일 끝날 때마다 부모 없는 ms-playwright 프로세스 정리(quiet 일 제외)
+- D113 tools/lean-browser.mjs 「가볍게」: 그림·영상·글꼴 abort. 읽기·누르기만 하는 자동 일에만 — ai-web-measure·bing-serp·brave-index-check·kin-find·submit-gsc·bing-submit-urls. 글 올리는 편집기(naver-blog-post·smartplace)는 안 건다
+- D114 ai-web-measure 150분 넘으면 새 질문을 안 열고 접는다(16:00 실행이 잇는다)
+- D115 퍼플렉시티 막힘에 「가입한 뒤 요청을 다시」 추가 — 이 화면이 답 대신 와도 「이름 안 나옴」으로 저장되고 있었다
+- 확인: 일꾼 BelowNormal · wscript 1개 · 둘째 실행 종료코드 4 · chatgpt/gemini 1문항씩 정상 답(gemini 1,193~1,645자, chatgpt 링크 4~6)
+- **Known Gap KG-PC-1 (원장 결정)**: academy.ai_measurements 퍼플렉시티 821줄 중 412줄(9/30~10/14)이 「가입한 뒤 요청을 다시」 화면 — 측정이 아니다. 지우거나 집계에서 빼야 퍼플렉시티 숫자가 맞다. 세션의 DELETE 는 권한에서 막힘. 10/14 q1 3줄은 이 세션이 만든 것
