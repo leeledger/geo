@@ -2,6 +2,13 @@
 *Read this before reading anything else. If it covers current state, skip BUILD-LOG.*
 
 
+## Where We Stopped (2026-10-14 오후) — PC 자원 점유 고침(3574665)
+
+- 10/14 12:05 PC 멈춤·강제 재부팅. pc-runner VBS 1분 고리·남는 Chromium·무거운 측정 브라우저가 까닭. 고침: 종료코드 4 로 고리 멈춤, 일꾼 BELOW_NORMAL, 시간 초과 나무째 끄기, 부모 없는 Playwright 정리, tools/lean-browser.mjs(그림·영상·글꼴 안 받음), 측정 150분 자체 마감 — D112~D115
+- 시작프로그램 VBS 새로 설치·일꾼 13:17 띄움(놓친 오늘 10:00 측정·지식iN·로컬 에이전트를 따라잡는다). tools/_disabled_startup/ 의 옛 VBS 는 이제 안 씀
+- **KG-PC-1 원장 결정**: 퍼플렉시티 측정 821줄 중 412줄이 「가입한 뒤 요청을 다시」 화면(측정 아님) — 지울지/집계에서 뺄지. 앞으로는 막힘으로 걸러 저장 안 함
+- 다음: 내일 pc-runner.log 에 ai-web-measure 「끝」 줄과 시간 확인(평소 1.5시간보다 짧아졌는지)
+
 ## Where We Stopped (2026-10-14 새벽) — Step 45 배포(73d4706) · /ai 초등 AI 교육
 
 - /ai 운영 200 · title「송파 석촌동 초등 AI 교육 — 단계별 AI 수업」· Course+FAQPage · 사이트맵 · 네비 「AI 교육」. 「주차별 목차는 상담 때 안내」는 근거 없는 약속이라 지움
