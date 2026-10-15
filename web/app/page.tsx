@@ -1,4 +1,3 @@
-import { Fragment } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import ScanForm from "./ScanForm";
@@ -15,21 +14,22 @@ import { SERVICES, PILOT } from "@/lib/services";
 import { GUIDES } from "@/lib/guides";
 import { readOps } from "@/lib/ops";
 import { readPlaceRank } from "@/lib/place";
-import { SITE_URL } from "@/lib/site";
+import { SITE_URL, CITED_ABOUT, SITE_TITLE, SITE_DESCRIPTION } from "@/lib/site";
 import "./landing.css";
 
 /**
- * 사는 사람 순서로 읽힌다. (design/cited-landing/Main.dc.html)
- *   이게 뭔데(히어로) → GEO 가 뭔데 → 말만인가(기록) → 뭘 받나(실제 기록 세 장) → 해당되나
- *   → 사이트 점수와 AI 노출은 따로 논다 → 서비스 → 요금 계산 → 진행 → 사례 → 리포트가 다른 점
- *   → 안 하는 것 → 질문 → 신청
+ * 사는 사람이 묻는 순서로 읽힌다 (Step 47).
+ *   뭐 하는 회사?(히어로·하는 일) → 왜 먹히나(34곳) → 해 봤나(첫 적용) → 우리도 해당?
+ *   → 뭘 해 주나(서비스) → 어떻게(진행) → 뭘 받나(보고서) → 얼마(요금) → 믿을 만한가(다른 점·안 하는 일)
+ *   → 질문 → 더 읽을 것 → 시작
+ * 「도입 사례」는 「첫 적용」으로 바꿨다(D122). 대표가 운영하는 학원이라 유료 고객처럼 읽히면 지어낸 것이 된다.
  *
  * 받은 말 셋을 반영했다.
  *   「추상적이다」 — 설명 대신 실제로 남긴 기록을 싣는다. 질문 원문, 회사별 횟수, 비교 글 제목, 고친 이유.
  *   「날짜를 특정하지 마라」 — 달력 날짜는 늙는다. 사례는 착수 기준 「N일차」로 적는다.
  *   「재 본다는 말이 어색하다」 — 묻는다·센다·확인한다·진단한다로 쓴다.
  *
- * 사례 학원은 가린다 — 이름·지역·사이트 주소·글 주소. 조합되면 특정된다.
+ * 첫 적용 학원은 가린다 — 이름·지역·사이트 주소·글 주소. 조합되면 특정된다.
  * 시장 숫자의 출처는 probe/data (사이트 진단 34곳 · ERP 질문 12개로 받은 AI 답 15개(회사당 15회 표본) · 진단 리포트).
  * 재질의 변동(28%)·「출처 중 홈페이지 다섯에 하나」는 내렸다 — 두 번 물은 3쌍·답 15개라 사전 실증에 못 댄다(Arch 2026-09-29).
  * 회사 이름은 A·B·C 로 쓴다. 우리 고객이 아니어도 남의 회사 점수를 이름 붙여 걸지 않는다.
@@ -39,11 +39,19 @@ import "./landing.css";
 const BASE = SITE_URL;
 const CASE_URL = "/case/academy.html";
 
+/** 파일럿 가격 숫자만. JSON-LD Offer 에 넣는다 — 손으로 적지 않는다. */
+const PILOT_PRICE = PILOT.price.replace(/\D/g, "");
+
 const FAQ: [string, string][] = [
+  ["사이티드(Cited)는 무슨 회사인가요?", CITED_ABOUT.join(" ")],
+  ["무료 진단은 무엇을 보나요?",
+   "홈페이지를 AI 가 읽을 수 있는 상태인지 봅니다. AI 봇 허용, 구조화 데이터, 문단 길이 같은 7개 항목입니다. 답에 이름이 나오는지는 무료 진단으로 알 수 없습니다. 같은 질문을 여러 날 물어야 해서 30일 파일럿에서 셉니다."],
+  ["비용은 얼마인가요?",
+   `30일 파일럿 39만원으로 시작합니다. 선결제입니다. 홈페이지가 없으면 구축 250만원(기술 세팅 포함), AI 가 못 읽는 사이트면 기술 세팅 80만원을 한 번 냅니다. ${PILOT.after}`],
   ["직접 하면 안 되나요?",
    "기술 세팅은 직접 하실 수 있고 그러시길 권합니다. 어려운 건 AI 네 곳에 같은 질문을 날마다 물어 세는 일과, 경쟁사는 있고 우리만 없는 비교 글을 찾아내는 일입니다. 저희가 파는 건 그 둘을 30일 동안 해 보는 파일럿입니다."],
   ["얼마나 걸리나요?",
-   "사례 학원은 착수 넷째 날 네이버 검색에 사이트가 처음 잡혔고, 여섯째 날 학원 이름 없이 친 지역 검색어에 나오기 시작했습니다. AI 답변에 이름이 붙기까지 얼마나 걸리는지는 아직 모릅니다. 결과가 나오면 사례 기록에 그대로 적습니다."],
+   "사이티드 대표가 운영하는 학원은 착수 넷째 날 네이버 검색에 사이트가 처음 잡혔고, 여섯째 날 학원 이름 없이 친 지역 검색어에 나오기 시작했습니다. AI 답변에 이름이 붙기까지 얼마나 걸리는지는 아직 모릅니다. 같은 조건으로 다시 재면 사례 기록에 그대로 적습니다."],
   ["성과를 보장하나요?",
    "노출·순위·문의를 보장하지 않습니다. 우리가 보장하는 것은 약속한 작업의 수행과 같은 조건의 재측정 보고입니다. 어떤 질문을 어느 AI 에 어떤 방법으로 묻는지 시작 전에 적고, 30일 차에 같은 방법으로 다시 센 결과를 그대로 드립니다."],
   ["중간에 그만두면 돌려받나요?",
@@ -62,19 +70,26 @@ const SCHEMA = {
     {
       "@type": "Organization",
       "@id": `${BASE}/#org`,
-      name: "Cited 사이티드",
+      name: "사이티드(Cited)",
+      alternateName: ["사이티드", "Cited"],
       url: BASE,
-      description:
-        "손님이 AI 에게 물었을 때 답변에 회사 이름이 나오는지 확인하고, 나오게 만드는 마케팅 대행사입니다. 학원·병원·사무소 규모에 맞춘 GEO 서비스.",
+      description: CITED_ABOUT[0],
       areaServed: "KR",
       knowsAbout: ["AEO", "GEO", "AI 검색 최적화", "생성형 엔진 최적화", "AI 인용률 측정"],
     },
     {
       "@type": "Service",
       "@id": `${BASE}/#service`,
-      name: "AI 답변 인용 측정 및 최적화",
+      name: "AI 답변 노출 대행(GEO)",
       provider: { "@id": `${BASE}/#org` },
       areaServed: "KR",
+      offers: {
+        "@type": "Offer",
+        name: PILOT.name,
+        price: PILOT_PRICE,
+        priceCurrency: "KRW",
+        url: `${BASE}/#price`,
+      },
       hasOfferCatalog: {
         "@type": "OfferCatalog",
         name: "서비스",
@@ -97,21 +112,23 @@ const SCHEMA = {
 };
 
 export const metadata: Metadata = {
+  title: SITE_TITLE,
+  description: SITE_DESCRIPTION,
   alternates: { canonical: "/" },
+  openGraph: {
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    url: "/",
+    siteName: "사이티드(Cited)",
+    locale: "ko_KR",
+    type: "website",
+  },
 };
 
 export const revalidate = 3600;
 
 /** 착수일. 「N일차」를 여기서 센다. 화면에는 날짜를 내지 않는다. */
 const START = Date.parse("2026-09-05T00:00:00+09:00");
-
-/**
- * 사례 학원 사이트 진단 — probe/data/scans/robotncoding.com.json (착수 6일차 저장).
- * web 배포에는 probe 폴더가 없어 값을 옮겨 적는다. 다시 진단하면 여기도 고친다.
- * 문단 점수 47 을 뺀 네 개만 고르면 보기 좋은 숫자를 만드는 것이다. 그래서 같이 싣는다.
- * chunkIn 은 80~400자 범위에 든 문단 수. 진단기는 800자 넘는 문단을 「너무 길다」로 센다.
- */
-const SCAN = { total: 92, baseline: 83, crawler: 100, schema: 100, chunk: 47, chunkIn: 151, chunkAll: 334 };
 
 /**
  * 첫 방문 기록 — 서버 로그. 시각은 한국 시각(KST). 원본은 UTC 로 남아 있어 9시간을 더했다.
@@ -133,6 +150,9 @@ const TIMELINE: [string, string, string][] = [
   ["6일차", "학원 이름 없이 친 검색어에 첫 노출 · 플레이스 소개글 188자 → 933자", "네이버 통합검색 「○○구 코딩학원」에 사이트가 나왔습니다."],
 ];
 
+/** serp_checks.engine → 화면 이름 (관리 화면 Growth.tsx 와 같은 이름) */
+const ENGINE_NAME: Record<string, string> = { bing: "빙", naver: "네이버 웹문서", naver_all: "네이버 통합" };
+
 /** 서비스 카드 아래 한 줄. 기간·비용은 값만, 나머지는 「이름 값」. 원본은 lib/services.ts. */
 const termLine = (terms: { k: string; v: string }[]) =>
   terms.slice(0, 2).map((t) => (t.k === "기간" || t.k === "비용" ? t.v : `${t.k} ${t.v}`)).join(" · ");
@@ -146,28 +166,6 @@ function Check() {
 function Cross() {
   return (
     <svg className="lp-cross" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
-  );
-}
-
-const R = 35;
-const RING = 2 * Math.PI * R; // 219.9
-
-function Gauge({ v, label, note, delay }: { v: number; label: string; note: string; delay: number }) {
-  return (
-    <div
-      className={`lp-gauge${v < 60 ? " low" : ""}`}
-      data-reveal={delay}
-      style={{ ["--off" as string]: `${(RING * (1 - v / 100)).toFixed(1)}px` }}
-    >
-      <svg viewBox="0 0 80 80" role="img" aria-label={`${label} ${v}점`}>
-        <circle className="trk" cx="40" cy="40" r={R} fill="none" strokeWidth="9" />
-        <circle className="arc" cx="40" cy="40" r={R} fill="none" strokeWidth="9" strokeLinecap="round"
-          strokeDasharray={RING.toFixed(1)} transform="rotate(-90 40 40)" />
-        <text x="40" y="41" textAnchor="middle" dominantBaseline="central">{v}</text>
-      </svg>
-      <div className="gl">{label}</div>
-      <div className="gn">{note}</div>
-    </div>
   );
 }
 
@@ -185,6 +183,11 @@ export default async function Home() {
   // 경쟁 검색어 집계는 lib/ops.ts 한 곳에 둔다. 여기서 또 세면 대시보드와 갈라진다.
   const webTotal = ops.ok && ops.serp.rivalTotal ? ops.serp.rivalTotal : null;
   const webWins = webTotal !== null ? ops.serp.rivalWon : null;
+  // 히어로 칸은 엔진을 섞지 않는다(D133). 그날 마지막으로 잰 엔진 하나와 측정일을 숫자 옆에 붙인다.
+  const heroWeb = ops.ok && ops.serp.rivalLatest && ops.serp.rivalLatest.total ? ops.serp.rivalLatest : null;
+  const heroWebSrc = heroWeb
+    ? `${ENGINE_NAME[heroWeb.engine] ?? heroWeb.engine} · ${Number(heroWeb.day.slice(5, 7))}/${heroWeb.day.slice(8, 10)} 측정`
+    : null;
   // 플레이스는 「구 + 코딩학원」 검색어의 순위. 검색어 자체는 화면에 내지 않는다.
   // 14일 안에 잰 것만, 측정일을 붙여서. 없으면 칸을 숨긴다 (lib/place.ts)
   const placeDay = place ? `${Number(place.day.slice(5, 7))}/${place.day.slice(8, 10)}` : null;
@@ -204,29 +207,33 @@ export default async function Home() {
           <div className="wrap">
             <HeroDemo>
               <ScanForm id="dom-hero" />
+              <p className="lp-herohint">
+                무료 진단은 홈페이지를 AI 가 읽을 수 있는지 봅니다. 답에 이름이 나오는지는 지금 직접 확인해 보세요.
+                ChatGPT 에 손님 말투 그대로 「○○구 치과 추천해줘」.
+              </p>
               <div className="lp-herolinks">
-                <a href={CASE_URL}>도입 사례 기록 보기 →</a>
-                <a href="#price">내 조건으로 요금 계산</a>
+                <a href="#price">30일 파일럿 39만원 보기 →</a>
+                <a href="#case">대표 학원에 먼저 해 본 기록 →</a>
               </div>
             </HeroDemo>
 
             <div className="lp-proof">
-              <div className="lp-proof-h"><i className="lp-live g" aria-hidden="true" />도입 사례 · 서버가 기록한 값 · 매일 갱신</div>
+              <div className="lp-proof-h"><i className="lp-live g" aria-hidden="true" />첫 적용 · 사이티드 대표가 운영하는 학원 · 서버·검색 기록 · 매일 갱신</div>
               <div className="lp-proof-grid">
                 <div className="lp-glass lp-pb">
                   <div className="lp-pb-v"><b>{caseDay}</b><span>일차</span></div>
                   <div className="lp-pb-k">착수일부터 센 날</div>
                 </div>
+                {heroWeb && (
+                  <div className="lp-glass lp-pb">
+                    <div className="lp-pb-v"><b>0 → <Count to={heroWeb.won} /></b><span>/ {heroWeb.total}</span></div>
+                    <div className="lp-pb-k">학원 이름 없이 친 검색어에 노출 · {heroWebSrc}</div>
+                  </div>
+                )}
                 {vendors !== null && (
                   <div className="lp-glass lp-pb">
                     <div className="lp-pb-v"><b><Count to={vendors} /></b><span>곳</span></div>
-                    <div className="lp-pb-k">다녀간 AI·검색 크롤러</div>
-                  </div>
-                )}
-                {hits !== null && (
-                  <div className="lp-glass lp-pb">
-                    <div className="lp-pb-v"><b><Count to={hits} /></b><span>회</span></div>
-                    <div className="lp-pb-k">크롤러 누적 방문</div>
+                    <div className="lp-pb-k">다녀간 AI·검색 봇</div>
                   </div>
                 )}
                 {posts !== null && (
@@ -243,12 +250,12 @@ export default async function Home() {
         {/* ── GEO 란 ── */}
         <section id="geo" className="lp-sec lp-white">
           <div className="wrap">
-            <div className="lp-lab">GEO 가 뭔가요</div>
-            <h2 className="lp-h2">검색 결과의 링크가 아니라<br /><span className="hl">답변 문장 안의 이름</span></h2>
+            <div className="lp-lab">사이티드가 하는 일</div>
+            <h2 className="lp-h2">AI는 추천할 이름을<br /><span className="hl">어디서 고르나요?</span></h2>
             <p className="lp-define">
-              손님이 ChatGPT 에 「아이 보낼 영어학원 추천해줘」라고 물으면, 링크 목록 대신 학원 이름 몇 개가 답으로 나옵니다.
-              그 답에 우리 이름이 들어가게 만드는 일이 <b>GEO(생성형 엔진 최적화)</b>입니다.
-              AI 는 우리 홈페이지만 보고 답하지 않습니다. <b>비교 글, 후기, 업체 목록</b>을 같이 읽고 이름을 고릅니다.
+              AI 는 우리 홈페이지만 보고 고르지 않습니다. 비교 글, 후기, 업체 목록을 같이 읽고 거기 자주 나오는 이름을 꼽습니다.
+              사이티드(Cited)는 두 가지를 합니다. 우리 사이트를 AI 가 <b>읽을 수 있게</b> 고치고, AI 가 참고하는 글에 우리 이름이 <b>들어가게</b> 합니다.
+              이 일을 <b>GEO(생성형 엔진 최적화)</b>라고 부릅니다.
             </p>
 
             <div className="lp-vs">
@@ -294,122 +301,20 @@ export default async function Home() {
             </div>
 
             <p className="lp-note">
-              그래서 홈페이지를 잘 만들어도 비교 글과 목록에 이름이 없으면 답에서 빠집니다.
-              반대로 홈페이지는 허술한데 여기저기 이름이 올라 있는 회사가 자주 나옵니다. <b>아래에 실제 기록이 있습니다.</b>{" "}
-              SEO 를 이미 맡긴 곳이 있다면 그대로 두셔도 됩니다.
+              그래서 홈페이지를 잘 만들어도 비교 글에 이름이 없으면 답에서 빠집니다.
+              바로 아래가 사이티드가 직접 잰 기록입니다. SEO 를 이미 맡긴 곳이 있다면 그대로 두셔도 됩니다.
             </p>
-          </div>
-        </section>
-
-        {/* ── 말 대신 기록 ── */}
-        <section id="proof" className="lp-sec lp-ground">
-          <div className="wrap lp-2col">
-            <div>
-              <div className="lp-lab">말 대신 기록</div>
-              <h2 className="lp-h2">사례 학원 사이트,<br /><span className="hl">7개 항목 중 6개가 90점 넘게</span></h2>
-              <p className="lp-sub">
-                착수 첫날 새로 지은 사이트가 {SCAN.baseline}점이었고, 첫 주에 고친 뒤 다시 돌린 결과입니다.
-                <b>채점 기준 바뀜(2026-09-29)</b> — 무료 진단은 이날부터 llms.txt 를 점수에서 뺍니다. 아래는 그 전 기준(llms.txt 포함 7개 항목)으로 잰 값이라 지금 무료 진단 점수와 바로 견주지 않습니다.
-              </p>
-              <div className="lp-gauges">
-                <Gauge v={SCAN.total} label="종합" note={`착수 때 ${SCAN.baseline}`} delay={0} />
-                <Gauge v={SCAN.crawler} label="AI 크롤러 접근" note="봇 이름으로 허용" delay={120} />
-                <Gauge v={SCAN.schema} label="구조화 데이터" note="6쪽 전부 · 오류 0" delay={240} />
-                <Gauge v={SCAN.chunk} label="인용할 만한 문단" note={`80~400자 ${SCAN.chunkIn}/${SCAN.chunkAll}`} delay={360} />
-              </div>
-              <div className="lp-warn">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 8v5M12 16.5v.01" /></svg>
-                <p>
-                  <b>문단 점수 {SCAN.chunk}은 아직 못 고친 부분입니다.</b>{" "}
-                  80~400자 범위에 든 문단이 {SCAN.chunkAll}개 중 {SCAN.chunkIn}개입니다.
-                  AI 가 잘라 가져가기 좋은 길이가 절반이 안 된다는 뜻입니다. 잘된 칸만 골라 싣지 않습니다.
-                </p>
-              </div>
-            </div>
-
-            <div className="lp-code">
-              <div className="lp-code-hd mono"><span className="d" aria-hidden="true"><i /><i /><i /></span>robots.txt · 사례 학원</div>
-              <pre className="mono">
-<span className="c"># AI 크롤러를 User-agent 별로 명시 허용한다.</span>{"\n"}
-<span className="c"># 네이버 블로그는 GPTBot·ClaudeBot 같은 AI 크롤러를 막는다.</span>{"\n\n"}
-<span className="k">User-agent:</span> <span className="v">OAI-SearchBot</span>{"\n"}
-<span className="k">Allow:</span> /{"\n\n"}
-<span className="k">User-agent:</span> <span className="v">GPTBot</span>{"\n"}
-<span className="k">Allow:</span> /{"\n\n"}
-<span className="k">User-agent:</span> <span className="v">ClaudeBot</span>{"\n"}
-<span className="k">Allow:</span> /{"\n\n"}
-<span className="k">User-agent:</span> <span className="v">PerplexityBot</span>{"\n"}
-<span className="k">Allow:</span> /{"\n"}
-<span className="c"># … 이하 생략</span>
-              </pre>
-              <div className="lp-code-ft">
-                <div className="lp-code-log mono">
-                  {FIRST_VISITS.map(([t, b, p]) => (
-                    <Fragment key={t}>
-                      <span>{t}</span><span className="b">{b}</span><span className="p">{p}</span>
-                    </Fragment>
-                  ))}
-                </div>
-                <span className="lp-passed">
-                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
-                  {crawled ? `서버 기록 · 크롤러 ${vendors}곳 · ${hits}회` : "서버 기록 · 확인 중"}
-                </span>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* ── 맡기면 받는 것 ── */}
-        <section id="why" className="lp-sec lp-white">
-          <div className="wrap">
-            <div className="lp-lab">맡기면 받는 것</div>
-            <h2 className="lp-h2">리포트에 들어가는 것을<br /><span className="hl">실제 기록</span>으로 보여 드립니다</h2>
-            <p className="lp-sub">
-              아래 세 장은 실제로 남긴 기록입니다. 앞의 두 장은 소프트웨어 회사 한 곳을 진단한 리포트,
-              마지막 장은 사례 학원의 작업 기록입니다. 회사 이름은 가렸습니다.
-            </p>
-            <RecordTabs />
-          </div>
-        </section>
-
-        {/* ── 해당하는 곳 ── */}
-        <section id="who" className="lp-sec lp-ground">
-          <div className="wrap">
-            <div className="lp-lab">해당하는 곳</div>
-            <h2 className="lp-h2">손님이 고르기 전에<br />한 번은 물어보는 업종이면 됩니다</h2>
-            <p className="lp-sub">
-              학원, 병원·치과, 세무·법무 사무소, 인테리어, 소프트웨어 회사.
-              계약하기 전에 「어디가 괜찮아?」를 누군가에게 묻는 곳입니다. 그 질문을 AI 에게 하는 손님도 있습니다.
-            </p>
-            <div className="lp-fit">
-              <div className="lp-card yes">
-                <h3><span className="ic"><Check /></span>이런 곳에 맞습니다</h3>
-                <ul>
-                  <li><b>지역 이름과 업종으로 검색되는 곳</b> — 「○○구 코딩학원」「△△동 치과」</li>
-                  <li><b>비교당하는 곳</b> — 손님이 서너 군데 견주고 고르는 업종</li>
-                  <li><b>밖에 내놓을 사실이 있는 곳</b> — 연차·건수·가격·방식처럼 적을 수 있는 것</li>
-                </ul>
-              </div>
-              <div className="no">
-                <h3><span className="ic"><Cross /></span>이런 곳은 안 맞습니다</h3>
-                <ul>
-                  <li>이름을 이미 알고 찾아오는 브랜드 — 제품명으로 검색되면 이 일이 필요 없습니다</li>
-                  <li>한 번 사고 끝나는 물건 — 묻지 않고 삽니다</li>
-                  <li>적을 사실이 없는 회사 — 할 말이 없으면 들어갈 글도 없습니다</li>
-                </ul>
-              </div>
-            </div>
           </div>
         </section>
 
         {/* ── 직접 측정한 것 ── */}
         <section id="data" className="lp-sec lp-deep">
           <div className="wrap">
-            <div className="lp-lab">직접 측정한 것 · 소프트웨어 회사 34곳</div>
-            <h2 className="lp-h2">사이트 점수와 AI 노출은<br /><span className="hl">따로 움직였습니다</span></h2>
+            <div className="lp-lab">직접 잰 것 · 소프트웨어 회사 34곳</div>
+            <h2 className="lp-h2">홈페이지 점수가 높으면<br /><span className="hl">AI 에 더 나오나요?</span></h2>
             <p className="lp-sub">
-              국내 소프트웨어 회사 34곳의 홈페이지를 진단했습니다. 그중 한 업계는 AI 에게 직접 물어 회사마다 몇 번 나오는지도 셌습니다.
-              <b>회사당 15회 표본</b>이라 방향으로만 봐 주세요.
+              아니었습니다. 사이티드가 국내 소프트웨어 회사 34곳 홈페이지를 진단했고, 그중 한 업계는 AI 에 같은 질문을 회사당 15번 물었습니다.{" "}
+              <b>표본이 작아</b> 방향으로만 봐 주세요.
             </p>
 
             <div className="lp-glass lp-split">
@@ -438,8 +343,8 @@ export default async function Home() {
                 </div>
               </div>
               <p className="lp-split-foot">
-                그래서 일이 둘로 나뉩니다. 사이트를 AI 가 <b>읽을 수 있게</b> 만드는 일과, AI 가 참고하는 비교 글·목록에 이름을 <b>넣는</b> 일.
-                사이트 점수가 가장 높아도 뒤엣것이 없으면 답에 안 나옵니다.
+                19점 회사가 80점 회사보다 AI 답에 더 자주 나왔습니다. 차이는 비교 글이었습니다.
+                그래서 일이 둘입니다. 사이트를 AI 가 <b>읽을 수 있게</b> 만드는 일, AI 가 참고하는 비교 글·목록에 이름을 <b>넣는</b> 일.
               </p>
             </div>
 
@@ -452,77 +357,14 @@ export default async function Home() {
           </div>
         </section>
 
-        {/* ── 서비스 ── */}
-        <section id="services" className="lp-sec lp-white lp-sec-svc">
+        {/* ── 첫 적용 ── */}
+        <section id="case" className="lp-sec lp-deep lp-deep2">
           <div className="wrap">
-            <div className="lp-lab">서비스</div>
-            <h2 className="lp-h2">처음부터 <span className="hl">전부 맡기실 필요는</span> 없습니다</h2>
+            <div className="lp-lab">첫 적용 · 사이티드 대표가 운영하는 수도권 코딩·로봇 학원 · {caseDay}일차</div>
+            <h2 className="lp-h2">홈페이지 없이 블로그만 있던 학원은<br />어떻게 됐나요?</h2>
             <p className="lp-sub">
-              모두 30일 파일럿으로 시작합니다. 홈페이지가 없거나 AI 가 못 읽는 곳만 구축·기술 세팅을 한 번 더합니다. 월 구독은 파일럿을 끝낸 곳에만 안내합니다.
-              이미 쓸 만한 홈페이지가 있다면 새로 만들 필요도 없습니다.
-            </p>
-            <div className="lp-svcs">
-              {SERVICES.map((sv) => (
-                <Link className="lp-card lp-hov lp-svc" key={sv.slug} href={`/services/${sv.slug}`}>
-                  <div className="lp-svc-hd">
-                    <span className="mono no">{sv.no}</span>
-                    <span className="tag">{sv.tag}</span>
-                  </div>
-                  <h3>{sv.name}</h3>
-                  <div className="q">{sv.question}</div>
-                  <p>{sv.short}</p>
-                  <ul>
-                    {sv.does.slice(0, 3).map((d) => <li key={d.t}><Check />{d.t}</li>)}
-                  </ul>
-                  <div className="terms">{termLine(sv.terms)}</div>
-                </Link>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* ── 요금 ── */}
-        <section id="price" className="lp-sec lp-ground lp-sec-price">
-          <div className="wrap">
-            <div className="lp-lab">요금</div>
-            <h2 className="lp-h2">우리 회사 조건으로<br /><span className="hl">바로 계산해 보세요</span></h2>
-            <p className="lp-sub">
-              필요한 준비는 한 번이면 끝나서 따로 적었습니다. 30일 파일럿은 모두 같습니다. 월 구독은 파일럿 뒤에 정합니다.
-              파일럿 환불 기준은 입금 전에 서면으로 드립니다.
-            </p>
-            <PriceCalc />
-            <p className="lp-pcompare">
-              공개 가격이 있는 국내 GEO 대행사 1곳 기준 월 500만원입니다(<a href="https://maily.so/georank/posts/32z8d2l1rn4" target="_blank" rel="noopener noreferrer">출처</a>). 저희는 <b>학원·병원·사무소 한 곳 규모</b>에 맞췄습니다.
-              더 싼 해외 측정 도구도 있습니다. 대신 질문을 직접 짜고, 결과를 직접 읽고, 직접 고쳐야 합니다.
-              영어권 도구라 「○○구 코딩학원」 같은 한국어 지역 질문도 직접 넣으셔야 합니다.
-              <b> 직접 하실 수 있으면 그 도구가 낫습니다.</b>
-            </p>
-          </div>
-        </section>
-
-        {/* ── 진행 ── */}
-        <section id="how" className="lp-sec lp-white">
-          <div className="wrap">
-            <div className="lp-lab">진행</div>
-            <h2 className="lp-h2">30일을 이렇게 씁니다</h2>
-            <p className="lp-sub">
-              첫 7일로 지금 숫자를 남기고, 30일 차에 같은 질문으로 다시 셉니다. 그 사이가 일입니다.
-            </p>
-            <FlowSteps />
-            <p className="lp-flownote">
-              기준선 보고는 <b>착수 뒤 7일 안</b>에 나갑니다. 플레이스·구글 비즈니스 프로필처럼 대표자 인증이 필요한 곳은
-              사장님이 권한을 열어 주셔야 진행됩니다.
-            </p>
-          </div>
-        </section>
-
-        {/* ── 도입 사례 ── */}
-        <section id="case" className="lp-sec lp-deep">
-          <div className="wrap">
-            <div className="lp-lab">도입 사례 · 수도권 코딩·로봇 학원 · {caseDay}일차</div>
-            <h2 className="lp-h2">홈페이지 없이<br />블로그만 있던 학원</h2>
-            <p className="lp-sub">
-              학원 이름과 지역은 가렸습니다. 숫자는 <b>서버 기록에서 매일 다시 가져오고</b>, 안 오른 숫자도 같은 크기로 싣습니다.
+              사이티드는 남에게 팔기 전에 대표가 운영하는 학원에 먼저 했습니다. 학원 이름과 지역은 가렸습니다.
+              숫자는 <b>서버와 검색 기록에서 매일 다시 가져오고</b>, 안 오른 숫자도 같은 크기로 싣습니다.
             </p>
 
             <div className="lp-case">
@@ -533,8 +375,9 @@ export default async function Home() {
                   <b>0 → <Count to={webWins} /> / {webTotal}</b>
                 </div>
                 <p>
-                  「○○구 코딩학원」처럼 <b>학원 이름 없이</b> 친 검색 {webTotal}개입니다.
-                  착수 때는 위쪽이 전부 오늘학교·순위닷 같은 학원 목록 사이트였고 학원 홈페이지는 한 곳도 없었습니다.
+                  「○○구 코딩학원」처럼 학부모가 <b>학원 이름 없이</b> 치는 검색 {webTotal}개입니다.
+                  검색엔진 한 곳 이상에서 학원 사이트가 나오면 셉니다.
+                  착수 때 위쪽은 전부 학원 목록 사이트였고 학원 홈페이지는 한 곳도 없었습니다.
                 </p>
               </div>
               )}
@@ -553,7 +396,7 @@ export default async function Home() {
               {crawled && (
               <div className="lp-glass lp-cx">
                 <div className="lp-cx-hd">
-                  <span>다녀간 크롤러 · {caseDay}일차</span>
+                  <span>다녀간 AI·검색 봇 · {caseDay}일차</span>
                   <b><Count to={vendors} />곳 · <Count to={hits} />회</b>
                 </div>
                 <p>
@@ -564,12 +407,13 @@ export default async function Home() {
               )}
               <div className="lp-glass lp-cx hi">
                 <div className="lp-cx-hd">
-                  <span>AI 답변 인용 · 첫 기준선</span>
+                  <span>AI 답변 · 착수 때 기준선</span>
                   <b>0 / 8</b>
                 </div>
                 <p>
                   검색을 켠 AI 한 곳에 학부모 질문 8개를 한 번씩 물었습니다. 이 학원 사이트를 출처로 단 답은 <b>0개</b>였습니다.
                   학원 이름이 나온 답 2개의 출처는 <b>학원 목록 사이트</b>였습니다.
+                  같은 8개를 같은 방법으로 다시 물은 결과는 아직 싣지 않았습니다. 다른 방법으로 잰 값과 섞지 않습니다.
                 </p>
               </div>
             </div>
@@ -606,6 +450,113 @@ export default async function Home() {
           </div>
         </section>
 
+        {/* ── 해당하는 곳 ── */}
+        <section id="who" className="lp-sec lp-ground">
+          <div className="wrap">
+            <div className="lp-lab">맞는 곳 · 안 맞는 곳</div>
+            <h2 className="lp-h2">우리 업종도<br />해당되나요?</h2>
+            <p className="lp-sub">
+              손님이 고르기 전에 「어디가 괜찮아?」를 한 번은 묻는 업종이면 해당됩니다.
+              학원, 병원·치과, 세무·법무 사무소, 인테리어, 소프트웨어 회사가 그렇습니다. 그 질문을 AI 에게 하는 손님도 있습니다.
+            </p>
+            <div className="lp-fit">
+              <div className="lp-card yes">
+                <h3><span className="ic"><Check /></span>이런 곳에 맞습니다</h3>
+                <ul>
+                  <li><b>지역 이름과 업종으로 검색되는 곳</b> — 「○○구 코딩학원」「△△동 치과」</li>
+                  <li><b>비교당하는 곳</b> — 손님이 서너 군데 견주고 고르는 업종</li>
+                  <li><b>밖에 내놓을 사실이 있는 곳</b> — 연차·건수·가격·방식처럼 적을 수 있는 것</li>
+                </ul>
+              </div>
+              <div className="no">
+                <h3><span className="ic"><Cross /></span>이런 곳은 안 맞습니다</h3>
+                <ul>
+                  <li>이름을 이미 알고 찾아오는 브랜드 — 제품명으로 검색되면 이 일이 필요 없습니다</li>
+                  <li>한 번 사고 끝나는 물건 — 묻지 않고 삽니다</li>
+                  <li>적을 사실이 없는 회사 — 할 말이 없으면 들어갈 글도 없습니다</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ── 서비스 ── */}
+        <section id="services" className="lp-sec lp-white lp-sec-svc">
+          <div className="wrap">
+            <div className="lp-lab">서비스</div>
+            <h2 className="lp-h2">사이티드에 맡기면<br /><span className="hl">무엇을 하나요?</span></h2>
+            <p className="lp-sub">
+              모든 곳은 30일 파일럿 하나로 시작합니다. 홈페이지가 없거나 AI 가 못 읽는 곳만 구축·기술 세팅을 한 번 더합니다.
+              쓸 만한 홈페이지가 있으면 새로 만들지 않습니다. 월 구독은 파일럿을 끝낸 곳에만 안내합니다.
+            </p>
+            <div className="lp-svcs">
+              {SERVICES.map((sv) => (
+                <Link className="lp-card lp-hov lp-svc" key={sv.slug} href={`/services/${sv.slug}`}>
+                  <div className="lp-svc-hd">
+                    <span className="mono no">{sv.no}</span>
+                    <span className="tag">{sv.tag}</span>
+                  </div>
+                  <h3>{sv.name}</h3>
+                  <div className="q">{sv.question}</div>
+                  <p>{sv.short}</p>
+                  <ul>
+                    {sv.does.slice(0, 3).map((d) => <li key={d.t}><Check />{d.t}</li>)}
+                  </ul>
+                  <div className="terms">{termLine(sv.terms)}</div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ── 진행 ── */}
+        <section id="how" className="lp-sec lp-ground">
+          <div className="wrap">
+            <div className="lp-lab">진행</div>
+            <h2 className="lp-h2">30일 동안<br />무엇을 하나요?</h2>
+            <p className="lp-sub">
+              첫 7일에 지금 숫자를 남기고, 30일 차에 같은 질문으로 다시 셉니다. 그 사이에 틀린 정보를 맞추고 글을 씁니다.
+            </p>
+            <FlowSteps />
+            <p className="lp-flownote">
+              기준선 보고는 <b>착수 뒤 7일 안</b>에 나갑니다. 플레이스·구글 비즈니스 프로필처럼 대표자 인증이 필요한 곳은
+              사장님이 권한을 열어 주셔야 진행됩니다.
+            </p>
+          </div>
+        </section>
+
+        {/* ── 맡기면 받는 것 ── */}
+        <section id="why" className="lp-sec lp-white">
+          <div className="wrap">
+            <div className="lp-lab">받는 보고서</div>
+            <h2 className="lp-h2">보고서에는<br /><span className="hl">무엇이 들어가나요?</span></h2>
+            <p className="lp-sub">
+              아래 세 장은 실제로 남긴 기록입니다. 앞의 두 장은 소프트웨어 회사 한 곳을 진단한 보고서,
+              마지막 장은 대표 학원의 작업 기록입니다. 회사 이름은 가렸습니다.
+            </p>
+            <RecordTabs />
+          </div>
+        </section>
+
+        {/* ── 요금 ── */}
+        <section id="price" className="lp-sec lp-ground lp-sec-price">
+          <div className="wrap">
+            <div className="lp-lab">요금</div>
+            <h2 className="lp-h2">30일 파일럿은<br /><span className="hl">얼마인가요?</span></h2>
+            <p className="lp-sub">
+              사이티드는 30일 파일럿 39만원으로 시작합니다. 선결제입니다. 착수 전에 그만두시면 전액, 기준선 보고 전이면 절반을 돌려드립니다.
+              홈페이지 구축·기술 세팅은 필요한 곳만 한 번 냅니다. 월 구독은 파일럿 뒤에 정합니다.
+            </p>
+            <PriceCalc />
+            <p className="lp-pcompare">
+              공개 가격이 있는 국내 GEO 대행사 한 곳은 월 500만원입니다(<a href="https://maily.so/georank/posts/32z8d2l1rn4" target="_blank" rel="noopener noreferrer">출처</a>).
+              사이티드는 <b>학원·병원·사무소 한 곳 규모</b>에 맞췄습니다.
+              더 싼 해외 측정 도구도 있습니다. 질문을 직접 짜고, 결과를 직접 읽고, 직접 고칠 수 있다면 <b>그 도구가 낫습니다.</b>{" "}
+              「○○구 코딩학원」 같은 한국어 지역 질문은 직접 넣으셔야 합니다.
+            </p>
+          </div>
+        </section>
+
         {/* ── 리포트가 다른 점 ── */}
         <section id="diff" className="lp-sec lp-white">
           <div className="wrap">
@@ -637,7 +588,7 @@ export default async function Home() {
             <div className="lp-lab">하지 않는 일</div>
             <h2 className="lp-h2">계약서에 넣어도 되는 네 줄</h2>
             <p className="lp-sub">
-              이 바닥에는 몇 달은 효과가 나고 그 뒤에 손해가 되는 방법이 있습니다. 안 씁니다.
+              몇 달은 효과가 나고 그 뒤에 손해가 되는 방법이 있습니다. 사이티드는 쓰지 않습니다.
             </p>
             <div className="lp-nots">
               {[
@@ -658,10 +609,19 @@ export default async function Home() {
           </div>
         </section>
 
+        {/* ── 자주 묻는 것 ── */}
+        <section id="faq" className="lp-sec lp-white">
+          <div className="wrap lp-faqwrap">
+            <div className="lp-lab">자주 묻는 것</div>
+            <h2 className="lp-h2">상담에서 먼저 나오는 질문</h2>
+            <Faq items={FAQ} />
+          </div>
+        </section>
+
         {/* ── 더 읽을 것 ──
             랜딩에 본문을 다 옮기면 지난주에 반으로 줄인 것이 도로아미타불이다.
             대신 가는 길을 놓는다. 검색어를 먹는 자리는 랜딩이 아니라 이 페이지들이다. */}
-        <section id="guides" className="lp-sec lp-white">
+        <section id="guides" className="lp-sec lp-ground">
           <div className="wrap">
             <div className="lp-lab">더 읽을 것</div>
             <h2 className="lp-h2">궁금한 것만 골라<br /><span className="hl">따로 읽으셔도 됩니다</span></h2>
@@ -683,15 +643,6 @@ export default async function Home() {
           </div>
         </section>
 
-        {/* ── 자주 묻는 것 ── */}
-        <section id="faq" className="lp-sec lp-white">
-          <div className="wrap lp-faqwrap">
-            <div className="lp-lab">자주 묻는 것</div>
-            <h2 className="lp-h2">상담에서 먼저 나오는 질문</h2>
-            <Faq items={FAQ} />
-          </div>
-        </section>
-
         {/* ── 시작 ── */}
         <section id="start" className="lp-sec lp-deep lp-start">
           <div className="wrap">
@@ -699,8 +650,8 @@ export default async function Home() {
               <div className="lp-lab">시작</div>
               <h2 className="lp-h2">홈페이지 주소부터<br /><span className="hl">넣어 보세요</span></h2>
               <p className="lp-sub">
-                AI 가 읽을 수 있는 상태인지 점수가 바로 나옵니다(7개 항목을 보고, llms.txt 는 참고로만 보여 드립니다).
-                그다음이 필요하면 아래에 남겨 주세요. 홈페이지가 없어도 됩니다.
+                AI 가 우리 사이트를 읽을 수 있는지 점수가 바로 나옵니다.
+                답에 이름이 나오는지까지 세고 싶으면 아래에 상담을 남겨 주세요. 홈페이지가 없어도 됩니다.
               </p>
             </div>
 
@@ -724,7 +675,7 @@ export default async function Home() {
             <div className="grid">
               <div>
                 <span className="logo"><span className="mk" aria-hidden="true">[ ]</span>Cited<em>사이티드</em></span>
-                <p className="desc">손님이 AI 에게 물었을 때 우리 이름이 나오는지 확인하고, 나오게 만듭니다.</p>
+                <p className="desc">사이티드(Cited)는 손님이 AI 에게 물었을 때 답에 회사 이름이 나오게 만드는 마케팅 대행사입니다.</p>
               </div>
               <div>
                 <h4>서비스</h4>
@@ -735,7 +686,7 @@ export default async function Home() {
               <div>
                 <h4>기록</h4>
                 <ul>
-                  <li><a href={CASE_URL}>도입 사례 리포트</a></li>
+                  <li><a href={CASE_URL}>첫 적용 기록(대표 학원)</a></li>
                   <li><a href="/#geo">GEO 와 SEO 의 차이</a></li>
                   <li><a href="/#how">30일 진행 순서</a></li>
                   <li><a href="/#price">요금</a></li>
@@ -744,10 +695,10 @@ export default async function Home() {
             </div>
             <div className="wm">
               이 페이지의 시장 숫자(홈페이지 34곳 진단 · 한 업계 질문을 AI 에게 15번 물은 결과 · 회사당 15회 표본)는 저희가 직접 측정한 값입니다.
-              표본이 작아 <b>대략의 방향</b>으로 봐 주세요. 사례의 방문 기록은 서버에 남은 원본이고, 학원 이름과 지역만 가렸습니다.
+              표본이 작아 <b>대략의 방향</b>으로 봐 주세요. 사례의 방문 기록은 서버에 남은 원본이고, 대표가 운영하는 학원이라 이름과 지역만 가렸습니다.
             </div>
             <div className="bottom">
-              <span>© 2026 Cited 사이티드</span>
+              <span>© 2026 사이티드(Cited)</span>
               <span>AI 답변 노출 · GEO</span>
               <a className="admin" href="/admin/login" rel="nofollow">관리자</a>
             </div>

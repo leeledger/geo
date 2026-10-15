@@ -1,0 +1,76 @@
+PASS clean(): BOM + 끝 / + 줄바꿈 → https://cited.kr
+PASS clean(): 「nope」 → 기본값
+PASS clean(): 빈 값 → 기본값
+PASS clean(): https·http 아닌 것 → 기본값
+PASS clean(): 정상 값은 그대로
+PASS PILOT.price 390,000원 = 화면 「39만원」
+PASS PILOT.refund[1] 에 기준선 보고 전 50% (기준선 보고 전 취소: 195,000원(50%) 돌려드립니다)
+PASS PILOT.refund[0] 착수 전 전액 (착수 전 취소: 390,000원 모두 돌려드립니다)
+PASS 옛 호스트 / → 308 https://cited.kr/
+PASS 옛 호스트 /case/academy.html → 308 https://cited.kr/case/academy.html
+PASS 옛 호스트 /admin/ops?key=x → 308 https://cited.kr/admin/ops?key=x
+PASS 옛 호스트 /apifoo → 308 https://cited.kr/apifoo
+PASS 옛 호스트 /geo/geo-cost → 308 https://cited.kr/geo/geo-cost
+PASS 옛 호스트 GET /api → 404 (308 아님)
+PASS 옛 호스트 POST /api/lead → 400 (308 아님)
+PASS 옛 호스트 GET /api/llm → 405 (308 아님)
+PASS 옛 호스트 GET /api/scan?url=x → 405 (308 아님)
+PASS localhost / → 200 (리다이렉트 없음)
+PASS sitemap.xml: cited.kr 있음 · geo-rose-nine 0
+PASS robots.txt: cited.kr 있음 · geo-rose-nine 0
+PASS llms.txt: cited.kr 있음 · geo-rose-nine 0
+PASS llms.txt content-type text/plain; charset=utf-8
+PASS llms.txt 머리 = 사이티드(Cited) + 정의문
+PASS llms.txt 가격·환불·월 구독이 PILOT 과 같음
+PASS llms.txt 연락·전체 기록 주소 · 「도입 사례」 0
+PASS public/llms.txt 삭제됨
+PASS robots.txt 전·후 차이는 Sitemap 줄 하나 (Sitemap: https://geo-rose-nine.vercel.app/sitemap.xml ⇒ Sitemap: https://cited.kr/sitemap.xml)
+PASS /services canonical = https://cited.kr/services
+PASS /services/measure canonical = https://cited.kr/services/measure
+PASS /geo canonical = https://cited.kr/geo
+PASS /geo/geo-vs-seo canonical = https://cited.kr/geo/geo-vs-seo
+PASS / canonical = https://cited.kr (env 없이 빌드 · Next 가 루트의 끝 / 를 뗀다, URL 로는 같음)
+PASS og:url = https://cited.kr
+PASS title·og:title = 3-1 (사이티드(Cited) — AI 답변에 우리 회사 이름이 나오게 하는 GEO 대행사)
+PASS description = 3-1
+PASS og:site_name 사이티드(Cited) · og:locale ko_KR
+PASS ALLOW_INDEX=true 빌드에 noindex 없음 (robots meta: 없음)
+PASS JSON-LD 1개 전부 JSON.parse
+PASS Organization url https://cited.kr · name 사이티드(Cited) · sameAs 없음
+PASS Organization alternateName · description = FAQ 1 첫 문장
+PASS Service·Offer {"@type":"Offer","name":"30일 파일럿","price":"390000","priceCurrency":"KRW","url":"https://cited.kr/#price"}
+PASS FAQ 화면 10 · JSON-LD 10
+PASS FAQ 화면 질문·답 = JSON-LD 글자 그대로
+PASS FAQ 1 = 사이티드(Cited) 정의문
+PASS FAQ 3 끝 = PILOT.after
+PASS 「사이티드(Cited)」 in hero lede
+PASS 「사이티드(Cited)」 in #geo define
+PASS 「사이티드(Cited)」 in footer desc
+PASS 「사이티드(Cited)」 in footer ©
+PASS 「사이티드(Cited)」 in title
+PASS #price sub 「39만원」·「전액」·「절반」 = PILOT price·refund[0]·refund[1]
+PASS 화면에 「geo-rose-nine」 0
+PASS 화면에 「도입 사례」 0
+PASS 화면에 「크롤러 누적 방문」 0
+PASS 화면에 「채점 기준 바뀜」 0
+PASS 절 순서 geo › data › case › who › services › how › why › price › diff › nots › faq › guides › start
+PASS #proof 없음
+PASS 네비 하는 일 · 가이드 · 서비스 · 요금 · 진행 · 첫 적용 기록 · 자주 묻는 것
+PASS 히어로 폼 아래 자가 확인 한 줄
+PASS 히어로 링크 두 개
+PASS 증거 줄 머리
+PASS 증거 칸 착수일부터 센 날 / 학원 이름 없이 친 검색어에 노출 · 빙 · 10/15 측정 / 다녀간 AI·검색 봇 / AI 가 읽을 수 있게 된 글
+PASS 히어로 칸 라벨 = DB 마지막 줄 엔진·측정일 (학원 이름 없이 친 검색어에 노출 · 빙 · 10/15 측정 | 기대 학원 이름 없이 친 검색어에 노출 · 빙 · 10/15 측정)
+PASS 히어로 칸 분모 = 그 엔진 하나의 경쟁 검색어 수 (/ 6 | 기대 / 6, 이긴 것 3)
+PASS 바뀐 한국어 블록 word-break: keep-all (20곳 전부)
+PASS 업종 버튼: 질문 바뀜 (마포구에서 임플란트 잘하는 치과 추천해줘 → 법인 세무 잘 보는 세무사 사무소 추천해줘)
+PASS 엔진 탭: 두 번째 선택됨
+PASS 「같은 질문 다시 묻기」: 2회차
+PASS ScanForm(dom-hero) 제출 → 올바른 홈페이지 주소를 입력해 주세요. (예: example.co.kr)
+PASS 히어로 칸 숫자(애니메이션 뒤) = 그 엔진 하나만의 이긴 수 (0 → 3)
+PASS 붙은 절 배경 모두 다름 (lp-hero=rgb(10,26,51) › geo=rgb(255,255,255) › data=rgb(10,26,51) › case=rgb(15,36,70) › who=rgb(244,247,251) › services=rgb(255,255,255) › how=rgb(244,247,251) › why=rgb(255,255,255) › price=rgb(244,247,251) › diff=rgb(255,255,255) › nots=rgb(244,247,251) › faq=rgb(255,255,255) › guides=rgb(244,247,251) › start=rgb(10,26,51) › lp-foot=rgb(7,19,39))
+PASS [1440] 가로 넘침 없음 (scrollWidth 1440 ≤ 1440)
+PASS [390] 가로 넘침 없음 (scrollWidth 390 ≤ 390)
+PASS 콘솔 오류 0 (ScanForm 일부러 낸 400 제외) 
+
+ALL PASS

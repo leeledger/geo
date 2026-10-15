@@ -1,0 +1,4 @@
+PASS [nullops] 히어로 증거 칸이 「일차」 하나만 남음 (["착수일부터 센 날"])
+PASS [nullops] 지어낸 0·null 문자열 없음
+
+ALL PASS

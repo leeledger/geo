@@ -78,11 +78,12 @@ export default function HeroDemo({ children }: { children: React.ReactNode }) {
   return (
     <div className="lp-hero-grid">
       <div className="lp-hero-top lp-rise">
-        <span className="lp-badge"><i className="lp-live" aria-hidden="true" />AI 답변 노출 · GEO</span>
-        <h1 className="lp-h1">손님이 AI에게 물었을 때<br /><span>우리 이름이 나오나요?</span></h1>
+        <span className="lp-badge"><i className="lp-live" aria-hidden="true" />AI 답변 노출 대행 · 사이티드(Cited)</span>
+        <h1 className="lp-h1">손님은 AI가 꼽아 준<br /><span>몇 곳만 봅니다</span></h1>
         <p className="lp-lede">
-          「{s.q}」. 이렇게 물으면 AI 는 링크 대신 <b>이름 세 개쯤</b>으로 답합니다.
-          거기 우리가 있는지 날마다 물어 세고, 없으면 들어가게 만듭니다.
+          사이티드(Cited)는 그 몇 곳에 우리 회사 이름이 <b>들어가게 만드는</b> 대행사입니다.
+          손님이 칠 질문을 AI 네 곳에 날짜별로 묻고, <b>몇 번 중 몇 번</b> 나오는지 셉니다.
+          빠졌으면 <b>AI 가 참고하는 글</b>을 고칩니다.
         </p>
         <div className="lp-inds" role="group" aria-label="업종 바꿔 보기">
           <span className="lp-inds-k" aria-hidden="true">업종 바꿔 보기</span>

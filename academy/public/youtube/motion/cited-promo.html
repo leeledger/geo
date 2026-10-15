@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>cited-promo 모션</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&display=swap">
+<style>
+  /* 사이티드 홍보 45초. 1920×1080, motion-render.mjs 로 프레임 단위로 굽는다.
+     박자·컷은 homepage-hype 와 같은 128BPM 격자(마디 1.875초):
+       0 · 3.75 · 9.375 · 16.875 · 24.375 · 31.875(드롭) · 37.5 · 41.25
+     문구·숫자 출처: web/public/llms.txt · web/app/page.tsx (직접 측정·도입 사례·가격). 지어낸 것 없음.
+     학원은 고객사가 아니라 대표가 운영하는 곳이다 — 「도입 사례」가 아니라 「첫 적용」(Step 47 D122). 이름·지역은 가린다.
+     불안 팔기 없음 — 「지금 안 하면」 류 대신 측정된 사실과 보장하지 않는 것을 말한다. */
+  :root{--deep:#060D19;--deep2:#0B1830;--ink:#E7EDF6;--ink2:#C3CDDB;--faint:#8592A6;
+        --blue:#6BAEFF;--blue2:#1B5FD6;--good:#2FBF8A;--crit:#E0766A}
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{width:1920px;height:1080px;overflow:hidden}
+  body{background:var(--deep);font-family:"Pretendard Variable",Pretendard,system-ui,sans-serif;color:var(--ink);word-break:keep-all}
+  .mono{font-family:"IBM Plex Mono",monospace}
+  .b{color:var(--blue)} .g{color:var(--good)} .r{color:var(--crit)} .f{color:var(--faint)}
+
+  /* 카메라 · 흔들림 · 번쩍 (homepage-hype 와 같은 구조) */
+  .cam{position:absolute;inset:0;animation:push 45s linear both}
+  @keyframes push{from{transform:scale(1)}to{transform:scale(1.07)}}
+  .shake{position:absolute;inset:0;
+    animation:shk .38s ease-out 3.75s forwards, shk .38s ease-out 9.375s forwards, shk .38s ease-out 16.875s forwards,
+              shk .38s ease-out 24.375s forwards, shk .5s ease-out 31.875s forwards, shk .38s ease-out 33.75s forwards,
+              shk .38s ease-out 35.625s forwards, shk .6s ease-out 37.5s forwards, shk .5s ease-out 41.25s forwards}
+  @keyframes shk{0%{transform:translate(0,0)}15%{transform:translate(-14px,9px)}30%{transform:translate(12px,-8px)}
+    45%{transform:translate(-8px,5px)}60%{transform:translate(5px,-3px)}80%{transform:translate(-2px,1px)}100%{transform:none}}
+  .flash{position:absolute;inset:0;background:#CFE3FF;opacity:0;pointer-events:none;mix-blend-mode:screen;
+    animation:fl .28s ease-out 3.75s forwards, fl .28s ease-out 9.375s forwards, fl .28s ease-out 16.875s forwards,
+              fl .28s ease-out 24.375s forwards, fl .45s ease-out 31.875s forwards, fl .28s ease-out 37.5s forwards,
+              fl .35s ease-out 41.25s forwards}
+  @keyframes fl{0%{opacity:.6}100%{opacity:0}}
+  .glow{position:absolute;inset:0;pointer-events:none;
+        background:radial-gradient(900px 600px at 80% 10%,rgba(27,95,214,.22),transparent 70%),
+                   radial-gradient(700px 500px at 10% 90%,rgba(107,174,255,.10),transparent 70%)}
+  .vig{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at 50% 50%,transparent 45%,rgba(0,0,0,.7) 100%)}
+  .grain{position:absolute;inset:-60px;pointer-events:none;opacity:.09;mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='260' height='260'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+    animation:gr .5s steps(5) infinite}
+  @keyframes gr{0%{transform:translate(0,0)}20%{transform:translate(-30px,20px)}40%{transform:translate(25px,-35px)}
+    60%{transform:translate(-15px,-10px)}80%{transform:translate(35px,25px)}100%{transform:translate(0,0)}}
+  .hud{position:absolute;left:64px;right:64px;top:48px;display:flex;justify-content:space-between;
+       font-family:"IBM Plex Mono",monospace;font-size:22px;letter-spacing:.18em;color:#5E6B82;z-index:5}
+  .hud .dot::before{content:"";display:inline-block;width:12px;height:12px;border-radius:50%;background:var(--blue);
+       margin-right:14px;vertical-align:1px;animation:blink 1s steps(2) infinite}
+  @keyframes blink{50%{opacity:0}}
+  .bar{position:absolute;left:0;bottom:0;height:5px;width:100%;background:linear-gradient(90deg,var(--blue2),var(--blue));
+       transform-origin:left;animation:prog 45s linear both;z-index:5}
+  @keyframes prog{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+
+  .sc{position:absolute;inset:0;opacity:0;animation:on .08s linear var(--a) both, off .1s linear var(--b) forwards}
+  @keyframes on{from{opacity:0}to{opacity:1}}
+  @keyframes off{from{opacity:1}to{opacity:0}}
+  .slam{opacity:0;animation:slam .42s cubic-bezier(.2,1.4,.4,1) var(--d) both}
+  @keyframes slam{0%{opacity:0;transform:scale(1.9);filter:blur(22px)}55%{opacity:1;filter:blur(0)}100%{opacity:1;transform:scale(1);filter:blur(0)}}
+  .up{opacity:0;animation:up .55s cubic-bezier(.16,1,.3,1) var(--d) both}
+  @keyframes up{from{opacity:0;transform:translateY(60px);filter:blur(10px)}to{opacity:1;transform:none;filter:blur(0)}}
+  .swipe{opacity:0;animation:sw .45s cubic-bezier(.16,1,.3,1) var(--d) both}
+  @keyframes sw{from{opacity:0;transform:translateX(-120px) skewX(-12deg);filter:blur(14px)}to{opacity:1;transform:none;filter:blur(0)}}
+  .gone{animation:gone .2s ease-in var(--o) forwards}
+  @keyframes gone{to{opacity:0;transform:scale(.92);filter:blur(10px)}}
+  .type{display:inline-block;clip-path:inset(0 100% 0 0);animation:ty var(--t,.8s) steps(var(--n,16)) var(--d) forwards}
+  @keyframes ty{to{clip-path:inset(0 0 0 0)}}
+  .caret{display:inline-block;width:4px;height:1.05em;background:var(--blue);vertical-align:-.15em;margin-left:6px;animation:blink .5s steps(2) infinite}
+  .lab{font-family:"IBM Plex Mono",monospace;font-size:26px;letter-spacing:.24em;color:var(--blue)}
+
+  /* ── S0·S1 대화창 ── */
+  .chat{position:absolute;left:50%;top:190px;width:1160px;margin-left:-580px}
+  .ask{display:flex;justify-content:flex-end}
+  .ask .bub{background:var(--blue2);color:#fff;font-size:52px;font-weight:700;padding:26px 40px;border-radius:34px 34px 8px 34px}
+  .ans{margin-top:44px;background:var(--deep2);border:2px solid #1C2C4A;border-radius:34px 34px 34px 8px;padding:40px 48px;min-height:300px}
+  .ans .who{font-family:"IBM Plex Mono",monospace;font-size:24px;color:var(--faint);letter-spacing:.12em;margin-bottom:18px}
+  .dots i{display:inline-block;width:18px;height:18px;border-radius:50%;background:var(--faint);margin-right:12px;
+          animation:bob .6s ease-in-out infinite alternate}
+  .dots i:nth-child(2){animation-delay:.2s}.dots i:nth-child(3){animation-delay:.4s}
+  @keyframes bob{from{transform:translateY(0);opacity:.4}to{transform:translateY(-12px);opacity:1}}
+  .dotsWrap{--o:3.7s}
+  .rec{font-size:58px;font-weight:800;line-height:1.6}
+  .rec .n{font-family:"IBM Plex Mono",monospace;color:var(--blue);margin-right:22px}
+  .rec.me{color:#3A4A66}
+  .rec.me .q{display:inline-block;border:3px dashed #3A4A66;border-radius:14px;padding:0 22px}
+  .miss{position:absolute;right:-30px;bottom:30px;font-family:"IBM Plex Mono",monospace;font-size:30px;font-weight:700;color:var(--crit);
+        border:4px solid var(--crit);border-radius:12px;padding:6px 18px;transform:rotate(-8deg)}
+  .s1 .chatWrap{--o:7.0s}
+  .s1 .lines{position:absolute;left:150px;top:300px}
+  .s1 .lines .l{font-size:120px;font-weight:900;letter-spacing:-.035em;line-height:1.18}
+
+  /* ── S2 검색 vs AI ── */
+  .s2 .ttl{position:absolute;left:150px;top:150px}
+  .s2 h2{font-size:76px;font-weight:900;letter-spacing:-.03em;line-height:1.2;margin-top:18px}
+  .s2 .col{position:absolute;top:470px;width:760px}
+  .s2 .left{left:150px} .s2 .right{left:1010px}
+  .s2 .cap{font-family:"IBM Plex Mono",monospace;font-size:28px;letter-spacing:.14em;color:var(--faint);margin-bottom:24px}
+  .s2 .link{height:26px;border-radius:6px;background:#1A2740;margin-bottom:14px}
+  .s2 .left .link:nth-child(odd){width:92%} .s2 .left .link:nth-child(even){width:74%}
+  .s2 .linksWrap{animation:squash .6s cubic-bezier(.7,0,.2,1) 13.2s forwards}
+  @keyframes squash{to{opacity:.25;filter:blur(2px)}}
+  .s2 .name{font-size:62px;font-weight:900;line-height:1.5}
+  .s2 .name .n{font-family:"IBM Plex Mono",monospace;color:var(--blue);margin-right:20px}
+
+  /* ── S3 34곳 측정 ── */
+  .s3 .head{position:absolute;left:150px;top:150px}
+  .s3 h2{font-size:70px;font-weight:900;letter-spacing:-.03em;margin-top:16px;line-height:1.2}
+  .s3 .cmp{position:absolute;left:150px;top:430px;width:1620px}
+  .s3 .row{display:grid;grid-template-columns:360px 1fr 260px;align-items:center;gap:40px;margin-bottom:56px}
+  .s3 .who{font-size:44px;font-weight:800}
+  .s3 .who small{display:block;font-size:28px;font-weight:500;color:var(--faint);margin-top:6px}
+  .s3 .track{height:58px;border-radius:12px;background:#111C30;position:relative;overflow:hidden}
+  .s3 .fill{position:absolute;inset:0;transform-origin:left;transform:scaleX(0);border-radius:12px;
+            animation:fillx 1.1s cubic-bezier(.7,0,.2,1) var(--d) forwards}
+  @keyframes fillx{to{transform:scaleX(var(--w))}}
+  .s3 .v{font-family:"IBM Plex Mono",monospace;font-size:64px;font-weight:700}
+  .s3 .v small{font-size:30px;color:var(--faint)}
+  .s3 .why{position:absolute;left:150px;bottom:150px;font-size:46px;font-weight:800;line-height:1.4}
+
+  /* ── S4 사례 ── */
+  .s4 .head{position:absolute;left:150px;top:150px}
+  .s4 .start{position:absolute;left:150px;top:250px;font-size:64px;font-weight:900}
+  .s4 .quote{position:absolute;left:150px;top:370px;width:1620px;padding:44px 56px;border-radius:24px;background:var(--deep2);
+             border-left:10px solid var(--crit)}
+  .s4 .quote .src{font-family:"IBM Plex Mono",monospace;font-size:26px;color:var(--faint);letter-spacing:.1em}
+  .s4 .quote .t{font-size:64px;font-weight:800;margin-top:14px;line-height:1.35}
+  .s4 .fixes{position:absolute;left:150px;top:640px;display:flex;gap:80px}
+  .s4 .fix .k{font-size:30px;color:var(--faint)}
+  .s4 .fix .v{font-size:84px;font-weight:900;font-variant-numeric:tabular-nums;margin-top:8px}
+  .s4 .fix .v s{color:#4A5870;text-decoration-thickness:6px}
+  .s4 .quoteWrap{}
+  .s4 .note{position:absolute;left:150px;top:850px;width:1620px;font-size:40px;line-height:1.5;color:var(--ink2)}
+  .s4 .note b{color:var(--ink)}
+
+  /* ── S5 드롭: 하는 일 ── */
+  .s5 .hit{position:absolute;left:0;right:0;top:300px;text-align:center}
+  .s5 .hit .k{font-family:"IBM Plex Mono",monospace;font-size:34px;letter-spacing:.3em;color:var(--blue)}
+  .s5 .hit .big{font-size:132px;font-weight:900;letter-spacing:-.035em;line-height:1.12;margin-top:20px}
+  .s5 .hit .sm{font-size:42px;color:var(--ink2);margin-top:26px}
+  .s5 .ais{position:absolute;left:0;right:0;bottom:160px;display:flex;justify-content:center;gap:34px}
+  .s5 .ais span{font-family:"IBM Plex Mono",monospace;font-size:34px;font-weight:500;padding:12px 26px;border:2px solid #24385C;border-radius:999px;color:var(--ink2)}
+  .s5 .ring{position:absolute;left:50%;top:46%;width:300px;height:300px;margin:-150px 0 0 -150px;border-radius:50%;
+            border:6px solid var(--blue);opacity:0;
+            animation:ring .9s cubic-bezier(.1,.8,.3,1) 31.875s forwards, ring .9s cubic-bezier(.1,.8,.3,1) 33.75s forwards, ring .9s cubic-bezier(.1,.8,.3,1) 35.625s forwards}
+  @keyframes ring{0%{opacity:.9;transform:scale(.3)}100%{opacity:0;transform:scale(5)}}
+
+  /* ── S6 제안 ── */
+  .s6 .steps{position:absolute;left:150px;top:220px;display:flex;align-items:center;gap:36px}
+  .s6 .stp{padding:34px 44px;border-radius:24px;background:var(--deep2);border:2px solid #1C2C4A}
+  .s6 .stp .k{font-family:"IBM Plex Mono",monospace;font-size:26px;color:var(--faint);letter-spacing:.12em}
+  .s6 .stp .v{font-size:72px;font-weight:900;margin-top:10px}
+  .s6 .stp.hl{border:3px solid var(--blue);box-shadow:0 0 70px rgba(107,174,255,.25)}
+  .s6 .arr{font-size:70px;color:var(--blue)}
+  .s6 .flow{position:absolute;left:150px;top:560px;font-size:52px;font-weight:800}
+  .s6 .promise{position:absolute;left:150px;top:720px;width:1620px;font-size:40px;line-height:1.55;color:var(--ink2)}
+  .s6 .promise b{color:var(--ink)}
+
+  /* ── S7 로고 ── */
+  .s7 .logo{position:absolute;left:0;right:0;top:300px;text-align:center}
+  .s7 .mk{font-size:180px;font-weight:900;letter-spacing:-.05em}
+  .s7 .mk span{color:var(--blue)}
+  .s7 .tag{font-size:58px;font-weight:800;margin-top:24px}
+  .s7 .line{width:0;height:4px;background:var(--blue);margin:44px auto 0;animation:ln .8s cubic-bezier(.7,0,.2,1) 41.9s forwards}
+  @keyframes ln{to{width:1000px}}
+  .s7 .cta{margin-top:44px;display:inline-flex;align-items:center;gap:28px;font-size:44px;font-weight:800;
+           background:var(--blue2);color:#fff;padding:22px 44px;border-radius:999px}
+  .s7 .cta .mono{font-weight:500;opacity:.9}
+  .fadeout{position:absolute;inset:0;background:#000;opacity:0;animation:on .8s linear 44.2s both;z-index:9}
+</style>
+</head>
+<body>
+<div class="cam"><div class="shake">
+
+<!-- S0 0 – 3.75 : 손님이 묻는다 -->
+<section class="sc s0" style="--a:0s;--b:3.7s">
+  <div class="chat">
+    <div class="ask up" style="--d:.25s"><div class="bub"><span class="type" style="--d:.55s;--t:1.4s;--n:14">○○구 코딩학원 추천해줘</span><span class="caret"></span></div></div>
+    <div class="ans up" style="--d:2.2s">
+      <div class="who">AI ASSISTANT</div>
+      <div class="dots"><i></i><i></i><i></i></div>
+    </div>
+  </div>
+</section>
+
+<!-- S1 3.75 – 9.375 : 답에 이름 두세 개 -->
+<section class="sc s1" style="--a:3.75s;--b:9.32s">
+  <div class="chatWrap gone">
+    <div class="chat">
+      <div class="ask"><div class="bub">○○구 코딩학원 추천해줘</div></div>
+      <div class="ans" style="position:relative">
+        <div class="who">AI ASSISTANT</div>
+        <div class="rec slam" style="--d:3.75s"><span class="n">①</span>A 학원</div>
+        <div class="rec slam" style="--d:4.219s"><span class="n">②</span>B 학원</div>
+        <div class="rec me slam" style="--d:4.688s"><span class="n">③</span><span class="q">우리 학원?</span></div>
+        <div class="miss slam" style="--d:5.86s">NOT FOUND</div>
+      </div>
+    </div>
+  </div>
+  <div class="lines">
+    <div class="l slam" style="--d:7.031s">AI는 이름을</div>
+    <div class="l slam b" style="--d:7.5s">두세 개만 부릅니다.</div>
+    <div class="up f" style="--d:8.2s;font-size:46px;font-weight:700;margin-top:28px">그 안에 있어야 비교가 시작됩니다.</div>
+  </div>
+</section>
+
+<!-- S2 9.375 – 16.875 : 검색 vs AI 답변 -->
+<section class="sc s2" style="--a:9.375s;--b:16.82s">
+  <div class="ttl">
+    <div class="lab up" style="--d:9.4s">GEO · 생성형 엔진 최적화</div>
+    <h2 class="up" style="--d:9.6s">검색 결과의 링크가 아니라<br><span class="b">답변 문장 안의 이름.</span></h2>
+  </div>
+  <div class="col left swipe" style="--d:10.6s">
+    <div class="cap">검색 · 링크 열 개</div>
+    <div class="linksWrap"><div class="link"></div><div class="link"></div><div class="link"></div><div class="link"></div><div class="link"></div>
+      <div class="link"></div><div class="link"></div><div class="link"></div><div class="link"></div><div class="link"></div></div>
+  </div>
+  <div class="col right">
+    <div class="cap up" style="--d:11.6s">AI 답변 · 추천 이름 두세 개</div>
+    <div class="name slam" style="--d:12.188s"><span class="n">①</span>A 학원</div>
+    <div class="name slam" style="--d:12.656s"><span class="n">②</span>B 학원</div>
+    <div class="name slam b" style="--d:13.125s"><span class="n">③</span>우리 학원</div>
+    <div class="up f" style="--d:14.3s;font-size:36px;margin-top:20px">잘됐는지는 같은 질문을 날마다 물어 몇 번 중 몇 번 나오는지로 봅니다.</div>
+  </div>
+</section>
+
+<!-- S3 16.875 – 24.375 : 직접 측정 34곳 -->
+<section class="sc s3" style="--a:16.875s;--b:24.32s">
+  <div class="head">
+    <div class="lab up" style="--d:16.9s">직접 측정 · 소프트웨어 회사 34곳 · 회사당 15회</div>
+    <h2 class="up" style="--d:17.1s">홈페이지 점수와 AI 노출은<br><span class="b">따로 움직였습니다.</span></h2>
+  </div>
+  <div class="cmp">
+    <div class="row up" style="--d:18.281s">
+      <div class="who">홈페이지 80점<small>비교 글 14개 중 0개에 이름</small></div>
+      <div class="track"><div class="fill" style="--d:18.6s;--w:.2;background:#3A4A66"></div></div>
+      <div class="v">3<small> / 15번</small></div>
+    </div>
+    <div class="row up" style="--d:19.219s">
+      <div class="who">홈페이지 19점<small>비교 글 14개 중 9개에 이름</small></div>
+      <div class="track"><div class="fill" style="--d:19.55s;--w:.533;background:var(--blue)"></div></div>
+      <div class="v b">8<small> / 15번</small></div>
+    </div>
+  </div>
+  <p class="why slam" style="--d:21.563s">AI는 홈페이지만 읽지 않습니다.<br><span class="b">AI가 참고하는 비교 글·목록에 이름이 있어야 합니다.</span></p>
+</section>
+
+<!-- S4 24.375 – 31.875 : 도입 사례 -->
+<section class="sc s4" style="--a:24.375s;--b:31.82s">
+  <div class="head"><div class="lab up" style="--d:24.4s">첫 적용 · 사이티드 대표가 운영하는 학원</div></div>
+  <div class="start slam" style="--d:24.6s">착수 때, 학부모 질문 6개 <span class="r">전부 미노출.</span></div>
+  <div class="quoteWrap">
+    <div class="quote swipe" style="--d:25.781s">
+      <div class="src">네이버 AI 가 이 학원을 소개한 문장</div>
+      <div class="t">「무선 인터넷과 남녀 구분 화장실을 제공합니다」</div>
+    </div>
+    <div class="fixes">
+      <div class="fix up" style="--d:27.188s"><div class="k">소개글</div><div class="v"><s>188</s> → <span class="b">933</span>자</div></div>
+      <div class="fix up" style="--d:27.656s"><div class="k">AI 가 못 읽던 블로그 글</div><div class="v"><span class="b">32</span>편 이전</div></div>
+    </div>
+  </div>
+  <p class="note up" style="--d:29.063s">쓸 문장이 없으면 AI도 쓸 말이 없습니다.<br><b>그래서 사실을 찾아 적고, AI가 읽는 곳에 놓습니다.</b></p>
+</section>
+
+<!-- S5 31.875 – 37.5 : 드롭 · 하는 일 -->
+<section class="sc s5" style="--a:31.875s;--b:37.45s">
+  <div class="ring"></div>
+  <div class="hit gone" style="--o:33.69s"><div class="slam" style="--d:31.875s"><div class="k">01 · 측정</div><div class="big">질문 20개를<br><span class="b">날짜별로</span> 묻습니다</div><div class="sm">답 원문과 출처까지 보관</div></div></div>
+  <div class="hit gone" style="--o:35.56s"><div class="slam" style="--d:33.75s"><div class="k">02 · 기술 세팅</div><div class="big">AI 봇이 <span class="b">읽을 수 있게</span></div><div class="sm">봇 접근 · 색인 등록 · 구조화 데이터</div></div></div>
+  <div class="hit"><div class="slam" style="--d:35.625s"><div class="k">03 · 제3자 지면</div><div class="big">AI가 읽는 글에<br><span class="b">이름을</span></div><div class="sm">비교 글 · 목록 · 후기</div></div></div>
+  <div class="ais">
+    <span class="up" style="--d:32.2s">ChatGPT</span><span class="up" style="--d:32.4s">Perplexity</span>
+    <span class="up" style="--d:32.6s">Gemini</span><span class="up" style="--d:32.8s">Claude</span>
+  </div>
+</section>
+
+<!-- S6 37.5 – 41.25 : 제안 -->
+<section class="sc s6" style="--a:37.5s;--b:41.2s">
+  <div class="steps">
+    <div class="stp slam" style="--d:37.5s"><div class="k">무료 진단</div><div class="v">0원</div></div>
+    <div class="arr up" style="--d:37.85s">→</div>
+    <div class="stp hl slam" style="--d:37.969s"><div class="k">30일 파일럿</div><div class="v b">39만원</div></div>
+  </div>
+  <p class="flow up" style="--d:38.6s">기준선 <span class="b">→</span> 고침 <span class="b">→</span> 30일 차 재측정</p>
+  <p class="promise up" style="--d:39.375s">노출·순위·문의는 보장하지 않습니다.<br><b>약속한 작업과, 같은 조건으로 다시 잰 보고를 보장합니다.</b></p>
+</section>
+
+<!-- S7 41.25 – 45 : 로고 -->
+<section class="sc s7" style="--a:41.25s;--b:99s">
+  <div class="logo">
+    <div class="mk slam" style="--d:41.25s">Cited <span>사이티드</span></div>
+    <div class="tag up" style="--d:41.7s">AI 답변에 이름이 불리게.</div>
+    <div class="line"></div>
+    <div class="up" style="--d:42.4s"><span class="cta">내 이름이 나오는지, 무료 진단부터 <span class="mono">cited.kr</span></span></div>
+  </div>
+</section>
+
+</div></div>
+
+<div class="glow"></div>
+<div class="flash"></div>
+<div class="grain"></div>
+<div class="vig"></div>
+<div class="hud"><span class="dot">CITED · AI ANSWER VISIBILITY</span><span>GEO</span></div>
+<div class="bar"></div>
+<div class="fadeout"></div>
+</body>
+</html>

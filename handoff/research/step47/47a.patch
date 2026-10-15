@@ -1,0 +1,307 @@
+diff --git a/web/app/geo/[slug]/page.tsx b/web/app/geo/[slug]/page.tsx
+index 3a55ffb..5638266 100644
+--- a/web/app/geo/[slug]/page.tsx
++++ b/web/app/geo/[slug]/page.tsx
+@@ -1,3 +1,4 @@
++import { SITE_URL } from "@/lib/site";
+ import Link from "next/link";
+ import { notFound } from "next/navigation";
+ import type { Metadata } from "next";
+@@ -22,7 +23,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
+   const { slug } = await params;
+   const g = byGuide(slug);
+   if (!g) return { title: "가이드 — Cited" };
+-  return { title: `${g.title} — Cited 사이티드`, description: g.short };
++  return { title: `${g.title} — Cited 사이티드`, description: g.short, alternates: { canonical: `/geo/${g.slug}` } };
+ }
+ 
+ export default async function GuidePage({ params }: Props) {
+@@ -32,7 +33,7 @@ export default async function GuidePage({ params }: Props) {
+   const i = GUIDES.findIndex((x) => x.slug === slug);
+   const next = GUIDES[(i + 1) % GUIDES.length];
+ 
+-  const base = process.env.NEXT_PUBLIC_SITE_URL || "https://geo-rose-nine.vercel.app";
++  const base = SITE_URL;
+   const url = `${base}/geo/${g.slug}`;
+   const schema = {
+     "@context": "https://schema.org",
+diff --git a/web/app/geo/page.tsx b/web/app/geo/page.tsx
+index 66dd449..1ac38d7 100644
+--- a/web/app/geo/page.tsx
++++ b/web/app/geo/page.tsx
+@@ -1,3 +1,4 @@
++import { SITE_URL } from "@/lib/site";
+ import Link from "next/link";
+ import type { Metadata } from "next";
+ import { GUIDES } from "@/lib/guides";
+@@ -14,9 +15,10 @@ export const metadata: Metadata = {
+   title: "GEO 가이드 — Cited 사이티드",
+   description:
+     "AI 답변에 회사 이름이 나오게 하는 일에 대해, 저희가 직접 재 본 것만 적었습니다. SEO 와의 차이, 대행사 고르는 기준, 비용, 측정 방법, 시작 순서.",
++  alternates: { canonical: "/geo" },
+ };
+ 
+-const base = process.env.NEXT_PUBLIC_SITE_URL || "https://geo-rose-nine.vercel.app";
++const base = SITE_URL;
+ 
+ const schema = {
+   "@context": "https://schema.org",
+diff --git a/web/app/layout.tsx b/web/app/layout.tsx
+index 2f60b56..cabfd3f 100644
+--- a/web/app/layout.tsx
++++ b/web/app/layout.tsx
+@@ -1,7 +1,10 @@
+ import type { Metadata } from "next";
++import { SITE_URL } from "@/lib/site";
+ import "./globals.css";
+ 
++// canonical 은 여기 두지 않는다 — 두면 모든 하위 페이지가 「/」를 물려받는다. 페이지마다 따로 단다.
+ export const metadata: Metadata = {
++  metadataBase: new URL(SITE_URL),
+   title: "Cited 사이티드 — AI 답변 노출 측정 · GEO",
+   description:
+     "손님이 AI에게 물었을 때 우리 이름이 나오는지 확인하고, 나오게 만듭니다. 몇 번 물어 몇 번 나왔는지까지 적는 GEO 대행사.",
+diff --git a/web/public/llms.txt b/web/app/llms.txt/route.ts
+similarity index 65%
+rename from web/public/llms.txt
+rename to web/app/llms.txt/route.ts
+index 076205a..cc2af60 100644
+--- a/web/public/llms.txt
++++ b/web/app/llms.txt/route.ts
+@@ -1,6 +1,15 @@
+-# Cited 사이티드
++import { PILOT } from "@/lib/services";
++import { SITE_URL, CITED_ABOUT } from "@/lib/site";
+ 
+-손님이 AI에게 물었을 때 답변에 회사 이름이 나오는지 확인하고, 나오게 만드는 마케팅 대행사입니다.
++/**
++ * llms.txt — 예전엔 public/llms.txt 를 손으로 옮겨 적었다. 가격이 바뀌면 여기만 늙었다.
++ * 정의문·파일럿 가격·환불·월 구독은 상수에서 읽는다. 주소는 SITE_URL 하나.
++ */
++export const dynamic = "force-static";
++
++const body = `# 사이티드(Cited)
++
++${CITED_ABOUT.join(" ")}
+ 
+ ## 하는 일
+ 
+@@ -21,15 +30,16 @@
+ 
+ 회사당 15회 표본입니다. 표본이 작아 대략의 방향으로 봐 주세요.
+ 
+-## 도입 사례
++## 첫 적용 — 대표가 운영하는 학원
+ 
+-수도권의 코딩·로봇 교육 학원. 홈페이지 없이 블로그만 있던 곳입니다. 학원 이름과 지역은 가립니다.
++사이티드는 남에게 팔기 전에 대표가 운영하는 학원에 먼저 했습니다. 학원 이름과 지역은 가렸습니다.
++수도권의 코딩·로봇 교육 학원이고, 홈페이지 없이 블로그만 있던 곳입니다.
+ 
+ - 착수 때: 학부모가 쓸 질문 6개 전부 미노출. 상위에 개별 학원 홈페이지가 하나도 없고 전부 학원 목록 사이트였음
+ - 네이버 AI가 이 학원을 「무선 인터넷과 남녀 구분 화장실을 제공합니다」라고 소개하고 있었음.
+   플레이스 소개글 188자에 쓸 문장이 없어서였고, 933자로 다시 씀
+ - 블로그 글 32편이 AI 크롤러를 막는 플랫폼에 있어서 막히지 않는 사이트로 옮김
+-- 전체 기록: /case/academy.html (DB에서 매일 다시 생성)
++- 전체 기록: ${SITE_URL}/case/academy.html (DB에서 매일 다시 생성)
+ 
+ AI 답변 인용은 기준선 한 번만 셌습니다. 검색을 켠 AI 한 곳에 학부모 질문 8개를 한 번씩 물었고,
+ 학원 사이트를 출처로 단 답은 0개였습니다. 학원 이름이 나온 답 2개의 출처는 학원 목록 사이트였습니다.
+@@ -38,11 +48,19 @@ AI 답변 인용은 기준선 한 번만 셌습니다. 검색을 켠 AI 한 곳
+ 
+ - 무료 진단 0원
+ - 필요한 준비(1회, 필요한 곳만): 사이트 구축 250만원(기술 세팅 포함) · 기술 세팅 80만원 · 진단 통과 0원 · 블로그 글 이관 30편 기준 +80만원
+-- 30일 파일럿(모두) 39만원 · 선결제 · 기준선 → 고침 → 30일 차 재측정. 구축·세팅이 있는 곳은 구축 전에 기준선을 먼저 잽니다
+-- 파일럿 환불: 착수 전 취소: 390,000원 모두 돌려드립니다 · 기준선 보고 전 취소: 195,000원(50%) 돌려드립니다 · 기준선 보고 뒤 취소: 돌려드리지 않습니다. 입금 전에 서면으로 드립니다.
+-- 월 구독(리포트 39만원 · 관리 79만원)은 파일럿 뒤 선택입니다. 파일럿을 끝낸 곳에만 안내합니다.
+-- 노출·순위·문의를 보장하지 않습니다. 우리가 보장하는 것은 약속한 작업의 수행과 같은 조건의 재측정 보고입니다.
++- ${PILOT.name}(모두) ${PILOT.price} · ${PILOT.pay} · 기준선 → 고침 → 30일 차 재측정. 구축·세팅이 있는 곳은 구축 전에 기준선을 먼저 잽니다
++- 파일럿 환불: ${PILOT.refund.join(" · ")}. ${PILOT.refundNote}
++- ${PILOT.after}
++- ${PILOT.noGuarantee}
+ 
+ ## 연락
+ 
+-geo-rose-nine.vercel.app
++- 사이트: ${SITE_URL}
++- 상담·무료 진단: ${SITE_URL}/#start
++`;
++
++export function GET() {
++  return new Response(body, {
++    headers: { "Content-Type": "text/plain; charset=utf-8" },
++  });
++}
+diff --git a/web/app/page.tsx b/web/app/page.tsx
+index bbd4122..b97df31 100644
+--- a/web/app/page.tsx
++++ b/web/app/page.tsx
+@@ -1,4 +1,5 @@
+ import { Fragment } from "react";
++import type { Metadata } from "next";
+ import Link from "next/link";
+ import ScanForm from "./ScanForm";
+ import ContactForm from "./ContactForm";
+@@ -14,6 +15,7 @@ import { SERVICES, PILOT } from "@/lib/services";
+ import { GUIDES } from "@/lib/guides";
+ import { readOps } from "@/lib/ops";
+ import { readPlaceRank } from "@/lib/place";
++import { SITE_URL } from "@/lib/site";
+ import "./landing.css";
+ 
+ /**
+@@ -34,7 +36,7 @@ import "./landing.css";
+  * 구조화 데이터의 FAQ 는 화면의 질문 그대로다 — 같은 배열을 <Faq> 에 넘긴다.
+  * 탭·아코디언에 가려진 내용도 HTML 에는 전부 들어 있다(hidden). 크롤러는 다 읽는다.
+  */
+-const BASE = process.env.NEXT_PUBLIC_SITE_URL || "https://geo-rose-nine.vercel.app";
++const BASE = SITE_URL;
+ const CASE_URL = "/case/academy.html";
+ 
+ const FAQ: [string, string][] = [
+@@ -94,6 +96,10 @@ const SCHEMA = {
+   ],
+ };
+ 
++export const metadata: Metadata = {
++  alternates: { canonical: "/" },
++};
++
+ export const revalidate = 3600;
+ 
+ /** 착수일. 「N일차」를 여기서 센다. 화면에는 날짜를 내지 않는다. */
+diff --git a/web/app/robots.ts b/web/app/robots.ts
+index 2f3f2c0..dc8a2bf 100644
+--- a/web/app/robots.ts
++++ b/web/app/robots.ts
+@@ -1,3 +1,4 @@
++import { SITE_URL } from "@/lib/site";
+ import type { MetadataRoute } from "next";
+ 
+ /**
+@@ -29,7 +30,7 @@ export default function robots(): MetadataRoute.Robots {
+     return { rules: [{ userAgent: "*", disallow: "/" }] };
+   }
+ 
+-  const base = process.env.NEXT_PUBLIC_SITE_URL || "https://geo-rose-nine.vercel.app";
++  const base = SITE_URL;
+   const hidden = ["/admin", "/api"];
+ 
+   return {
+diff --git a/web/app/services/[slug]/page.tsx b/web/app/services/[slug]/page.tsx
+index 66399a9..6c4171e 100644
+--- a/web/app/services/[slug]/page.tsx
++++ b/web/app/services/[slug]/page.tsx
+@@ -1,3 +1,4 @@
++import { SITE_URL } from "@/lib/site";
+ import Link from "next/link";
+ import { notFound } from "next/navigation";
+ import type { Metadata } from "next";
+@@ -14,7 +15,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
+   const { slug } = await params;
+   const s = byslug(slug);
+   if (!s) return { title: "서비스 — Cited" };
+-  return { title: `${s.name} — Cited 사이티드`, description: s.short };
++  return { title: `${s.name} — Cited 사이티드`, description: s.short, alternates: { canonical: `/services/${s.slug}` } };
+ }
+ 
+ export default async function ServicePage({ params }: Props) {
+@@ -26,7 +27,7 @@ export default async function ServicePage({ params }: Props) {
+ 
+   /* 스키마가 홈에만 있어서 진단 점수가 36 이었다. 서비스 페이지에도 붙인다.
+      이 서비스가 답하는 고객 질문을 Question 으로 넣는다 — 그게 AI 가 잡는 자리다. */
+-  const base = process.env.NEXT_PUBLIC_SITE_URL || "https://geo-rose-nine.vercel.app";
++  const base = SITE_URL;
+   const schema = {
+     "@context": "https://schema.org",
+     "@graph": [
+diff --git a/web/app/services/page.tsx b/web/app/services/page.tsx
+index 247317d..cf8c658 100644
+--- a/web/app/services/page.tsx
++++ b/web/app/services/page.tsx
+@@ -6,6 +6,7 @@ import SiteNav from "../SiteNav";
+ export const metadata: Metadata = {
+   title: "서비스 — Cited 사이티드",
+   description: "AI 답변 인용 측정, 기술 세팅, 외부 문서 진입, 사이트 구축. 하는 일과 하지 않는 일을 나눠 적었습니다.",
++  alternates: { canonical: "/services" },
+ };
+ 
+ export default function Services() {
+diff --git a/web/app/sitemap.ts b/web/app/sitemap.ts
+index 9c17f75..b0b1da7 100644
+--- a/web/app/sitemap.ts
++++ b/web/app/sitemap.ts
+@@ -1,3 +1,4 @@
++import { SITE_URL } from "@/lib/site";
+ import type { MetadataRoute } from "next";
+ import { SERVICES } from "@/lib/services";
+ import { GUIDES } from "@/lib/guides";
+@@ -8,7 +9,7 @@ import { GUIDES } from "@/lib/guides";
+  */
+ export const revalidate = 3600;
+ 
+-const BASE = process.env.NEXT_PUBLIC_SITE_URL || "https://geo-rose-nine.vercel.app";
++const BASE = SITE_URL;
+ 
+ export default function sitemap(): MetadataRoute.Sitemap {
+   const now = new Date();
+diff --git a/web/lib/site.ts b/web/lib/site.ts
+new file mode 100644
+index 0000000..e6bd666
+--- /dev/null
++++ b/web/lib/site.ts
+@@ -0,0 +1,31 @@
++/**
++ * 사이트 기준 주소 — canonical·OG·JSON-LD·사이트맵·robots·llms.txt 가 전부 여기서 읽는다.
++ *
++ * 함정: PowerShell 파이프로 `vercel env add` 하면 값 앞에 BOM(U+FEFF), 뒤에 줄바꿈이 붙는다.
++ * 그래서 env 를 그대로 쓰지 않고 다듬은 뒤 URL 로 검증한다. 틀리면 기본값으로 간다.
++ */
++export const DEFAULT_SITE_URL = "https://cited.kr";
++
++export function cleanSiteUrl(raw: string | undefined | null): string {
++  const v = (raw ?? "").replace(/^﻿/, "").trim().replace(/\/+$/, "");
++  if (!v) return DEFAULT_SITE_URL;
++  try {
++    const u = new URL(v);
++    if (u.protocol !== "https:" && u.protocol !== "http:") return DEFAULT_SITE_URL;
++    return v;
++  } catch {
++    return DEFAULT_SITE_URL;
++  }
++}
++
++export const SITE_URL = cleanSiteUrl(process.env.NEXT_PUBLIC_SITE_URL);
++
++/**
++ * 사이티드 정의문. 랜딩 FAQ 첫 답 · JSON-LD Organization · llms.txt 머리가 이 문장을 같이 쓴다.
++ * AI 가 그대로 인용해 가는 자리라 한 곳에서만 고친다.
++ */
++export const CITED_ABOUT = [
++  "사이티드(Cited)는 손님이 ChatGPT·Perplexity·Gemini·Claude 에 물었을 때 답에 회사 이름이 나오게 만드는 마케팅 대행사입니다.",
++  "같은 질문을 날짜별로 물어 몇 번 중 몇 번 나오는지 세고, AI 가 참고하는 사이트와 비교 글을 고칩니다.",
++  "학원·병원·사무소 한 곳 규모에 맞췄습니다.",
++] as const;
+diff --git a/web/next.config.mjs b/web/next.config.mjs
+index 481d4a4..dca0df3 100644
+--- a/web/next.config.mjs
++++ b/web/next.config.mjs
+@@ -3,6 +3,19 @@ const nextConfig = {
+   // 진단은 외부 사이트를 여러 개 받아오므로 서버에서만 돈다
+   serverExternalPackages: [],
+   // 관리 화면에서 바깥 링크를 눌러도 주소(옛 ?key= 열쇠가 붙었을 수 있다)가 리퍼러로 새지 않게
++  /**
++   * 옛 주소(geo-rose-nine.vercel.app)는 cited.kr 로 308. 경로·쿼리는 그대로 넘긴다.
++   * /api 와 /api/* 는 넘기지 않는다 — 스크립트·Actions(LLM_PROXY_URL)·문의 POST 가 옛 주소를 박아 쓴다.
++   * 목적지는 SITE_URL 이 아니라 리터럴이다. 옛 호스트 하나만 다루고, env 가 틀려도 루프가 안 생긴다.
++   * 미리보기 배포(geo-*.vercel.app)는 호스트가 달라 안 걸린다.
++   */
++  async redirects() {
++    const old = [{ type: "host", value: "geo-rose-nine.vercel.app" }];
++    return [
++      { source: "/", has: old, destination: "https://cited.kr/", permanent: true },
++      { source: "/:path((?!api(?:/|$)).+)", has: old, destination: "https://cited.kr/:path", permanent: true },
++    ];
++  },
+   async headers() {
+     return [
+       { source: "/admin/:path*", headers: [{ key: "Referrer-Policy", value: "no-referrer" }] },

@@ -109,7 +109,7 @@ export default function PriceCalc() {
 
       <div className="lp-total">
         <p className="lp-sr" aria-live="polite">처음 {first}만원</p>
-        {site === 0 && migrate && <span className="lp-pill sky">도입 사례 학원과 같은 조건</span>}
+        {site === 0 && migrate && <span className="lp-pill sky">첫 적용 학원과 같은 조건</span>}
         <div className="k">처음</div>
         <div className="big"><b>{first}</b><span>만원</span></div>
         <div className="bd">

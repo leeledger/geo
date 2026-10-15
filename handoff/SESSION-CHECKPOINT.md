@@ -2,6 +2,13 @@
 *Read this before reading anything else. If it covers current state, skip BUILD-LOG.*
 
 
+## Where We Stopped (2026-10-15 저녁) — Step 47 브리프(사이티드 랜딩 문구 + cited.kr)
+
+- handoff/ARCHITECT-BRIEF.md = Step 47 (47a SITE_URL·canonical·llms.txt 생성·옛 도메인 308 / 47b 문구·순서·FAQ 10·JSON-LD). Step 46 브리프는 handoff/research/ARCHITECT-BRIEF-step46.md
+- 결정 D122~D130, KG-47-1~5 BUILD-LOG. 핵심: 「도입 사례」→「첫 적용 · 대표가 운영하는 학원」(D122), #proof 삭제, 증거 먼저 순서
+- 다음: Bob(builder). 배포 전 curl -sI https://cited.kr/ 200 확인. web 은 git push 배포
+- 원장 몫: NEXT_PUBLIC_SITE_URL=https://cited.kr (파일로 넣기, BOM 함정) · 바깥 등록(GSC·빙·네이버·IndexNow·Brave) · D122 관계 공개 이의 있으면 말하기
+
 ## Where We Stopped (2026-10-14 오후) — PC 자원 점유 고침(3574665)
 
 - 10/14 12:05 PC 멈춤·강제 재부팅. pc-runner VBS 1분 고리·남는 Chromium·무거운 측정 브라우저가 까닭. 고침: 종료코드 4 로 고리 멈춤, 일꾼 BELOW_NORMAL, 시간 초과 나무째 끄기, 부모 없는 Playwright 정리, tools/lean-browser.mjs(그림·영상·글꼴 안 받음), 측정 150분 자체 마감 — D112~D115

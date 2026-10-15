@@ -18,12 +18,15 @@ const args = process.argv.slice(2);
 const out = args.find((a) => a.endsWith(".wav")) || "hype.wav";
 const si = args.indexOf("--sec");
 const SEC = si >= 0 ? Number(args[si + 1]) : 45;
+// --transpose N: 같은 구성을 다른 조로(영상마다 소리가 겹치지 않게). 사이티드 홍보는 +2
+const ti = args.indexOf("--transpose");
+const TR = ti >= 0 ? Number(args[ti + 1]) : 0;
 
 const SR = 44100, N = Math.floor(SR * SEC);
 const L = new Float32Array(N), R = new Float32Array(N);
 const BEAT = 60 / 128, BAR = BEAT * 4;
 const HITS = [3.75, 9.375, 16.875, 24.375, 31.875, 37.5, 41.25];
-const hz = (m) => 440 * 2 ** ((m - 69) / 12);
+const hz = (m) => 440 * 2 ** ((m + TR - 69) / 12);
 const bar = (t) => Math.floor(t / BAR + 1e-9);
 
 // Am – F – C – G, 한 마디에 한 화음

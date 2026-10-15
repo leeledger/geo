@@ -1860,3 +1860,38 @@ Should Fix:
 - ~~KG-46-3~~ 닫음 → D121
 - KG-46-4 dev 모드 `next dev` 는 content/home.html 을 모듈 로드 때 한 번 읽어 고쳐도 반영 안 된다(서버 재시작 필요). 시험은 운영 빌드로 했다
 - D121 (Arch, 2026-10-15) 921px 미만은 스크롤 아웃 흐림을 아예 끈다. 모바일은 히어로가 한 화면보다 길고 에디터가 그 아래라 흐리면 본문이 흐려진다. 데스크톱 스크롤 아웃은 그대로. home.html paint() 의 opacity 를 big 조건으로. 재시험 35 PASS · 0 FAIL — 390 에서 에디터 화면 가운데일 때 실효 opacity 1
+
+### Step 47 — 사이티드 랜딩 문구 + cited.kr 온페이지 GEO — BRIEFED (2026-10-15, Arch) · Bob 대기
+- 브리프 handoff/ARCHITECT-BRIEF.md (Step 46 브리프는 handoff/research/ARCHITECT-BRIEF-step46.md 로 보관). 47a 도메인·canonical·llms.txt·308 → 47b 문구, 커밋 2개
+- D122 랜딩 사례 표기 「도입 사례」→「첫 적용 · 사이티드 대표가 운영하는 학원」. 유료 고객 0 인데 「도입 사례」는 고객처럼 읽힌다(지어내기 규칙). 이름·지역 가림은 유지. 원장이 관계 공개를 거부하면 「대표가 운영하는」만 빼고 「도입 사례」로는 안 되돌린다
+- D123 구매욕 지렛대는 참인 것만: 안 보이는 문제 보이기(시연·자가 확인 한 줄), 작동 원리(34곳·19점 8/15 vs 80점 3/15), 일차 붙은 자기 실증, 낮은 문턱(39만원·기준선 전 50% 환불). 외부 시장 통계(Pew·구글 발표)·학원 AI 언급률 25→29%·불안 문구는 랜딩에 안 쓴다
+- D124 #proof 절(게이지·llms.txt 채점 변경·robots.txt 코드) 삭제. 기술 점수는 성과가 아니고 원장에게 은어다. 방문 로그는 #case 에 남는다
+- D125 절 순서: hero→하는 일→34곳→첫 적용→해당→서비스→진행→보고서→요금→다른 점→안 하는 일→FAQ→가이드→시작. 돈보다 증거 먼저
+- D126 주체 이름은 「사이티드(Cited)」 하나. 절마다 첫 문장이 인용 가능한 정의문, 소제목은 질문형. FAQ 10문항(새 3: 무슨 회사·무료 진단 범위·비용)이 FAQPage 와 같은 배열
+- D127 JSON-LD: Organization name 사이티드(Cited)·url SITE_URL·sameAs 없음(자체 계정 근거 없음). Service 에 30일 파일럿 Offer 390000 KRW(PILOT 에서 뽑음)
+- D128 SITE_URL 은 web/lib/site.ts 한 곳. env 를 trim·BOM 제거·끝 / 제거·URL 검증, 실패 시 https://cited.kr. canonical 은 페이지별 상대 경로 + layout metadataBase(layout 에 canonical 금지)
+- D129 llms.txt 를 public 정적 파일에서 app/llms.txt/route.ts 생성으로. 가격·환불은 PILOT 보간
+- D130 geo-rose-nine.vercel.app → https://cited.kr 308 은 next.config redirects + host has, /api·/api/* 제외. destination 은 리터럴 cited.kr(루프 방지). robots.ts 봇 목록 불변
+- 배포 방식 확인: web 은 git push 로 Vercel(geo) 자동 배포(BUILD-LOG:1430). npx vercel --prod 는 academy 만
+- KG-47-1 FlowSteps·RecordTabs·PriceCalc·/services·/geo 본문 문구는 이번 범위 밖 — 같은 기준(정의문·은어)으로 다음에 본다
+- KG-47-2 무료 진단은 기술 점수만 본다. 「답에 이름이 나오나」를 무료로 1회 보여 주는 기능은 따로 판단(진단 38회·리드 0, business-validation:47)
+- KG-47-3 옛 도메인 절대 주소 남은 곳(/api 제외라 대부분 동작하나 정리 필요): web/lib/client-core.mjs:352(UA)·770(일감 admin 기본값) · web/lib/todo-text.ts:99 · web/scripts/lead-roundtrip.mjs:29 · academy/scripts/company.mjs:60 · health.mjs:28 · material-task.mjs:13 · sales.mjs:49 · write-draft.mjs:67 · test-client-screen.mjs:7,44 · test-login-live.mjs:70 · academy/app/admin/page.tsx:111 · tools/set-llm-proxy.mjs:24(GH 시크릿 LLM_PROXY_URL) · deliverables/ilog/proxy.ts · DB 일감 링크
+- KG-47-4 #proof 전용 CSS(.lp-gauge·.lp-code·.lp-warn 등) 미사용으로 남음
+- KG-47-5 히어로 「학원 이름 없이 친 검색어」 칸은 rivalTally(어느 엔진이든 한 번)라 빙 가짜 결과에 부풀 수 있다 — Bob 의 엔진별 표로 확인
+
+### Step 47 — Bob 빌드 — DONE_WITH_CONCERNS (2026-10-15, Bob) · 리뷰 대기
+- 47a(주소·canonical·llms.txt·308·JSON-LD 기반)와 47b(문구·순서)를 한 작업 트리에 지었다. 47a 만 따로 커밋할 수 있게 47a 시점 diff 를 `handoff/research/step47/47a.patch` 로 떠 뒀다(`git apply --cached` 로 47a 만 스테이징)
+- 시험: `next build && next start`(:3047, ALLOW_INDEX=true, DB 붙음) 위 verify.mjs 69 PASS · 1 FAIL(아래 B47-1) — `handoff/research/step47/assertions.txt`. DB 를 못 쓰게 한 빌드에서 nullops 2 PASS — `assertions-nullops.txt`. tsc 0 · npm run build 성공
+- B47-1 「도입 사례」가 화면에 한 곳 남음 — PriceCalc.tsx:112 알약 「도입 사례 학원과 같은 조건」. 브리프가 PriceCalc 를 「안 고치는 파일」로 묶어 손대지 않았다. Arch 판단: 한 줄(「첫 적용 학원과 같은 조건」)이면 D122 와 맞는다
+- B47-2 루트 canonical·og:url 은 `https://cited.kr`(끝 / 없음). Next 16 resolve-url.js:109 가 경로가 「/」면 origin 만 낸다(절대 주소로 넣어도 같다). URL 로는 같은 주소라 단정은 new URL() 로 정규화해 비교. 하위 페이지는 정확히 일치
+- B47-3 정의문(FAQ 1)·title·description 을 `web/lib/site.ts` 상수(CITED_ABOUT·SITE_TITLE·SITE_DESCRIPTION)로 뺐다. FAQ 1·Organization.description·llms.txt 머리·layout 기본값이 같은 글자를 쓰게(page.tsx 는 Next 규칙상 임의 export 를 못 해 route 가 못 읽는다)
+- B47-4 #data sub 「물었습니다.<b>표본이」 줄바꿈이 JSX 에서 공백 없이 붙어 `{" "}` 를 넣었다(예전 문구도 같은 문제가 있었다)
+- B47-5 FAQ 2 「7개 항목」 확인: lib/scan.ts 점수 6개(WEIGHTS) + 참고 1개(llms.txt) = 화면에 7줄. ScanForm 안내문 「7가지를 자동으로 봅니다」와도 같다 → 숫자 유지
+- KG-47-6 절 배경색이 순서를 바꾸며 겹친다: #data·#case 둘 다 lp-deep, #services·#how·#why 셋 다 lp-white, #faq·#guides 둘 다 lp-white. 브리프 「JSX 블록 이동만」이라 class 는 안 바꿨다. 스크린샷으로 판단 바람
+- KG-47-7 오늘(10/15) 히어로 「0 → 3 / 6」은 빙 줄만으로 나온 값이다(오늘 serp 는 bing 12줄뿐, 네이버 미측정). 이긴 3개는 10/14 네이버에서도 전부 1위 → REVIEW-REQUEST 표
+- D131 (Arch, 2026-10-15) PriceCalc.tsx:112 알약을 「첫 적용 학원과 같은 조건」으로. 「안 고치는 파일」 규칙의 한 줄 예외, D122 와 맞추려고 → B47-1 닫음
+- D132 (Arch) 순서를 바꾼 뒤 붙은 절끼리 배경이 겹치지 않게 번갈아 둔다. #how·#guides 를 lp-white→lp-ground 로. #data·#case 는 어두운 화면용 카드라 밝은 class 로 못 바꿔 새 규칙 한 줄 `.lp-deep.lp-deep2{background:var(--deep-2)}`(landing.css:22)을 #case 에 단다(기존 변수 --deep-2). verify 가 히어로~푸터 계산 배경을 대조 → KG-47-6 닫음
+- D133 (Arch) 히어로 경쟁 검색어 칸은 출처를 단다: 그날 마지막으로 잰 경쟁 검색어 줄의 엔진 하나만 세고 「· 빙 · 10/15 측정」을 붙인다. 엔진을 섞지 않는다. lib/ops.ts 에 serp.rivalLatest(engine·day·won·total) 추가(serp 조회에 checked_at). 엔진 이름은 관리 화면 Growth.tsx 와 같게(빙·네이버 웹문서·네이버 통합). #case 카드 1 은 그대로 「한 곳 이상」 합계(카드 문구가 정의를 적고 있음) → KG-47-7 닫음
+- 재시험 74 PASS · 0 FAIL (DB 줄을 직접 읽어 히어로 칸 라벨·분모·분자 대조 단정 3개, 배경 단정 1개 추가). nullops 2 PASS. tsc 0 · build 성공. 배포는 cited.kr 200 확인 뒤 Arch 가 한다
+- D134 (Arch, 2026-10-15) #case 카드 1 은 엔진 합계를 유지한다. 카드 문구 「검색엔진 한 곳 이상에서 학원 사이트가 나오면 셉니다」가 정의를 명시하므로 출처가 적힌 숫자다. 히어로 칸(D133)만 엔진 하나
+- Richard 리뷰 Step 47: PASS (Must Fix 0) → REVIEW-FEEDBACK.md

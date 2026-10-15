@@ -1,17 +1,18 @@
 import type { Metadata } from "next";
-import { SITE_URL } from "@/lib/site";
+import { SITE_URL, SITE_TITLE, SITE_DESCRIPTION } from "@/lib/site";
 import "./globals.css";
 
 // canonical 은 여기 두지 않는다 — 두면 모든 하위 페이지가 「/」를 물려받는다. 페이지마다 따로 단다.
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: "Cited 사이티드 — AI 답변 노출 측정 · GEO",
-  description:
-    "손님이 AI에게 물었을 때 우리 이름이 나오는지 확인하고, 나오게 만듭니다. 몇 번 물어 몇 번 나왔는지까지 적는 GEO 대행사.",
+  title: SITE_TITLE,
+  description: SITE_DESCRIPTION,
   robots: process.env.NEXT_PUBLIC_ALLOW_INDEX === "true" ? undefined : { index: false, follow: false },
   openGraph: {
-    title: "Cited 사이티드 — AI 답변 노출 측정 · GEO",
-    description: "AI 답변에 우리 이름이 나오는지 날마다 물어 셉니다. 홈페이지 주소만 넣으면 무료 진단.",
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    siteName: "사이티드(Cited)",
+    locale: "ko_KR",
     type: "website",
   },
 };

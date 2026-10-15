@@ -20,6 +20,11 @@ export function cleanSiteUrl(raw: string | undefined | null): string {
 
 export const SITE_URL = cleanSiteUrl(process.env.NEXT_PUBLIC_SITE_URL);
 
+/** 랜딩 메타 · 레이아웃 기본값이 같이 쓴다. 39만원은 lib/services.ts PILOT.price 와 같은 사실. */
+export const SITE_TITLE = "사이티드(Cited) — AI 답변에 우리 회사 이름이 나오게 하는 GEO 대행사";
+export const SITE_DESCRIPTION =
+  "사이티드(Cited)는 손님이 ChatGPT·Perplexity·Gemini·Claude 에 물었을 때 답에 회사 이름이 나오게 만드는 대행사입니다. 30일 파일럿 39만원. 홈페이지 주소만 넣으면 무료 진단.";
+
 /**
  * 사이티드 정의문. 랜딩 FAQ 첫 답 · JSON-LD Organization · llms.txt 머리가 이 문장을 같이 쓴다.
  * AI 가 그대로 인용해 가는 자리라 한 곳에서만 고친다.

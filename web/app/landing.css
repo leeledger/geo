@@ -18,6 +18,8 @@
 .lp-white{background:var(--surface)}
 .lp-ground{background:var(--ground)}
 .lp-deep{background:var(--deep);color:var(--lp-on);position:relative;overflow:hidden}
+/* 어두운 절이 둘 붙을 때(#data → #case) 뒤엣것을 한 톤 밝혀 띠를 가른다 (D132) */
+.lp-deep.lp-deep2{background:var(--deep-2)}
 .lp-deep::before{content:"";position:absolute;inset:0;pointer-events:none;background:
   radial-gradient(900px 520px at 88% -8%,rgba(64,132,255,.26),transparent 60%),
   radial-gradient(700px 480px at -8% 108%,rgba(40,110,230,.14),transparent 60%),
@@ -114,6 +116,7 @@ nav.lp-nav :focus-visible{outline-color:#6BAEFF}
 .lp-herolinks{margin-top:26px;display:flex;gap:10px 26px;flex-wrap:wrap;font-size:15.5px;font-weight:600}
 .lp-herolinks a{color:var(--lp-on);border-bottom:1px solid rgba(255,255,255,.3);padding-bottom:2px;transition:color .15s,border-color .15s}
 .lp-herolinks a:hover{color:#fff;border-color:#fff}
+.lp-herohint{margin-top:14px;font-size:15px;line-height:1.65;color:var(--lp-on2);word-break:keep-all}
 
 /* AI 답변 시연 */
 .lp-chat{border-radius:22px;background:var(--surface);color:var(--ink);box-shadow:0 40px 90px rgba(0,0,0,.45);overflow:hidden}

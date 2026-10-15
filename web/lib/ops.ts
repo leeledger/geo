@@ -42,6 +42,11 @@ export type Ops = {
      */
     rivalWon: number;
     rivalTotal: number;
+    /**
+     * 그날 마지막으로 잰 엔진 하나만의 경쟁 검색어 집계(D133). 랜딩 히어로 칸은 이걸 쓴다 —
+     * 엔진을 섞은 숫자에는 출처를 붙일 수 없다. 마지막 줄의 엔진이 바뀌면 라벨도 같이 바뀐다.
+     */
+    rivalLatest: { engine: string; day: string; won: number; total: number } | null;
     /** 브랜드 검색 방어 — 우리 이름인데 안 나오는 게 있으면 문제다 */
     brandLost: string[];
   };
@@ -140,6 +145,22 @@ function rivalTally(rows: { engine: string; query: string; hit: boolean; kind?: 
   };
 }
 
+/** 측정일 하루치에서 가장 늦게 잰 경쟁 검색어 줄의 엔진 하나만 센다 */
+function rivalLatest(
+  rows: { engine: string; query: string; hit: boolean; kind?: string; checked_at?: Date | string | null }[],
+  day: string | null,
+) {
+  if (!day) return null;
+  const isRival = (r: (typeof rows)[number]) =>
+    !(r.kind === "색인" || /^site:/i.test(r.query)) &&
+    (r.kind ? r.kind === "경쟁" : !isBrandQuery(r.query));
+  const at = (r: (typeof rows)[number]) => (r.checked_at ? new Date(r.checked_at).getTime() : 0);
+  const last = rows.filter(isRival).reduce<(typeof rows)[number] | null>((a, r) => (!a || at(r) > at(a) ? r : a), null);
+  if (!last) return null;
+  const t = rivalTally(rows.filter((r) => r.engine === last.engine));
+  return { engine: last.engine, day, won: t.rivalWon, total: t.rivalTotal };
+}
+
 
 /**
  * 고객사.
@@ -228,7 +249,7 @@ export async function readOps(client?: Client): Promise<Ops> {
     ok: false,
     posts: { published: 0, draft: 0, lastAt: null, sinceDays: null },
     crawl: { last24h: 0, vendors: [], totalPages: 0 },
-    serp: { day: null, hits: [], total: 0, rivalWon: 0, rivalTotal: 0, brandLost: [] },
+    serp: { day: null, hits: [], total: 0, rivalWon: 0, rivalTotal: 0, rivalLatest: null, brandLost: [] },
     place: [],
     ai: { day: null, engine: null, method: null, prompts: 0, cited: 0, mentioned: 0, rounds: 0, comparable: false },
     sales: { scans30d: 0, leads30d: 0, newLeads: 0, unresolvedInquiries: 0, scanToLeadPct: 0 },
@@ -271,7 +292,7 @@ export async function readOps(client?: Client): Promise<Ops> {
 
     const serpDay = await q(`select max(day)::text d from ${S}.serp_checks where ${ME}`);
     const serp = serpDay[0]?.d
-      ? await q(`select engine, query, kind, rank, hit from ${S}.serp_checks
+      ? await q(`select engine, query, kind, rank, hit, checked_at from ${S}.serp_checks
                   where ${ME} and day = '${serpDay[0].d}'`)
       : [];
 
@@ -410,6 +431,7 @@ export async function readOps(client?: Client): Promise<Ops> {
         total: serp.length,
         hits: serp.filter((r) => r.hit).map((r) => ({ engine: r.engine, query: r.query, rank: r.rank })),
         ...rivalTally(serp),
+        rivalLatest: rivalLatest(serp, serpDay[0]?.d ?? null),
       },
       lastAt: {
         content: seen?.content ? new Date(seen.content).toISOString() : null,
