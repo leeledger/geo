@@ -58,7 +58,7 @@ export default function RecordTabs() {
 
       <div className="lp-card lp-rec-panel">
         <div role="tabpanel" id="rec-panel-0" aria-labelledby={id(0)} tabIndex={0} hidden={tab !== 0}>
-          <div className="eb">소프트웨어 회사 진단 리포트 · 회사 이름 가림</div>
+          <div className="eb">소프트웨어 회사 진단 보고서 · 회사 이름 가림</div>
           <h3>홈페이지 점수가 가장 높은 회사가 <span className="hl">15번 중 3번</span></h3>
           <p className="p">그 업계 손님이 물어볼 질문을 AI 에게 15번 묻고, 회사마다 이름이 몇 번 나왔는지 셌습니다. 회사당 15회 표본이라 순위가 아니라 방향으로 봅니다.</p>
           <div className="lp-bars">

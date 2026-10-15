@@ -47,7 +47,7 @@ const FAQ: [string, string][] = [
   ["무료 진단은 무엇을 보나요?",
    "홈페이지를 AI 가 읽을 수 있는 상태인지 봅니다. AI 봇 허용, 구조화 데이터, 문단 길이 같은 7개 항목입니다. 답에 이름이 나오는지는 무료 진단으로 알 수 없습니다. 같은 질문을 여러 날 물어야 해서 30일 파일럿에서 셉니다."],
   ["비용은 얼마인가요?",
-   `30일 파일럿 39만원으로 시작합니다. 선결제입니다. 홈페이지가 없으면 구축 250만원(기술 세팅 포함), AI 가 못 읽는 사이트면 기술 세팅 80만원을 한 번 냅니다. ${PILOT.after}`],
+   `30일 파일럿 39만원으로 시작합니다. 선결제입니다. 홈페이지가 없으면 홈페이지 제작 250만원(기술 세팅 포함), AI 가 못 읽는 사이트면 기술 세팅 80만원을 한 번 냅니다. ${PILOT.after}`],
   ["직접 하면 안 되나요?",
    "기술 세팅은 직접 하실 수 있고 그러시길 권합니다. 어려운 건 AI 네 곳에 같은 질문을 날마다 물어 세는 일과, 경쟁사는 있고 우리만 없는 비교 글을 찾아내는 일입니다. 저희가 파는 건 그 둘을 30일 동안 해 보는 파일럿입니다."],
   ["얼마나 걸리나요?",
@@ -173,16 +173,13 @@ const FIRST_VISITS: [string, string, string][] = [
 
 /** 사례 기록 — 공개 케이스 리포트와 같은 내용. 날짜 대신 일차. */
 const TIMELINE: [string, string, string][] = [
-  ["1일차", "사이트 구축 · 도메인 연결", "AI 크롤러를 이름으로 허용하고 llms.txt 와 구조화 데이터를 붙였습니다."],
-  ["1일차", "블로그 글 32편 이관", "AI 크롤러를 막는 블로그에서 사진 69장까지 옮겼습니다."],
+  ["1일차", "홈페이지 제작 · 주소 연결", "AI 봇을 이름으로 허용하고 구조화 데이터(AI가 읽는 이름표)를 붙였습니다."],
+  ["1일차", "블로그 글 32편 옮김", "AI 봇을 막는 블로그에서 사진 69장까지 옮겼습니다."],
   ["2일차", "첫 AI 방문", "0시 49분 ClaudeBot 이 robots.txt 부터 읽었고, 10분 뒤 Googlebot 이 왔습니다."],
   ["2일차", "구글 비즈니스 프로필 등록 · 학원 목록 사이트 등재 신청", "대표자 본인인증이 필요한 항목은 사장님이 직접 했습니다."],
   ["4일차", "네이버 검색에 사이트가 처음 잡힘", "옮긴 글이 네이버 검색 결과에 나오기 시작했습니다."],
   ["6일차", "학원 이름 없이 친 검색어에 첫 노출 · 플레이스 소개글 188자 → 933자", "네이버 통합검색 「○○구 코딩학원」에 사이트가 나왔습니다."],
 ];
-
-/** serp_checks.engine → 화면 이름 (관리 화면 Growth.tsx 와 같은 이름) */
-const ENGINE_NAME: Record<string, string> = { bing: "빙", naver: "네이버 웹문서", naver_all: "네이버 통합" };
 
 /** 서비스 카드 아래 한 줄. 기간·비용은 값만, 나머지는 「이름 값」. 원본은 lib/services.ts. */
 const termLine = (terms: { k: string; v: string }[]) =>
@@ -214,11 +211,6 @@ export default async function Home() {
   // 경쟁 검색어 집계는 lib/ops.ts 한 곳에 둔다. 여기서 또 세면 대시보드와 갈라진다.
   const webTotal = ops.ok && ops.serp.rivalTotal ? ops.serp.rivalTotal : null;
   const webWins = webTotal !== null ? ops.serp.rivalWon : null;
-  // 히어로 칸은 엔진을 섞지 않는다(D133). 그날 마지막으로 잰 엔진 하나와 측정일을 숫자 옆에 붙인다.
-  const heroWeb = ops.ok && ops.serp.rivalLatest && ops.serp.rivalLatest.total ? ops.serp.rivalLatest : null;
-  const heroWebSrc = heroWeb
-    ? `${ENGINE_NAME[heroWeb.engine] ?? heroWeb.engine} · ${Number(heroWeb.day.slice(5, 7))}/${heroWeb.day.slice(8, 10)} 측정`
-    : null;
   // 플레이스는 「구 + 코딩학원」 검색어의 순위. 검색어 자체는 화면에 내지 않는다.
   // 14일 안에 잰 것만, 측정일을 붙여서. 없으면 칸을 숨긴다 (lib/place.ts)
   const placeDay = place ? `${Number(place.day.slice(5, 7))}/${place.day.slice(8, 10)}` : null;
@@ -238,43 +230,7 @@ export default async function Home() {
           <div className="wrap">
             <HeroDemo>
               <ScanForm id="dom-hero" />
-              <p className="lp-herohint">
-                무료 진단은 홈페이지를 AI 가 읽을 수 있는지 봅니다. 답에 이름이 나오는지는 지금 직접 확인해 보세요.
-                ChatGPT 에 손님 말투 그대로 「○○구 치과 추천해줘」.
-              </p>
-              <div className="lp-herolinks">
-                <a href="#price">30일 파일럿 39만원 보기 →</a>
-                <a href="#case">대표 학원에 먼저 해 본 기록 →</a>
-              </div>
             </HeroDemo>
-
-            <div className="lp-proof">
-              <div className="lp-proof-h"><i className="lp-live g" aria-hidden="true" />첫 적용 · 사이티드 대표가 운영하는 학원 · 서버·검색 기록 · 매일 갱신</div>
-              <div className="lp-proof-grid">
-                <div className="lp-glass lp-pb">
-                  <div className="lp-pb-v"><b>{caseDay}</b><span>일차</span></div>
-                  <div className="lp-pb-k">착수일부터 센 날</div>
-                </div>
-                {heroWeb && (
-                  <div className="lp-glass lp-pb">
-                    <div className="lp-pb-v"><b>0 → <Count to={heroWeb.won} /></b><span>/ {heroWeb.total}</span></div>
-                    <div className="lp-pb-k">학원 이름 없이 친 검색어에 노출 · {heroWebSrc}</div>
-                  </div>
-                )}
-                {vendors !== null && (
-                  <div className="lp-glass lp-pb">
-                    <div className="lp-pb-v"><b><Count to={vendors} /></b><span>곳</span></div>
-                    <div className="lp-pb-k">다녀간 AI·검색 봇</div>
-                  </div>
-                )}
-                {posts !== null && (
-                  <div className="lp-glass lp-pb">
-                    <div className="lp-pb-v"><b><Count to={posts} /></b><span>편</span></div>
-                    <div className="lp-pb-k">AI 가 읽을 수 있게 된 글</div>
-                  </div>
-                )}
-              </div>
-            </div>
           </div>
         </header>
 
@@ -358,7 +314,7 @@ export default async function Home() {
 
             <p className="lp-note">
               그래서 홈페이지를 잘 만들어도 비교 글에 이름이 없으면 답에서 빠집니다.
-              바로 아래가 사이티드가 직접 잰 기록입니다. SEO 를 이미 맡긴 곳이 있다면 그대로 두셔도 됩니다.
+              SEO 를 이미 맡긴 곳이 있다면 그대로 두셔도 됩니다.
             </p>
           </div>
         </section>
@@ -407,7 +363,7 @@ export default async function Home() {
             <div className="lp-stats">
               <div className="lp-glass lp-stat">
                 <div className="v"><b><Count to={7} /></b><span>/34</span></div>
-                <p>60점을 넘긴 홈페이지. 절반인 <b>17곳은 40점 아래</b>였고 AI 크롤러 접근이 0점인 곳도 있었습니다.</p>
+                <p>60점을 넘긴 홈페이지. 절반인 <b>17곳은 40점 아래</b>였고 AI 봇(자동 방문 프로그램) 접근이 0점인 곳도 있었습니다.</p>
               </div>
             </div>
           </div>
@@ -420,14 +376,14 @@ export default async function Home() {
             <h2 className="lp-h2">홈페이지 없이 블로그만 있던 학원은<br />어떻게 됐나요?</h2>
             <p className="lp-sub">
               사이티드는 남에게 팔기 전에 대표가 운영하는 학원에 먼저 했습니다. 학원 이름과 지역은 가렸습니다.
-              숫자는 <b>서버와 검색 기록에서 매일 다시 가져오고</b>, 안 오른 숫자도 같은 크기로 싣습니다.
+              숫자는 <b>서버와 검색 기록에서 매일 다시 가져옵니다.</b>
             </p>
 
             <div className="lp-case">
               {webTotal !== null && (
               <div className="lp-glass lp-cx hi">
                 <div className="lp-cx-hd">
-                  <span>경쟁 검색어 · 착수 때 → 지금</span>
+                  <span>이름 없이 찾는 검색어 · 착수 때 → 지금</span>
                   <b>0 → <Count to={webWins} /> / {webTotal}</b>
                 </div>
                 <p>
@@ -458,16 +414,17 @@ export default async function Home() {
                 <p>
                   처음 한 시간 안에 온 곳은 Anthropic 과 구글 두 곳이었습니다. 네이버 블로그는 GPTBot·ClaudeBot 을 막아서
                   <b> 쌓아 둔 글 32편이 AI 에겐 없는 글</b>이었습니다. 사진 69장까지 막히지 않은 곳으로 옮겼습니다.
+                  {posts !== null && <> 지금 AI 가 읽을 수 있는 글은 <b>{posts}편</b>입니다.</>}
                 </p>
               </div>
               )}
               <div className="lp-glass lp-cx hi">
                 <div className="lp-cx-hd">
-                  <span>AI 답변 · 착수 때 기준선</span>
+                  <span>AI 답변 · 착수 때 처음 물은 결과</span>
                   <b>0 / 8</b>
                 </div>
                 <p>
-                  검색을 켠 AI 한 곳에 학부모 질문 8개를 한 번씩 물었습니다. 이 학원 사이트를 출처로 단 답은 <b>0개</b>였습니다.
+                  웹 검색을 켠 AI 한 곳에 학부모 질문 8개를 한 번씩 물었습니다. 이 학원 사이트를 출처로 단 답은 <b>0개</b>였습니다.
                   학원 이름이 나온 답 2개의 출처는 <b>학원 목록 사이트</b>였습니다.
                   같은 8개를 같은 방법으로 다시 물은 결과는 아직 싣지 않았습니다. 다른 방법으로 잰 값과 섞지 않습니다.
                 </p>
@@ -488,7 +445,7 @@ export default async function Home() {
                 </ol>
               </div>
               <div>
-                <div className="lp-minih">서버가 기록한 실제 방문 로그</div>
+                <div className="lp-minih">서버가 기록한 실제 방문 기록</div>
                 <div className="lp-log mono">
                   {FIRST_VISITS.map(([t, b, p]) => (
                     <div key={t}><span>{t}</span><span>{b}</span><span>{p}</span></div>
@@ -542,7 +499,7 @@ export default async function Home() {
             <div className="lp-lab">서비스</div>
             <h2 className="lp-h2">사이티드에 맡기면<br /><span className="hl">무엇을 하나요?</span></h2>
             <p className="lp-sub">
-              모든 곳은 30일 파일럿 하나로 시작합니다. 홈페이지가 없거나 AI 가 못 읽는 곳만 구축·기술 세팅을 한 번 더합니다.
+              모든 곳은 30일 파일럿(한 달 시범 계약) 하나로 시작합니다. 홈페이지가 없으면 홈페이지 제작, AI 가 못 읽는 홈페이지면 기술 세팅(AI가 읽게 손봄)을 한 번 더 합니다.
               쓸 만한 홈페이지가 있으면 새로 만들지 않습니다. 월 구독은 파일럿을 끝낸 곳에만 안내합니다.
             </p>
             <div className="lp-svcs">
@@ -550,7 +507,6 @@ export default async function Home() {
                 <Link className="lp-card lp-hov lp-svc" key={sv.slug} href={`/services/${sv.slug}`}>
                   <div className="lp-svc-hd">
                     <span className="mono no">{sv.no}</span>
-                    <span className="tag">{sv.tag}</span>
                   </div>
                   <h3>{sv.name}</h3>
                   <div className="q">{sv.question}</div>
@@ -571,7 +527,7 @@ export default async function Home() {
             <div className="lp-lab">진행</div>
             <h2 className="lp-h2">30일 동안<br />무엇을 하나요?</h2>
             <p className="lp-sub">
-              첫 7일에 지금 숫자를 남기고, 30일 차에 같은 질문으로 다시 셉니다. 그 사이에 틀린 정보를 맞추고 글을 씁니다.
+              첫 7일에 지금 몇 번 나오는지 세어 두고, 30일 차에 같은 질문으로 다시 셉니다. 그 사이에 틀린 정보를 맞추고 글을 씁니다.
             </p>
             <FlowSteps />
             <p className="lp-flownote">
@@ -587,8 +543,7 @@ export default async function Home() {
             <div className="lp-lab">받는 보고서</div>
             <h2 className="lp-h2">보고서에는<br /><span className="hl">무엇이 들어가나요?</span></h2>
             <p className="lp-sub">
-              아래 세 장은 실제로 남긴 기록입니다. 앞의 두 장은 소프트웨어 회사 한 곳을 진단한 보고서,
-              마지막 장은 대표 학원의 작업 기록입니다. 회사 이름은 가렸습니다.
+              몇 번 물어 몇 번 나왔는지, 답이 참고한 비교 글, 고친 것과 고친 이유가 들어갑니다. 회사 이름은 가렸습니다.
             </p>
             <RecordTabs />
           </div>
@@ -601,7 +556,7 @@ export default async function Home() {
             <h2 className="lp-h2">30일 파일럿은<br /><span className="hl">얼마인가요?</span></h2>
             <p className="lp-sub">
               사이티드는 30일 파일럿 39만원으로 시작합니다. 선결제입니다. 착수 전에 그만두시면 전액, 기준선 보고 전이면 절반을 돌려드립니다.
-              홈페이지 구축·기술 세팅은 필요한 곳만 한 번 냅니다. 월 구독은 파일럿 뒤에 정합니다.
+              홈페이지 제작·기술 세팅은 필요한 곳만 한 번 냅니다. 월 구독은 파일럿 뒤에 정합니다.
             </p>
             <PriceCalc />
             <p className="lp-pcompare">
@@ -613,26 +568,26 @@ export default async function Home() {
           </div>
         </section>
 
-        {/* ── 리포트가 다른 점 ── */}
+        {/* ── 보고서가 다른 점 ── */}
         <section id="diff" className="lp-sec lp-white">
           <div className="wrap">
-            <div className="lp-lab">리포트가 다른 점</div>
+            <div className="lp-lab">보고서가 다른 점</div>
             <h2 className="lp-h2">보기 좋은 숫자를<br />만들지 않습니다</h2>
             <p className="lp-sub">
-              「AI 가시성 97%」 같은 딱 떨어지는 숫자는 몇 번 물었는지가 빠져 있기 쉽습니다. 저희 리포트는 이렇게 적습니다.
+              「AI 가시성 97%」 같은 딱 떨어지는 숫자는 몇 번 물었는지가 빠져 있기 쉽습니다.
             </p>
             <div className="lp-diff2">
               <div className="lp-card flat">
                 <h3>답변 원문을 드립니다</h3>
-                <div className="them">대시보드 점수만</div>
-                <div className="us">질문 · 답변 전문 · 답에 붙은 출처 · 엔진 · 시각</div>
+                <div className="them">점수 화면만</div>
+                <div className="us">질문 · 답변 전문 · 답에 붙은 출처 · AI 이름 · 시각</div>
                 <p>「그 숫자 어떻게 냈냐」에 원문을 열어 답합니다. 내부 보고에 그대로 붙이실 수 있습니다.</p>
               </div>
               <div className="lp-card flat">
                 <h3>고칠 게 없으면 없다고 합니다</h3>
                 <div className="them">사이트 80점 → 개선 제안 12건</div>
                 <div className="us">사이트 80점 → 「사이트는 됐는데 안 불립니다」</div>
-                <p>위에서 본 사이트 점수가 가장 높은 회사의 실제 진단 결론입니다. 대신 경쟁 3사는 있고 이 회사만 빠진 비교 글 세 곳을 먼저 들어갈 곳으로 적었습니다.</p>
+                <p>사이트 점수가 가장 높았던 80점 회사의 실제 진단 결론입니다. 대신 경쟁 3사는 있고 이 회사만 빠진 비교 글 세 곳을 먼저 들어갈 곳으로 적었습니다.</p>
               </div>
             </div>
           </div>
@@ -682,8 +637,7 @@ export default async function Home() {
             <div className="lp-lab">더 읽을 것</div>
             <h2 className="lp-h2">궁금한 것만 골라<br /><span className="hl">따로 읽으셔도 됩니다</span></h2>
             <p className="lp-sub">
-              상담에서 자주 나오는 다섯 가지를 따로 적었습니다.
-              남의 시장 전망이나 출처를 확인하지 못한 통계는 빼고, 저희가 직접 잰 숫자만 실었습니다.
+              남의 시장 전망과 출처를 확인 못 한 통계는 쓰지 않습니다. 숫자는 저희가 직접 잰 것뿐입니다.
             </p>
             <div className="lp-nots">
               {GUIDES.map((g) => (
@@ -707,7 +661,8 @@ export default async function Home() {
               <h2 className="lp-h2">홈페이지 주소부터<br /><span className="hl">넣어 보세요</span></h2>
               <p className="lp-sub">
                 AI 가 우리 사이트를 읽을 수 있는지 점수가 바로 나옵니다.
-                답에 이름이 나오는지까지 세고 싶으면 아래에 상담을 남겨 주세요. 홈페이지가 없어도 됩니다.
+                답에 이름이 나오는지는 ChatGPT 에 손님 말투 그대로 물어보면 압니다. 「○○구 치과 추천해줘」.
+                날짜별로 세어 보고 싶으면 상담을 남겨 주세요. 홈페이지가 없어도 됩니다.
               </p>
             </div>
 
@@ -750,7 +705,7 @@ export default async function Home() {
               </div>
             </div>
             <div className="wm">
-              이 페이지의 시장 숫자(홈페이지 34곳 진단 · 한 업계 질문을 AI 에게 15번 물은 결과 · 회사당 15회 표본)는 저희가 직접 측정한 값입니다.
+              시장 숫자(홈페이지 34곳 진단 · 한 업계 질문을 AI 에게 15번 물은 결과 · 회사당 15회 표본)는 사이티드가 직접 잰 값입니다.
               표본이 작아 <b>대략의 방향</b>으로 봐 주세요. 사례의 방문 기록은 서버에 남은 원본이고, 대표가 운영하는 학원이라 이름과 지역만 가렸습니다.
             </div>
             <div className="bottom">

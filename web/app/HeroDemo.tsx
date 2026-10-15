@@ -82,8 +82,7 @@ export default function HeroDemo({ children }: { children: React.ReactNode }) {
         <h1 className="lp-h1">손님은 AI가 꼽아 준<br /><span>몇 곳만 봅니다</span></h1>
         <p className="lp-lede">
           사이티드(Cited)는 그 몇 곳에 우리 회사 이름이 <b>들어가게 만드는</b> 대행사입니다.
-          손님이 칠 질문을 AI 네 곳에 날짜별로 묻고, <b>몇 번 중 몇 번</b> 나오는지 셉니다.
-          빠졌으면 <b>AI 가 참고하는 글</b>을 고칩니다.
+          손님이 칠 질문을 AI 에 날마다 물어 보고, 빠졌으면 <b>AI 가 읽는 글</b>을 고칩니다.
         </p>
         <div className="lp-inds" role="group" aria-label="업종 바꿔 보기">
           <span className="lp-inds-k" aria-hidden="true">업종 바꿔 보기</span>

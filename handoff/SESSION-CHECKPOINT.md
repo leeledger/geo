@@ -2,6 +2,13 @@
 *Read this before reading anything else. If it covers current state, skip BUILD-LOG.*
 
 
+## Where We Stopped (2026-10-15 밤) — Step 49 브리프(사이티드 랜딩 쉬운 말 · 메타 문구 걷기)
+
+- handoff/ARCHITECT-BRIEF.md = Step 49. Step 48 브리프는 handoff/research/ARCHITECT-BRIEF-step48.md. Step 48 배포(37b7557) + 원장 정정 9e63bbd(#film 제목만 D140 · #geo 라벨 원리 D141)
+- 결정 D142~D149, KG-49-1~6 BUILD-LOG. 핵심: 히어로 = 정의·시연·ScanForm 하나(글자 ≤400), 히어로 칸은 #case 로, 용어표(풀이 5개·바꿀 말), 메타 문구 금지(D149), 환불 조항 기준선 보고 글자 유지(D148)
+- 다음: Bob(builder) → step49/verify.mjs(94 대응 + 새 10) → Richard → main 푸시(web push 배포) → cited.kr 확인
+- 원장 몫: KG-49-6 메타 문구 규칙을 CLAUDE.md 에 올릴지
+
 ## Where We Stopped (2026-10-15 저녁) — Step 47 브리프(사이티드 랜딩 문구 + cited.kr)
 
 - handoff/ARCHITECT-BRIEF.md = Step 47 (47a SITE_URL·canonical·llms.txt 생성·옛 도메인 308 / 47b 문구·순서·FAQ 10·JSON-LD). Step 46 브리프는 handoff/research/ARCHITECT-BRIEF-step46.md

@@ -1908,3 +1908,34 @@ Should Fix:
 - D139 (Arch, 2026-10-15): #film 부제·VideoObject 설명 「같은 측정」→「숫자와 가격은 … 같은 근거」 (Richard Step 48 제안 4 — 가격은 측정이 아님)
 - D140 (원장, 2026-10-15): #film 은 제목 「사이티드가 하는 일」만. 「45초로 보기」 라벨·「소리가 있습니다…」 부제 삭제 — 영상을 설명하는 말(메타 문구)은 AI 티. VideoObject 설명도 내용 문장으로
 - D141 (Arch): #geo 라벨 「사이티드가 하는 일」→「원리」 (바로 위 #film 제목과 겹침)
+
+### Step 49 — 사이티드 랜딩 쉬운 말 · 메타 문구 걷기 — Arch 브리프 (2026-10-15) · Bob 대기
+- 브리프: handoff/ARCHITECT-BRIEF.md (Step 48 브리프는 handoff/research/ARCHITECT-BRIEF-step48.md). 원장 질문 「쉬운 설명으로 개편한 거 맞지?」 + 원장 정정(D140 메타 문구)
+- D142 (Arch) 히어로 = badge·h1·lede 2문장·시연·ScanForm 하나. herohint 는 #start 부제로, herolinks 삭제, .lp-proof 삭제
+- D143 (Arch) 히어로 칸 처리: 일차·다녀간 봇은 #case 에 이미 있음, 「AI 가 읽게 된 글 N편」은 #case 카드 3 본문 한 문장(posts null 이면 숨김), 엔진 하나짜리 경쟁 검색어 칸은 뺀다(#case 카드 1 합계·정의문이 같은 것, D134). D133 은 히어로 칸과 함께 은퇴
+- D144 (Arch) 쉬운 말 규칙: #film 에 나오는 이름(30일 파일럿·기술 세팅·기준선 보고)은 이름 유지 + 첫 노출에 한 번 괄호 풀이 ≤10자 — 파일럿(한 달 시범 계약)·기술 세팅(AI가 읽게 손봄)·기준선 보고(시작 때 숫자)·봇(자동 방문 프로그램)·구조화 데이터(AI가 읽는 이름표). 바꾸는 말: 사이트 구축→홈페이지 제작(서비스 이름, slug 유지, llms.txt 동시), 크롤러→봇, 리포트→보고서(월 구독 이름 포함), 이관→옮기기, 정합성 수정안 등 FlowSteps 칩. llms.txt 는 랜딩 화면에서 FAQ·가이드 밖 0
+- D145 (Arch) ScanForm 안내: 「주소만 넣으면 AI 가 우리 사이트를 읽을 수 있는지 바로 알려 드립니다」. 「10~30초」는 잰 적 없어 뺀다
+- D146 (Arch) 서비스 카드 영어 tag 는 랜딩 카드에서 렌더만 뺀다. services.ts tag 필드는 /services 목록이 써서 남김(KG-49-2)
+- D147 (Arch) 검증 step49/verify.mjs: 48 의 94 단정 전부 유지(의도 바뀐 것은 고쳐 쓰고 대응표), 새 단정 10개. 히어로 글자 수 N = 400(공백 뺀 innerText, 지금 583, 3업종 최댓값). 숫자 보존은 같은 실행에서 운영 화면 숫자 집합과 대조
+- D148 (Arch) 환불 조항의 「기준선 보고」는 글자 그대로 — 신청서·관리 화면(pilot-plan.ts:68-72)과 같아야 한다. 풀이만 단다
+- D149 (원장 규칙, Arch 적용) 메타 문구 금지 — 페이지·매체를 설명하는 문장(「N초로」「소리가 있습니다」「아래 세 장은」「이렇게 적습니다」「위에서 본」「따로 적었습니다」「이 페이지의」). 예외는 정직성 공시(예시 화면·가림·출처·표본 경고)와 링크 이름. 랜딩 메타 문장 8곳 목록·처리 브리프 5절
+- KG-49-1 ScanForm 결과 패널 낱말(루트 파일 robots·llms.txt, 구조화 데이터 등) — 진단을 받은 사장님이 보는 첫 결과라 다음 쉬운 말 단계 1순위
+- KG-49-2 /services 목록·상세의 영어 tag(Measurement 등)·업계 말
+- KG-49-3 lib/ops.ts rivalLatest 랜딩에서 미사용 · .lp-proof*·.lp-herohint·.lp-herolinks CSS 미사용
+- KG-49-4 guides.ts(146·148·149·154·155·170·187·212)에 사이트 구축·리포트·기준선 남음 — 랜딩·llms.txt 와 낱말이 갈라짐
+- KG-49-5 모바일(390)에서 CTA 가 시연 아래, 첫 화면 밖(지금 formTop 959 > 844). 순서 바꾸기는 이번에 안 함
+- KG-49-6 D149 메타 문구 금지를 CLAUDE.md 「AI 가 쓴 티」 목록에 올릴지 — 원장 확인
+
+#### Step 49 — Bob 빌드 (2026-10-15) · DONE · Richard 대기
+- 바뀐 파일: web/app/page.tsx · HeroDemo.tsx · ScanForm.tsx · FlowSteps.tsx · PriceCalc.tsx · RecordTabs.tsx · llms.txt/route.ts · web/lib/services.ts · research/paid-pilot-order-form.md
+- 히어로: herohint·herolinks·.lp-proof 삭제, ENGINE_NAME·heroWeb·heroWebSrc 삭제, lede 2문장, formnote·진행 문구 교체(10~30초 삭제). #case 카드 3 에 「지금 AI 가 읽을 수 있는 글은 N편입니다」(posts null 이면 숨김)
+- 용어표·메타 문구표 전부 반영. 서비스 카드 tag 렌더 삭제. PriceCalc 의 PILOT.llms 줄 렌더 삭제
+- B49-1 브리프 밖 결정: PILOT.gives 3·4·6번(수정안·근거 콘텐츠·상담 유입 기록표)이 #price 에 그대로 보여 단정 5 에 걸린다 → FlowSteps 칩과 같은 말로 바꿈. services.ts:43 규칙(신청서와 한 글자도 어긋나면 안 됨)대로 research/paid-pilot-order-form.md 21·27·28·30·62행도 같이 고침(order·gives·after). 환불 조항·refundNote 는 그대로(D148)
+- B49-2 단정 4 「.lp-svc 라틴 문자 0」은 카드 질문·설명마다 「AI」가 있어 문자 그대로는 불가 → 「AI」를 뺀 라틴 낱말 0 으로 셈
+- B49-3 keep-all 선택자 「#film .lp-sub」는 D140 이후 없는 요소라 「#film h2」로 바꿈. 「.lp-hero .formnote」 추가(#start .lp-sub·#services .lp-sub 는 이미 있었음)
+- 시험: `NEXT_PUBLIC_ALLOW_INDEX=true next build && next start`(:3047, DB 붙음) 위 step49/verify.mjs 104 PASS · 0 FAIL(48 대응 94 + 새 10) — handoff/research/step49/assertions.txt. 히어로 글자 최댓값 377(1440 세무사·인테리어), 390 은 343. submit 아래끝 638px. nullops(DATABASE_URL 을 못 쓰는 빌드) 2 PASS — assertions-nullops.txt. tsc 0
+- KG-49-7 guides.ts:85 short 「계약 전에 확인할 수 있는 것만 적었습니다.」 — #guides 카드에 보이는 메타성 문장. guides.ts 는 KG-49-4 범위라 손대지 않음
+- KG-49-8 web/lib/pilot-plan.ts:19·25 관리 화면 업무 제목에 「상담 유입 기록표」「근거 콘텐츠」가 남음(신청서는 새 말로 바뀜). 신청서 order-form 8행 「구축·세팅이 있는 곳은」도 남음
+- D150 (Arch) Bob Deviation 1(B49-1) 수락 — 유료 고객 0, 신청서 발송 0 이라 PILOT.gives·order·after 와 research/paid-pilot-order-form.md 문구를 바꿔도 된다. 제공 항목은 같고 낱말만 바뀜, 환불 조항 무변경. Richard 확인: refund 3줄·refundNote 가 9e63bbd 와 바이트 일치, 신청서 ↔ services.ts 글자 일치
+- Step 49 Richard 리뷰 (2026-10-15) PASS — Escalate: guides.ts:85 메타 문장(KG-49-7) 이번에 고칠지 · 1440 히어로 폼 아래 여백. Should Fix: #case 카드 1 DB 대조 단정 없음(48:333 대체가 SSR 비교뿐) · 단정 7 낱말 목록에 「적었습니다」 단독 없음 · llms.txt route:50 「블로그 글 이관」 · #start 진단 카드 「주소만 넣으면」 반복
+- D151 (Arch, 2026-10-15): KG-49-7 이번 단계에 고침 — guides.ts:85 short 「계약 전에 확인할 수 있는 것만 적었습니다」(메타) → 글 내용 세 기준. llms.txt/route.ts:50 「이관」→「옮기기」. #start 「주소만 넣으면」 반복·card 1 DB 단정은 Step 50(진단 개편)에서
