@@ -1,4 +1,5 @@
 import { Fragment } from "react";
+import type { Metadata } from "next";
 import Link from "next/link";
 import ScanForm from "./ScanForm";
 import ContactForm from "./ContactForm";
@@ -14,6 +15,7 @@ import { SERVICES, PILOT } from "@/lib/services";
 import { GUIDES } from "@/lib/guides";
 import { readOps } from "@/lib/ops";
 import { readPlaceRank } from "@/lib/place";
+import { SITE_URL } from "@/lib/site";
 import "./landing.css";
 
 /**
@@ -34,7 +36,7 @@ import "./landing.css";
  * 구조화 데이터의 FAQ 는 화면의 질문 그대로다 — 같은 배열을 <Faq> 에 넘긴다.
  * 탭·아코디언에 가려진 내용도 HTML 에는 전부 들어 있다(hidden). 크롤러는 다 읽는다.
  */
-const BASE = process.env.NEXT_PUBLIC_SITE_URL || "https://geo-rose-nine.vercel.app";
+const BASE = SITE_URL;
 const CASE_URL = "/case/academy.html";
 
 const FAQ: [string, string][] = [
@@ -92,6 +94,10 @@ const SCHEMA = {
       })),
     },
   ],
+};
+
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
 };
 
 export const revalidate = 3600;

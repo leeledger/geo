@@ -1,3 +1,4 @@
+import { SITE_URL } from "@/lib/site";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { GUIDES } from "@/lib/guides";
@@ -14,9 +15,10 @@ export const metadata: Metadata = {
   title: "GEO 가이드 — Cited 사이티드",
   description:
     "AI 답변에 회사 이름이 나오게 하는 일에 대해, 저희가 직접 재 본 것만 적었습니다. SEO 와의 차이, 대행사 고르는 기준, 비용, 측정 방법, 시작 순서.",
+  alternates: { canonical: "/geo" },
 };
 
-const base = process.env.NEXT_PUBLIC_SITE_URL || "https://geo-rose-nine.vercel.app";
+const base = SITE_URL;
 
 const schema = {
   "@context": "https://schema.org",

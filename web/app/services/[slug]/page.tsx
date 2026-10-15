@@ -1,3 +1,4 @@
+import { SITE_URL } from "@/lib/site";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
@@ -14,7 +15,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const s = byslug(slug);
   if (!s) return { title: "서비스 — Cited" };
-  return { title: `${s.name} — Cited 사이티드`, description: s.short };
+  return { title: `${s.name} — Cited 사이티드`, description: s.short, alternates: { canonical: `/services/${s.slug}` } };
 }
 
 export default async function ServicePage({ params }: Props) {
@@ -26,7 +27,7 @@ export default async function ServicePage({ params }: Props) {
 
   /* 스키마가 홈에만 있어서 진단 점수가 36 이었다. 서비스 페이지에도 붙인다.
      이 서비스가 답하는 고객 질문을 Question 으로 넣는다 — 그게 AI 가 잡는 자리다. */
-  const base = process.env.NEXT_PUBLIC_SITE_URL || "https://geo-rose-nine.vercel.app";
+  const base = SITE_URL;
   const schema = {
     "@context": "https://schema.org",
     "@graph": [

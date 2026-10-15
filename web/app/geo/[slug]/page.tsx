@@ -1,3 +1,4 @@
+import { SITE_URL } from "@/lib/site";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
@@ -22,7 +23,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const g = byGuide(slug);
   if (!g) return { title: "가이드 — Cited" };
-  return { title: `${g.title} — Cited 사이티드`, description: g.short };
+  return { title: `${g.title} — Cited 사이티드`, description: g.short, alternates: { canonical: `/geo/${g.slug}` } };
 }
 
 export default async function GuidePage({ params }: Props) {
@@ -32,7 +33,7 @@ export default async function GuidePage({ params }: Props) {
   const i = GUIDES.findIndex((x) => x.slug === slug);
   const next = GUIDES[(i + 1) % GUIDES.length];
 
-  const base = process.env.NEXT_PUBLIC_SITE_URL || "https://geo-rose-nine.vercel.app";
+  const base = SITE_URL;
   const url = `${base}/geo/${g.slug}`;
   const schema = {
     "@context": "https://schema.org",

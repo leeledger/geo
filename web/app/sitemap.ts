@@ -1,3 +1,4 @@
+import { SITE_URL } from "@/lib/site";
 import type { MetadataRoute } from "next";
 import { SERVICES } from "@/lib/services";
 import { GUIDES } from "@/lib/guides";
@@ -8,7 +9,7 @@ import { GUIDES } from "@/lib/guides";
  */
 export const revalidate = 3600;
 
-const BASE = process.env.NEXT_PUBLIC_SITE_URL || "https://geo-rose-nine.vercel.app";
+const BASE = SITE_URL;
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();

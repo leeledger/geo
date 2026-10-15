@@ -6,6 +6,7 @@ import SiteNav from "../SiteNav";
 export const metadata: Metadata = {
   title: "서비스 — Cited 사이티드",
   description: "AI 답변 인용 측정, 기술 세팅, 외부 문서 진입, 사이트 구축. 하는 일과 하지 않는 일을 나눠 적었습니다.",
+  alternates: { canonical: "/services" },
 };
 
 export default function Services() {
