@@ -15,6 +15,8 @@ export const metadata: Metadata = {
     locale: "ko_KR",
     type: "website",
   },
+  // 공유 썸네일은 app/opengraph-image.png (파일 규칙). X 도 큰 그림으로
+  twitter: { card: "summary_large_image" },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -1969,3 +1969,10 @@ Should Fix:
 - KG-50-7 레이트리밋이 x-forwarded-for 첫 값을 믿는다. Vercel 은 덮어쓰지만 다른 앞단이면 우회된다(verify 가 이걸로 리밋을 피함)
 - KG-50-8 /admin no_site 카드에 「AI 답 확인 요청」이 이름표와 wants 로 두 번 보인다
 - D161 (Arch, 2026-10-15): 30일 리드 수(leads30d)에 platform_check·no_site 포함 — 진단에서 온 문의라 같은 깔때기(Richard Step 50 질문)
+
+### 사이티드 파비콘 · 공유 썸네일 (2026-10-15, Bob · 원장 지시 「파비콘도」「공유링크 썸네일도」) · 커밋·배포 안 함
+- web/app/icon.svg(남색 바탕 「[ ]」 — 네비 로고 표시 그대로) · favicon.ico(16·32·48 PNG 를 담은 ICO) · apple-icon.png(180) · opengraph-image.png(1200×630) + opengraph-image.alt.txt — Next 파일 규칙이라 모든 페이지에 붙는다
+- 썸네일 문구는 랜딩 히어로 h1 + 리드 문장 그대로. 숫자 없음. 글꼴 Pretendard(받아졌는지 document.fonts.check 로 확인한 뒤 찍음)
+- layout.tsx 에 twitter card summary_large_image 한 줄
+- 확인: 로컬 / · /services · /geo/geo-cost 의 head 에 icon·apple-touch-icon·og:image(1200×630·alt) 다 있음 · 파일 4개 200 · tsc 0 · build 통과 · step50 verify 다시 ALL PASS 179
+- 굽는 스크립트는 scratchpad(저장소 밖). 다시 구울 일이 생기면 tools/ 로 옮길 것
