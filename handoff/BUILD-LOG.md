@@ -1838,3 +1838,25 @@ Should Fix:
 - 10/14 13:50 정기 헤드리스 크롬 출처 조사: 63개가 문서딱 세션(C:\dev\doc-tools req-a Playwright 전 브라우저 병렬 70프로세스 8.3GB · req-c Lighthouse) — 원장 결정으로 손대지 않음. 사이티드는 일꾼 아래 16개 781MB·BelowNormal 뿐(측정 따라잡기). 정기 헤드리스(headless:true)를 쓰는 사이티드 일은 없다 — 측정·색인은 화면 밖 창이고 svg-to-png·shot·yt-search 는 손으로만
 - 고아 정리가 powershell.exe 를 이름으로 불러 PATH 에 따라 못 찾음(Git Bash 에서 ENOENT 재현) → SystemRoot 전체 경로
 - 렌더러 제한(--renderer-process-limit=2 등) 시험: 10개 571MB → 7개 518MB. 측정 화면을 바꿀 위험에 비해 작아 안 넣음
+
+### Step 46 — 홈 히어로 모션(몰입감) — BRIEFED (2026-10-15, Arch) · Bob 대기
+- D116 home.html 은 `<script>` 안만 바뀐다. 글자·태그·장식 요소 추가 0 (AI 노출 점수 마크업 보존)
+- D117 h1·sub·CTA 등장은 순수 CSS(첫 페인트 시작). h1 은 opacity 애니 금지 — clip-path/blur/translate (LCP)
+- D118 에디터 타이핑은 JS 런타임 래핑, textContent 동일 단정 실패 시 원복. 6s 안전장치
+- D119 모든 새 모션 CSS 는 prefers-reduced-motion:no-preference 안. 이동은 개별 translate/scale, 에디터 기울기만 hero 범위 단일 transform 재정의
+- D120 기울기·시차는 pointer:fine + ≥921px 만. 모바일은 등장·타이핑·스크롤 opacity 만
+- KG-46-1 `.rise` 는 JS 없으면 opacity 0 (기존, 전 섹션) — 이번 범위 밖
+
+### Step 46 — 빌드 (2026-10-15, Bob) · DONE · Richard 대기 · 배포 전
+- 고친 파일 2개: `academy/public/style.css:785-825` (새 절, CSS 는 word-break 한 줄만 미디어쿼리 밖) · `academy/content/home.html:1168-1289` (`<script>` 안 삽입 hunk 1개, 원래 줄 0개 바뀜)
+- 시험: `next build && next start`(:3046, DB 붙음) 위에서 Playwright 35 PASS · 0 FAIL — `handoff/research/step46/assertions.txt`. 바꾸기 전 글자는 dev 서버(옛 HTML)에서 받았고 운영 robotncoding.com 과 바이트 단위로 같았다. tsc 통과. hunk 범위 단정 `diff-hunks.txt`
+- B46-1 `.qa` 이름이 FAQ 블록(style.css:246 `.qa{margin-top:32px;border;overflow:hidden;background}`)과 겹쳐 에디터 안에 32px 빈칸과 테두리가 생겼다 → 래퍼 class 를 `.qa-frame` 으로. 브리프의 다른 이름(.ln .end .typing .typed .framed .glow)은 겹침 없음 확인
+- B46-2 6초 안전장치의 기준은 `.in` 순간(브리프는 스크립트 시작으로 읽힘). 모바일은 에디터가 첫 화면 아래라 로드 기준이면 내려오기 전에 타이핑이 끝나 버린다. IO 가 아예 안 터지면 `.rise` 자체가 안 보이니(KG-46-1) 로드 기준이 지켜 주는 게 없다
+- B46-3 등장 애니는 fill-mode `backwards`(브리프는 both). 끝나면 clip-path·filter 가 none 으로 돌아가야 해서. 시작 전 첫 프레임은 똑같이 쥔다
+- B46-4 `.in` 직후 기울기 transition(.15s linear)은 `.settled`(.in + 750ms) 뒤에 건다. `.in` 에 바로 걸면 22px 올라오는 동작까지 .15s 로 끊긴다. 마우스가 나가면 `.calm`(650ms) 동안 .6s 로 돌아간다
+- B46-5 캔버스 pointermove 는 `cv.getBoundingClientRect()` 기준이라 캔버스 translate 해도 빛이 커서와 맞는다 → 시차는 캔버스에 걸었다(안개 층 대안 안 씀)
+- B46-6 eyebrow 선택자는 `.hero .eyebrow` 로 좁혔다(홈에만 하나 있지만 다른 페이지에 생겨도 안 번지게)
+- KG-46-2 dev 서버에서 hydration 경고가 이미 난다(바꾸기 전에도): `#nav` 의 `data-live=""`(인라인 스크립트가 hydration 전에 붙임)와 최근 글 `<time dateTime={Date}>`. 운영 빌드는 0건. 이번 변경으로 같은 div 의 innerHTML 차이가 하나 더 붙지만 경고 수는 같다
+- ~~KG-46-3~~ 닫음 → D121
+- KG-46-4 dev 모드 `next dev` 는 content/home.html 을 모듈 로드 때 한 번 읽어 고쳐도 반영 안 된다(서버 재시작 필요). 시험은 운영 빌드로 했다
+- D121 (Arch, 2026-10-15) 921px 미만은 스크롤 아웃 흐림을 아예 끈다. 모바일은 히어로가 한 화면보다 길고 에디터가 그 아래라 흐리면 본문이 흐려진다. 데스크톱 스크롤 아웃은 그대로. home.html paint() 의 opacity 를 big 조건으로. 재시험 35 PASS · 0 FAIL — 390 에서 에디터 화면 가운데일 때 실효 opacity 1

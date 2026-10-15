@@ -1,0 +1,37 @@
+PASS [1440] t=0.3s h1 partly revealed (clip inset(-54px -54px calc(18.9991% - 8.74809px)), filter blur(1.51993px), 7 hm- animations)
+PASS [1440] 1.5s h1 fully open (clip none, filter none, running anims 0)
+PASS [1440] 4s .hero innerText identical to pre-change (435 chars)
+PASS [1440] 4s code textContent identical to pre-change (243 chars)
+PASS [1440] code wrapped into 12 .ln, .typing on
+PASS [1440] .qa-frame.framed present wrapping 6 lines
+PASS [1440] .end.glow count 2
+PASS [1440] all .ln opacity 1
+PASS [1440] editor after .in: --rise 0px, vertical translate 0 (matrix3d(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, -0.001, 0, 0, 0, 1...)
+PASS [1440] pointer tilt: rx 4.69deg ry 4.80deg, m13 -0.083, ty 0, col -3.2px 3.13px, canvas 6.4px -6.26px
+PASS [1440] .btn:hover transform kept (matrix(1, 0, 0, 1, 0, -2))
+PASS [1440] canvas robot animates (frames differ)
+PASS [1440] scroll p≈.5: wrap opacity '0.7' scale '0.975' translate '0px 20px'
+PASS [1440] all .rise opacity 1 after scrolling (0 not)
+PASS [390] t=0.3s h1 partly revealed (clip inset(-30px -30px calc(18.9991% - 4.86005px)), filter blur(1.51993px), 7 hm- animations)
+PASS [390] 1.5s h1 fully open (clip none, filter none, running anims 0)
+PASS [390] editor below fold at 4s is not .in yet (typing waits for it)
+PASS [390] 4s .hero innerText identical to pre-change (435 chars)
+PASS [390] 4s code textContent identical to pre-change (243 chars)
+PASS [390] code wrapped into 12 .ln, .typing on
+PASS [390] .qa-frame.framed present wrapping 6 lines
+PASS [390] .end.glow count 2
+PASS [390] all .ln opacity 1
+PASS [390] editor after .in: --rise 0px, vertical translate 0 (matrix3d(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, -0.001, 0, 0, 0, 1...)
+PASS [390] no tilt/parallax: m13 0, col '', canvas ''
+PASS [390] .btn:hover transform kept (matrix(1, 0, 0, 1, 0, -2))
+PASS [390] canvas robot animates (frames differ)
+PASS [390] scroll p≈.5: wrap opacity '' scale '' translate ''
+PASS [390] editor centred on screen: effective opacity 1
+PASS [390] all .rise opacity 1 after scrolling (0 not)
+PASS [reduce] no .typing, no .ln, h1 animation none, editor transform none
+PASS [reduce] hero text identical
+PASS [nojs] h1 true sub true cta true visible at 4s
+PASS [nojs] code DOM untouched (no .ln, text identical)
+PASS console errors / hydration warnings: 0
+
+0 failed

@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>homepage 모션</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  /* 홈페이지를 40초로 줄인 영상. 1920×1080 고정, 반응형·다크모드 불필요.
+     문구와 숫자는 전부 content/home.html 에 있는 것만 쓴다 — 새로 지어낸 말 없음.
+     장면 6개를 시간축에 깔아 두고, 각 장면은 sIn/sOut 두 애니메이션으로 켜고 끈다.
+     자식 요소의 지연도 장면 기준이 아니라 페이지 시작 기준(절대 시각)이다. */
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{width:1920px;height:1080px;overflow:hidden}
+  body{background:#0B0F16;font-family:"Noto Sans KR",system-ui,sans-serif;color:#E8EDF5;word-break:keep-all}
+  .mono{font-family:"IBM Plex Mono",monospace}
+  .amb{color:#F5A623}
+  .mute{color:#8A94A6}
+
+  .grid i{position:absolute;background:#141B27}
+  .grid .h{left:0;right:0;height:2px}
+  .grid .v{top:0;bottom:0;width:2px}
+
+  .scene{position:absolute;inset:0;opacity:0;
+         animation:sIn .7s ease var(--a) forwards, sOut .6s ease var(--b) forwards}
+  @keyframes sIn{from{opacity:0}to{opacity:1}}
+  @keyframes sOut{from{opacity:1}to{opacity:0}}
+
+  .in{opacity:0;transform:translateY(30px);filter:blur(7px);
+      animation:in .7s cubic-bezier(.16,1,.3,1) var(--d) forwards}
+  @keyframes in{to{opacity:1;transform:none;filter:blur(0)}}
+
+  .eb{position:absolute;left:140px;top:140px;font-family:"IBM Plex Mono",monospace;
+      font-size:26px;letter-spacing:.22em;color:#F5A623}
+
+  /* 진행 막대 — 40초 */
+  .prog{position:absolute;left:0;bottom:0;height:6px;width:1920px;background:#F5A623;
+        transform-origin:left;transform:scaleX(0);animation:prog 40s linear forwards}
+  @keyframes prog{to{transform:scaleX(1)}}
+
+  /* ── 1. 첫 문장 ── */
+  .s1 h1{position:absolute;left:140px;top:330px;font-size:112px;font-weight:900;line-height:1.25;letter-spacing:-.02em}
+  .s1 .strike{position:relative;display:inline-block;color:#5E6878}
+  .s1 .strike::after{content:"";position:absolute;left:-6px;right:-6px;top:54%;height:8px;background:#F5A623;
+        transform-origin:left;transform:scaleX(0);animation:line .6s ease 2.0s forwards}
+  @keyframes line{to{transform:scaleX(1)}}
+  .s1 .sub{position:absolute;left:140px;top:760px;font-size:38px;color:#8A94A6;line-height:1.6}
+  .s1 .sub b{color:#E8EDF5}
+
+  /* ── 2. how_we_think.py ── */
+  .s2 .win{position:absolute;left:140px;top:210px;width:1100px;height:720px;border-radius:22px;
+           background:#111723;border:2px solid #1F2838;padding:36px 48px}
+  .s2 .bar{display:flex;gap:12px;align-items:center;margin-bottom:34px}
+  .s2 .bar i{width:16px;height:16px;border-radius:50%;background:#2A3446}
+  .s2 .bar span{margin-left:18px;font-size:24px;color:#7C8698}
+  .s2 .ln{font-family:"IBM Plex Mono","Noto Sans KR",monospace;font-size:32px;line-height:1.62;white-space:pre;
+          clip-path:inset(0 100% 0 0);animation:type .55s steps(24) var(--d) forwards}
+  @keyframes type{to{clip-path:inset(0 0 0 0)}}
+  .s2 .c{color:#6B7689}
+  .s2 .q{color:#E8EDF5}
+  .s2 .k{color:#F5A623}
+  .s2 .code{color:#C9D3E3}
+  .s2 .three{position:absolute;left:30px;top:142px;width:1040px;height:322px;border-radius:14px;
+             border:3px solid rgba(245,166,35,.6);background:rgba(245,166,35,.06);opacity:0;
+             animation:sIn .6s ease 11.2s forwards}
+  .s2 .side{position:absolute;left:1330px;top:330px;width:460px}
+  .s2 .side p{font-size:44px;font-weight:700;line-height:1.5}
+  .s2 .side p + p{margin-top:28px;color:#F5A623}
+
+  /* ── 3. 지휘자 ── */
+  .s3 h2{position:absolute;left:140px;top:200px;font-size:68px;font-weight:900;line-height:1.35}
+  .s3 .cols{position:absolute;left:140px;top:470px;display:flex;gap:60px}
+  .s3 .col{width:780px;padding:40px 48px;border-radius:22px}
+  .s3 .ai{background:#111723;border:2px solid #1F2838;
+          animation:in .7s cubic-bezier(.16,1,.3,1) var(--d) forwards, dim .8s ease 19.2s forwards}
+  .s3 .hu{background:#241B0C;border:3px solid rgba(245,166,35,.55)}
+  @keyframes dim{from{opacity:1}to{opacity:.32}}
+  .s3 .col h3{font-size:28px;font-family:"IBM Plex Mono","Noto Sans KR",monospace;letter-spacing:.1em;margin-bottom:24px}
+  .s3 .ai h3{color:#7C8698}
+  .s3 .hu h3{color:#F5A623}
+  .s3 .col li{list-style:none;font-size:40px;line-height:1.75;font-weight:700}
+  .s3 .ai li{color:#8A94A6;font-weight:400}
+
+  /* ── 4. 5단계 ── */
+  .s4 h2{position:absolute;left:140px;top:200px;font-size:68px;font-weight:900}
+  .s4 .rail{position:absolute;left:220px;top:560px;width:1480px;height:4px;background:#F5A623;
+            transform-origin:left;transform:scaleX(0);animation:line 2.6s cubic-bezier(.4,0,.2,1) 22.6s forwards}
+  .s4 .st{position:absolute;top:470px;width:300px;margin-left:-150px;text-align:center}
+  .s4 .dot{width:184px;height:184px;margin:0 auto;border-radius:50%;background:#0B0F16;border:4px solid #F5A623;
+           display:flex;align-items:center;justify-content:center;font-family:"IBM Plex Mono",monospace;
+           font-size:64px;font-weight:500;color:#F5A623}
+  .s4 .st.end .dot{background:#F5A623;color:#0B0F16}
+  .s4 .nm{font-size:36px;font-weight:700;margin-top:30px;line-height:1.35}
+  .s4 .ag{font-size:26px;color:#8A94A6;margin-top:12px}
+  .s4 .foot{position:absolute;left:140px;top:900px;font-size:34px;color:#8A94A6}
+  .s4 .foot b{color:#E8EDF5}
+
+  /* ── 5. 숫자 ── */
+  .s5 .row{position:absolute;left:140px;top:330px;display:flex;gap:140px}
+  .s5 .v{font-family:"IBM Plex Mono",monospace;font-size:132px;font-weight:500;letter-spacing:-.02em;line-height:1}
+  .s5 .u{font-size:42px;color:#8A94A6;margin-left:12px}
+  .s5 .k{font-size:32px;color:#7C8698;margin-top:24px}
+  .s5 .hl .v{color:#F5A623}
+  .s5 .foot{position:absolute;left:140px;top:760px;font-size:40px;line-height:1.6;color:#8A94A6}
+  .s5 .foot b{color:#E8EDF5}
+
+  /* ── 6. 끝 ── */
+  .s6 .q{position:absolute;left:140px;top:300px;font-size:72px;font-weight:900;line-height:1.4}
+  .s6 .q span{color:#F5A623}
+  .s6 .card{position:absolute;left:140px;top:700px;display:flex;align-items:baseline;gap:48px;
+            padding-top:40px;border-top:2px solid #1F2838;width:1640px}
+  .s6 .nm{font-size:56px;font-weight:900}
+  .s6 .meta{font-size:34px;color:#8A94A6}
+</style>
+</head>
+<body>
+<div class="grid">
+  <i class="h" style="top:120px"></i><i class="h" style="top:960px"></i>
+  <i class="v" style="left:100px"></i><i class="v" style="left:1820px"></i>
+</div>
+
+<!-- 1. 0 – 5.5s -->
+<section class="scene s1" style="--a:0s;--b:5.4s">
+  <div class="eb in" style="--d:.3s">SONGPA · SEOKCHON</div>
+  <h1>
+    <span class="in" style="--d:.7s;display:block">코딩을 <span class="strike">가르치지 않습니다.</span></span>
+    <span class="in" style="--d:2.6s;display:block"><span class="amb">생각하는 방법</span>을 가르칩니다.</span>
+  </h1>
+  <p class="sub in" style="--d:3.1s">코드는 이제 AI가 씁니다.<br><b>남는 건 무엇을 만들지 정하고, 왜 안 되는지 찾아내는 힘입니다.</b></p>
+</section>
+
+<!-- 2. 5.5 – 14s -->
+<section class="scene s2" style="--a:5.5s;--b:13.9s">
+  <div class="eb in" style="--d:5.7s">HOW WE THINK</div>
+  <div class="win in" style="--d:5.9s">
+    <div class="bar"><i></i><i></i><i></i><span class="mono">how_we_think.py</span></div>
+    <div class="three"></div>
+    <div class="ln c" style="--d:6.4s"># 로봇이 벽에 부딪힌다. 어떻게 고칠까?</div>
+    <div class="ln q" style="--d:7.1s"># 1. 진짜 문제가 뭐지?</div>
+    <div class="ln c" style="--d:7.5s">#    → 벽이 있는 걸 '언제' 알아야 하나</div>
+    <div class="ln q" style="--d:8.1s"># 2. 내가 알 수 있는 건?</div>
+    <div class="ln c" style="--d:8.5s">#    → 센서가 거리를 알려준다</div>
+    <div class="ln q" style="--d:9.1s"># 3. 그럼 규칙은?</div>
+    <div class="ln c" style="--d:9.5s">#    → 10cm 남으면 멈춘다</div>
+    <div class="ln code" style="--d:10.1s"><span class="k">while</span> sensor.distance() &gt; <span class="k">10</span>:</div>
+    <div class="ln code" style="--d:10.5s">    motor.forward(<span class="k">60</span>)</div>
+    <div class="ln code" style="--d:10.9s">motor.stop()</div>
+  </div>
+  <div class="side">
+    <p class="in" style="--d:11.6s">코드는<br>마지막 세 줄이다.</p>
+    <p class="in" style="--d:12.4s">우리는 위의<br>세 문장을 가르친다.</p>
+  </div>
+</section>
+
+<!-- 3. 14 – 21.5s -->
+<section class="scene s3" style="--a:14s;--b:21.4s">
+  <div class="eb in" style="--d:14.2s">AI ORCHESTRATION</div>
+  <h2 class="in" style="--d:14.5s">AI의 부품이 될 것인가,<br><span class="amb">지휘하는 사람</span>이 될 것인가.</h2>
+  <div class="cols">
+    <div class="col ai in" style="--d:15.6s">
+      <h3>AI가 하는 일</h3>
+      <ul><li>코드를 타이핑한다</li><li>문법을 기억한다</li><li>빠르게 여러 안을 만든다</li><li>시킨 것을 시킨 대로 한다</li></ul>
+    </div>
+    <div class="col hu in" style="--d:16.8s">
+      <h3>사람이 하는 일 — 감독</h3>
+      <ul>
+        <li class="in" style="--d:17.3s">01 · 무엇을 만들지 정한다</li>
+        <li class="in" style="--d:17.8s">02 · 정확히 지시한다</li>
+        <li class="in" style="--d:18.3s">03 · 결과가 맞는지 판단한다</li>
+        <li class="in" style="--d:18.8s">04 · 내놓은 것을 책임진다</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 4. 21.5 – 29.5s -->
+<section class="scene s4" style="--a:21.5s;--b:29.4s">
+  <div class="eb in" style="--d:21.7s">CURRICULUM</div>
+  <h2 class="in" style="--d:22s">5단계 로드맵</h2>
+  <div class="rail"></div>
+  <div class="st in" style="left:220px;--d:22.7s"><div class="dot">01</div><div class="nm">컴퓨팅 사고력<br>기초</div><div class="ag">초등 1~4학년</div></div>
+  <div class="st in" style="left:590px;--d:23.3s"><div class="dot">02</div><div class="nm">알고리즘 +<br>창의 융합</div><div class="ag">초등 3~6학년</div></div>
+  <div class="st in" style="left:960px;--d:23.9s"><div class="dot">03</div><div class="nm">블록에서<br>Python 으로</div><div class="ag">초등 5학년 이상</div></div>
+  <div class="st in" style="left:1330px;--d:24.5s"><div class="dot">04</div><div class="nm">진학·대회<br>알고리즘</div><div class="ag">초등 5~6 · 중등</div></div>
+  <div class="st end in" style="left:1700px;--d:25.1s"><div class="dot">05</div><div class="nm">융합 프로젝트<br>포트폴리오</div><div class="ag">고급 · 개별 일정</div></div>
+  <p class="foot in" style="--d:26.2s">단계마다 <b>사고력 → 도구 → 결과물</b> 순서로. 학년이 아니라 <b>수준으로</b> 배정합니다.</p>
+</section>
+
+<!-- 5. 29.5 – 34.5s -->
+<section class="scene s5" style="--a:29.5s;--b:34.4s">
+  <div class="eb in" style="--d:29.7s">OUR OWN TOOL</div>
+  <div class="row">
+    <div class="in" style="--d:30s"><div><span class="v">7세</span><span class="u">~성인</span></div><div class="k">수강 가능 연령</div></div>
+    <div class="in" style="--d:30.6s"><div><span class="v">70</span><span class="u">개</span></div><div class="k">과정</div></div>
+    <div class="hl in" style="--d:31.2s"><div><span class="v">1,597</span><span class="u">챕터</span></div><div class="k">직접 개발한 학습 프로그램</div></div>
+  </div>
+  <p class="foot in" style="--d:32.2s">시중 교재를 따라가는 대신 원장이 직접 만들었습니다.<br><b>데모 → 생각해 볼까요 → 따라하기 → 직접 해보기 → 나의 도전</b></p>
+</section>
+
+<!-- 6. 34.5 – 40s -->
+<section class="scene s6" style="--a:34.5s;--b:99s">
+  <p class="q in" style="--d:34.8s">사라질 능력이 아니라<br><span>남을 능력</span>을 가르칩니다.</p>
+  <div class="card in" style="--d:36s">
+    <span class="nm">로봇&amp;코딩학원</span>
+    <span class="meta mono">송파 석촌 · 02-422-0525 · robotncoding.com</span>
+  </div>
+</section>
+
+<div class="prog"></div>
+</body>
+</html>

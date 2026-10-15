@@ -1165,6 +1165,130 @@ print(best)</code></pre>
     risers.forEach(function (el) { io.observe(el); });
   }
 
+  /* 히어로 모션 (Step 46) — 에디터 타이핑 · 깊이 · 스크롤 아웃. 제목 등장은 CSS 가 한다. */
+  var hero = document.querySelector(".hero");
+  var ed = hero && hero.querySelector(".editor");
+  var code = ed && ed.querySelector("code");
+
+  /* .in 이 붙는 순간 fn 을 한 번 부른다. 이미 붙어 있으면 바로. */
+  function whenIn(el, fn) {
+    if (el.classList.contains("in")) return fn();
+    var mo = new MutationObserver(function () {
+      if (!el.classList.contains("in")) return;
+      mo.disconnect(); fn();
+    });
+    mo.observe(el, { attributes: true, attributeFilter: ["class"] });
+  }
+
+  if (!reduce && code && !code.querySelector(".ln")) {
+    /* 줄마다 span 으로 감싼다. 줄바꿈은 span 밖에 남겨 글자는 한 자도 안 바뀐다. 어긋나면 원복. */
+    var before = code.textContent, html = code.innerHTML;
+    var src = html.split("\n"), filled = [], qa0 = -1, qa1 = -1;
+    src.forEach(function (s, i) {
+      if (!s.trim()) return;
+      filled.push(i);
+      if (qa0 < 0 && s.indexOf("# 1.") >= 0) qa0 = i;
+      if (s.indexOf("10cm") >= 0) qa1 = i;
+    });
+    var ends = filled.slice(-2);
+    var out = src.map(function (s, i) {
+      return s.trim() ? '<span class="ln' + (ends.indexOf(i) >= 0 ? " end" : "") + '">' + s + "</span>" : s;
+    });
+    if (qa0 >= 0 && qa1 > qa0) { out[qa0] = '<span class="qa-frame">' + out[qa0]; out[qa1] += "</span>"; }
+    code.innerHTML = out.join("\n");
+
+    if (code.textContent !== before) {
+      code.innerHTML = html;
+    } else {
+      var lines = code.querySelectorAll(".ln");
+      var qa = code.querySelector(".qa-frame");
+      var qaLast = qa && qa.querySelectorAll(".ln")[qa.querySelectorAll(".ln").length - 1];
+      var glow = function () { code.querySelectorAll(".end").forEach(function (e) { e.classList.add("glow"); }); };
+      ed.classList.add("typing");
+      whenIn(ed, function () {
+        /* 에디터가 보이고 6초 — 탭이 숨어 타이머가 늘어져도 그때는 전부 보인다.
+           재는 시작이 .in 인 까닭: 모바일은 에디터가 첫 화면 아래라, 로드 기준이면 내려오기 전에 타이핑이 끝나 버린다. */
+        setTimeout(function () { ed.classList.add("typed"); if (qa) qa.classList.add("framed"); glow(); }, 6000);
+        var k = 0;
+        (function next() {
+          if (k >= lines.length) { setTimeout(glow, 600); return; }
+          var el = lines[k++];
+          el.classList.add("on");
+          if (el === qaLast) qa.classList.add("framed");
+          setTimeout(next, 110);
+        })();
+      });
+    }
+  }
+
+  if (hero && !reduce) {
+    var wrap = hero.querySelector(".wrap");
+    var col = wrap && wrap.firstElementChild;
+    var bg = hero.querySelector("canvas");
+    var wide = window.matchMedia("(min-width: 921px)");
+    var fine = window.matchMedia("(pointer: fine) and (min-width: 921px)");
+    var px = 0, py = 0, sp = 0, raf = 0, calmT;
+
+    /* 이벤트는 값만 적고, 화면 반영은 프레임마다 한 번 */
+    var paint = function () {
+      raf = 0;
+      var big = wide.matches;
+      if (ed) {
+        ed.style.setProperty("--rx", (-py * 6).toFixed(2) + "deg");
+        ed.style.setProperty("--ry", (px * 6).toFixed(2) + "deg");
+      }
+      if (col) col.style.translate = px || py ? (-px * 4).toFixed(2) + "px " + (-py * 4).toFixed(2) + "px" : "";
+      if (bg) {
+        var bx = big ? px * 8 : 0, by = big ? py * 8 - sp * 30 : 0;
+        bg.style.translate = bx || by ? bx.toFixed(2) + "px " + by.toFixed(2) + "px" : "";
+      }
+      if (wrap) {
+        /* 모바일은 히어로가 한 화면보다 길고 에디터가 그 아래라, 흐리게 하면 본문이 흐려진다 */
+        wrap.style.opacity = big && sp ? (1 - 0.6 * sp).toFixed(3) : "";
+        wrap.style.scale = big && sp ? (1 - 0.05 * sp).toFixed(4) : "";
+        wrap.style.translate = big && sp ? "0 " + (sp * 40).toFixed(1) + "px" : "";
+      }
+    };
+    var ask = function () { if (!raf) raf = requestAnimationFrame(paint); };
+
+    if (ed) whenIn(ed, function () { setTimeout(function () { ed.classList.add("settled"); }, 750); });
+
+    hero.addEventListener("pointermove", function (e) {
+      if (!fine.matches) return;
+      var r = hero.getBoundingClientRect();
+      px = Math.max(-1, Math.min(1, ((e.clientX - r.left) / r.width) * 2 - 1));
+      py = Math.max(-1, Math.min(1, ((e.clientY - r.top) / r.height) * 2 - 1));
+      hero.classList.remove("calm");
+      ask();
+    }, { passive: true });
+    hero.addEventListener("pointerleave", function () {
+      if (!px && !py) return;
+      px = py = 0;
+      hero.classList.add("calm");
+      clearTimeout(calmT);
+      calmT = setTimeout(function () { hero.classList.remove("calm"); }, 650);
+      ask();
+    }, { passive: true });
+
+    /* 스크롤 아웃 — 히어로가 보일 때만 계산한다 */
+    var heroSeen = true;
+    var onHeroScroll = function () {
+      /* 클라이언트 이동으로 홈을 떠났으면 스스로 떼어진다 — 돌아올 때마다 쌓이지 않게 */
+      if (!hero.isConnected) { window.removeEventListener("scroll", onHeroScroll); return; }
+      if (!heroSeen) return;
+      sp = Math.max(0, Math.min(1, window.scrollY / (hero.offsetHeight || 1)));
+      ask();
+    };
+    if ("IntersectionObserver" in window) {
+      new IntersectionObserver(function (es) {
+        heroSeen = es[es.length - 1].isIntersecting;
+        if (heroSeen) onHeroScroll();
+      }).observe(hero);
+    }
+    window.addEventListener("scroll", onHeroScroll, { passive: true });
+    onHeroScroll();
+  }
+
   var nav = document.getElementById("nav");
   var onScroll = function () { nav.classList.toggle("stuck", window.scrollY > 8); };
   onScroll(); window.addEventListener("scroll", onScroll, { passive: true });

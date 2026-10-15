@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>homepage-hype 모션</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&family=IBM+Plex+Mono:wght@400;500;700&display=swap">
+<style>
+  /* 홈페이지 45초 — 박진감 판. 1920×1080 고정, motion-render.mjs 가 프레임 단위로 굽는다.
+     박자: 128 BPM. 한 박 0.46875s, 한 마디 1.875s. 장면 전환은 전부 마디 머리에 있다:
+       0 · 3.75 · 9.375 · 16.875 · 24.375 · 31.875(드롭) · 37.5 · 41.25
+     motion-music-hype.mjs 가 같은 시각에 쿵을 친다. 시각을 바꾸면 거기도 바꾼다.
+     문구·숫자는 전부 content/home.html 에 있는 것만.
+     transform 은 속성 하나라 겹치는 움직임은 감싸는 요소를 따로 둔다(.cam > .shake > 장면). */
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{width:1920px;height:1080px;overflow:hidden}
+  body{background:#06080D;font-family:"Noto Sans KR",system-ui,sans-serif;color:#EEF2F8;word-break:keep-all}
+  .mono{font-family:"IBM Plex Mono",monospace}
+  .amb{color:#F5A623}
+  .blu{color:#4C86FF}
+
+  /* ── 카메라: 45초 내내 천천히 밀고, 쿵마다 흔들린다 ── */
+  .cam{position:absolute;inset:0;animation:push 45s linear both}
+  @keyframes push{from{transform:scale(1)}to{transform:scale(1.07)}}
+  .shake{position:absolute;inset:0;
+    animation:shk .38s ease-out 3.75s forwards, shk .38s ease-out 9.375s forwards, shk .38s ease-out 16.875s forwards,
+              shk .38s ease-out 20.156s forwards, shk .38s ease-out 24.375s forwards, shk .5s ease-out 31.875s forwards,
+              shk .38s ease-out 33.75s forwards, shk .38s ease-out 35.625s forwards, shk .6s ease-out 37.5s forwards,
+              shk .5s ease-out 41.25s forwards}
+  @keyframes shk{0%{transform:translate(0,0)}15%{transform:translate(-14px,9px)}30%{transform:translate(12px,-8px)}
+    45%{transform:translate(-8px,5px)}60%{transform:translate(5px,-3px)}80%{transform:translate(-2px,1px)}100%{transform:none}}
+
+  /* ── 겉 효과: 번쩍 · 결 · 비네트 · 주사선 · HUD ── */
+  .flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;mix-blend-mode:screen;
+    animation:fl .28s ease-out 3.75s forwards, fl .28s ease-out 9.375s forwards, fl .28s ease-out 16.875s forwards,
+              fl .28s ease-out 24.375s forwards, fl .45s ease-out 31.875s forwards, fl .28s ease-out 37.5s forwards,
+              fl .35s ease-out 41.25s forwards}
+  @keyframes fl{0%{opacity:.62}100%{opacity:0}}
+  .vig{position:absolute;inset:0;pointer-events:none;
+       background:radial-gradient(ellipse at 50% 50%,transparent 45%,rgba(0,0,0,.72) 100%)}
+  .scan{position:absolute;inset:0;pointer-events:none;opacity:.22;
+        background:repeating-linear-gradient(0deg,rgba(255,255,255,.035) 0 1px,transparent 1px 4px)}
+  .grain{position:absolute;inset:-60px;pointer-events:none;opacity:.10;mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='260' height='260'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+    animation:gr .5s steps(5) infinite}
+  @keyframes gr{0%{transform:translate(0,0)}20%{transform:translate(-30px,20px)}40%{transform:translate(25px,-35px)}
+    60%{transform:translate(-15px,-10px)}80%{transform:translate(35px,25px)}100%{transform:translate(0,0)}}
+
+  @property --sec{syntax:'<integer>';initial-value:0;inherits:false}
+  .hud{position:absolute;left:64px;right:64px;top:48px;display:flex;justify-content:space-between;
+       font-family:"IBM Plex Mono",monospace;font-size:22px;letter-spacing:.18em;color:#6F7A8E;z-index:5}
+  .hud .rec::before{content:"";display:inline-block;width:12px;height:12px;border-radius:50%;background:#FF4D4D;
+       margin-right:14px;vertical-align:1px;animation:blink 1s steps(2) infinite}
+  @keyframes blink{50%{opacity:0}}
+  .hud .tc{animation:sec 45s linear both;counter-reset:s var(--sec)}
+  .hud .tc::after{content:"00:" counter(s,decimal-leading-zero)}
+  @keyframes sec{from{--sec:0}to{--sec:45}}
+  .bar{position:absolute;left:0;bottom:0;height:5px;width:100%;background:linear-gradient(90deg,#F5A623,#FF7A18);
+       transform-origin:left;animation:prog 45s linear both;z-index:5}
+  @keyframes prog{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+
+  /* ── 장면 켜고 끄기: 컷은 짧고 단단하게 ── */
+  .sc{position:absolute;inset:0;opacity:0;animation:on .08s linear var(--a) both, off .1s linear var(--b) forwards}
+  @keyframes on{from{opacity:0}to{opacity:1}}
+  @keyframes off{from{opacity:1}to{opacity:0}}
+
+  /* ── 공용 움직임 ── */
+  /* 쾅: 크게·흐리게 들어와서 살짝 튕기며 선다 */
+  .slam{opacity:0;animation:slam .42s cubic-bezier(.2,1.4,.4,1) var(--d) both}
+  @keyframes slam{0%{opacity:0;transform:scale(1.9);filter:blur(22px)}
+    55%{opacity:1;filter:blur(0)}100%{opacity:1;transform:scale(1);filter:blur(0)}}
+  /* 올라옴 */
+  .up{opacity:0;animation:up .55s cubic-bezier(.16,1,.3,1) var(--d) both}
+  @keyframes up{from{opacity:0;transform:translateY(60px);filter:blur(10px)}to{opacity:1;transform:none;filter:blur(0)}}
+  /* 옆에서 쓸고 들어옴 */
+  .swipe{opacity:0;animation:sw .45s cubic-bezier(.16,1,.3,1) var(--d) both}
+  @keyframes sw{from{opacity:0;transform:translateX(-120px) skewX(-12deg);filter:blur(14px)}to{opacity:1;transform:none;filter:blur(0)}}
+  /* 사라짐 (따로 감싼 요소에) */
+  .gone{animation:gone .2s ease-in var(--o) forwards}
+  @keyframes gone{to{opacity:0;transform:scale(.92);filter:blur(10px)}}
+  /* 글리치: 색이 갈라지며 떨린다 */
+  .glitch{animation:gl .5s steps(1) var(--g) both}
+  @keyframes gl{0%{text-shadow:-6px 0 #FF3B6B,6px 0 #3BD5FF;transform:translateX(-8px)}
+    20%{text-shadow:8px 0 #FF3B6B,-8px 0 #3BD5FF;transform:translateX(10px) skewX(8deg)}
+    40%{text-shadow:-3px 0 #FF3B6B,3px 0 #3BD5FF;transform:translateX(-4px)}
+    60%{text-shadow:10px 0 #FF3B6B,-10px 0 #3BD5FF;transform:translateX(6px) skewX(-6deg)}
+    80%{text-shadow:-2px 0 #FF3B6B,2px 0 #3BD5FF;transform:none}
+    100%{text-shadow:none;transform:none}}
+  /* 타자 */
+  .type{clip-path:inset(0 100% 0 0);animation:ty var(--t,.6s) steps(var(--n,28)) var(--d) forwards}
+  @keyframes ty{to{clip-path:inset(0 0 0 0)}}
+  .caret{display:inline-block;width:.55em;height:1em;background:#F5A623;vertical-align:-.12em;margin-left:.08em;
+         animation:blink .5s steps(2) infinite}
+
+  /* ── S0 콜드 오픈 ── */
+  .s0 .term{position:absolute;left:50%;top:430px;transform:translateX(-50%);white-space:nowrap;
+            font-family:"IBM Plex Mono",monospace;font-size:64px;font-weight:500;color:#C9D3E3}
+  .s0 .term .k{color:#F5A623}
+  .s0 .who{position:absolute;left:0;right:0;top:600px;text-align:center;font-size:54px;font-weight:700;color:#8A94A6}
+  .s0 .who b{color:#EEF2F8}
+
+  /* ── S1 첫 문장 ── */
+  .s1 .grpA{position:absolute;left:150px;top:200px;--o:5.86s}
+  .s1 .grpA div{font-size:170px;font-weight:900;line-height:1.08;letter-spacing:-.03em}
+  .s1 .grpA .dim{color:#5E6878}
+  .s1 .grpB{position:absolute;left:150px;top:170px}
+  .s1 .grpB .w{font-size:230px;font-weight:900;line-height:1.02;letter-spacing:-.04em}
+  .s1 .shine{background:linear-gradient(100deg,#F5A623 0%,#F5A623 40%,#FFF3D6 50%,#F5A623 60%,#F5A623 100%);
+             background-size:300% 100%;background-position:100% 0;-webkit-background-clip:text;background-clip:text;color:transparent;
+             animation:slam .42s cubic-bezier(.2,1.4,.4,1) var(--d) both, shine 1s ease-in-out 7.5s both}
+  @keyframes shine{from{background-position:100% 0}to{background-position:0 0}}
+  .s1 .w2{font-size:120px!important;color:#EEF2F8}
+  .s1 .tag{position:absolute;left:150px;top:900px;font-size:42px;color:#9AA4B6}
+  .s1 .tag b{color:#EEF2F8}
+
+  /* ── S2 미로 ── */
+  .s2 .lab{position:absolute;left:150px;top:150px;font-family:"IBM Plex Mono",monospace;font-size:26px;letter-spacing:.24em;color:#F5A623}
+  .s2 .board{position:absolute;left:150px;top:220px;width:720px;height:720px}
+  .s2 svg{position:absolute;inset:0;overflow:visible}
+  .s2 .gridl{stroke:#1A2333;stroke-width:2}
+  .s2 .wall{stroke:#33405A;stroke-width:6;stroke-linecap:round;opacity:0;animation:on .3s linear 9.6s both}
+  .s2 .trail{fill:none;stroke:#F5A623;stroke-width:10;stroke-linecap:round;stroke-linejoin:round;
+             stroke-dasharray:3060;stroke-dashoffset:3060;filter:drop-shadow(0 0 14px rgba(245,166,35,.8));
+             animation:draw 5.4s cubic-bezier(.45,0,.25,1) 9.85s forwards}
+  @keyframes draw{to{stroke-dashoffset:0}}
+  .s2 .goal{fill:none;stroke:#4C86FF;stroke-width:6;filter:drop-shadow(0 0 16px #4C86FF);
+            transform-origin:675px 675px;animation:pulse .47s ease-in-out 9.6s infinite alternate}
+  @keyframes pulse{from{opacity:.5}to{opacity:1}}
+  .s2 .bot{position:absolute;left:0;top:0;width:52px;height:52px;margin:-26px 0 0 -26px;border-radius:12px;
+           background:#EEF2F8;box-shadow:0 0 30px rgba(255,255,255,.6);
+           offset-path:path('M45,45 H405 V225 H135 V405 H495 V135 H675 V585 H315 V675 H675');offset-rotate:auto;
+           offset-distance:0%;animation:ride 5.4s cubic-bezier(.45,0,.25,1) 9.85s forwards}
+  .s2 .bot::before{content:"";position:absolute;right:8px;top:14px;width:10px;height:24px;border-radius:4px;background:#F5A623}
+  .s2 .bot::after{content:"";position:absolute;left:50px;top:6px;width:120px;height:40px;
+           background:linear-gradient(90deg,rgba(76,134,255,.55),transparent);clip-path:polygon(0 35%,100% 0,100% 100%,0 65%)}
+  @keyframes ride{to{offset-distance:100%}}
+  .s2 .qs{position:absolute;left:980px;top:220px;width:820px}
+  .s2 .q{font-size:56px;font-weight:900;line-height:1.25}
+  .s2 .a{font-size:36px;color:#8A94A6;margin:10px 0 34px 4px}
+  .s2 .a::before{content:"→ ";color:#F5A623}
+  .s2 .code{position:absolute;left:980px;top:220px;width:820px;padding:44px 52px;border-radius:20px;
+            background:#0E131D;border:3px solid rgba(245,166,35,.7);box-shadow:0 0 80px rgba(245,166,35,.18);
+            font-family:"IBM Plex Mono",monospace;font-size:44px;line-height:1.7;color:#C9D3E3;white-space:pre}
+  .s2 .code .k{color:#F5A623}
+  .s2 .qsWrap{--o:13.36s}
+  .s2 .punch{position:absolute;left:980px;top:640px;width:860px;font-size:58px;font-weight:900;line-height:1.3}
+
+  /* ── S3 AI 와 사람 ── */
+  .s3 .ai{position:absolute;left:150px;top:220px;--o:19.9s}
+  .s3 .ai .lab{font-family:"IBM Plex Mono",monospace;font-size:28px;letter-spacing:.2em;color:#6F7A8E;margin-bottom:30px}
+  .s3 .ai .l{font-family:"IBM Plex Mono","Noto Sans KR",monospace;font-size:78px;color:#7C8698;line-height:1.35}
+  .s3 .l{position:relative;width:max-content}
+  .s3 .l::after{content:"";position:absolute;left:-14px;right:-14px;top:55%;height:8px;background:#FF3B6B;transform-origin:left;
+              transform:scaleX(0);animation:strk .22s cubic-bezier(.7,0,.3,1) var(--s) forwards;box-shadow:0 0 20px #FF3B6B}
+  .s3 .strike{display:none;
+              transform:scaleX(0);animation:strk .3s cubic-bezier(.7,0,.3,1) 19.22s forwards;box-shadow:0 0 24px #FF3B6B}
+  @keyframes strk{to{transform:scaleX(1)}}
+  .s3 .hu{position:absolute;inset:0}
+  .s3 .one{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;padding-left:150px}
+  .s3 .one .n{font-family:"IBM Plex Mono",monospace;font-size:34px;letter-spacing:.2em;color:#F5A623;margin-bottom:18px}
+  .s3 .one .big{font-size:260px;font-weight:900;letter-spacing:-.04em;line-height:1}
+  .s3 .one .why{font-size:44px;color:#9AA4B6;margin-top:28px}
+  .s3 .end{position:absolute;left:150px;bottom:150px;font-size:44px;font-weight:700;color:#9AA4B6}
+  .s3 .end b{color:#F5A623}
+
+  /* ── S4 5단계 트랙 ── */
+  .s4 .lab{position:absolute;left:150px;top:150px;font-family:"IBM Plex Mono",monospace;font-size:26px;letter-spacing:.24em;color:#F5A623}
+  .s4 .ttl{position:absolute;left:150px;top:200px;font-size:84px;font-weight:900}
+  .s4 .track{position:absolute;left:580px;top:360px;display:flex;
+             animation:trk 7.5s cubic-bezier(.7,0,.2,1) 24.375s both}
+  @keyframes trk{
+    0%{transform:translateX(0)} 16%{transform:translateX(0)}
+    21.3%{transform:translateX(-760px)} 34.7%{transform:translateX(-760px)}
+    40%{transform:translateX(-1520px)} 53.3%{transform:translateX(-1520px)}
+    58.7%{transform:translateX(-2280px)} 72%{transform:translateX(-2280px)}
+    77.3%{transform:translateX(-3040px)} 100%{transform:translateX(-3040px)}}
+  .s4 .card{flex:none;width:760px;padding:0 40px}
+  .s4 .num{font-family:"IBM Plex Mono",monospace;font-size:300px;font-weight:700;line-height:1;
+           color:transparent;-webkit-text-stroke:4px #F5A623}
+  .s4 .card.last .num{color:#F5A623}
+  .s4 .nm{font-size:66px;font-weight:900;margin-top:24px;line-height:1.2}
+  .s4 .ag{font-family:"IBM Plex Mono","Noto Sans KR",monospace;font-size:32px;color:#8A94A6;margin-top:16px}
+  .s4 .rail{position:absolute;left:150px;right:150px;bottom:150px;height:6px;background:#1A2333}
+  .s4 .rail i{position:absolute;inset:0;background:#F5A623;transform-origin:left;
+              animation:rail 7.5s cubic-bezier(.7,0,.2,1) 24.375s both}
+  @keyframes rail{0%{transform:scaleX(.2)}16%{transform:scaleX(.2)}21.3%{transform:scaleX(.4)}34.7%{transform:scaleX(.4)}
+    40%{transform:scaleX(.6)}53.3%{transform:scaleX(.6)}58.7%{transform:scaleX(.8)}72%{transform:scaleX(.8)}77.3%{transform:scaleX(1)}100%{transform:scaleX(1)}}
+  .s4 .note{position:absolute;right:150px;top:236px;font-size:38px;color:#9AA4B6}
+  .s4 .note b{color:#EEF2F8}
+
+  /* ── S5 드롭: 결과 ── */
+  .s5 .lab{position:absolute;left:0;right:0;top:250px;text-align:center;font-family:"IBM Plex Mono",monospace;
+           font-size:30px;letter-spacing:.3em;color:#F5A623}
+  .s5 .hit{position:absolute;left:0;right:0;top:390px;text-align:center}
+  .s5 .hit .big{font-size:150px;font-weight:900;letter-spacing:-.03em;line-height:1.1}
+  .s5 .hit .sm{font-size:40px;color:#9AA4B6;margin-top:22px}
+  .s5 .ring{position:absolute;left:50%;top:50%;width:300px;height:300px;margin:-150px 0 0 -150px;border-radius:50%;
+            border:6px solid #F5A623;opacity:0;
+            animation:ring .9s cubic-bezier(.1,.8,.3,1) 31.875s forwards, ring .9s cubic-bezier(.1,.8,.3,1) 33.75s forwards, ring .9s cubic-bezier(.1,.8,.3,1) 35.625s forwards}
+  @keyframes ring{0%{opacity:.9;transform:scale(.3)}100%{opacity:0;transform:scale(5)}}
+  .s5 .foot{position:absolute;left:0;right:0;bottom:170px;text-align:center;font-size:40px;color:#9AA4B6}
+  .s5 .foot b{color:#EEF2F8}
+
+  /* ── S6 끝 ── */
+  .s6 .wrap{position:absolute;left:150px;top:260px;--o:41.1s}
+  .s6 .l1{font-size:110px;font-weight:900;color:#8A94A6;line-height:1.15}
+  .s6 .l2{font-size:200px;font-weight:900;line-height:1.1;letter-spacing:-.03em}
+  .s6 .l3{font-size:110px;font-weight:900;line-height:1.15}
+  .s7 .logo{position:absolute;left:0;right:0;top:360px;text-align:center}
+  .s7 .mk{display:inline-flex;align-items:center;gap:26px;font-size:150px;font-weight:900;letter-spacing:-.03em}
+  .s7 .mk .br{font-family:"IBM Plex Mono",monospace;font-weight:500;color:#F5A623}
+  .s7 .ai{display:inline-block;font-family:"IBM Plex Mono",monospace;font-size:56px;font-weight:700;color:#06080D;
+          background:#F5A623;padding:6px 18px;border-radius:10px;vertical-align:middle}
+  .s7 .meta{margin-top:56px;font-family:"IBM Plex Mono","Noto Sans KR",monospace;font-size:40px;color:#9AA4B6;letter-spacing:.04em}
+  .s7 .meta b{color:#EEF2F8;font-weight:500}
+  .s7 .line{width:0;height:4px;background:#F5A623;margin:48px auto 0;animation:ln .8s cubic-bezier(.7,0,.2,1) 41.7s forwards}
+  @keyframes ln{to{width:1100px}}
+  .fadeout{position:absolute;inset:0;background:#000;opacity:0;animation:on .8s linear 44.2s both;z-index:9}
+</style>
+</head>
+<body>
+<div class="cam"><div class="shake">
+
+<!-- S0 0 – 3.75 : 콜드 오픈 -->
+<section class="sc s0" style="--a:0s;--b:3.7s">
+  <div class="term"><span class="type" style="--d:.35s;--t:1.3s;--n:30;display:inline-block"><span class="k">while</span> sensor.distance() &gt; <span class="k">10</span>:</span><span class="caret"></span></div>
+  <p class="who up" style="--d:2.1s"><span class="glitch" style="--g:2.9s;display:inline-block">코드는 이제 <b>AI가 씁니다.</b></span></p>
+</section>
+
+<!-- S1 3.75 – 9.375 : 첫 문장 -->
+<section class="sc s1" style="--a:3.75s;--b:9.32s">
+  <div class="grpA gone">
+    <div class="slam" style="--d:3.75s">코딩을</div>
+    <div class="slam dim" style="--d:4.219s">가르치지</div>
+    <div class="slam dim" style="--d:4.688s">않습니다.</div>
+  </div>
+  <div class="grpB">
+    <div class="w shine" style="--d:6.094s">생각하는</div>
+    <div class="w shine" style="--d:6.563s">방법을</div>
+    <div class="w w2 slam" style="--d:7.031s">가르칩니다.</div>
+  </div>
+  <p class="tag up" style="--d:8.1s">남는 건 <b>무엇을 만들지 정하고, 왜 안 되는지 찾아내는 힘.</b></p>
+</section>
+
+<!-- S2 9.375 – 16.875 : 미로 -->
+<section class="sc s2" style="--a:9.375s;--b:16.82s">
+  <div class="lab up" style="--d:9.4s">HOW WE THINK · 로봇이 벽에 부딪힌다</div>
+  <div class="board">
+    <svg viewBox="0 0 720 720" width="720" height="720">
+      <g class="gridl">
+        <line x1="0" y1="0" x2="720" y2="0"/><line x1="0" y1="90" x2="720" y2="90"/><line x1="0" y1="180" x2="720" y2="180"/>
+        <line x1="0" y1="270" x2="720" y2="270"/><line x1="0" y1="360" x2="720" y2="360"/><line x1="0" y1="450" x2="720" y2="450"/>
+        <line x1="0" y1="540" x2="720" y2="540"/><line x1="0" y1="630" x2="720" y2="630"/><line x1="0" y1="720" x2="720" y2="720"/>
+        <line x1="0" y1="0" x2="0" y2="720"/><line x1="90" y1="0" x2="90" y2="720"/><line x1="180" y1="0" x2="180" y2="720"/>
+        <line x1="270" y1="0" x2="270" y2="720"/><line x1="360" y1="0" x2="360" y2="720"/><line x1="450" y1="0" x2="450" y2="720"/>
+        <line x1="540" y1="0" x2="540" y2="720"/><line x1="630" y1="0" x2="630" y2="720"/><line x1="720" y1="0" x2="720" y2="720"/>
+      </g>
+      <g class="wall">
+        <line x1="0" y1="90" x2="360" y2="90"/><line x1="450" y1="0" x2="450" y2="180"/><line x1="90" y1="180" x2="360" y2="180"/>
+        <line x1="90" y1="270" x2="90" y2="450"/><line x1="180" y1="270" x2="450" y2="270"/><line x1="180" y1="360" x2="450" y2="360"/>
+        <line x1="540" y1="90" x2="720" y2="90"/><line x1="540" y1="180" x2="540" y2="540"/><line x1="630" y1="180" x2="630" y2="540"/>
+        <line x1="270" y1="540" x2="630" y2="540"/><line x1="270" y1="540" x2="270" y2="720"/><line x1="360" y1="630" x2="720" y2="630"/>
+        <line x1="0" y1="450" x2="0" y2="720"/><line x1="90" y1="540" x2="180" y2="540"/>
+      </g>
+      <path class="trail" d="M45,45 H405 V225 H135 V405 H495 V135 H675 V585 H315 V675 H675"/>
+      <rect class="goal" x="640" y="640" width="70" height="70" rx="10"/>
+    </svg>
+    <div class="bot"></div>
+  </div>
+  <div class="qsWrap gone">
+    <div class="qs">
+      <div class="swipe" style="--d:10.313s"><div class="q">1. 진짜 문제가 뭐지?</div><div class="a">벽이 있는 걸 '언제' 알아야 하나</div></div>
+      <div class="swipe" style="--d:11.25s"><div class="q">2. 내가 알 수 있는 건?</div><div class="a">센서가 거리를 알려준다</div></div>
+      <div class="swipe" style="--d:12.188s"><div class="q">3. 그럼 규칙은?</div><div class="a">10cm 남으면 멈춘다</div></div>
+    </div>
+  </div>
+  <div class="code slam" style="--d:13.594s"><span class="k">while</span> sensor.distance() &gt; <span class="k">10</span>:
+    motor.forward(<span class="k">60</span>)
+motor.stop()</div>
+  <p class="punch up" style="--d:14.531s">코드는 마지막 세 줄.<br><span class="amb">우리는 위의 세 문장을 가르친다.</span></p>
+</section>
+
+<!-- S3 16.875 – 24.375 : AI 가 하는 일 → 사람이 하는 일 -->
+<section class="sc s3" style="--a:16.875s;--b:24.32s">
+  <div class="ai gone">
+    <div class="lab up" style="--d:16.9s">AI가 하는 일</div>
+    <div style="position:relative">
+      <div class="l up" style="--d:17.344s;--s:19.22s"><span class="glitch" style="--g:17.4s;display:inline-block">코드를 타이핑한다</span></div>
+      <div class="l up" style="--d:17.813s;--s:19.34s"><span class="glitch" style="--g:17.87s;display:inline-block">문법을 기억한다</span></div>
+      <div class="l up" style="--d:18.281s;--s:19.46s"><span class="glitch" style="--g:18.34s;display:inline-block">빠르게 여러 안을 만든다</span></div>
+      <div class="l up" style="--d:18.75s;--s:19.58s"><span class="glitch" style="--g:18.8s;display:inline-block">시킨 것을 시킨 대로 한다</span></div>
+      <i class="strike"></i>
+    </div>
+  </div>
+  <div class="hu">
+    <div class="one gone" style="--o:21.0s"><div class="slam" style="--d:20.156s"><div class="n">사람이 하는 일 · 01 기획</div><div class="big">정한다.</div><div class="why">무엇을 만들지</div></div></div>
+    <div class="one gone" style="--o:21.95s"><div class="slam" style="--d:21.094s"><div class="n">02 지시</div><div class="big">시킨다.</div><div class="why">정확히</div></div></div>
+    <div class="one gone" style="--o:22.88s"><div class="slam" style="--d:22.031s"><div class="n">03 판단</div><div class="big amb">판단한다.</div><div class="why">결과가 맞는지</div></div></div>
+    <div class="one"><div class="slam" style="--d:22.969s"><div class="n">04 책임</div><div class="big">책임진다.</div><div class="why">내놓은 것을</div></div></div>
+  </div>
+  <p class="end up" style="--d:23.6s">AI의 부품이 아니라 <b>지휘하는 사람</b>으로.</p>
+</section>
+
+<!-- S4 24.375 – 31.875 : 5단계 -->
+<section class="sc s4" style="--a:24.375s;--b:31.82s">
+  <div class="lab up" style="--d:24.4s">CURRICULUM</div>
+  <div class="ttl slam" style="--d:24.45s">5단계 로드맵</div>
+  <div class="track">
+    <div class="card"><div class="num">01</div><div class="nm">컴퓨팅 사고력 기초</div><div class="ag">초등 1~4학년 · 블록·언플러그드</div></div>
+    <div class="card"><div class="num">02</div><div class="nm">알고리즘 + 창의 융합</div><div class="ag">초등 3~6학년 · 센서·AI 기초</div></div>
+    <div class="card"><div class="num">03</div><div class="nm">블록에서 Python으로</div><div class="ag">초등 5학년 이상 · 자연어 코딩</div></div>
+    <div class="card"><div class="num">04</div><div class="nm">진학·대회 알고리즘</div><div class="ag">정보영재 · 영재고 · SW특기자</div></div>
+    <div class="card last"><div class="num">05</div><div class="nm">융합 프로젝트</div><div class="ag">AI 서비스 · 포트폴리오</div></div>
+  </div>
+  <div class="rail"><i></i></div>
+  <p class="note up" style="--d:25.0s">학년이 아니라 <b>수준으로</b> 배정</p>
+</section>
+
+<!-- S5 31.875 – 37.5 : 드롭 -->
+<section class="sc s5" style="--a:31.875s;--b:37.45s">
+  <div class="ring"></div>
+  <div class="lab up" style="--d:31.9s">수업에서 나온 결과</div>
+  <div class="hit gone" style="--o:32.75s"><div class="slam" style="--d:31.875s"><div class="big">한국코드페어 <span class="amb">금상</span></div></div></div>
+  <div class="hit gone" style="--o:33.69s"><div class="slam" style="--d:32.813s"><div class="big">SW사고력올림피아드</div><div class="sm">우수상</div></div></div>
+  <div class="hit gone" style="--o:34.63s"><div class="slam" style="--d:33.75s"><div class="big">과학전람회 <span class="amb">최우수상</span></div><div class="sm">서울시교육청 · 중등부</div></div></div>
+  <div class="hit gone" style="--o:35.56s"><div class="slam" style="--d:34.688s"><div class="big">특허 등록 <span class="amb">2건</span></div></div></div>
+  <div class="hit"><div class="slam" style="--d:35.625s"><div class="big" style="font-size:120px">KAIST · 한국과학영재학교<br>선린인터넷고 진학</div></div></div>
+  <p class="foot up" style="--d:36.1s">원장이 직접 개발한 학습 프로그램 <b>70개 과정 · 1,597챕터</b></p>
+</section>
+
+<!-- S6 37.5 – 41.25 : 맺음 -->
+<section class="sc s6" style="--a:37.5s;--b:41.2s">
+  <div class="wrap">
+    <div class="l1 up" style="--d:37.6s">사라질 능력이 아니라</div>
+    <div class="l2 slam amb" style="--d:38.438s">남을 능력을</div>
+    <div class="l3 up" style="--d:39.375s">가르칩니다.</div>
+  </div>
+</section>
+
+<!-- S7 41.25 – 45 : 로고 -->
+<section class="sc s7" style="--a:41.25s;--b:99s">
+  <div class="logo">
+    <div class="slam" style="--d:41.25s"><span class="mk"><span class="br">[</span>로봇&amp;코딩학원<span class="br">]</span><span class="ai">AI</span></span></div>
+    <div class="line"></div>
+    <div class="meta up" style="--d:42.1s"><b>robotncoding.com</b> · 송파 석촌 · 02-422-0525</div>
+  </div>
+</section>
+
+</div></div>
+
+<div class="flash"></div>
+<div class="scan"></div>
+<div class="grain"></div>
+<div class="vig"></div>
+<div class="hud"><span class="rec">ROBOT&amp;CODING · SONGPA</span><span class="tc"></span></div>
+<div class="bar"></div>
+<div class="fadeout"></div>
+</body>
+</html>

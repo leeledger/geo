@@ -1,0 +1,3 @@
+@@ -1167,0 +1168,122 @@ print(best)</code></pre> old-anchor in <script>(1144-1408): true  new range in <script>: true
+PASS all hunks inside <script>
+tsc PASS

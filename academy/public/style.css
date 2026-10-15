@@ -781,3 +781,45 @@ section.quiet .note .tel{color:var(--amber)}
 .rlog .c b{display:block;color:var(--paper-ink);font-weight:700;font-size:13.5px;margin-bottom:4px}
 .rept .rfoot{padding:16px 24px 20px;border-top:1px solid var(--paper-line);
   font-size:13px;color:#8B7F6B;line-height:1.75;background:var(--paper-sunken)}
+
+/* ── 히어로 모션 (Step 46) ────────────────────────────────
+   유튜브 모션(public/youtube/motion/homepage.html)과 같은 결: 흐림이 걷히며 올라오고, 코드는 한 줄씩 쳐진다.
+   h1 은 LCP 후보라 opacity 를 건드리지 않는다. clip·blur·translate 만, 첫 페인트에 CSS 로 시작한다.
+   이동은 개별 속성 translate/scale 로 — .rise 와 .btn:hover 가 transform 을 쓴다. 예외는 에디터 기울기 하나. */
+.hero h1,.hero .sub{word-break:keep-all}
+
+@media (prefers-reduced-motion:no-preference){
+  @keyframes hm-reveal{
+    from{clip-path:inset(-1em -1em 100% -1em);filter:blur(8px);translate:0 .35em}
+    to{clip-path:inset(-1em -1em -.2em -1em);filter:blur(0);translate:0 0}}
+  @keyframes hm-sweep{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+  @keyframes hm-up{from{opacity:0;filter:blur(6px);translate:0 12px}to{opacity:1;filter:blur(0);translate:0 0}}
+
+  /* backwards: 시작 전엔 첫 프레임을 쥐고, 끝나면 놓아 clip-path·filter 가 none 으로 돌아간다 */
+  .hero h1{animation:hm-reveal .7s cubic-bezier(.2,.7,.3,1) .05s backwards}
+  .hero h1 .hl::after{transform-origin:left;animation:hm-sweep .5s cubic-bezier(.65,0,.35,1) .6s backwards}
+  .hero .eyebrow{animation:hm-up .5s cubic-bezier(.2,.7,.3,1) backwards}
+  .hero .sub{animation:hm-up .55s cubic-bezier(.2,.7,.3,1) .8s backwards}
+  .hero .cta .btn{animation:hm-up .4s cubic-bezier(.2,.7,.3,1) .95s backwards}
+  .hero .cta .btn:nth-child(2){animation-delay:1.01s}
+  .hero .cta .btn:nth-child(3){animation-delay:1.07s}
+
+  /* 에디터 — 줄은 스크립트가 감싼다(.ln). 스크립트가 없으면 .typing 도 없어 코드는 그대로다. */
+  .hero .editor.typing .ln{display:inline-block;opacity:0;translate:0 6px;filter:blur(4px);
+    transition:opacity .35s ease,translate .35s cubic-bezier(.2,.7,.3,1),filter .35s ease}
+  .hero .editor.typing .ln.on,.hero .editor.typed .ln{opacity:1;translate:0 0;filter:none}
+  .hero .editor .qa-frame{display:inline-block;position:relative}
+  .hero .editor .qa-frame::before{content:"";position:absolute;inset:-5px -10px;pointer-events:none;
+    border:1px solid var(--amber);border-radius:6px;background:rgba(245,166,35,.06);
+    clip-path:inset(0 100% 0 0);transition:clip-path .8s cubic-bezier(.65,0,.35,1)}
+  .hero .editor .qa-frame.framed::before{clip-path:inset(0 0 0 0)}
+  .hero .editor .end .c{transition:color .8s ease,text-shadow .8s ease}
+  .hero .editor .end.glow,.hero .editor .end.glow .c{color:var(--amber);text-shadow:0 0 18px rgba(245,166,35,.45)}
+
+  /* 기울기 — .rise 의 transform 을 한 값으로 합친다. 변수가 0 이면 정적과 같다. */
+  .hero .editor.rise{transform:perspective(1000px) translateY(var(--rise,22px)) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg))}
+  .hero .editor.rise.in{--rise:0px}
+  .hero .editor.rise.in.settled{transition:opacity .7s cubic-bezier(.2,.7,.3,1),transform .15s linear}
+  .hero.calm .editor.rise.in.settled{transition:opacity .7s cubic-bezier(.2,.7,.3,1),transform .6s cubic-bezier(.2,.7,.3,1)}
+  .hero.calm canvas,.hero.calm .wrap>div:first-child{transition:translate .6s cubic-bezier(.2,.7,.3,1)}
+}

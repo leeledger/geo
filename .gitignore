@@ -56,3 +56,6 @@ deliverables/*/pilot-reports/
 
 # 지식iN 질문 찾기 하루 검색 수 (tools/kin-find.mjs)
 tools/.kin-find-day.json
+
+# 유튜브 API 열쇠 — OAuth 클라이언트 비밀값·갱신 토큰. 올라가면 채널이 통째로 열린다 (tools/yt-api.mjs)
+.yt-secret/
