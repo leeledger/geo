@@ -1895,3 +1895,14 @@ Should Fix:
 - 재시험 74 PASS · 0 FAIL (DB 줄을 직접 읽어 히어로 칸 라벨·분모·분자 대조 단정 3개, 배경 단정 1개 추가). nullops 2 PASS. tsc 0 · build 성공. 배포는 cited.kr 200 확인 뒤 Arch 가 한다
 - D134 (Arch, 2026-10-15) #case 카드 1 은 엔진 합계를 유지한다. 카드 문구 「검색엔진 한 곳 이상에서 학원 사이트가 나오면 셉니다」가 정의를 명시하므로 출처가 적힌 숫자다. 히어로 칸(D133)만 엔진 하나
 - Richard 리뷰 Step 47: PASS (Must Fix 0) → REVIEW-FEEDBACK.md
+
+### Step 48 — 사이티드 랜딩에 45초 홍보 영상 — Bob 빌드 — DONE (2026-10-15, Bob) · 리뷰 대기 · 커밋·배포 안 함
+- D135 `<video controls playsInline preload="none" poster width=1920 height=1080>` + `<source type="video/mp4">`. 자동재생 없음. CSS `width:100%;height:auto;aspect-ratio:16/9` 로 자리를 먼저 잡는다(landing.css:254-264). 로드 직후 networkState≠LOADING·buffered 0 확인 — 첫 화면에서 영상을 받지 않는다
+- D136 video 안 대체 「영상을 재생할 수 없으면 파일로 보기(mp4 링크)」. 아래 접힌 `<details>` 「영상 속 문장 그대로 보기」 7줄 = cited-promo.html 장면 S1~S7(S0 질문 「○○구 코딩학원 추천해줘」는 S1 줄 머리에 붙였다 — 같은 화면이 이어지는 장면). 문구는 page.tsx `FILM_LINES` 한 곳
+- D137 JSON-LD @graph 에 VideoObject(@id `${SITE_URL}/#film`) — name·description·thumbnailUrl·contentUrl(SITE_URL 기준)·uploadDate 2026-10-15·duration PT45S·inLanguage ko·publisher {@id #org}. 새 주소 상수 없음(BASE = SITE_URL)
+- D138 서버 컴포넌트 마크업만. 새 의존성·클라이언트 컴포넌트·커스텀 재생 버튼 없음
+- 위치: 히어로(lp-deep) 바로 뒤 `#film`(lp-ground) → #geo(lp-white). 라벨 「45초로 보기」 · 제목 「사이티드가 하는 일을 45초로」 · 부제 「소리가 있습니다. 숫자는 아래 본문과 같은 측정에서 나왔습니다.」
+- 시험: `NEXT_PUBLIC_ALLOW_INDEX=true npm run build && next start`(:3048, DB 붙음) 위 `handoff/research/step48/verify.mjs` 94 PASS · 0 FAIL(Step 47 74 + #film 20) — `handoff/research/step48/assertions.txt`. 절 순서 단정에 film 추가, keep-all 단정에 #film 2곳 추가. mp4 200 video/mp4 4420959B·Range 206·poster 200 image/jpeg. details 문구는 원본 HTML 구절 12개·숫자 전부 대조. tsc 0 · build 성공
+- 함정 기록: noindex 스위치 env 이름은 `NEXT_PUBLIC_ALLOW_INDEX`(layout.tsx:10). Step 47 로그의 「ALLOW_INDEX=true」로 빌드하면 noindex 가 붙어 단정 1개가 FAIL 한다
+- mp4·poster 손대지 않음. 다른 절·히어로 문구 변경 없음
+- D139 (Arch, 2026-10-15): #film 부제·VideoObject 설명 「같은 측정」→「숫자와 가격은 … 같은 근거」 (Richard Step 48 제안 4 — 가격은 측정이 아님)

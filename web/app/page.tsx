@@ -64,6 +64,25 @@ const FAQ: [string, string][] = [
    "그동안의 답변 원문과 보고서를 드립니다. 사이트를 손봤다면 도메인·저장소·호스팅 계정은 전부 고객사 명의라 그대로 남습니다. 파일럿은 30일로 끝나고, 이어갈지는 그 뒤에 정합니다."],
 ];
 
+/**
+ * 홍보 영상(public/media). 자동재생·미리 받기 안 함 — 소리 있는 광고가 저절로 켜지면 신뢰가 깎인다 (D135).
+ * 장면 문구는 academy/public/youtube/motion/cited-promo.html 에서 그대로 옮긴 것. 영상을 고치면 여기도 고친다 (D136).
+ */
+const FILM = {
+  mp4: "/media/cited-promo.mp4",
+  poster: "/media/cited-promo-poster.jpg",
+  title: "사이티드가 하는 일을 45초로",
+};
+const FILM_LINES = [
+  "「○○구 코딩학원 추천해줘」 — AI는 이름을 두세 개만 부릅니다. 그 안에 있어야 비교가 시작됩니다.",
+  "GEO · 생성형 엔진 최적화. 검색 결과의 링크가 아니라 답변 문장 안의 이름. 잘됐는지는 같은 질문을 날마다 물어 몇 번 중 몇 번 나오는지로 봅니다.",
+  "직접 측정 · 소프트웨어 회사 34곳 · 회사당 15회. 홈페이지 점수와 AI 노출은 따로 움직였습니다. 홈페이지 80점(비교 글 14개 중 0개에 이름) 3 / 15번, 홈페이지 19점(비교 글 14개 중 9개에 이름) 8 / 15번. AI는 홈페이지만 읽지 않습니다. AI가 참고하는 비교 글·목록에 이름이 있어야 합니다.",
+  "첫 적용 · 사이티드 대표가 운영하는 학원. 착수 때, 학부모 질문 6개 전부 미노출. 네이버 AI 가 이 학원을 소개한 문장 「무선 인터넷과 남녀 구분 화장실을 제공합니다」. 소개글 188 → 933자, AI 가 못 읽던 블로그 글 32편 이전. 쓸 문장이 없으면 AI도 쓸 말이 없습니다. 그래서 사실을 찾아 적고, AI가 읽는 곳에 놓습니다.",
+  "01 · 측정 — 질문 20개를 날짜별로 묻습니다(답 원문과 출처까지 보관). 02 · 기술 세팅 — AI 봇이 읽을 수 있게(봇 접근 · 색인 등록 · 구조화 데이터). 03 · 제3자 지면 — AI가 읽는 글에 이름을(비교 글 · 목록 · 후기). ChatGPT · Perplexity · Gemini · Claude.",
+  "무료 진단 0원 → 30일 파일럿 39만원. 기준선 → 고침 → 30일 차 재측정. 노출·순위·문의는 보장하지 않습니다. 약속한 작업과, 같은 조건으로 다시 잰 보고를 보장합니다.",
+  "Cited 사이티드. AI 답변에 이름이 불리게. 내 이름이 나오는지, 무료 진단부터 cited.kr",
+];
+
 const SCHEMA = {
   "@context": "https://schema.org",
   "@graph": [
@@ -107,6 +126,18 @@ const SCHEMA = {
         name: q,
         acceptedAnswer: { "@type": "Answer", text: a },
       })),
+    },
+    {
+      "@type": "VideoObject",
+      "@id": `${BASE}/#film`,
+      name: FILM.title,
+      description: "사이티드(Cited)가 하는 일을 45초로 정리한 영상입니다. 영상 속 숫자와 가격은 이 페이지 본문과 같은 근거에서 가져왔습니다.",
+      thumbnailUrl: `${BASE}${FILM.poster}`,
+      contentUrl: `${BASE}${FILM.mp4}`,
+      uploadDate: "2026-10-15",
+      duration: "PT45S",
+      inLanguage: "ko",
+      publisher: { "@id": `${BASE}/#org` },
     },
   ],
 };
@@ -246,6 +277,33 @@ export default async function Home() {
             </div>
           </div>
         </header>
+
+        {/* ── 45초 영상 (D135–D138) ── */}
+        <section id="film" className="lp-sec lp-ground">
+          <div className="wrap">
+            <div className="lp-lab">45초로 보기</div>
+            <h2 className="lp-h2">{FILM.title}</h2>
+            <p className="lp-sub">소리가 있습니다. 영상 속 숫자와 가격은 아래 본문과 같은 근거에서 가져왔습니다.</p>
+            <video
+              className="lp-film"
+              controls
+              playsInline
+              preload="none"
+              poster={FILM.poster}
+              width={1920}
+              height={1080}
+            >
+              <source src={FILM.mp4} type="video/mp4" />
+              영상을 재생할 수 없으면 <a href={FILM.mp4}>파일로 보기</a>
+            </video>
+            <details className="lp-film-text">
+              <summary>영상 속 문장 그대로 보기</summary>
+              <ol>
+                {FILM_LINES.map((l) => <li key={l}>{l}</li>)}
+              </ol>
+            </details>
+          </div>
+        </section>
 
         {/* ── GEO 란 ── */}
         <section id="geo" className="lp-sec lp-white">

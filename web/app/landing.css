@@ -251,6 +251,17 @@ nav.lp-nav :focus-visible{outline-color:#6BAEFF}
   .lp-note{font-size:15.5px}
 }
 
+/* ── 45초 영상 (D135) — width/height 속성 + aspect-ratio 로 자리를 먼저 잡아 밀림 없음 ── */
+.lp-film{display:block;width:100%;height:auto;aspect-ratio:16/9;margin-top:36px;border-radius:var(--radius);
+  background:#0B1526;box-shadow:var(--lp-shadow)}
+.lp-film-text{margin-top:18px;max-width:860px;font-size:16px;line-height:1.75;color:var(--ink-2)}
+.lp-film-text summary{cursor:pointer;font-weight:700;color:var(--accent)}
+.lp-film-text ol{margin:0;padding:0 22px 20px 44px;display:flex;flex-direction:column;gap:10px}
+@media(max-width:600px){
+  .lp-film{margin-top:24px;border-radius:12px}
+  .lp-film-text{font-size:15px}
+}
+
 /* ── 말 대신 기록 ── */
 .lp-2col{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:64px;align-items:center}
 @media(max-width:1000px){.lp-2col{grid-template-columns:minmax(0,1fr);gap:44px}}

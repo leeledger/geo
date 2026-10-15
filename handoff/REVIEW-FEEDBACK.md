@@ -1,34 +1,23 @@
-# Review Feedback — Step 47 (47a + 47b + D131–D134)
+# Review Feedback — Step 48 (사이티드 랜딩 45초 영상)
 Date: 2026-10-15
 Ready for Builder: YES
-Verdict: PASS — Must Fix 0
+
+Verdict: PASS — blocking issue 없음.
 
 ## Must Fix
-None.
+없음.
 
 ## Should Fix
-1. handoff/research/step47/assertions-nullops.txt (confidence: 8/10) — The nullops run was written at 20:51. ops.ts was last edited at 20:53 and page.tsx at 20:54, so this artifact predates the final D133 code. I read the null path in the code and it is sound. ops.ts:450-451 `return { ...empty, err: ... }` gives rivalLatest:null. page.tsx:187 `ops.ok && ops.serp.rivalLatest && ops.serp.rivalLatest.total` then hides the cell. Still, re-run nullops before deploy so the evidence matches the code that ships.
-2. web/app/page.tsx:50, :547 (confidence: 7/10) — FAQ 3 and the #price sub hard-code 「39만원」, 「250만원」 and 「80만원」. Meanwhile JSON-LD :43 reads `PILOT.price` and llms.txt reads the constants. Today the values agree (services.ts:47 "390,000원", :169, :269). If the price changes, the FAQ and its FAQPage JSON-LD will go stale while the Offer stays correct. Log as a KG. Not in this step's scope.
-3. web/lib/ops.ts:158-161 (confidence: 6/10, verify this) — rivalLatest picks the engine from the single latest row. If that engine's run was partial or still in progress, the hero shows a smaller denominator (e.g. 「1 / 2」). That is honest but looks odd. A cheap guard: show the cell only when the denominator equals rivalTotal. This is Arch's call, so it is not blocking.
-4. Deploy precondition, not code — next.config.mjs:15-16 sends the old host to https://cited.kr. Run `curl -sI https://cited.kr/` and get 200 with valid TLS before `--prod`. Otherwise every old-domain visitor gets sent to a broken host.
+1. web/public/media/ (git status `?? public/media/`) (confidence: 9/10) — mp4·poster 가 아직 추적되지 않는다. 커밋 때 `web/page.tsx`·`landing.css` 만 올리면 운영에서 영상·포스터가 404 가 된다(CLAUDE.md 함정: 「본문에 이미지 태그는 떴는데 파일이 404」). — Arch 가 커밋할 때 `git add web/public/media/cited-promo.mp4 web/public/media/cited-promo-poster.jpg` 를 함께 넣고, 배포 뒤 https://cited.kr/media/cited-promo.mp4 200·206 을 확인한다.
+2. web/app/page.tsx:134 description · :286 부제 (confidence: 5/10, verify this) — 「영상 속 숫자는 이 페이지 본문과 같은 측정에서 나왔습니다」. 0원·39만원은 측정이 아니라 가격이고, 「학부모 질문 6개 전부 미노출」은 page.tsx 정적 본문에는 없고 llms.txt(route.ts:38)에 있다(사례 절이 DB 에서 그리면 본문에 있을 수 있다). 거짓은 아니나 「같은 근거」가 더 정확하다. 부제는 브리프 원문 그대로라 Bob 잘못은 아님 — 고칠지 Arch 판단. 고치지 않아도 배포 가능.
 
 ## Escalate to Architect
-None. D134 is logged in BUILD-LOG.
-
-## Checks performed
-1. Numbers trace to sources. 6 spot-checks against probe/data, all match:
-   - targets-scored.json: n=34, >60 = 7, <40 = 17, max 80
-   - 80-point company (도토) 3/15 = 20.0%, and 19-point company (영림원) 8/15 = 53.3%, per report.websearch.txt
-   - diagnoses/younglimwon.json thirdParty totalDocs 14, mine 9; doto.json 14 / 0
-   - doto verdict 「사이트는 됐는데 안 불립니다」 matches the #diff card word for word
-   - hero 3/6 · 빙 · 10/15 checked against the DB by verify (assertions.txt 20:57, after the last edit, ALL PASS)
-   - 188→933, 32편 and 0/8 carried over unchanged from the old public/llms.txt
-2. 「도입 사례」 in web/: it remains only in comments (landing.css:571, globals.css:316, page.tsx:25, place.ts:4). It appears nowhere in rendered text. PriceCalc:112 and SiteNav are fixed per D131/D122.
-3. Copy: no fear-selling, no empty emphasis (searched for 다양한·매우·정말·놀라운·혁신·필수·늦습니다, 0 hits), short sentences. "Not for you" is stated in #who (3 items) and #price (「그 도구가 낫습니다」), and FAQ 4 says the client can do it themselves.
-4. Redirect: the destination is a literal on a different host, so it cannot loop. `/api` and `/api/*` are excluded (404/400/405 asserted), `/apifoo` is redirected, query strings are kept (`/admin/ops?key=x`), and multi-segment paths are kept.
-5. The FAQ and FAQPage JSON-LD both map the same `FAQ` const (page.tsx:105 and :617), so they match 1:1.
-6. llms.txt route: it reads only NEXT_PUBLIC_SITE_URL (cleaned) and the PILOT/CITED_ABOUT constants. No secrets or env values leak.
-7. ops.ts rivalLatest: `day` comes from `max(day)::text` and is sliced as a string (page.tsx:189). It is never passed through Date, so the UTC pitfall does not apply. checked_at is compared by epoch. A null day or no rival rows returns null, and DB failure goes through the catch to empty. No throw.
+- 위 Should Fix 2 문구(브리프가 정한 부제) — 바꿀지는 Arch 결정.
 
 ## Cleared
-I reviewed 47a (site.ts, llms.txt route, 308, canonical/metadataBase, sitemap/robots), 47b (copy, order, FAQ/JSON-LD), and D131–D133 (PriceCalc pill, section backgrounds, rivalLatest hero cell). All of it passes. Step 47 is clear.
+- 자동재생 없음, `preload="none"`, poster 만 먼저 받음 → LCP 영향 없음. 클라이언트 컴포넌트·새 의존성 없음(D138).
+- CLS: `width=1920 height=1080` 속성 + `.lp-film{width:100%;height:auto;aspect-ratio:16/9}` — 자리를 먼저 잡는다.
+- details 7줄을 cited-promo.html S0–S7 과 한 줄씩 대조: 문구·숫자(34곳·15회·80점/0개·3/15·19점/9개·8/15·6개·188→933·32편·20개·0원·39만원·30일) 전부 일치, 지어낸 숫자 없음. D122 「첫 적용 · 사이티드 대표가 운영하는 학원」 그대로. S1·S2 의 시각 요소 라벨(A 학원·NOT FOUND·「검색 · 링크 열 개」)은 빠졌으나 문장이 아니라 그림이라 허용.
+- VideoObject: `BASE = SITE_URL`(page.tsx:39, lib/site.ts) 기준 절대 contentUrl·thumbnailUrl, uploadDate·PT45S·ko·publisher → `#org`(page.tsx:91 에 정의됨). 유효. description 두 문장은 짧고 빈 강조·흐림·과장 없음 — CLAUDE.md 글 규칙 통과.
+- 다른 절: diff 는 순수 추가(page.tsx +58, landing.css +11). 히어로·다른 섹션 문구 변경 없음.
+- 스크린샷 1440·390·details 펼침 확인: 포스터 표시, 가로 넘침 없음, keep-all 줄바꿈 정상, 인접 배경 교차 유지. verify 94 PASS.
