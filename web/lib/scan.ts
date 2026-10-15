@@ -8,7 +8,7 @@
 
 import { detectPlatform, platformAdvice, type Platform } from "./platform";
 
-const UA = "Mozilla/5.0 (compatible; siteband-scan/0.1; +diagnostics)";
+export const UA = "Mozilla/5.0 (compatible; siteband-scan/0.1; +diagnostics)";
 
 export type Note = { pri: 1 | 2 | 3; msg: string };
 export type BotResult = { id: string; label: string; weight: number; allowed: boolean; explicit: boolean };
@@ -41,7 +41,7 @@ async function get(url: string, timeoutMs = 15000) {
   }
 }
 
-const stripTags = (h: string) =>
+export const stripTags = (h: string) =>
   h.replace(/<script[\s\S]*?<\/script>/gi, " ")
    .replace(/<style[\s\S]*?<\/style>/gi, " ")
    .replace(/<noscript[\s\S]*?<\/noscript>/gi, " ")
@@ -112,7 +112,7 @@ function botAllowed(groups: RobotGroup[], bot: string) {
   return { allowed: !blanket, explicit: Boolean(specific) };
 }
 
-const BOTS = [
+export const BOTS = [
   { id: "OAI-SearchBot",   label: "ChatGPT 검색",      weight: 3 },
   { id: "ChatGPT-User",    label: "ChatGPT 사용자요청", weight: 3 },
   { id: "PerplexityBot",   label: "Perplexity",       weight: 3 },
@@ -127,8 +127,8 @@ const BOTS = [
 ];
 
 export const SITE_LABELS: Record<string, string> = {
-  crawler: "AI 크롤러 접근", ssr: "본문 추출 가능성", schema: "구조화 데이터",
-  chunk: "인용 가능한 문단", patterns: "AI 친화 패턴", llmstxt: "llms.txt (참고 · 점수 제외)", sitemap: "sitemap.xml",
+  crawler: "AI 봇이 들어오는지", ssr: "AI 에게 글이 보이는지", schema: "AI가 읽는 이름표",
+  chunk: "떼어 쓰기 좋은 문단", patterns: "질문형 제목·숫자", llmstxt: "llms.txt (참고 · 점수 제외)", sitemap: "페이지 목록 파일",
 };
 
 /**
@@ -202,7 +202,7 @@ export async function scanSite(rawTarget: string, maxPages = 5): Promise<ScanRes
   const rb = await get(`${base}/robots.txt`);
   if (!rb.ok) {
     checks.crawler = { score: 60, bots: [] as BotResult[], noRobots: true };
-    notes.push({ pri: 2, msg: "robots.txt 가 없습니다. AI 크롤러를 User-agent 별로 명시 허용하세요." });
+    notes.push({ pri: 2, msg: "봇 규칙 파일이 없습니다. 파일을 올려 AI 봇을 이름으로 하나씩 들여 두세요." });
   } else {
     const groups = parseRobots(rb.body);
     const bots: BotResult[] = BOTS.map((b) => ({ ...b, ...botAllowed(groups, b.id) }));
@@ -211,9 +211,9 @@ export async function scanSite(rawTarget: string, maxPages = 5): Promise<ScanRes
     const blocked = bots.filter((b) => !b.allowed);
     checks.crawler = { score: Math.round((gotW / totalW) * 100), bots, blocked: blocked.map((b) => b.id) };
     if (blocked.length)
-      notes.push({ pri: 1, msg: `robots.txt 가 ${blocked.map((b) => b.id).join(", ")} 를 차단합니다. 이게 막히면 나머지 작업이 전부 무의미합니다.` });
+      notes.push({ pri: 1, msg: `봇 규칙 파일이 ${blocked.map((b) => b.id).join(", ")} 를 막습니다. 이 봇들이 못 들어오면 나머지 손질이 소용없습니다.` });
     else if (!bots.some((b) => b.explicit))
-      notes.push({ pri: 2, msg: "AI 크롤러가 * 규칙으로만 허용됩니다. User-agent 별로 명시하면 의도가 분명해집니다." });
+      notes.push({ pri: 2, msg: "AI 봇을 이름으로 들인 줄이 없습니다. 봇 이름을 하나씩 적어 두면 뜻이 분명해집니다." });
   }
 
   /* 2) llms.txt */
@@ -229,7 +229,7 @@ export async function scanSite(rawTarget: string, maxPages = 5): Promise<ScanRes
       score: Math.min(100, (bytes > 800 ? 50 : 25) + Math.min(30, sections * 5) + (hasEntity ? 20 : 0)),
       exists: true, bytes, sections,
     };
-    if (bytes < 800) notes.push({ pri: 3, msg: "llms.txt 가 짧습니다(참고 · 점수 제외). 효과 근거가 약해 급하지 않습니다." });
+    if (bytes < 800) notes.push({ pri: 3, msg: "AI 안내 파일이 짧습니다(점수에 안 넣음). 효과 근거가 약해 급하지 않습니다." });
   }
 
   /* 3) 페이지 수집 */
@@ -243,7 +243,7 @@ export async function scanSite(rawTarget: string, maxPages = 5): Promise<ScanRes
     }
   }
   checks.sitemap = { score: sm.ok ? 100 : 0, exists: sm.ok, urls: urls.length };
-  if (!sm.ok) notes.push({ pri: 3, msg: "sitemap.xml 이 없습니다. 색인이 안 되면 검색층에서 탈락합니다." });
+  if (!sm.ok) notes.push({ pri: 3, msg: "페이지 목록 파일이 없습니다. 검색엔진에 페이지가 안 올라가면 AI 검색에서도 빠집니다." });
 
   const skip = /\/(privacy|terms|policy|약관|login|signup|cart)\b/i;
   const picked = urls.filter((u) => !skip.test(u) && !u.endsWith(".xml") && u.startsWith(base)).slice(0, maxPages - 1);
@@ -255,7 +255,7 @@ export async function scanSite(rawTarget: string, maxPages = 5): Promise<ScanRes
   if (platform) notes.push(platformAdvice(platform));
   // 루트 파일을 못 올리는 플랫폼에 "llms.txt 를 넣으세요"라고 하면 실행 불가능한 조치가 된다
   if (llmsMissing && platform?.rootFile !== "no") {
-    notes.push({ pri: 3, msg: "llms.txt 가 없습니다(참고 · 점수 제외). 효과 근거가 약해 급하지 않습니다." });
+    notes.push({ pri: 3, msg: "AI 안내 파일이 없습니다(점수에 안 넣음). 효과 근거가 약해 급하지 않습니다." });
   }
 
   /* 4) 페이지 분석 (동시) */
@@ -299,7 +299,7 @@ export async function scanSite(rawTarget: string, maxPages = 5): Promise<ScanRes
   if (ratio < 0.02) ssr = Math.min(ssr, 30);
   checks.ssr = { score: ssr, avgTextLen: Math.round(avgLen), thinPages: thin, totalPages: ok.length };
   if (ok.length && thin > ok.length / 2)
-    notes.push({ pri: 1, msg: `${thin}/${ok.length} 페이지가 자바스크립트 없이는 본문이 거의 없습니다. AI 크롤러도 같은 것을 봅니다 — 서버 렌더링(SSR)이 필요합니다.` });
+    notes.push({ pri: 1, msg: `${thin}/${ok.length} 페이지는 글이 화면을 연 뒤에야 그려집니다. AI 봇은 그 전의 빈 화면을 봅니다. 글이 처음부터 담겨 오게 고쳐야 합니다.` });
 
   /* 4b) 스키마 */
   const withLd = ok.filter((p) => p.ldCount > 0).length;
@@ -312,10 +312,10 @@ export async function scanSite(rawTarget: string, maxPages = 5): Promise<ScanRes
     score: Math.max(0, Math.round(cover * 55 + Math.min(45, hit.length * 9) - invalid * 10)),
     pagesWithLd: withLd, totalPages: ok.length, types: [...allTypes], invalid,
   };
-  if (ok.length && !withLd) notes.push({ pri: 1, msg: "JSON-LD 구조화 데이터가 한 페이지에도 없습니다. Organization·Article·FAQPage 부터 넣으세요." });
+  if (ok.length && !withLd) notes.push({ pri: 1, msg: "AI가 읽는 이름표가 한 페이지에도 없습니다. 회사·글·자주 묻는 질문 이름표부터 넣으세요." });
   else if (ok.length && !allTypes.has("FAQPage") && !allTypes.has("HowTo"))
-    notes.push({ pri: 2, msg: "FAQPage / HowTo 스키마가 없습니다. 질문-답변 형태가 AI 인용에 가장 잘 걸립니다." });
-  if (invalid) notes.push({ pri: 2, msg: `JSON-LD ${invalid}건이 파싱에 실패합니다 — 있으나 마나입니다.` });
+    notes.push({ pri: 2, msg: "자주 묻는 질문·따라 하기 이름표가 없습니다. 질문과 답 꼴이 AI 인용에 가장 잘 걸립니다." });
+  if (invalid) notes.push({ pri: 2, msg: `AI가 읽는 이름표 ${invalid}건이 깨져 읽히지 않습니다. 있으나 마나입니다.` });
 
   /* 4c) 청크 (한국어는 글자 수 기준) */
   const totalParas = ok.reduce((s, p) => s + p.paras, 0);

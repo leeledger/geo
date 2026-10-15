@@ -119,6 +119,8 @@ export async function saveLead(input: {
   referral?: string | null;
   concerns?: string | null; competitor?: string | null; site?: string | null;
   ip: string;
+  /** 홈페이지 없는 길에서 온 리드. 없으면 scanId 유무로 정한다 */
+  source?: "platform_check" | "no_site";
 }): Promise<string | null> {
   const row = {
     scan_id: input.scanId,
@@ -132,7 +134,7 @@ export async function saveLead(input: {
     competitor: input.competitor?.slice(0, 200) || null,
     site: input.site?.slice(0, 200) || null,
     ip_hash: hashIp(input.ip),
-    source: input.scanId ? "free_scan" : "contact",
+    source: input.source ?? (input.scanId ? "free_scan" : "contact"),
   };
   if (!dbEnabled) return appendFile("leads", row);
 

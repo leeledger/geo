@@ -1939,3 +1939,33 @@ Should Fix:
 - D150 (Arch) Bob Deviation 1(B49-1) 수락 — 유료 고객 0, 신청서 발송 0 이라 PILOT.gives·order·after 와 research/paid-pilot-order-form.md 문구를 바꿔도 된다. 제공 항목은 같고 낱말만 바뀜, 환불 조항 무변경. Richard 확인: refund 3줄·refundNote 가 9e63bbd 와 바이트 일치, 신청서 ↔ services.ts 글자 일치
 - Step 49 Richard 리뷰 (2026-10-15) PASS — Escalate: guides.ts:85 메타 문장(KG-49-7) 이번에 고칠지 · 1440 히어로 폼 아래 여백. Should Fix: #case 카드 1 DB 대조 단정 없음(48:333 대체가 SSR 비교뿐) · 단정 7 낱말 목록에 「적었습니다」 단독 없음 · llms.txt route:50 「블로그 글 이관」 · #start 진단 카드 「주소만 넣으면」 반복
 - D151 (Arch, 2026-10-15): KG-49-7 이번 단계에 고침 — guides.ts:85 short 「계약 전에 확인할 수 있는 것만 적었습니다」(메타) → 글 내용 세 기준. llms.txt/route.ts:50 「이관」→「옮기기」. #start 「주소만 넣으면」 반복·card 1 DB 단정은 Step 50(진단 개편)에서
+
+## Step 50 브리프 — 홈페이지 없는 사장님 진단 (2026-10-15, Arch)
+원장 지시: 「홈페이지가 없어도 진단을 받을 수 있게 … 블로그 주소를 받거나, 아무튼 없는 사람도.」 브리프 = handoff/ARCHITECT-BRIEF.md, Step 49 브리프는 research/ARCHITECT-BRIEF-step49.md.
+- 확인: normalizeTarget 이 blog.naver.com/robotncoding 을 origin 으로 줄여 네이버를 채점(21 위험). 오진 — 이번에 막는다
+- 실측(curl, 진단 UA): 네이버 블로그 PC·모바일 robots 가 서로 다름 · 인스타 `*` 는 Disallow / 라 ChatGPT 검색·ChatGPT-User 는 막히고 ClaudeBot·Googlebot 은 명시 그룹으로 허용 · 네이버 플레이스(m.place·pcmap) 는 우리 UA 에 429 · 카카오맵 `*` 그룹 둘 + Allow /$ · 블로그 PC 페이지는 iframe 에 본문
+- D152 (Arch) 새 리드 종류는 열 추가 없이 geo.leads.source 값으로(platform_check · no_site). no_site 질문 3개는 concerns 에 서버가 다시 만들어 넣는다 — DDL·파싱 없이 /admin 카드에 그대로 보인다
+- D153 (Arch) 플랫폼 봇 정책은 코드에 표로 두지 않는다. 호스트→이름 매핑만 두고 robots 는 매번 받아 읽는다(지어내지 않는다)
+- D154 (Arch) 새 robots 매처(RFC 9309: 그룹 합치기·최장 일치·Allow 우선·*·$)는 2번 길에만. 1번 길 점수 엔진은 그대로 — 점수가 바뀌면 지난 진단과 못 견준다
+- D155 (Arch) 네이버 블로그는 PC·모바일 두 호스트 robots 를 다 보고, 다르면 다르다고 쓴다
+- D156 (Arch) 플랫폼 자기 검색 봇(네이버 호스트의 Yeti)은 「이 규칙으로 판단 못 함」으로 표시하고 집계·문장에서 뺀다 — 네이버 블로그 robots 는 Yeti 를 막지만 네이버 검색엔 나온다. 그대로 찍으면 거짓 경보
+- D157 (Arch) 2번 길 요청은 정직한 진단 UA 그대로. 429 를 브라우저 흉내로 우회하지 않고 「확인하지 못했습니다」. 허용 호스트만·https·포트 없음·리다이렉트 홉마다 허용 확인
+- D158 (Arch) 2번 길 결과 문장은 브리프의 고정 틀에 실측값만 채운다. 점수·등급 없음. 「AI 에 안 나옵니다」류 단정 금지
+- D159 (Arch) 새 의존성 없음
+- D160 (Arch) 2번 길 결과는 geo.scans 에 안 남긴다(total not null, 점수 없음). 3번 길 「물어봐 드림」은 기한 약속 없음 — 저장소에 SLA 없음(grep)
+- KG-50-1 진단 BOTS 에 Claude-SearchBot·Claude-User 없음(넣으면 1번 길 가중치 바뀜)
+- KG-50-2 1번 길 robots 판정이 전면 차단만 셈 — 새 매처로 옮기기는 점수 변경이라 따로
+- KG-50-3 normalizeTarget SSRF 가드가 0.0.0.0·10진 IP·DNS 재바인딩을 못 막음
+- KG-50-4 2·3번 길 사용 횟수 기록 없음
+- KG-50-5 site.ts:26 「홈페이지 주소만 넣으면 무료 진단」·guides.ts:241 문장이 새 진단과 갈라짐
+- KG-50-6 no_site 요청 「답 보냄」 상태·AI 자동 질의 없음 — 원장이 손으로 묻는다
+
+### Step 50 — Bob 빌드 — DONE (2026-10-15, Bob) · Richard 대기 · 커밋·배포 안 함
+- 새 파일: web/lib/robots.ts(RFC 9309 매처·robotsState) · web/lib/platform-check.ts(PLATFORMS·BOT_PLAIN·classifyTarget·safeFetch·judgeHost·buildLines·checkPlatform) · web/lib/no-site.ts(askQuestions·clean·josa)
+- 고친 파일: api/scan(세 길 분기) · api/lead(source no_site·platform_check) · leads.ts(source 선택 인자) · admin/page.tsx(source 이름표) · ScanForm.tsx(세 길·쉬운 말) · page.tsx(#start·FAQ 2·새 FAQ 3) · globals.css · scan.ts(문자열·export 만) · platform.ts(문자열만)
+- 검증: handoff/research/step50/verify.mjs ALL PASS 179(옛 104 + 새 75) · tsc 0 · NEXT_PUBLIC_ALLOW_INDEX=true next build 통과 · 시험 리드 5행·시험 진단 3행 id 로 삭제, 남은 STEP50 리드 0
+- 실측: 네이버 블로그 PC·모바일 같은 판정(ChatGPT 검색·Perplexity 검색·Claude·ChatGPT 학습·Gemini 학습·Common Crawl 막힘) · 인스타 6개 막힘 · m.place.naver.com 429 → 「확인하지 못했습니다」 화면 찍힘
+- 결정(Bob): platform.ts 의 note·advice 에 든 robots.txt 도 「봇 규칙 파일」로(결과 A 0회 목표 때문) · 결과 B 연락처 부제 「진단한 주소가 함께 접수됩니다」(결과는 저장 안 됨 — 「결과와 함께」는 사실이 아님) · 짧은 주소가 허용 밖이면 「열어 보지 못했습니다」 한 줄
+- KG-50-7 레이트리밋이 x-forwarded-for 첫 값을 믿는다. Vercel 은 덮어쓰지만 다른 앞단이면 우회된다(verify 가 이걸로 리밋을 피함)
+- KG-50-8 /admin no_site 카드에 「AI 답 확인 요청」이 이름표와 wants 로 두 번 보인다
+- D161 (Arch, 2026-10-15): 30일 리드 수(leads30d)에 platform_check·no_site 포함 — 진단에서 온 문의라 같은 깔때기(Richard Step 50 질문)

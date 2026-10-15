@@ -333,7 +333,7 @@ export async function readOps(client?: Client): Promise<Ops> {
             where coalesce(user_agent,'') <> 'cited-rescan' and created_at > now() - interval '30 days') scans,
           (select count(*)::int from geo.leads
             where created_at > now() - interval '30 days'
-              and (scan_id is not null or source = 'free_scan')) leads,
+              and (scan_id is not null or source in ('free_scan','platform_check','no_site'))) leads,
           (select count(*)::int from geo.leads where coalesce(status,'new') = 'new') new_leads,
           (select count(*)::int from academy.inquiries where ${ME} and enrolled is null) unresolved`);
       sales = {

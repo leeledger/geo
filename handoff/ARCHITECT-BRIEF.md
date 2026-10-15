@@ -1,167 +1,233 @@
-# ARCHITECT-BRIEF — Step 49: 사이티드 랜딩을 쉬운 말로
-
-원장 질문(2026-10-15): 「랜딩페이지 쉬운 설명으로 직관적으로 개편한 거 맞지?」 — 아직 아니다. Step 47 은 구조와 사실을 고쳤고, 말은 아직 업계 말이다.
-원장 정정(같은 날, 9e63bbd 배포): #film 은 제목 「사이티드가 하는 일」만(D140), #geo 라벨 「원리」(D141). 「45초로」「소리가 있습니다」 같은 메타 문구는 AI 티.
-이전 브리프: handoff/research/ARCHITECT-BRIEF-step48.md · 이번 결정 D142~D149 (BUILD-LOG)
-줄 번호는 9e63bbd 기준.
+# Architect Brief — Step 50
 
 ## Goal
-GEO 를 처음 듣는 동네 사장님이 첫 화면과 각 절 첫 두 문장을 업계 지식 없이 읽는다. 페이지가 자기를 설명하는 문장은 없다. 숫자·출처·D122 문구·FAQ↔JSON-LD 1:1·#film(현재 모습)은 그대로다.
+홈페이지가 없는 사장님도 진단을 받는다. 입력 하나에 길 셋: 홈페이지(지금 그대로) · 블로그·SNS·플레이스 주소(그 플랫폼의 봇 규칙을 그 자리에서 읽어 사람 말로) · 주소 없음(질문 3개 + 「사이티드가 물어봐 드림」 접수 → /admin). 블로그 주소를 넣으면 네이버 점수(21 위험)가 나오던 오진을 없앤다.
 
-## 규칙 두 개 (이번 단계 전체에 적용)
-- **R1 쉬운 말 (D144)** — 아래 용어표대로. #film 에 나오는 이름(30일 파일럿·기술 세팅·기준선 보고)과 환불 조항 낱말은 이름을 지키고, 화면에 처음 보이는 곳에 한 번만 괄호 풀이(≤10자). 나머지는 바꾼다. 「처음 보이는 곳」 = 렌더된 글자 순서(접힌 details·닫힌 FAQ 답 제외).
-- **R2 메타 문구 금지 (D149, 원장)** — 페이지나 매체를 설명하는 문장을 쓰지 않는다. 「N초로」「소리가 있습니다」「아래에서 보여 드립니다」「다음 표를 보세요」「~를 정리했습니다」「아래 세 장은」「이렇게 적습니다」「위에서 본」「이 페이지의」. 그 자리에 내용을 말하거나 지운다.
-  - 예외(정직성 공시, 최소한으로): 예시 화면 표시, 가림 표시, 숫자 출처, 표본 크기 경고. 절대 규칙(지어내지 않는다·가린다)이 요구한다. 「무엇을 가렸다/어디서 왔다」만 말하고 「아래에 실었다」는 붙이지 않는다.
-  - 링크·버튼 이름(「전체 기록 보기 →」「가이드 전체 보기 →」「무료 진단 받기」)은 문장이 아니라 행동이라 둔다.
+원장 지시(2026-10-15): 「홈페이지가 없어도 진단을 받을 수 있게 … 블로그 주소를 받거나, 아무튼 없는 사람도.」
+결정 D152~D160 · KG-50-1~6 BUILD-LOG. Step 49 브리프는 handoff/research/ARCHITECT-BRIEF-step49.md.
 
-## 히어로 — 전/후 (D142·D143)
+## 지금 코드가 하는 일 (확인함)
+- `web/lib/scan.ts:147 normalizeTarget` 가 무엇이든 `u.origin` 으로 줄인다 → `blog.naver.com/robotncoding` = `https://blog.naver.com` 진단. 사용자가 아니라 네이버를 채점한다.
+- `botAllowed`(scan.ts:105)는 `Disallow: /` 전면 차단만 센다. 경로 규칙·`Allow`·`*`·`$`·같은 UA 그룹 합치기를 안 본다. 플랫폼에선 틀린 답을 낸다(아래 실측).
+- `saveLead`(leads.ts:135) source 는 scanId 유무로만 `free_scan`/`contact`. 새 종류를 넣을 자리가 없다.
+- /admin 카드(admin/page.tsx:47)는 source 를 안 보인다.
+
+## 실측 (2026-10-15, UA = scan.ts 의 siteband-scan, curl)
+| 호스트 | robots.txt | 우리 봇 목록 기준 핵심 |
+|---|---|---|
+| blog.naver.com | 200 · 1623B | Yeti·GPTBot·OAI-SearchBot·PerplexityBot·Google-Extended·ClaudeBot·CCBot 은 `Disallow: /`. ChatGPT-User·Perplexity-User·Googlebot·Bingbot 은 `*` 그룹(경로 몇 개만 막음) |
+| m.blog.naver.com | 200 · 12267B | 같은 AI 봇 묶음 차단 + 다른 `*` 경로 목록. **PC·모바일 파일이 다르다** |
+| *.tistory.com | 200 · 185B | `*` 는 /manage·/admin 등만. bingbot Crawl-delay |
+| www.instagram.com | 200 · 7336B | **`User-agent: *` → `Disallow: /`**. ClaudeBot·GPTBot·PerplexityBot·Googlebot·Bingbot 은 명시 그룹(경로 몇 개만) → 프로필 허용. OAI-SearchBot·ChatGPT-User·Perplexity-User 는 명시 그룹 없음 → `*` 로 막힘. Yeti `Disallow: /` |
+| pf.kakao.com | 200 · 23B | `*` Allow / |
+| place.map.kakao.com | 200 · 374B | `User-agent: *` 그룹이 **둘**(Allow / 와 Disallow / + Allow /$) + AI 봇 묶음 차단 → 그룹 합치기·`$` 필요 |
+| map.naver.com | 200 · 539B | AI 봇 묶음 차단, `*` Allow / |
+| m.place.naver.com · pcmap.place.naver.com | **429** (HTML 본문) | 우리 UA 에 429 → 「확인하지 못했습니다」 길. 429 HTML 을 robots 로 파싱하면 안 된다 |
+| naver.me | 200 · 24B | 짧은 주소. 실제 대상은 리다이렉트 끝 |
+| brunch.co.kr · smartstore.naver.com · www.youtube.com | 200 | 허용 목록에 넣는다 |
+| blog.naver.com/robotncoding (페이지) | 200 · 2836B | 본문 없음 · `<iframe id="mainFrame">` — 측정 가능한 사실 |
+| www.instagram.com/instagram/ (페이지) | 200 · 697KB | `<title>` 있음 |
+
+결론: 플랫폼마다 다르고 바뀐다. 표를 코드에 박지 말고 매번 받아서 읽는다(D153). 위 표는 테스트 기대값이 아니다.
+
+## 흐름
 
 ```
-지금 (1440, 공백 뺀 글자 583)                 Step 49 (≤ 400)
-┌ badge · h1 · lede(3문장)          ┐       ┌ badge · h1 · lede(2문장)   ┐
-│ 업종 버튼 · 채팅 시연              │       │ 업종 버튼 · 채팅 시연       │  ← 그대로
-│ ScanForm + formnote(llms.txt…)    │       │ ScanForm + 쉬운 안내 한 줄  │  ← 유일한 CTA
-│ herohint(ChatGPT 에 물어보세요)    │ ──┐   └────────────────────────────┘
-│ herolinks(파일럿 보기·기록 보기)   │ ─┐│
-│ lp-proof 칸 4개                   │ ┐││
-└───────────────────────────────────┘ │││
-   일차 ───────────────── #case 라벨에 이미 있음 ({caseDay}일차)
-   다녀간 봇 N곳 ──────── #case 카드 3 머리에 이미 있음 (N곳 · M회)
-   AI 가 읽게 된 글 N편 ── #case 카드 3 본문에 한 문장 추가 (posts 가 null 이 아닐 때만)
-   경쟁 검색어(엔진 하나) ─ 뺀다. #case 카드 1 이 정의문 달린 합계로 같은 것을 보여 줌(D134)
-                       │└─ 지운다 (네비에 요금·첫 적용 기록이 있다)
-                       └── #start 부제로 옮긴다
+입력칸 하나 (ScanForm)                         「주소가 없어요」 버튼
+  │ POST /api/scan {domain}                         │ (네트워크 없음)
+  ▼                                                 ▼
+rateLimited(5/분) ─429→ 오류                  상호·지역·업종 입력
+  ▼                                                 ▼
+classifyTarget(raw)  [lib/platform-check.ts]   askQuestions() 3개 + 복사 버튼
+  ├ error  → 400 사람 말 (빈칸·점 없음·플랫폼 뿌리·스마트플레이스 관리주소·포트)
+  ├ site   → normalizeTarget → scanSite (지금 그대로, kind:"site")
+  └ platform(id, url)                               │ 이메일(필수)·전화(선택)
+       ▼                                            ▼
+     safeFetch: https·허용 호스트·포트 없음·      POST /api/lead {source:"no_site",
+     redirect manual ≤3홉(홉마다 허용 확인)·8초     company, area, industry, email…}
+       ├ naver.me → 끝 호스트로 플랫폼 재판정        ▼
+       ▼                                         서버가 askQuestions 다시 만들어
+     robots(호스트별: 네이버 블로그는 PC+모바일)      concerns 에 저장 · source=no_site
+       2xx → parse(합치기·최장일치·Allow 우선·*·$)     ▼
+       4xx → 「규칙 파일 없음 = 모두 들임」(RFC 9309) /admin 카드 「주소 없음 · AI 답 확인 요청」
+       429·5xx·시간초과 → 「확인하지 못했습니다」      + lead-alert 메일(지금 그대로)
+     page(그 주소): 제목·설명·글자 수·iframe
+       ▼
+     kind:"platform" (total·grade 없음) → 결과 패널 B
+       └ 연락처 → /api/lead {source:"platform_check", site:url}
 ```
-섹션 순서 무변경(히어로 안에서만 덜어낸다).
 
 ## Build Order
 
-### 1. 히어로 (page.tsx · HeroDemo.tsx · ScanForm.tsx)
-- page.tsx:241-248 `.lp-herohint`·`.lp-herolinks` 삭제. page.tsx:251-277 `.lp-proof` 블록 삭제
-- 안 쓰이게 되는 `ENGINE_NAME`(185)·`heroWeb`·`heroWebSrc`(218-221) 삭제. `lib/ops.ts` `rivalLatest` 는 손대지 않는다(KG-49-3)
-- HeroDemo.tsx:83-87 lede → 「사이티드(Cited)는 그 몇 곳에 우리 회사 이름이 <b>들어가게 만드는</b> 대행사입니다. 손님이 칠 질문을 AI 에 날마다 물어 보고, 빠졌으면 <b>AI 가 읽는 글</b>을 고칩니다.」
-- HeroDemo.tsx:166 「예시 화면입니다.」는 R2 예외로 둔다(A·B·C 가 실제 답처럼 읽히면 안 된다)
-- ScanForm.tsx:96 formnote → 「주소만 넣으면 AI 가 우리 사이트를 읽을 수 있는지 바로 알려 드립니다. 가입도 결제도 없습니다.」
-- ScanForm.tsx:92 진행 중 → 「사이트를 읽어 보고 있습니다. 창을 닫지 말고 기다려 주세요.」 — 「10~30초」는 잰 적 없는 약속이라 뺀다(D145)
-- Flag: ScanForm 결과 패널(117행 「루트 파일(robots·llms.txt)」 등)·폼 로직·API 는 이번 단계 밖(KG-49-1)
+### 0. 준비
+- `git pull` 후 작업. 새 의존성 없음(D159).
+- `handoff/research/step50/` 를 만들고 step49/verify.mjs 를 복사해 `step50/verify.mjs`(OUT 기본값 step50).
 
-### 2. #case 로 옮기는 숫자 (page.tsx:452-463)
-- 카드 3 본문 끝에 한 문장: 「지금 AI 가 읽을 수 있는 글은 <b>{posts}편</b>입니다.」 — `posts` 가 null 이면 렌더하지 않는다. 카드는 기존 `crawled` 가드 그대로. 새 숫자 아님(히어로 칸의 같은 값)
-- #case 라벨(419)·D122 문구 무변경
+### 1. `web/lib/robots.ts` (새 파일 · 순수 함수 · 이번 단계의 기초)
+- `parseRobots(txt)` — 같은 UA 를 가진 그룹을 **합친다**(RFC 9309 2.2.1). UA 비교는 소문자.
+- `verdict(groups, botId, pathAndQuery): { allowed: boolean; group: "own" | "*" | "none"; rule: string | null }` — 봇 이름 그룹이 있으면 그것만, 없으면 `*`, 둘 다 없으면 허용. 규칙은 **가장 긴 일치**가 이기고, 같은 길이면 Allow. `*` 는 아무 글자, 끝의 `$` 는 끝. 빈 `Disallow:` 는 무시. 경로는 `new URL().pathname + search`.
+- scan.ts 의 `botAllowed`·`parseRobots` 는 **건드리지 않는다**. 1번 길 점수가 바뀌면 안 된다(D154). 1번 길을 새 매처로 옮기는 건 KG-50-2.
+- `BOTS` 를 scan.ts 에서 `export` 만 한다(목록·가중치 그대로). 사람 말 이름표는 새 상수 `BOT_PLAIN` (id → 이름):
+  OAI-SearchBot 「ChatGPT 검색」 · ChatGPT-User 「ChatGPT(손님이 주소를 줄 때)」 · PerplexityBot 「Perplexity 검색」 · Perplexity-User 「Perplexity(손님이 주소를 줄 때)」 · ClaudeBot 「Claude」 · Googlebot 「구글 검색」 · Bingbot 「빙·Copilot 검색」 · Yeti 「네이버 검색」 · GPTBot 「ChatGPT 학습」 · Google-Extended 「Gemini 학습」 · CCBot 「공개 웹 수집(Common Crawl)」.
 
-### 3. 서비스 카드 영어 라벨 (D146)
-- page.tsx:553 `<span className="tag">{sv.tag}</span>` 삭제. `services.ts` 의 `tag` 필드는 남긴다(/services 목록 services/page.tsx:33 이 씀 → KG-49-2)
+### 2. `web/lib/platform-check.ts` (새 파일)
+- `PLATFORMS` — **호스트 → 이름 매핑만**. 봇 정책을 적지 않는다(D153).
 
-### 4. 용어표 (R1 · D144·D148)
+  | id | 이름 | 호스트 (정확히 일치, tistory 만 정규식) | robots 볼 호스트 | 자기 봇 |
+  |---|---|---|---|---|
+  | naver_blog | 네이버 블로그 | blog.naver.com · m.blog.naver.com | 둘 다(D155) | Yeti |
+  | naver_place | 네이버 플레이스 | m.place.naver.com · pcmap.place.naver.com · map.naver.com | 그 주소의 호스트 | Yeti |
+  | naver_store | 네이버 스마트스토어 | smartstore.naver.com · m.smartstore.naver.com | 〃 | Yeti |
+  | tistory | 티스토리 | `^[a-z0-9-]+\.tistory\.com$` | 〃 | — |
+  | instagram | 인스타그램 | instagram.com · www.instagram.com | 〃 | — |
+  | kakao_channel | 카카오톡 채널 | pf.kakao.com | 〃 | — |
+  | kakao_place | 카카오맵 장소 | place.map.kakao.com | 〃 | — |
+  | brunch | 브런치 | brunch.co.kr | 〃 | — |
+  | youtube | 유튜브 | youtube.com · www.youtube.com · m.youtube.com | 〃 | — |
+  | (짧은 주소) | — | naver.me | 리다이렉트 끝으로 재판정 | — |
 
-| 낱말 | 처리 | 처음 보이는 곳(풀이 자리) | 나머지 화면 노출 |
+- `classifyTarget(raw)`:
+  - 빈칸·`.` 없음·http(s) 아님 → `{kind:"error", msg:"주소를 다시 확인해 주세요. (예: blog.naver.com/아이디)"}`
+  - smartplace.naver.com · new.smartplace.naver.com → error 「스마트플레이스 관리 화면 주소입니다. 네이버 지도에서 우리 가게를 열고 공유 주소를 넣어 주세요.」
+  - 허용 호스트인데 사용자 몫 경로가 없음(경로 `/` 이고 tistory·naver.me 아님) → error 「블로그·계정 주소 전체를 넣어 주세요. (예: blog.naver.com/아이디)」
+  - 허용 호스트에 포트가 붙음 → error(첫 문구)
+  - 허용 호스트 → `{kind:"platform", id, url}`
+  - 나머지 → `{kind:"site"}` (1번 길, normalizeTarget·기존 가드 그대로)
+  - `blog.naver.com.evil.com` 은 정확 일치가 아니므로 site. `https://x@blog.naver.com/a` 는 URL 파서 hostname 기준.
+- `safeFetch(url)` — https 만, `redirect:"manual"`, 3홉까지, **홉마다** Location 의 호스트가 허용 목록인지 확인(아니면 멈추고 실패). 8초 제한, 쿠키·인증 없음, 본문 2MB 에서 자른다. UA 는 scan.ts 와 같은 정직한 UA(브라우저 흉내 금지 — 429 를 우회하지 않는다, D157).
+- `checkPlatform(id, url)` 결과:
+  ```
+  { kind:"platform", platform:{id,name}, url, checkedAt,
+    hosts:[{ host, label:"PC 주소"|"모바일 주소"|null, robots:"ok"|"none"|"fail", status,
+             bots:[{ id, plain, allowed:boolean|null, self:boolean, group, rule }] }],
+    page:{ fetched:boolean, status, title:string|null, description:string|null,
+           textLen:number|null, iframe:boolean },
+    lines:string[] }   // 화면에 그대로 찍을 문장. total·grade 필드 없음
+  ```
+  - robots 2xx → verdict. 4xx(429 제외) → `robots:"none"`, 모든 봇 allowed=true(RFC 9309 2.3.1.3). 429·5xx·0 → `robots:"fail"`, allowed=null.
+  - 「자기 봇」(네이버 호스트의 Yeti) → `self:true`, allowed 는 계산하되 문장·집계에서 뺀다. 네이버 블로그 robots 가 Yeti 를 막는데 네이버 검색엔 블로그가 나온다 — 그대로 찍으면 거짓 경보다(D156).
+  - page: 그 주소를 safeFetch. 제목 `<title>`, 설명 `meta name=description` 또는 `og:description`, 글자 수 = scan.ts `stripTags` 길이(export 해서 재사용), iframe = `<iframe` 이 있고 글자 수 < 600.
+- `lines` 규칙(이 글자 그대로, {} 만 채움 · D158):
+  - 막힌 봇(self 제외) ≥1: 「{이름}은(는) {막힌 봇 plain 을 · 로 이음} 봇을 막아 두었습니다. 이 봇들은 이 주소의 글을 읽어 가지 않습니다.」 — 은/는 은 받침 보고 함수로.
+  - 막힌 봇 0, 확인 성공: 「{이름}은(는) 확인한 AI·검색 봇 {n}개를 막지 않습니다.」
+  - PC·모바일 판정이 다르면: 「PC 주소와 모바일 주소의 규칙이 다릅니다.」 한 줄 추가.
+  - robots fail: 「{호스트}의 봇 규칙을 확인하지 못했습니다. 잠시 뒤 다시 눌러 주세요.」
+  - robots none: 「{호스트}에는 봇 규칙 파일이 없습니다. 모든 봇이 들어올 수 있습니다.」
+  - page iframe: 「글 본문이 안쪽 틀(iframe)로 따로 열립니다. 이 주소의 첫 화면에는 글자가 {textLen}자뿐입니다.」
+  - page 성공·iframe 아님: 「사이티드가 받아 본 첫 화면에 글자가 {textLen}자 있습니다.」 + 없으면 「제목이 없습니다.」·「소개 문구(description)가 없습니다.」
+  - page fail: 「이 주소를 열어 보지 못했습니다. (응답 {status, 0 이면 「없음」})」
+  - 마지막 줄(항상): 「이 규칙은 {이름}이(가) 정합니다. 사장님이 바꿀 수 있는 설정이 아닙니다.」
+  - Flag: 위 밖의 주장(「AI 에 안 나옵니다」「노출이 안 됩니다」 등) 금지. 실측에서 나온 것만.
+
+### 3. `web/app/api/scan/route.ts`
+- 레이트리밋 그대로(5/분, 세 길 공용).
+- `classifyTarget` 먼저. error → 400 {error: msg}. platform → `checkPlatform` → 200 (saveScan 안 함 — scans.total 이 not null 이고 점수가 없다, D160). site → 지금 코드 그대로, 응답에 `kind:"site"` 만 추가.
+
+### 4. 리드 — `web/lib/leads.ts` · `web/app/api/lead/route.ts` · `web/lib/no-site.ts`
+- `saveLead` 에 `source?: "platform_check" | "no_site"` 선택 인자. 없으면 지금 규칙(scanId 유무). 열 추가 없음(DDL 없음, D152).
+- `/api/lead`: `body.source` 가 위 둘 중 하나일 때만 넘긴다(그 밖 값은 무시, 옛 규칙).
+  - `no_site`: company(상호 ≤40)·area(≤20)·industry(≤20) 셋 다 있어야 함, 없으면 400 「상호·지역·업종을 적어 주세요.」. 서버가 `askQuestions` 로 질문을 **다시** 만들어 `concerns = 질문 3개를 " / " 로 이음`, `wants = "AI 답 확인 요청"`, `site=null`, `scanId=null`. 클라이언트가 보낸 concerns 는 버린다.
+  - `platform_check`: `site = body.site`(≤200), `wants = "블로그·SNS 할 일"`.
+  - 이메일 필수(지금 그대로), 전화 선택, 허니팟·레이트리밋 8/분·lead-alert 그대로.
+- `web/lib/no-site.ts` (새, 순수): `askQuestions(name, area, industry)` → 정확히
+  1. 「{지역} {업종} 추천」 (검색어형)
+  2. 「{지역}에서 {업종} 찾는데 어디가 좋아?」 (대화체)
+  3. 「{상호} 어떤 곳이야?」 (이름 확인 — 성과 숫자가 아니라 확인용)
+  입력은 trim·연속 공백 하나로·길이 자르기. 템플릿만, LLM 없음.
+
+### 5. `web/app/admin/page.tsx`
+- Lead 타입에 `source`. 카드 `.d` 둘째 줄 앞에 이름표: free_scan 「홈페이지 진단 뒤」 · contact 「상담 신청」 · platform_check 「블로그·SNS 진단 뒤」 · no_site 「주소 없음 · AI 답 확인 요청」. no_site 질문 3개는 `said`(concerns)로 이미 보인다 — 원장이 그대로 복사해 묻는다.
+
+### 6. `web/app/ScanForm.tsx` — 세 길 + KG-49-1 쉬운 말
+- placeholder 기본값 「홈페이지·블로그·인스타그램 주소」, aria-label 「주소」.
+- formnote(히어로 안): 「블로그·인스타그램·플레이스 주소도 됩니다. 가입·결제 없음.」 바로 뒤 링크 모양 버튼 「주소가 없어요」. **Flag: 히어로에 「봇」「구조화 데이터」「파일럿」 낱말 금지** — 단정 6(풀이 첫 자리)이 깨진다. 히어로 글자 ≤400(지금 377).
+- busy 문구: 「주소를 읽어 보고 있습니다. 창을 닫지 말고 기다려 주세요.」
+- 결과 A (kind:"site") 쉬운 말:
+  - plat-caps: 「루트 파일(robots·llms.txt)」→「사이트에 파일 올리기」 · 「구조화 데이터」→「AI가 읽는 이름표 넣기」 · 「콘텐츠 발행」→「글 올리기」 · 「작업 주체」→「손댈 사람」. CAP_LABEL 가능/제한적/불가 → 「됨」/「일부만」/「안 됨」 (platform.ts 값만; 다른 사용처 grep 해서 함께 확인).
+  - 행 이름(SITE_LABELS): crawler 「AI 봇이 들어오는지」 · ssr 「AI 에게 글이 보이는지」 · schema 「AI가 읽는 이름표」 · chunk 「떼어 쓰기 좋은 문단」 · patterns 「질문형 제목·숫자」 · sitemap 「페이지 목록 파일」. **weight 0(llms.txt) 행은 화면에서 뺀다**(Step 49 용어표). 응답 JSON 은 그대로.
+  - PRIO 치명/중요/권장 → 「먼저」/「다음」/「여유 있을 때」.
+  - scan.ts notes 문장 사람 말로(로직·pri 무변경, 문자열만): robots.txt→「봇 규칙 파일」, SSR·자바스크립트→「글이 화면을 연 뒤에야 그려집니다」, JSON-LD→「AI가 읽는 이름표」, sitemap.xml→「페이지 목록 파일」, User-agent·`*` 규칙 설명은 지움. 봇 고유명(GPTBot 등)은 둔다. 목표: 결과 A 패널에 robots·llms·JSON-LD·SSR·User-agent·sitemap·크롤러 0회.
+  - 하단 문구·19점/80점 문장 그대로.
+- 결과 B (kind:"platform"): 점수·등급·/100 없음. 머리 「{플랫폼 이름}」 + 주소(프로토콜 뺌). `lines` 를 순서대로. 그 아래 봇 목록: plain · 「들어옴」/「막힘」/「확인 못 함」, self 는 「{플랫폼} 자체 검색 — 이 규칙으로 판단 못 함」. 호스트 둘의 판정이 다르면 그 줄에 「PC 막힘 · 모바일 들어옴」식. 확인 시각 KST(`timeZone:"Asia/Seoul"`) 「10/15 21:04 확인」.
+  - 연락처 폼: h4 「블로그·SNS 만 있을 때 할 일을 받으세요」 · sub 「진단한 주소와 결과가 함께 접수됩니다. 이메일 한 번으로 정리해 드립니다.」 · 버튼 「할 일 받기」 · `source:"platform_check"`.
+- 길 C (「주소가 없어요」): 상호·지역(예: 송파구)·업종(예: 코딩학원) 세 칸 + 「질문 만들기」(네트워크 없음). 결과: 질문 3개 각각 「복사」 버튼(navigator.clipboard, 실패 시 글자 선택). 문구 「ChatGPT 에 그대로 붙여 넣어 보세요. 1·2번 답에 {상호}가 나오는지 보면 됩니다. 3번은 AI 가 우리 가게를 아는지 보는 질문입니다.」 그 아래 「사이티드가 물어봐 드릴까요?」 · 「같은 질문을 ChatGPT·Perplexity·Gemini·Claude 에 물어 답 원문을 메일로 보내 드립니다.」 · 이메일(필수)·전화(선택)·허니팟 · 버튼 「물어봐 주세요」 · 완료 「접수됐습니다. {email} 로 보내 드립니다.」 **기한 약속 금지**(저장소에 SLA 없음 — grep 확인, D160).
+- 입력이 바뀌면 이전 결과·오류를 지운다(지금 동작 유지).
+
+### 7. `web/app/page.tsx`
+- #start h2 「가진 주소부터<br /><span className="hl">넣어 보세요</span>」.
+- #start lp-sub: 「홈페이지 주소를 넣으면 AI 가 우리 사이트를 읽을 수 있는지 점수가 나옵니다. 블로그·인스타그램 주소를 넣으면 그 플랫폼이 AI 봇을 들이는지 봅니다. 답에 이름이 나오는지는 ChatGPT 에 손님 말투 그대로 물어보면 압니다. 「○○구 치과 추천해줘」. 날짜별로 세어 보고 싶으면 상담을 남겨 주세요.」
+- #start .ps 「연락처는 결과를 본 뒤에 남기셔도 됩니다.」 (「주소만 넣으면」 삭제 — Richard should-fix).
+- #start ScanForm placeholder prop 삭제(기본값 사용).
+- FAQ 2 「무료 진단은 무엇을 보나요?」 답 첫 문장을 「홈페이지는 AI 가 읽을 수 있는 상태인지 7개 항목으로 봅니다.」 식으로 홈페이지 몫임을 밝히고 나머지 유지. FAQ 3 자리에 새 문답(같은 배열 → JSON-LD 1:1 자동):
+  「홈페이지가 없어도 진단받을 수 있나요?」 → 「됩니다. 네이버 블로그·인스타그램·플레이스 주소를 넣으면 그 플랫폼이 AI 봇을 들이는지 그 자리에서 읽어 알려 드립니다. 점수는 매기지 않습니다. 플랫폼 규칙이라 사장님 점수가 아니기 때문입니다. 주소가 하나도 없으면 상호·지역·업종으로 ChatGPT 에 물어볼 질문 세 개를 만들어 드립니다. 원하시면 사이티드가 같은 질문을 AI 네 곳에 물어 답 원문을 메일로 보내 드립니다.」 (특정 플랫폼이 막는다는 말은 넣지 않는다 — 고정 문장은 바뀐 robots 를 못 따라간다)
+- D149: 「아래에」「위에서」 등 메타 문구 넣지 않는다.
+
+### 8. verify (`handoff/research/step50/verify.mjs`)
+- step49 의 104 단정 전부 유지. 기대값이 바뀌는 것(FAQ 10→11, #start 문구 등)은 REVIEW-REQUEST 에 「옛 단정 → 새 단정 · 까닭」 표로.
+- 빌드: `NEXT_PUBLIC_ALLOW_INDEX=true` 로 `next build` → `next start -p 3047`. tsc 는 `node ./node_modules/typescript/bin/tsc`(npx 금지 — `&` 함정).
+- 새 단정(최소):
+  - [50-R] robots.ts 단위: 최장 일치 · 같은 길이 Allow 우선 · `*` · `$`(`Disallow: /` + `Allow: /$` 에서 `/` 허용, `/a` 차단) · 같은 UA 그룹 합치기 · UA 대소문자 · 빈 Disallow · 명시 그룹 있으면 `*` 무시.
+  - [50-C] classifyTarget: `blog.naver.com/robotncoding`·`m.blog.naver.com/robotncoding`·`robotncoding.tistory.com`·`instagram.com/cited.kr`·`pf.kakao.com/_x`·`naver.me/abc` → platform · `blog.naver.com`(뿌리) → error · `new.smartplace.naver.com/x` → error · `blog.naver.com.evil.com` → site · `https://blog.naver.com:8080/a` → error.
+  - [50-A1] POST /api/scan `blog.naver.com/robotncoding` → 200, kind platform, `total`·`grade` 필드 없음, hosts 2개(PC·모바일). **봇 판정 대조**: verify 가 그 자리에서 두 호스트 robots 를 받아 robots.ts 로 계산한 값 = 응답 bots 값(하드코딩 기대값 금지). lines[0] 이 응답의 막힌 봇(self 제외) plain 을 빠짐없이 담음. Yeti 는 self. 화면 결과 B 에 「/ 100」·「위험」 없음.
+  - [50-A2] `www.instagram.com/instagram/` → kind platform, 같은 방식 대조, page.title 있음.
+  - [50-A3] 잡주소(`asdf`, `http://`, `blog.naver.com`, `localhost`, `127.0.0.1`) → 400 + 사람 말 오류. 홈페이지 회귀: `cited.kr` → kind site, total 숫자.
+  - [50-A4] robots 해석 함수를 status 429/503/0 로 단위 테스트 → `fail`·allowed null·「확인하지 못했습니다」 문장. 404 → `none`·모두 허용.
+  - [50-S] SSRF: safeFetch 에 허용 밖으로 가는 리다이렉트(로컬 테스트 서버 또는 fetch 주입) → 따라가지 않음. http:// 대상 거절.
+  - [50-L1] POST /api/lead no_site (표식 상호 `STEP50-VERIFY-{시각}`, 가짜 concerns 동봉) → 200, DB 행 source=no_site, concerns = askQuestions 결과와 글자 일치(가짜 무시). 셋 중 하나 빈칸 → 400.
+  - [50-L2] /admin(쿠키: `/admin/enter?key=` + .env.local 관리자 키)에 그 카드 · 이름표 「주소 없음 · AI 답 확인 요청」 · 질문 3개 보임. **끝나면 그 행을 id 로 지운다**(운영 DB 에 시험 리드 남기지 않음).
+  - [50-L3] platform_check 리드 1건 같은 방식(source·site 확인 후 삭제). 이상한 source(`"admin"`) → 옛 규칙 source, 확인 후 삭제.
+  - [50-U] 결과 A 패널 innerText 에 robots·llms·JSON-LD·SSR·User-agent·sitemap·크롤러·치명 0회. 히어로 ≤400(49-1 단정이 새 formnote 포함해 잼). 새 블록 word-break keep-all. 「주소만 넣으면」 화면 0회. 길 C: 질문 3개 = askQuestions, 복사 버튼 3개.
+  - [50-K] #case 카드 1 DB 대조(Richard should-fix 복구): .env.local DATABASE_URL 로 `lib/ops.ts` rivalTally 와 같은 뜻의 SQL 을 verify 안에서 따로 짜 rivalWon·rivalTotal 을 구하고, 애니메이션 끝난 뒤 카드 1 `<b>` = `0 → {won} / {total}`. ops.ts 를 import 하지 않는다(같은 코드로 자기 검사 금지).
+  - 콘솔 오류 0 — 일부러 낸 400 들만 제외.
+- 스크린샷 1440·390 각각: hero · start · A(홈페이지 결과) · B-naver(블로그) · B-instagram · error(잡주소) · C-questions · C-done. `step50/{w}-{state}.png`. 「확인하지 못했습니다」 화면은 실측에서 나오면 찍고, 안 나오면 REVIEW-REQUEST 에 「안 나옴」.
+- assertions.txt 저장, ALL PASS.
+
+### 9. 배포
+- Richard PASS → `gh auth switch --user leeledger` → main 푸시(web 은 push 배포) → `https://cited.kr/` 에서 블로그 주소 1회·주소 없음 질문 화면 1회 확인 → BUILD-LOG. (상시 승인, CLAUDE.md)
+
+## Out of Scope (→ Known Gaps)
+- KG-50-1 BOTS 에 Claude-SearchBot·Claude-User 없음 — 넣으면 1번 길 가중치가 바뀐다.
+- KG-50-2 1번 길 점수 엔진을 새 robots 매처로 옮기기 — 점수가 바뀌니 따로.
+- KG-50-3 normalizeTarget SSRF 구멍(0.0.0.0·10진 IP·DNS 재바인딩) — 「기존 가드 유지」 지시대로.
+- KG-50-4 2·3번 길 사용 횟수 기록 없음(scans 에 안 남음).
+- KG-50-5 site.ts:26 「홈페이지 주소만 넣으면 무료 진단」·guides.ts:241.
+- KG-50-6 no_site 요청 「답 보냄」 상태·AI 자동 질의. 지금은 원장이 손으로 묻는다.
+
+## 실패 모드
+| 새 길 | 실제로 날 일 | 처리 | 사용자에게 |
 |---|---|---|---|
-| 30일 파일럿 | 이름 유지 · 풀이 「(한 달 시범 계약)」 | page.tsx:545 #services 부제 | page.tsx:50,52,58,64,546,601,603,604 · FlowSteps.tsx:32,34,35 · PriceCalc.tsx:87,94,101,120,125 · services.ts:46,68,72 · FILM_LINES 82(동결) |
-| 기술 세팅 | 이름 유지 · 풀이 「(AI가 읽게 손봄)」 | page.tsx:545 #services 부제 | page.tsx:50,52,604 · PriceCalc.tsx:17,18 · services.ts:125,269 · FILM_LINES 81(동결) |
-| 사이트 구축 · 구축 | **「홈페이지 제작」**(서비스 이름 포함, slug `build` 유지) | — | page.tsx:50,176,545,604 · PriceCalc.tsx:17 · services.ts:51,227 · llms.txt/route.ts:23,50,51 |
-| 기준선 보고 | 이름 유지(신청서·환불 조항과 같은 낱말, D148) · 풀이 「(시작 때 숫자)」 | services.ts:119 카드 01 조건 줄의 k | page.tsx:578,603 · FAQ 7(PILOT.refund) · FlowSteps.tsx:16,17 · services.ts:64,65,67,110 |
-| 기준선(단독) | 「처음 물은 결과」·「첫 숫자」 | — | page.tsx:466 → 「AI 답변 · 착수 때 처음 물은 결과」 · services.ts:51 PILOT.order(#price, PriceCalc.tsx:91) · FILM_LINES 82(동결) |
-| 크롤러 | 「봇」으로 통일 · 풀이 「(자동 방문 프로그램)」 | page.tsx:410 #data → 「AI 봇(자동 방문 프로그램) 접근이 0점인 곳도」 | page.tsx:176,177 · PriceCalc.tsx:73 · (455·459 는 이미 봇) · GPTBot·ClaudeBot·Googlebot 고유명은 둔다 |
-| 리포트 | 「보고서」로 통일(월 구독 이름 포함) | — | page.tsx:617(라벨),619,622 · RecordTabs.tsx:61 · PriceCalc.tsx:26,27 · FlowSteps.tsx:34 · services.ts:68 PILOT.after(→ FAQ 3·llms.txt 자동) |
-| 이관 | 「옮기기」 | — | page.tsx:177 · PriceCalc.tsx:40,72,117 · services.ts:269 |
-| 구조화 데이터 | 이름 유지 · 풀이 「(AI가 읽는 이름표)」 | page.tsx:176 TIMELINE | services.ts:146 카드 항목 · FAQ page.tsx:48 |
-| 자바스크립트 | 바꿈 | — | services.ts:142 카드 항목 → 「AI 에게도 글이 보이게 합니다」 |
-| llms.txt | 랜딩 화면에서 뺌(FAQ·가이드만 허용) | — | page.tsx:176 · ScanForm.tsx:92,96 · PriceCalc.tsx:92(`PILOT.llms` 줄 렌더 삭제) |
-| 정합성 수정안 · 근거 콘텐츠 · 상담 유입 기록표 · 전량 | 「틀린 정보 고칠 목록」·「AI 가 인용할 글 1편」·「문의 경로 기록표」·「전부」 | — | FlowSteps.tsx:22,23,29 · PriceCalc.tsx:26 |
-| 경쟁 검색어 | 「이름 없이 찾는 검색어」 | — | page.tsx:430 |
-| 대시보드 · 엔진 | 「점수 화면」·「AI 이름」 | — | page.tsx:627,628 |
-| 방문 로그 | 「방문 기록」 | — | page.tsx:491 |
-| 검색을 켠 AI | 「웹 검색을 켠 AI」 | — | page.tsx:470 |
+| 플랫폼 robots | 네이버 플레이스 429(실측) | fail → allowed null · 50-A4 | 「확인하지 못했습니다」 |
+| 플랫폼 robots | robots 가 바뀜 | 매번 실측, 표 없음 · 50-A1 대조가 실측 기준 | 새 규칙 그대로 |
+| 짧은 주소 | naver.me 가 허용 밖으로 리다이렉트 | 홉마다 허용 확인, 멈춤 · 50-S | 「확인하지 못했습니다」 |
+| 페이지 받기 | 인스타 로그인 벽·큰 본문·느림 | 2MB 자름·8초 · page fail 문장 | 「열어 보지 못했습니다(응답 n)」 |
+| 오진 | 블로그 주소가 홈페이지 길로 | 정확 일치 분류 · 50-C·A1 | — |
+| 거짓 경보 | 네이버 Yeti 차단을 「네이버에 안 나옴」으로 | self 표시·집계 제외 · 50-A1 | 「자체 검색 — 판단 못 함」 |
+| no_site 리드 | DB 저장 실패 | 지금처럼 500 | 「저장에 실패했습니다」 |
+| no_site 리드 | 클라이언트가 concerns 조작 | 서버 재생성 · 50-L1 | — |
+| 남용 | 플랫폼 길로 외부 요청 | 5/분 공용 리밋 · 요청당 robots ≤2 + 페이지 ≤3홉 | 429 문장 |
+| 회귀 | 홈페이지 점수 바뀜 | scan.ts 로직 무변경 · 50-A3 | — |
+| 시험 리드 | 운영 /admin 에 남음 | verify 가 id 로 삭제 · 50-L2·L3 | — |
 
-- #services 부제 545-546 → 「모든 곳은 30일 파일럿(한 달 시범 계약) 하나로 시작합니다. 홈페이지가 없으면 홈페이지 제작, AI 가 못 읽는 홈페이지면 기술 세팅(AI가 읽게 손봄)을 한 번 더 합니다. 쓸 만한 홈페이지가 있으면 새로 만들지 않습니다. 월 구독은 파일럿을 끝낸 곳에만 안내합니다.」
-- PILOT.order(services.ts:51) → 「홈페이지 제작이나 기술 세팅이 있는 곳은 계약 직후 첫 7일에 숫자를 먼저 잽니다(손대기 전). 그다음 고치고, 새 사이트를 연 날(또는 세팅을 마친 날)부터 30일 파일럿을 셉니다. 30일 차에 다시 잽니다. 그래야 전후가 남습니다.」
-- TIMELINE 176 → 「홈페이지 제작 · 주소 연결」 / 「AI 봇을 이름으로 허용하고 구조화 데이터(AI가 읽는 이름표)를 붙였습니다.」 · 177 → 「블로그 글 32편 옮김」 / 「AI 봇을 막는 블로그에서 사진 69장까지 옮겼습니다.」
-- Flag: PILOT.refund·refundNote 의 「기준선 보고」는 글자 그대로(D148). 신청서·관리 화면(pilot-plan.ts:68-72)과 같아야 한다
-
-### 5. 메타 문구 목록 (R2 · D149) — 하나씩 이렇게
-| 파일:줄 | 지금 | 처리 |
-|---|---|---|
-| page.tsx:361 | 「바로 아래가 사이티드가 직접 잰 기록입니다.」 | 지움. 뒤 문장 「SEO 를 이미 맡긴 곳이 있다면 그대로 두셔도 됩니다.」만 |
-| page.tsx:423 | 「숫자는 서버와 검색 기록에서 매일 다시 가져오고, 안 오른 숫자도 같은 크기로 싣습니다.」 | 「숫자는 서버와 검색 기록에서 매일 다시 가져옵니다.」(출처만 남김, 배치 설명 삭제) |
-| page.tsx:590-591 | 「아래 세 장은 실제로 남긴 기록입니다. 앞의 두 장은 … 진단한 보고서, 마지막 장은 … 작업 기록입니다. 회사 이름은 가렸습니다.」 | 「몇 번 물어 몇 번 나왔는지, 답이 참고한 비교 글, 고친 것과 고친 이유가 들어갑니다. 회사 이름은 가렸습니다.」(세 탭 내용 = RecordTabs 62·77·94) |
-| page.tsx:622 | 「… 빠져 있기 쉽습니다. 저희 리포트는 이렇게 적습니다.」 | 둘째 문장 지움 |
-| page.tsx:635 | 「위에서 본 사이트 점수가 가장 높은 회사의 실제 진단 결론입니다.」 | 「사이트 점수가 가장 높았던 80점 회사의 실제 진단 결론입니다.」(80 은 #data 에 있는 숫자) |
-| page.tsx:685-686 | 「상담에서 자주 나오는 다섯 가지를 따로 적었습니다. 남의 시장 전망이나 … 직접 잰 숫자만 실었습니다.」 | 「남의 시장 전망과 출처를 확인 못 한 통계는 쓰지 않습니다. 숫자는 저희가 직접 잰 것뿐입니다.」 |
-| page.tsx:709-710 | #start 부제 「…세고 싶으면 아래에 상담을 남겨 주세요.」 | 새 부제(6절)에 「아래에」 없음 |
-| page.tsx:753 | 푸터 「이 페이지의 시장 숫자(…)는 저희가 직접 측정한 값입니다.」 | 「시장 숫자(…)는 사이티드가 직접 잰 값입니다.」(출처 유지, 「이 페이지의」 삭제) |
-| page.tsx:246 | 「30일 파일럿 39만원 보기 →」 | 1절에서 삭제됨 |
-| HeroDemo.tsx:166 | 「예시 화면입니다.」 | 둔다(예외: 정직성 공시) |
-| page.tsx:373 · 754 | 「표본이 작아 방향으로만 봐 주세요」·「대략의 방향으로 봐 주세요」 | 둔다(예외: 표본 경고) |
-| page.tsx:295 · 298 | #film 대체 문구·요약 | 둔다(#film 동결, 원장) |
-| ScanForm.tsx:161 · 172 | 「정리해 드립니다」 | 둔다 — 페이지 설명이 아니라 보낼 메일 약속 |
-- Bob 이 위 목록 밖의 메타 문장을 찾으면 같은 규칙으로 고치고 REVIEW-REQUEST 에 줄을 적는다(낱말·문장 수준만. 새 문단·새 숫자 금지)
-
-### 6. 절 첫 두 문장 (이 외는 손대지 않는다)
-- #how 574 → 「첫 7일에 지금 몇 번 나오는지 세어 두고, 30일 차에 같은 질문으로 다시 셉니다. 그 사이에 틀린 정보를 맞추고 글을 씁니다.」 · 578 flownote 그대로
-- #price 604 「홈페이지 구축·기술 세팅은」→「홈페이지 제작·기술 세팅은」 · 603 환불 문구 그대로
-- #diff 617 라벨 「보고서가 다른 점」
-- #start 709-710 → 「AI 가 우리 사이트를 읽을 수 있는지 점수가 바로 나옵니다. 답에 이름이 나오는지는 ChatGPT 에 손님 말투 그대로 물어보면 압니다. 「○○구 치과 추천해줘」. 날짜별로 세어 보고 싶으면 상담을 남겨 주세요. 홈페이지가 없어도 됩니다.」
-- #film·#geo·#data·#who·#why·#nots·#faq·#guides 첫 두 문장: 업계 지식 없이 읽힘 → R1·R2 항목 외 무변경. 질문형 제목(Step 47) 전부 무변경
-
-### 7. 검증 — handoff/research/step49/verify.mjs (D147)
-- step48/verify.mjs(9e63bbd, 195행 고친 판)를 복사, OUT 기본값 step49. **94개를 다 남긴다** — 의도가 바뀐 단정은 지우지 말고 고쳐 쓰고 REVIEW-REQUEST 에 「48 → 49 대응표」:
-  - 255 hint → `#start .lp-sub` 에 「○○구 치과 추천해줘」
-  - 256 히어로 링크 두 개 → 히어로 안 `a[href^="#"]` 0개
-  - 257 증거 줄 머리 → `.lp-proof` 0 · #case 라벨에 「첫 적용 · 사이티드 대표가 운영하는」(D122)
-  - 258 증거 칸 → #case 라벨 「{caseDay}일차」 · 카드 3 「AI 가 읽을 수 있는 글은 N편」
-  - D133 두 개 → 화면에 「· 빙 · M/D 측정」 꼴 0 · #case 카드 1 정의문 「검색엔진 한 곳 이상에서」 유지(D134)
-  - nullops 「일차 하나만」 → nullops: 카드 3·「편입니다」 숨김, 「0 → 0」·null 0
-  - 81 「기준선 보고 전」 정규식 그대로(D148)
-  - keep-all 선택자: `.lp-herohint`·`.lp-proof-h` 빼고 `#start .lp-sub`·`.lp-hero .formnote`·`#services .lp-sub` 넣기
-- 새 단정:
-  1. `.lp-hero` innerText 공백 제거 **≤ 400**(N, D147) — 1440·390, 업종 3개 1회차 중 최댓값
-  2. 히어로 submit 1개 · `.lp-herohint`·`.lp-herolinks`·`.lp-proof` 0 · 1440 에서 submit 아래끝 ≤ 900px
-  3. 화면 글자(`.lp` innerText, 접힌 details·닫힌 FAQ 제외)에서 #faq·#guides 를 뺀 곳에 「llms.txt」 0
-  4. 「Measurement」「Technical」「Placement」「Build」「Diagnosis」 0 · `.lp-svc` innerText 라틴 문자 0 · `.lp-svc .tag` 0
-  5. 화면 글자 + FAQ JSON-LD 답에 「리포트」「크롤러」「이관」「정합성」「근거 콘텐츠」「대시보드」「구축」「7가지를 자동으로」「점수 제외」「10~30초」 0
-  6. 풀이 5개(파일럿·기술 세팅·기준선 보고·봇·구조화 데이터): 낱말이 화면에 처음 나오는 자리 = 「낱말+풀이」 자리, 「낱말+풀이」 정확히 1번. 봇은 「로봇」 안의 봇을 세지 않는다(뒤보기 정규식)
-  7. 메타 문구 0 (R2): 「초로」「소리가 있습니다」「아래 세 장」「아래에」「아래가」「위에서 본」「이렇게 적습니다」「정리했습니다」「따로 적었습니다」「실었습니다」「싣습니다」「이 페이지」「다음 표」「보여 드립니다」 — 화면 글자 전체(#film 포함, 접힌 details 제외)
-  8. 숫자 새로 안 생김: 같은 실행에서 운영 https://cited.kr/ 화면 숫자 집합을 기준으로 Step 49 화면 숫자 ⊆ 기준. 살아 있는 카운터(`Count` 렌더 값·caseDay)는 양쪽에서 빼고 비교
-  9. /services/build 200 · h1 에 「홈페이지 제작」 · /llms.txt 에 「사이트 구축」 0
-  10. FAQ 화면 = JSON-LD 글자 그대로(기존 169-170 통과 유지)
-- 스크린샷 1440/390: hero · case · services · how · why · price · start → handoff/research/step49/
-- 빌드: `NEXT_PUBLIC_ALLOW_INDEX=true`(layout.tsx:10). tsc 는 `node ./node_modules/typescript/bin/tsc`
-
-## Failure modes
-| 새 길 | 운영에서 날 수 있는 일 | 처리 | 사람이 보나 |
-|---|---|---|---|
-| 히어로 칸 삭제 | 증거 숫자가 첫 화면에서 내려감 | #case 에 같은 숫자 전부(258 대체) | 보임(의도) |
-| posts 문장 | DB 실패 → 「null편」 | 자체 가드 + nullops 단정 | 숨김(의도) |
-| 서비스 이름 변경 | /services/build·OfferCatalog·llms.txt 이름이 갈라짐 | services.ts 한 곳 + llms route 23·50·51 · 단정 9 | FAIL 로 잡힘 |
-| PILOT.after 보고서 | FAQ 3·llms.txt 가 끌어 씀 | 단정 172·108 동적 비교 · guides.ts:149 옛 낱말 → KG-49-4 | 가이드에만 옛 말 |
-| 환불 낱말 | 랜딩만 바꾸면 신청서와 달라져 분쟁 소지 | 바꾸지 않고 풀이만(D148) · 단정 81 | — |
-| 풀이 자리 | 위 절에 낱말이 새로 생기면 풀이가 뒤로 밀림 | 단정 6 이 자리까지 대조 | FAIL |
-| 메타 문구 재발 | 다음 단계에서 「아래에서 보여 드립니다」류가 다시 들어옴 | 단정 7 을 verify 에 남김 · CLAUDE.md 「AI 가 쓴 티」 추가는 KG-49-6 | FAIL |
-| 글자 수 한도 | 다른 업종 시연 문구가 길어 400 넘음 | 단정 1 이 3업종 최댓값 | FAIL |
+치명 공백(시험·처리 없음 + 조용한 실패): 없음.
 
 ## Test map
-- 히어로 구성(삭제·CTA 1개·글자 수) — [GAP] → 단정 1·2
-- 옮긴 숫자(caseDay·vendors·posts) — 257·258·nullops 는 히어로 기준 → [GAP] → 대체 단정
-- 풀이 첫 자리 — [GAP] → 단정 6
-- 금지 낱말·영어 라벨·llms.txt — [GAP] → 단정 3·4·5
-- 메타 문구 — [GAP] → 단정 7
-- 숫자 보존 — [GAP] → 단정 8
-- 서비스 이름 파급 — [GAP] → 단정 9
-- FAQ↔JSON-LD · 순서 · 배경 교차 · #film(D140 판) · 시연 회귀 · 47a 주소 — [TESTED] 기존 단정 유지
-- ScanForm 제출 — [TESTED] 콘솔 오류 단정 유지 · 결과 패널 문구 KG-49-1
-
-## Out of Scope
-- ScanForm 결과 패널 낱말 → KG-49-1
-- /services 목록·상세의 영어 tag·업계 말 → KG-49-2
-- ops.ts `rivalLatest`·`.lp-proof*`·`.lp-herohint`·`.lp-herolinks` CSS 미사용 → KG-49-3
-- guides.ts(146·148·149·154·155·170·187·212) 구축·리포트·기준선 → KG-49-4
-- 모바일에서 CTA 가 시연 아래(첫 화면 밖) → KG-49-5
-- R2 를 CLAUDE.md 「AI 가 쓴 티」에 올리기 → KG-49-6
-- #film(현재 모습)·FILM_LINES·VideoObject · 새 숫자·새 절·절 순서·질문형 제목
+| 가지 | 상태 |
+|---|---|
+| robots 매처 규칙 | [GAP] → 50-R |
+| classifyTarget 가지 | [GAP] → 50-C |
+| 플랫폼 결과(네이버 PC·모바일, 인스타) | [GAP] → 50-A1·A2 |
+| robots fail·none | [GAP] → 50-A4 |
+| 리다이렉트 허용 밖·http | [GAP] → 50-S |
+| 잡주소 400 | [GAP] → 50-A3 |
+| 홈페이지 길 회귀 | [TESTED] step49 ScanForm 400·결과 + 50-A3 |
+| no_site·platform_check 리드 저장·/admin | [GAP] → 50-L1~L3 |
+| 결과 패널 쉬운 말 · 길 C | [GAP] → 50-U |
+| 히어로 ≤400 · FAQ↔JSON-LD 1:1 | [TESTED] 49-1·FAQ 단정(기대값 11) |
+| #case 카드 1 DB | [GAP] → 50-K |
 
 ## Acceptance
-- step49 verify full: 94 대응 단정 + 새 단정 10개 전부 PASS · nullops PASS → assertions.txt
-- tsc 0 · `NEXT_PUBLIC_ALLOW_INDEX=true` build 성공 · 스크린샷 1440/390 7쌍
-- 바뀐 문장 전부 CLAUDE.md 글 규칙 · R2 위반 0
-- REVIEW-REQUEST: 파일:줄 목록 + 48→49 대응표 + 용어표·메타 문구표 반영 확인
-- Richard 통과 → `gh auth switch --user leeledger` → main 푸시(web 은 push 배포) → `curl -sI https://cited.kr/` 200 · 운영에서 단정 1~7 재확인 → 결과 보고(배포 게이트 상시 승인)
+- step50/verify.mjs ALL PASS (104 + 새 단정), 스크린샷 16장(8 상태 × 2폭).
+- `blog.naver.com/robotncoding` 결과에 점수·등급 없음, 봇 판정이 그 순간의 실측 robots 와 일치.
+- 주소 없음 접수가 /admin 에 「주소 없음 · AI 답 확인 요청」 카드로 질문 3개와 함께 보임(시험 행은 지워짐).
+- tsc 0, 새 의존성 0, scan.ts diff 는 문자열·export 만.
+- REVIEW-REQUEST 에 바뀐 옛 단정 표, Deviation 은 따로.

@@ -58,10 +58,10 @@ const NAMED: Named[] = [
     note: "코드 삽입으로 스키마는 가능하나 루트 파일은 제한적입니다." },
   { id: "shopify", name: "Shopify", kind: "빌더", rootFile: "limited", schema: "yes", publish: "easy", owner: "담당자",
     sig: ["cdn.shopify.com", "myshopify.com"],
-    note: "테마 편집으로 스키마 가능. robots.txt 는 템플릿으로만 수정됩니다." },
+    note: "테마 편집으로 이름표를 넣을 수 있습니다. 봇 규칙 파일은 템플릿으로만 고칩니다." },
   { id: "webflow", name: "Webflow", kind: "빌더", rootFile: "yes", schema: "yes", publish: "easy", owner: "담당자",
     sig: ["assets.website-files.com", "cdn.prod.website-files.com"],
-    note: "커스텀 코드·robots.txt 모두 지원합니다. 기술 세팅이 수월합니다." },
+    note: "커스텀 코드·봇 규칙 파일 모두 지원합니다. 기술 세팅이 수월합니다." },
   { id: "wordpress", name: "워드프레스", kind: "CMS", rootFile: "yes", schema: "yes", publish: "easy", owner: "담당자",
     sig: ["/wp-content/", "/wp-includes/", 'content="WordPress'],
     note: "플러그인으로 전부 가능합니다. 관리자 계정이 없어도 기고자 계정만 받으면 콘텐츠 발행이 됩니다." },
@@ -124,7 +124,7 @@ export function detectPlatform(
 export function platformAdvice(p: Platform): { pri: 1 | 2 | 3; msg: string } {
   if (p.rootFile === "no") {
     return { pri: 2, msg:
-      `${p.name} 감지 — ${p.note} robots.txt 항목은 플랫폼 제약이므로 감점으로 보지 마시고, 남이 쓴 비교·추천 문서에 이름을 넣는 쪽에 예산을 쓰는 편이 낫습니다.` };
+      `${p.name} 감지 — ${p.note} 봇 규칙 파일 항목은 플랫폼 제약이므로 감점으로 보지 마시고, 남이 쓴 비교·추천 문서에 이름을 넣는 쪽에 예산을 쓰는 편이 낫습니다.` };
   }
   if (p.kind === "자체개발") {
     return { pri: 3, msg:
@@ -133,5 +133,5 @@ export function platformAdvice(p: Platform): { pri: 1 | 2 | 3; msg: string } {
   return { pri: 3, msg: `${p.name} 감지 — ${p.note}` };
 }
 
-export const CAP_LABEL: Record<Capability, string> = { yes: "가능", limited: "제한적", no: "불가" };
+export const CAP_LABEL: Record<Capability, string> = { yes: "됨", limited: "일부만", no: "안 됨" };
 export const PUBLISH_LABEL: Record<Platform["publish"], string> = { easy: "수월", medium: "보통", hard: "확인 필요" };

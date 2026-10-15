@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { scanSite, normalizeTarget } from "@/lib/scan";
 import { saveScan } from "@/lib/leads";
+import { classifyTarget, checkPlatform } from "@/lib/platform-check";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;   // 외부 사이트 여러 개를 받아오므로 길게 잡는다
@@ -32,7 +33,21 @@ export async function POST(req: NextRequest) {
   let body: any;
   try { body = await req.json(); } catch { body = {}; }
 
-  const origin = normalizeTarget(String(body?.domain ?? ""));
+  const raw = String(body?.domain ?? "");
+  const target = classifyTarget(raw);
+  if (target.kind === "error") {
+    return NextResponse.json({ error: target.msg }, { status: 400 });
+  }
+  // 블로그·SNS·플레이스 — 그 플랫폼의 봇 규칙을 그 자리에서 읽는다. 점수가 없어 scans 에 남기지 않는다(D160)
+  if (target.kind === "platform") {
+    try {
+      return NextResponse.json(await checkPlatform(target.id, target.url));
+    } catch {
+      return NextResponse.json({ error: "확인하는 중에 문제가 생겼습니다. 잠시 뒤 다시 눌러 주세요." }, { status: 500 });
+    }
+  }
+
+  const origin = normalizeTarget(raw);
   if (!origin) {
     return NextResponse.json({ error: "올바른 홈페이지 주소를 입력해 주세요. (예: example.co.kr)" }, { status: 400 });
   }
@@ -52,7 +67,7 @@ export async function POST(req: NextRequest) {
       referrer: req.headers.get("referer"),
     }).catch(() => null);
 
-    return NextResponse.json({ ...result, scanId });
+    return NextResponse.json({ ...result, scanId, kind: "site" });
   } catch (e: any) {
     return NextResponse.json({ error: `진단 중 오류가 발생했습니다: ${e?.message ?? "unknown"}` }, { status: 500 });
   }

@@ -1,0 +1,91 @@
+User-Agent: OAI-SearchBot
+Allow: /
+Disallow: /admin
+Disallow: /api
+
+User-Agent: ChatGPT-User
+Allow: /
+Disallow: /admin
+Disallow: /api
+
+User-Agent: GPTBot
+Allow: /
+Disallow: /admin
+Disallow: /api
+
+User-Agent: ClaudeBot
+Allow: /
+Disallow: /admin
+Disallow: /api
+
+User-Agent: Claude-SearchBot
+Allow: /
+Disallow: /admin
+Disallow: /api
+
+User-Agent: Claude-User
+Allow: /
+Disallow: /admin
+Disallow: /api
+
+User-Agent: PerplexityBot
+Allow: /
+Disallow: /admin
+Disallow: /api
+
+User-Agent: Perplexity-User
+Allow: /
+Disallow: /admin
+Disallow: /api
+
+User-Agent: Googlebot
+Allow: /
+Disallow: /admin
+Disallow: /api
+
+User-Agent: Google-Extended
+Allow: /
+Disallow: /admin
+Disallow: /api
+
+User-Agent: bingbot
+Allow: /
+Disallow: /admin
+Disallow: /api
+
+User-Agent: Yeti
+Allow: /
+Disallow: /admin
+Disallow: /api
+
+User-Agent: CCBot
+Allow: /
+Disallow: /admin
+Disallow: /api
+
+User-Agent: Applebot
+Allow: /
+Disallow: /admin
+Disallow: /api
+
+User-Agent: Applebot-Extended
+Allow: /
+Disallow: /admin
+Disallow: /api
+
+User-Agent: meta-externalagent
+Allow: /
+Disallow: /admin
+Disallow: /api
+
+User-Agent: DuckDuckBot
+Allow: /
+Disallow: /admin
+Disallow: /api
+
+User-Agent: *
+Allow: /
+Disallow: /admin
+Disallow: /api
+
+Sitemap: https://geo-rose-nine.vercel.app/sitemap.xml

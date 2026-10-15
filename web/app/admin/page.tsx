@@ -41,7 +41,13 @@ const fmt = (d: string) =>
 type Lead = {
   id: string; created_at: string; email: string; company: string | null; origin?: string | null; site?: string | null;
   site_score: number | null; grade: string | null; wants: string | null; referral: string | null;
-  concerns: string | null; competitor: string | null; status: string | null;
+  concerns: string | null; competitor: string | null; status: string | null; source: string | null;
+};
+
+/** 어느 길로 들어온 리드인지 — no_site 는 질문 3개가 「남긴 말」에 그대로 있어 원장이 복사해 묻는다 */
+const SOURCE_LABEL: Record<string, string> = {
+  free_scan: "홈페이지 진단 뒤", contact: "상담 신청",
+  platform_check: "블로그·SNS 진단 뒤", no_site: "주소 없음 · AI 답 확인 요청",
 };
 
 function Card({ l }: { l: Lead }) {
@@ -52,7 +58,7 @@ function Card({ l }: { l: Lead }) {
     <div className="adm-card ld-card">
       <div className="h">{l.company || "회사명 없음"}</div>
       <div className="d">{l.email} · {fmt(l.created_at)}</div>
-      <div className="d">{said || "남긴 말 없음"}</div>
+      <div className="d">{l.source && SOURCE_LABEL[l.source] && <b className="ld-src">{SOURCE_LABEL[l.source]} · </b>}{said || "남긴 말 없음"}</div>
       <div className="a">
         <form action={changeLeadStatus}>
           <input type="hidden" name="id" value={l.id} />

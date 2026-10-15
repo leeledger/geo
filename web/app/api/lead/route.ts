@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse, after } from "next/server";
 import { saveLead, isEmail } from "@/lib/leads";
 import { sendLeadAlert } from "@/lib/lead-alert";
+import { askQuestions, clean, NO_SITE_MAX } from "@/lib/no-site";
 
 export const runtime = "nodejs";
 
@@ -43,7 +44,7 @@ export async function POST(req: NextRequest) {
     ? body.concerns.filter((c: unknown) => typeof c === "string" && c.trim()).slice(0, 8).map((c: string) => c.trim().slice(0, 40))
     : [];
 
-  const id = await saveLead({
+  const lead = {
     scanId: typeof body?.scanId === "string" ? body.scanId : null,
     email,
     company: str(body?.company, 120),
@@ -55,7 +56,29 @@ export async function POST(req: NextRequest) {
     competitor: str(body?.competitor, 200),
     site: str(body?.site, 200),
     ip,
-  }).catch(() => null);
+  };
+
+  // 홈페이지 없는 두 길. 그 밖의 source 값은 무시하고 옛 규칙(scanId 유무)을 따른다
+  let source: "platform_check" | "no_site" | undefined;
+  if (body?.source === "no_site") {
+    const company = clean(body?.company, NO_SITE_MAX.name);
+    const area = clean(body?.area, NO_SITE_MAX.area);
+    const industry = clean(body?.industry, NO_SITE_MAX.industry);
+    if (!company || !area || !industry) {
+      return NextResponse.json({ error: "상호·지역·업종을 적어 주세요." }, { status: 400 });
+    }
+    // 질문은 서버가 다시 만든다 — 클라이언트가 보낸 concerns 는 버린다
+    Object.assign(lead, {
+      company, scanId: null, site: null, wants: "AI 답 확인 요청",
+      concerns: askQuestions(company, area, industry).join(" / "),
+    });
+    source = "no_site";
+  } else if (body?.source === "platform_check") {
+    Object.assign(lead, { wants: "블로그·SNS 할 일" });
+    source = "platform_check";
+  }
+
+  const id = await saveLead({ ...lead, source }).catch(() => null);
 
   if (!id) {
     return NextResponse.json({ error: "저장에 실패했습니다. 잠시 후 다시 시도해 주세요." }, { status: 500 });

@@ -1,0 +1,189 @@
+PASS clean(): BOM + 끝 / + 줄바꿈 → https://cited.kr
+PASS clean(): 「nope」 → 기본값
+PASS clean(): 빈 값 → 기본값
+PASS clean(): https·http 아닌 것 → 기본값
+PASS clean(): 정상 값은 그대로
+PASS [50-R] 가장 긴 일치가 이김 (/a/b/c Allow: /a/b · /a/x Disallow: /a)
+PASS [50-R] 같은 길이면 Allow (Allow: /p)
+PASS [50-R] `*` 는 아무 글자 (/x/y.pdf 막힘 · /x/y.html 들어옴)
+PASS [50-R] `$` 끝 고정 — Disallow: / + Allow: /$ 에서 / 들어옴 · /a 막힘 (Allow: /$ · Disallow: /)
+PASS [50-R] 같은 UA 그룹 합치기 (a: /x·/y 막힘, /z 들어옴)
+PASS [50-R] 한 그룹에 UA 여럿
+PASS [50-R] UA 대소문자 무시 (group own)
+PASS [50-R] 빈 Disallow 무시
+PASS [50-R] 명시 그룹이 있으면 `*` 무시 (ClaudeBot 들어옴 · GPTBot `*` 로 막힘)
+PASS [50-R] 그룹 없음 → 허용
+PASS [50-C] 플랫폼 blog.naver.com/robotncoding=platform/naver_blog m.blog.naver.com/robotncoding=platform/naver_blog robotncoding.tistory.com=platform/tistory instagram.com/cited.kr=platform/instagram pf.kakao.com/_x=platform/kakao_channel naver.me/abc=platform/naver_short
+PASS [50-C] 오류 「blog.naver.com」=error 「new.smartplace.naver.com/x」=error 「https://blog.naver.com:8080/a」=error 「」=error 「asdf」=error 「http://」=error 「ftp://blog.naver.com/a」=error
+PASS [50-C] 스마트플레이스·뿌리 주소 문구
+PASS [50-C] blog.naver.com.evil.com · cited.kr → site
+PASS [50-C] 사용자 정보·# 버림 → https://blog.naver.com/a
+PASS [50-A4] 429 → fail · allowed 전부 null · 「확인하지 못했습니다」 (m.place.naver.com의 봇 규칙을 확인하지 못했습니다. 잠시 뒤 다시 눌러 주세요. | 이 주소를 열어 보지 못했습니다. (응답 429) | 이 규칙은 네이버 플레이스가 정합니다. 사장님이 바꿀 수 있는 설정이 아닙니다.)
+PASS [50-A4] 503 → fail · allowed 전부 null · 「확인하지 못했습니다」 (m.place.naver.com의 봇 규칙을 확인하지 못했습니다. 잠시 뒤 다시 눌러 주세요. | 이 주소를 열어 보지 못했습니다. (응답 503) | 이 규칙은 네이버 플레이스가 정합니다. 사장님이 바꿀 수 있는 설정이 아닙니다.)
+PASS [50-A4] 0 → fail · allowed 전부 null · 「확인하지 못했습니다」 (m.place.naver.com의 봇 규칙을 확인하지 못했습니다. 잠시 뒤 다시 눌러 주세요. | 이 주소를 열어 보지 못했습니다. (응답 없음) | 이 규칙은 네이버 플레이스가 정합니다. 사장님이 바꿀 수 있는 설정이 아닙니다.)
+PASS [50-A4] 404 → none · 모두 허용 (티스토리는 확인한 AI·검색 봇 11개를 막지 않습니다. | x.tistory.com에는 봇 규칙 파일이 없습니다. 모든 봇이 들어올 수 있습니다. | 사이티드가 받아 본 첫 화면에 글자가 900자 있습니다. | 이 규칙은 티스토리가 정합니다. 사장님이 바꿀 수 있는 설정이 아닙니다.)
+PASS [50-A4] 자기 봇(Yeti) 문장에서 뺌 · iframe 문장 (네이버 블로그는 확인한 AI·검색 봇 10개를 막지 않습니다. | 글 본문이 안쪽 틀(iframe)로 따로 열립니다. 이 주소의 첫 화면에는 글자가 100자뿐입니다. | 이 규칙은 네이버 블로그가 정합니다. 사장님이 바꿀 수 있는 설정이 아닙니다.)
+PASS [50-S] 허용 밖(evil.example.com)으로 리다이렉트 → 따라가지 않음 (요청 1번)
+PASS [50-S] https → http 리다이렉트 거절 (요청 1번)
+PASS [50-S] 로컬 주소로 리다이렉트 거절
+PASS [50-S] http:// 대상 → 요청 0번
+PASS [50-S] 허용 목록 밖 대상 → 요청 0번
+PASS [50-S] 허용 안 리다이렉트는 따라감 (https://blog.naver.com/abc)
+PASS [50-S] 3홉에서 멈춤 (요청 4번)
+PASS [50-S] 짧은 주소가 밖으로 가면 확인 멈춤 (이 주소를 열어 보지 못했습니다. (응답 없음))
+PASS [50-L0] askQuestions 템플릿·공백 정리 (송파구 코딩학원 추천 / 송파구에서 코딩학원 찾는데 어디가 좋아? / 로봇&코딩 학원 어떤 곳이야?)
+PASS PILOT.price 390,000원 = 화면 「39만원」
+PASS PILOT.refund[1] 에 기준선 보고 전 50% (기준선 보고 전 취소: 195,000원(50%) 돌려드립니다)
+PASS PILOT.refund[0] 착수 전 전액 (착수 전 취소: 390,000원 모두 돌려드립니다)
+PASS 옛 호스트 / → 308 https://cited.kr/
+PASS 옛 호스트 /case/academy.html → 308 https://cited.kr/case/academy.html
+PASS 옛 호스트 /admin/ops?key=x → 308 https://cited.kr/admin/ops?key=x
+PASS 옛 호스트 /apifoo → 308 https://cited.kr/apifoo
+PASS 옛 호스트 /geo/geo-cost → 308 https://cited.kr/geo/geo-cost
+PASS 옛 호스트 GET /api → 404 (308 아님)
+PASS 옛 호스트 POST /api/lead → 400 (308 아님)
+PASS 옛 호스트 GET /api/llm → 405 (308 아님)
+PASS 옛 호스트 GET /api/scan?url=x → 405 (308 아님)
+PASS localhost / → 200 (리다이렉트 없음)
+PASS sitemap.xml: cited.kr 있음 · geo-rose-nine 0
+PASS robots.txt: cited.kr 있음 · geo-rose-nine 0
+PASS llms.txt: cited.kr 있음 · geo-rose-nine 0
+PASS llms.txt content-type text/plain; charset=utf-8
+PASS llms.txt 머리 = 사이티드(Cited) + 정의문
+PASS llms.txt 가격·환불·월 구독이 PILOT 과 같음
+PASS llms.txt 연락·전체 기록 주소 · 「도입 사례」 0
+PASS public/llms.txt 삭제됨
+PASS robots.txt 전·후 차이는 Sitemap 줄 하나 (Sitemap: https://geo-rose-nine.vercel.app/sitemap.xml ⇒ Sitemap: https://cited.kr/sitemap.xml)
+PASS /services canonical = https://cited.kr/services
+PASS /services/measure canonical = https://cited.kr/services/measure
+PASS /geo canonical = https://cited.kr/geo
+PASS /geo/geo-vs-seo canonical = https://cited.kr/geo/geo-vs-seo
+PASS / canonical = https://cited.kr (env 없이 빌드 · Next 가 루트의 끝 / 를 뗀다, URL 로는 같음)
+PASS og:url = https://cited.kr
+PASS title·og:title = 3-1 (사이티드(Cited) — AI 답변에 우리 회사 이름이 나오게 하는 GEO 대행사)
+PASS description = 3-1
+PASS og:site_name 사이티드(Cited) · og:locale ko_KR
+PASS ALLOW_INDEX=true 빌드에 noindex 없음 (robots meta: 없음)
+PASS JSON-LD 1개 전부 JSON.parse
+PASS Organization url https://cited.kr · name 사이티드(Cited) · sameAs 없음
+PASS Organization alternateName · description = FAQ 1 첫 문장
+PASS Service·Offer {"@type":"Offer","name":"30일 파일럿","price":"390000","priceCurrency":"KRW","url":"https://cited.kr/#price"}
+PASS FAQ 화면 11 · JSON-LD 11
+PASS FAQ 화면 질문·답 = JSON-LD 글자 그대로
+PASS FAQ 1 = 사이티드(Cited) 정의문
+PASS FAQ 4(비용) 끝 = PILOT.after
+PASS #film 있음
+PASS #film 배경 lp-ground · 히어로 바로 뒤 · 다음 절 #geo (lp-hero lp-deep › lp-sec lp-ground › geo)
+PASS #film 제목만 (D140) (undefined | 사이티드가 하는 일 | undefined)
+PASS video preload=none · autoplay false
+PASS 기본 컨트롤 · playsinline · 커스텀 재생 버튼 0
+PASS 로드 뒤 영상을 받지 않음 (networkState 1, buffered 0)
+PASS width/height 1920×1080 · aspect-ratio 16 / 9 · 화면 1200×675
+PASS source [["/media/cited-promo.mp4","video/mp4"]] · poster /media/cited-promo-poster.jpg
+PASS video 안 대체 링크 「파일로 보기」
+PASS details 접힘 · summary 「영상 속 문장 그대로 보기」
+PASS details 문구 7줄
+PASS details 문구 = 원본 HTML 구절 12개 대조
+PASS details 숫자가 전부 원본 화면 글자에 있음 (0,0,01,02,03,14,14,15,15,15,188,19,20,3,3,30,30,32,34,39,6,8,80,9,933)
+PASS JSON-LD VideoObject 1개
+PASS VideoObject contentUrl https://cited.kr/media/cited-promo.mp4 · thumbnailUrl https://cited.kr/media/cited-promo-poster.jpg (SITE_URL https://cited.kr)
+PASS VideoObject name·uploadDate·duration·inLanguage (사이티드가 하는 일 · 2026-10-15 · PT45S · ko)
+PASS VideoObject publisher → https://cited.kr/#org (Organization 참조)
+PASS poster 200 image/jpeg 33412B
+PASS mp4 200 video/mp4 4420959B (파일 4420959B)
+PASS Range bytes=0-1023 → 206 bytes 0-1023/4420959 1024B
+PASS 「사이티드(Cited)」 in hero lede
+PASS 「사이티드(Cited)」 in #geo define
+PASS 「사이티드(Cited)」 in footer desc
+PASS 「사이티드(Cited)」 in footer ©
+PASS 「사이티드(Cited)」 in title
+PASS #price sub 「39만원」·「전액」·「절반」 = PILOT price·refund[0]·refund[1]
+PASS 화면에 「geo-rose-nine」 0
+PASS 화면에 「도입 사례」 0
+PASS 화면에 「크롤러 누적 방문」 0
+PASS 화면에 「채점 기준 바뀜」 0
+PASS 절 순서 film › geo › data › case › who › services › how › why › price › diff › nots › faq › guides › start
+PASS #proof 없음
+PASS 네비 하는 일 · 가이드 · 서비스 · 요금 · 진행 · 첫 적용 기록 · 자주 묻는 것
+PASS #start 부제에 자가 확인 「○○구 치과 추천해줘」
+PASS 히어로 안 a[href^="#"] 0개
+PASS .lp-proof 0 · #case 라벨 「첫 적용 · 사이티드 대표가 운영하는 수도권 코딩·로봇 학원 · 41일차」
+PASS #case 라벨 「41일차」 · 카드 3 「글은 49편」
+PASS 화면에 「· 빙 · M/D 측정」 꼴 0
+PASS #case 카드 1 정의문 「검색엔진 한 곳 이상에서」 유지 (D134)
+PASS 바뀐 한국어 블록 word-break: keep-all (21곳 전부)
+PASS [49-3] #faq·#guides 밖 화면 글자에 「llms.txt」 0
+PASS [49-4] 영어 라벨 [] · .lp-svc 라틴 낱말(「AI」 제외) [] · .lp-svc .tag 0
+PASS [49-5] 화면·FAQ JSON-LD 에 업계 말 0
+PASS [49-6] 풀이 5개 첫 자리·1번 (30일 파일럿@3183 기술 세팅@3248 기준선 보고@3467 봇@1461 구조화 데이터@2225)
+PASS [49-7] 메타 문구 0
+PASS [49-10] FAQ 펼친 화면 답 = JSON-LD 답 11개 · FAQ 4(비용) 「홈페이지 제작 250만원」
+PASS 업종 버튼: 질문 바뀜 (마포구에서 임플란트 잘하는 치과 추천해줘 → 법인 세무 잘 보는 세무사 사무소 추천해줘)
+PASS 엔진 탭: 두 번째 선택됨
+PASS 「같은 질문 다시 묻기」: 2회차
+PASS ScanForm(dom-hero) 제출 → 주소를 다시 확인해 주세요. (예: blog.naver.com/아이디)
+PASS [50-A1] blog.naver.com/robotncoding → 200 kind platform · total·grade 필드 없음
+PASS [50-A1] 호스트 2개 PC·모바일 (blog.naver.com ok 200 | m.blog.naver.com ok 200)
+PASS [50-A1] 봇 판정 = 그 순간 실측 robots (blog.naver.com: 막힘 OAI-SearchBot,PerplexityBot,ClaudeBot,Yeti,GPTBot,Google-Extended,CCBot | m.blog.naver.com: 막힘 OAI-SearchBot,PerplexityBot,ClaudeBot,Yeti,GPTBot,Google-Extended,CCBot)
+PASS [50-A1] lines[0] 이 막힌 봇 6개를 빠짐없이 담음 (네이버 블로그는 ChatGPT 검색 · Perplexity 검색 · Claude · ChatGPT 학습 · Gemini 학습 · 공개 웹 수집(Common Crawl) 봇을 막아 두었습니다. 이 봇들은 이 주소의 글을 읽어 가지 않습니다.)
+PASS [50-A1] Yeti 는 self · 문장에 「네이버 검색」 없음
+note: [50-A1] lines = 네이버 블로그는 ChatGPT 검색 · Perplexity 검색 · Claude · ChatGPT 학습 · Gemini 학습 · 공개 웹 수집(Common Crawl) 봇을 막아 두었습니다. 이 봇들은 이 주소의 글을 읽어 가지 않습니다. | 글 본문이 안쪽 틀(iframe)로 따로 열립니다. 이 주소의 첫 화면에는 글자가 20자뿐입니다. | 이 규칙은 네이버 블로그가 정합니다. 사장님이 바꿀 수 있는 설정이 아닙니다.
+PASS [50-A2] www.instagram.com/instagram/ → 200 kind platform · 호스트 1
+PASS [50-A2] 봇 판정 = 그 순간 실측 robots (www.instagram.com: 막힘 OAI-SearchBot,ChatGPT-User,Perplexity-User,Yeti,Google-Extended,CCBot)
+PASS [50-A2] lines[0] 이 막힌 봇 6개를 빠짐없이 담음 (인스타그램은 ChatGPT 검색 · ChatGPT(손님이 주소를 줄 때) · Perplexity(손님이 주소를 줄 때) · 네이버 검색 · Gemini 학습 · 공개 웹 수집(Common Crawl) 봇을 막아 두었습니다. 이 봇들은 이 주소의 글을 읽어 가지 않습니다.)
+PASS [50-A2] page.title 「Instagram(@instagram) • Instagram 사진 및 동영상」
+note: [50-A2] lines = 인스타그램은 ChatGPT 검색 · ChatGPT(손님이 주소를 줄 때) · Perplexity(손님이 주소를 줄 때) · 네이버 검색 · Gemini 학습 · 공개 웹 수집(Common Crawl) 봇을 막아 두었습니다. 이 봇들은 이 주소의 글을 읽어 가지 않습니다. | 사이티드가 받아 본 첫 화면에 글자가 682자 있습니다. | 이 규칙은 인스타그램이 정합니다. 사장님이 바꿀 수 있는 설정이 아닙니다.
+PASS [50-A3] 「asdf」 → 400 사람 말 오류 「주소를 다시 확인해 주세요. (예: blog.naver.com/아이디)」
+PASS [50-A3] 「http://」 → 400 사람 말 오류 「주소를 다시 확인해 주세요. (예: blog.naver.com/아이디)」
+PASS [50-A3] 「blog.naver.com」 → 400 사람 말 오류 「블로그·계정 주소 전체를 넣어 주세요. (예: blog.naver.com/아이디)」
+PASS [50-A3] 「localhost」 → 400 사람 말 오류 「주소를 다시 확인해 주세요. (예: blog.naver.com/아이디)」
+PASS [50-A3] 「127.0.0.1」 → 400 사람 말 오류 「올바른 홈페이지 주소를 입력해 주세요. (예: example.co.kr)」
+PASS [50-A3] cited.kr → kind site · total 82 · grade 우수
+PASS [50-L1] no_site → 200 · source no_site · concerns = askQuestions (가짜 무시) 「송파구 코딩학원 추천 / 송파구에서 코딩학원 찾는데 어디가 좋아? / STEP50-VERIFY-1792072931938 어떤 곳이야?」
+PASS [50-L1] company 빈칸 → 400 「상호·지역·업종을 적어 주세요.」
+PASS [50-L1] area 빈칸 → 400 「상호·지역·업종을 적어 주세요.」
+PASS [50-L1] industry 빈칸 → 400 「상호·지역·업종을 적어 주세요.」
+PASS [50-L3] platform_check → source platform_check · site https://blog.naver.com/robotncoding · wants 블로그·SNS 할 일
+PASS [50-L3] source "admin" → 옛 규칙 source contact
+PASS [50-L2] /admin 카드 이름표 「주소 없음 · AI 답 확인 요청」 · 질문 3개 (STEP50-VERIFY-1792072931938 step50-verify@example.com · 10. 15. 23:02 주소 없음 · AI 답 확인 요청 · AI 답 확인 요청 · 송파구 코딩학원 추천 / 송파구에서 코딩학원 찾는데 어디가 좋아? / STEP50-VERIFY-179)
+PASS [50-L2] platform_check 카드 이름표 「블로그·SNS 진단 뒤」
+note: 시험 리드 3행 삭제 (3건 만듦)
+note: 시험 진단 1행 삭제 (1건 만듦)
+PASS [50-L2] 시험 리드 남은 행 0
+PASS [49-9] /services/build 200 · h1 「홈페이지 제작」 · llms.txt 「사이트 구축」 0
+PASS [49-2] 히어로 submit 1개 · herohint·herolinks·proof 0 · submit 아래끝 638px ≤ 900
+PASS #case 카드 1 숫자(애니메이션 뒤) = 서버 HTML (0 → 3 / 6 | 0 → 3 / 6)
+PASS [50-K] #case 카드 1 「0 → 3 / 6」 = DB 따로 센 값 0 → 3 / 6
+PASS 붙은 절 배경 모두 다름 (lp-hero=rgb(10,26,51) › film=rgb(244,247,251) › geo=rgb(255,255,255) › data=rgb(10,26,51) › case=rgb(15,36,70) › who=rgb(244,247,251) › services=rgb(255,255,255) › how=rgb(244,247,251) › why=rgb(255,255,255) › price=rgb(244,247,251) › diff=rgb(255,255,255) › nots=rgb(244,247,251) › faq=rgb(255,255,255) › guides=rgb(244,247,251) › start=rgb(10,26,51) › lp-foot=rgb(7,19,39))
+PASS [1440] 가로 넘침 없음 (scrollWidth 1440 ≤ 1440)
+PASS [390] 가로 넘침 없음 (scrollWidth 390 ≤ 390)
+PASS [49-1] 히어로 글자(공백 뺌) 최댓값 371 ≤ 400 (1440/1=366 1440/2=371 1440/3=371 390/1=333 390/2=333 390/3=337)
+PASS [50-U 1440] 결과 A 에 robots·llms·JSON-LD·SSR·User-agent·sitemap·크롤러·치명 0회
+PASS [50-U] 결과 A 행 6개 · 가중치 0 행 빠짐 (AI 봇이 들어오는지 · AI 에게 글이 보이는지 · AI가 읽는 이름표 · 떼어 쓰기 좋은 문단 · 질문형 제목·숫자 · 페이지 목록 파일)
+note: 결과 A 할 일 = 다음 "우리는·저희는" 같은 대명사 주어가 9회 나옵니다. AI가 문장만 떼어가면 주어가 사라집니다 — 브랜드명을 문장 안에 넣으세요. | 여유 있을 때 Next.js 감지 — 기술적으로는 전부 가능합니다. 다만 배포 절차를 타므로 콘텐츠 발행 경로(CMS 연동 여부)를 확인하세요.
+PASS [50-U 1440] B-naver: 점수·「위험」 없음 · lines 3줄 화면에 그대로 · KST 확인 시각
+PASS [50-U] 네이버 검색 줄 「네이버 블로그 자체 검색 — 이 규칙으로 판단 못 함」
+PASS [50-U] 확인 날짜가 서울 날짜 (10/15)
+PASS [50-U 1440] B-instagram: 점수·「위험」 없음 · lines 3줄 화면에 그대로 · KST 확인 시각
+PASS [50-U 1440] 잡주소 오류 「주소를 다시 확인해 주세요. (예: blog.naver.com/아이디)」
+PASS [50-U 1440] 길 C 질문 3개 = askQuestions · 복사 버튼 3
+PASS [50-U] 새 블록 word-break keep-all (4곳)
+PASS [50-U 1440] 길 C 접수 「접수됐습니다. step50-verify@example.com 로 보내 드립니다.」 · 기한 약속 없음
+PASS [50-U] 결과 B word-break keep-all (.pres-lines p=keep-all, .pbot=keep-all, .pres .leadsub=keep-all)
+PASS [50-U 1440] 화면에 「주소만 넣으면」 0회
+PASS [50-U 390] 결과 A 에 robots·llms·JSON-LD·SSR·User-agent·sitemap·크롤러·치명 0회
+PASS [50-U 390] B-naver: 점수·「위험」 없음 · lines 3줄 화면에 그대로 · KST 확인 시각
+PASS [50-U 390] B-instagram: 점수·「위험」 없음 · lines 3줄 화면에 그대로 · KST 확인 시각
+PASS [50-U 390] 잡주소 오류 「주소를 다시 확인해 주세요. (예: blog.naver.com/아이디)」
+PASS [50-U 390] 길 C 질문 3개 = askQuestions · 복사 버튼 3
+PASS [50-U 390] 길 C 접수 「접수됐습니다. step50-verify@example.com 로 보내 드립니다.」 · 기한 약속 없음
+PASS [50-U 390] 화면에 「주소만 넣으면」 0회
+note: 「확인하지 못했습니다」 화면 — 찍음 (1440-B-fail.png · m.place.naver.com 429)
+note: 시험 리드 2행 삭제 (2건 만듦)
+note: 시험 진단 2행 삭제 (2건 만듦)
+PASS [50-L] 끝난 뒤 시험 리드 0행
+PASS [50] 세 길 화면 콘솔 오류 0 (일부러 낸 400 제외) 
+PASS [49-8] Step 49 화면 숫자 44종 ⊆ 운영 44종 (살아 있는 값 뺌)
+PASS 콘솔 오류 0 (ScanForm 일부러 낸 400 제외) 
+
+ALL PASS

@@ -1,81 +1,54 @@
-# Review Request — Step 49 (사이티드 랜딩 쉬운 말 · 메타 문구)
+# Review Request — Step 50
 Date: 2026-10-15
 Ready for Review: YES
-Status: DONE — 104 PASS · 0 FAIL, nullops 2 PASS, tsc 0, `NEXT_PUBLIC_ALLOW_INDEX=true` build 성공. 커밋·푸시·배포 안 함
+Status: DONE — verify ALL PASS 179 (옛 104 + 새 75) · tsc 0 · build 통과 · 새 의존성 0 · 시험 행 삭제됨
 
 ## Files Changed
-- web/app/page.tsx:50 — FAQ 3 「구축 250만원」→「홈페이지 제작 250만원」 (JSON-LD 같은 배열)
-- web/app/page.tsx:176-177 — TIMELINE: 홈페이지 제작 · 주소 연결 / AI 봇 · 구조화 데이터(AI가 읽는 이름표) · llms.txt 삭제 / 블로그 글 32편 옮김
-- web/app/page.tsx:183,213 (삭제) — ENGINE_NAME · heroWeb · heroWebSrc
-- web/app/page.tsx:231-235 — 히어로는 HeroDemo + ScanForm 만. herohint·herolinks·.lp-proof 블록 삭제
-- web/app/page.tsx:317 — #geo note 「바로 아래가 … 기록입니다.」 삭제
-- web/app/page.tsx:366 — #data 「AI 봇(자동 방문 프로그램) 접근이 0점인 곳도」
-- web/app/page.tsx:379 — #case 부제 「숫자는 서버와 검색 기록에서 매일 다시 가져옵니다.」
-- web/app/page.tsx:386 — 카드 1 머리 「이름 없이 찾는 검색어 · 착수 때 → 지금」
-- web/app/page.tsx:417 — 카드 3 끝 `{posts !== null && …「지금 AI 가 읽을 수 있는 글은 N편입니다.」}` (카드는 기존 crawled 가드 안)
-- web/app/page.tsx:423,427,448 — 「착수 때 처음 물은 결과」·「웹 검색을 켠 AI」·「실제 방문 기록」
-- web/app/page.tsx:502-503 — #services 부제(브리프 문장 그대로, 파일럿·기술 세팅 풀이 첫 자리)
-- web/app/page.tsx:508-510 — 서비스 카드 `.tag` 렌더 삭제 (services.ts tag 필드는 유지)
-- web/app/page.tsx:530 — #how 부제 첫 문장
-- web/app/page.tsx:546 — #why 부제 「몇 번 물어 몇 번 나왔는지, 답이 참고한 비교 글, 고친 것과 고친 이유가 들어갑니다. 회사 이름은 가렸습니다.」
-- web/app/page.tsx:559 — #price 「홈페이지 제작·기술 세팅은」 (603 환불 문장 그대로)
-- web/app/page.tsx:571-590 — #diff 라벨 「보고서가 다른 점」, 둘째 문장 삭제, 「점수 화면만」, 「AI 이름」, 「사이트 점수가 가장 높았던 80점 회사의 실제 진단 결론입니다.」
-- web/app/page.tsx:640 — #guides 부제 두 문장 교체
-- web/app/page.tsx:663-665 — #start 부제(자가 확인 「○○구 치과 추천해줘」 옮겨 옴, 「아래에」 없음)
-- web/app/page.tsx:708 — 푸터 「시장 숫자(…)는 사이티드가 직접 잰 값입니다.」
-- web/app/HeroDemo.tsx:84-85 — lede 2문장 (166 「예시 화면입니다.」 그대로)
-- web/app/ScanForm.tsx:92,96 — 진행 중·기본 안내 문구 (10~30초·llms.txt·7가지 삭제)
-- web/app/FlowSteps.tsx:16,22-23,29,34 — 「구축·세팅」「기준선(단독)」→ 홈페이지 제작·기술 세팅·첫 숫자, 칩 3개, 「전부」, 「보고서 39만원」
-- web/app/PriceCalc.tsx:17,26-27,40,72-73,116 — 홈페이지 제작 · 보고서 · 전부 · 블로그 글 옮기기 · AI 봇 / 91행 `PILOT.llms` 렌더 삭제
-- web/app/RecordTabs.tsx:61 — 「진단 보고서」
-- web/app/llms.txt/route.ts:23,50-51 — 「홈페이지 제작」 (「사이트 구축」 0)
-- web/lib/services.ts:51 — PILOT.order 브리프 문장 그대로
-- web/lib/services.ts:55,56,58 — PILOT.gives 「틀린 정보 고칠 목록」「AI 가 인용할 글 1편」「문의 경로 기록표」 (아래 Deviation 1)
-- web/lib/services.ts:68 — PILOT.after 「보고서 39만원」 → FAQ 3·llms.txt 자동
-- web/lib/services.ts:119 — 카드 01 조건 k 「기준선 보고(시작 때 숫자)」
-- web/lib/services.ts:142 — 「AI 에게도 글이 보이게 합니다」
-- web/lib/services.ts:227,269 — name 「홈페이지 제작」(slug build 유지) · 「글 옮기기 +80만원」
-- research/paid-pilot-order-form.md:21,27,28,30,62 — PILOT.order·gives·after 와 글자 맞춤 (services.ts:43 규칙)
-- handoff/research/step49/verify.mjs — 새 검증 (48 복사 + 대응 + 새 10)
+- web/lib/robots.ts:1-79 — 새. parseRobots(같은 UA 합치기·소문자)·verdict(명시 그룹 우선·최장 일치·동률 Allow·`*`·`$`·빈 Disallow 무시)·robotsState(2xx ok · 4xx(429 빼고) none · 나머지 fail).
+- web/lib/platform-check.ts:13-58 — BOT_PLAIN · PLATFORMS(호스트→이름만, 정책 없음) · platformOf.
+- web/lib/platform-check.ts:61-79 — classifyTarget: error 3종(주소·스마트플레이스·뿌리)·포트 error·정확 일치 platform·나머지 site. 사용자정보·# 버리고 https 로.
+- web/lib/platform-check.ts:84-145 — safeFetch: https·허용 호스트·포트/계정 없음·redirect manual 3홉 홉마다 확인·8초·2MB·진단 UA 그대로. fetch 주입 가능(시험용).
+- web/lib/platform-check.ts:159-228 — judgeHost(fail→null, none→모두 true, self 표시) · readPage(title·description·textLen·iframe) · buildLines(브리프 문장 틀 그대로).
+- web/lib/platform-check.ts:231-266 — checkPlatform: 페이지 1회(짧은 주소는 끝 주소로 재판정) + robots(블로그는 PC·모바일 둘).
+- web/lib/no-site.ts:1-24 — askQuestions(템플릿 3개)·clean·josa.
+- web/app/api/scan/route.ts:36-50,70 — classifyTarget 먼저 → 400 사람 말 / platform → checkPlatform(saveScan 안 함) / site 는 그대로 + kind:"site".
+- web/app/api/lead/route.ts:46-81 — source no_site(세 칸 필수·서버가 질문 재생성·클라 concerns 버림)·platform_check(wants). 그 밖 source 무시.
+- web/lib/leads.ts:121-139 — saveLead source 선택 인자.
+- web/app/admin/page.tsx:44-61 — Lead.source · SOURCE_LABEL 이름표를 카드 둘째 줄 앞에.
+- web/app/ScanForm.tsx:1-373 — 세 길. placeholder·aria·busy·formnote+「주소가 없어요」, 길 C(질문 만들기·복사·물어봐 주세요), 결과 B(점수 없음·lines·봇 줄·PC/모바일 다르면 둘 다·KST 확인 시각), 결과 A 쉬운 말(plat-caps·가중치 0 행 숨김·PRIO 먼저/다음/여유 있을 때). placeholder prop 삭제.
+- web/lib/scan.ts — export(UA·stripTags·BOTS) · SITE_LABELS 6개 · notes 문자열 9개. 로직·가중치 무변경.
+- web/lib/platform.ts:57,63,127,136 — 문자열만: robots.txt→봇 규칙 파일(2곳 note·advice), CAP_LABEL 됨/일부만/안 됨.
+- web/app/page.tsx:47-50,662-672 — FAQ 2 첫 문장 홈페이지 몫 · 새 FAQ 3 · #start h2·lp-sub·.ps · placeholder prop 삭제.
+- web/app/globals.css:~555-575 — linkbtn·pres·pbot·ns 스타일.
+- handoff/research/step50/verify.mjs — step49 복사 + 50-R·C·A1~A4·S·L0~L3·U·K. 스크린샷 step50/{1440,390}-{hero,start,A,B-naver,B-instagram,error,C-questions,C-done}.png (+1440-B-fail.png).
 
-## 48 → 49 대응표 (94개 유지)
-| 48 | 49 |
-|---|---|
-| 60 nullops 「히어로 칸 일차 하나만」 | nullops: #case 카드 3·「편입니다」 숨김 · .lp-proof 0 |
-| 62 nullops 0 → 0 / null | 그대로 |
-| 81 「기준선 보고 전」 정규식 | 그대로 (D148) |
-| 255 herohint 에 「○○구 치과 추천해줘」 | `#start .lp-sub` 에 「○○구 치과 추천해줘」 |
-| 256 히어로 링크 두 개 | 히어로 안 `a[href^="#"]` 0개 |
-| 257 증거 줄 머리 | `.lp-proof` 0 · #case 라벨에 「첫 적용 · 사이티드 대표가 운영하는」 |
-| 258 증거 칸 | #case 라벨 「{caseDay}일차」 · 카드 3 「AI 가 읽을 수 있는 글은 N편입니다」 |
-| 278 D133 칸 라벨 = DB 엔진·측정일 | 화면에 「· 빙\|네이버 웹문서\|네이버 통합 · M/D 측정」 꼴 0 |
-| 279 D133 칸 분모 = 엔진 하나 | #case 카드 1 정의문 「검색엔진 한 곳 이상에서」 유지 (D134) |
-| 333 히어로 칸 숫자(애니메이션 뒤) = DB | #case 카드 1 숫자(애니메이션 뒤) = 서버 HTML 숫자 (0 → 3 / 6) |
-| 289 keep-all 선택자 | `.lp-herohint`·`.lp-proof-h` 빼고 `.lp-hero .formnote` 추가 · `#film .lp-sub`(D140 이후 없음) → `#film h2` |
-| 나머지 83개 | 글자 그대로 |
-DB 직접 조회 블록(260-281)은 대응 단정이 DB 를 안 써서 뺐다. 새 단정 [49-1]~[49-10] 은 assertions.txt 에 번호로 찍힌다.
-
-## 용어표·메타 문구표 반영
-- 풀이 5개 첫 자리(단정 6, 화면 글자 위치): 봇@#data · 구조화 데이터@#case TIMELINE · 30일 파일럿·기술 세팅@#services 부제 · 기준선 보고@#services 카드 01 — 각 1번
-- 메타 문구표 8줄 전부 처리, 예외 4줄 그대로. 단정 7(14개 구절) 0
-- 업계 말(단정 5): 화면 + FAQ JSON-LD 답에 리포트·크롤러·이관·정합성·근거 콘텐츠·대시보드·구축·7가지를 자동으로·점수 제외·10~30초 0
-- 히어로 글자 377(1440) / 343(390) ≤ 400 · submit 1개 · 아래끝 638px
-- 숫자 보존(단정 8): 로컬 44종 ⊆ 운영 cited.kr 44종. 살아 있는 값(.lp-proof · #case 카드 머리 b · 방문 기록 마지막 줄 · N일차 · M/D 측정 · 검색 N개 · 글은 N편)은 양쪽에서 비우고 비교
+## 바뀐 옛 단정
+| 옛 단정 | 새 단정 | 까닭 |
+|---|---|---|
+| FAQ 화면 10 · JSON-LD 10 | 11 · 11 | 새 FAQ 3 「홈페이지가 없어도 진단받을 수 있나요?」 |
+| FAQ 3 끝 = PILOT.after | FAQ 4(비용) 끝 = PILOT.after | 비용 문답이 한 칸 밀림 |
+| [49-10] 펼친 답 10개 · want[2] 에 「홈페이지 제작 250만원」 | 11개 · want[3] | 같은 까닭 |
+| OUT 기본값 step49 | step50 | 브리프 |
+그 밖 104개는 문자 그대로 유지(req() 가 요청마다 다른 x-forwarded-for 를 붙인 것만 다름 — 5/분 리밋).
 
 ## Deviations
-1. PILOT.gives 3·4·6번을 바꿨다 — 브리프 용어표에 없지만 #price PriceCalc 에 그대로 보여 단정 5 가 「근거 콘텐츠」로 걸린다. services.ts:43 「신청서와 한 글자도 어긋나면 안 된다 — 고치면 둘 다」에 따라 research/paid-pilot-order-form.md 도 order·gives·after 를 같이 고쳤다(브리프의 order·after 변경도 신청서에 반영돼야 해서). 환불 조항은 손대지 않음
-2. 단정 4 「.lp-svc 라틴 문자 0」 → 「AI」를 뺀 라틴 낱말 0. 모든 카드 질문에 「AI」가 있다
-3. keep-all `#film .lp-sub` → `#film h2` (위 대응표)
-
-## Screenshots (handoff/research/step49/)
-1440/390 × hero · case · services · how · why · price · start (14장) + nullops-1440-hero.png
+1. platform.ts 의 Shopify·Webflow note 와 platformAdvice 의 「robots.txt」도 「봇 규칙 파일」로 바꿈. 브리프는 scan.ts notes·CAP_LABEL 만 짚었지만 이 문장들도 결과 A 패널에 뜬다(50-U 0회 목표).
+2. 결과 B 연락처 부제: 「진단한 주소**와 결과가** 함께 접수됩니다」 → 「진단한 주소가 함께 접수됩니다」. platform_check 리드는 site 만 저장하고 결과는 안 남긴다(D152·D160). 「결과도 접수」는 사실이 아님.
+3. 짧은 주소(naver.me)가 허용 밖·뿌리 주소로 가거나 못 열리면 결과는 「이 주소를 열어 보지 못했습니다. (응답 n)」 한 줄(hosts 0, 마지막 줄 없음). 브리프에 이 경우 틀이 없었고 「이 규칙은 …이 정합니다」는 정할 플랫폼이 없어 뺌.
+4. BOT_PLAIN 은 scan.ts 가 아니라 platform-check.ts 에 둠(scan.ts diff 를 문자열·export 로 묶으려고).
+5. 길 C 문구 「{상호}가」를 받침 보고 이/가로(josa, no-site.ts). platform-check 의 은/는·이/가도 같은 함수.
+6. 주소 입력이 바뀌면 이전 결과·오류를 지운다. 브리프는 「지금 동작 유지」라 했지만 지금 코드는 제출 때만 지웠다 — 브리프의 뜻(바뀌면 지움)을 따름.
+7. #start lp-sub 끝 「홈페이지가 없어도 됩니다.」는 브리프 문장에 없어 빠짐.
+8. verify 가 cited.kr 진단(50-A3·화면 A 2회)으로 생긴 geo.scans 3행도 id 로 지움 — 영업 깔때기 숫자(scans30d)를 안 흐리려고.
+9. 결과 A 연락처 부제의 「없이30일」 붙음(옛 JSX 줄바꿈 탓)이 고쳐짐 — 문구는 같음.
 
 ## Open Questions
-- #guides 카드의 guides.ts:85 short 「계약 전에 확인할 수 있는 것만 적었습니다.」 — 메타성 문장. guides.ts 는 Out of Scope 라 KG-49-7 로만 적었다
-- 1440 히어로 아래 여백: .lp-proof 를 빼서 폼 아래가 비어 보인다(1440-hero.png). 의도대로인지 눈으로 봐 주길
-- 신청서(order-form) 문구를 바꾼 것이 계약 문서 쪽에서 괜찮은지 — 입금 전 서면으로 드리는 문서다
+- 결과 B 봇 줄의 순서는 BOTS 순서(가중치 표). 사람이 보기엔 「막힘」을 위로 모으는 게 나을 수 있음 — 브리프에 없어 손대지 않음.
+- 「확인하지 못했습니다」: 실측에서 나옴 — m.place.naver.com 이 우리 UA 에 429 (1440-B-fail.png). 390 은 안 찍음(브리프 8상태 밖).
+- safeFetch 는 robots 리다이렉트도 허용 호스트 안에서만 따른다. 플랫폼 robots 가 CDN 다른 호스트로 넘기면 fail 로 나온다(현재 실측엔 없음).
+- 실측 판정(오늘 23시): 네이버 블로그 PC·모바일 같음 — 「PC·모바일 다릅니다」 줄은 단위 시험으로만 확인됨. 인스타는 ChatGPT 검색·ChatGPT-User·Perplexity-User·네이버 검색·Gemini 학습·Common Crawl 막힘.
 
 ## Out of Scope (logged in BUILD-LOG)
-- KG-49-7 guides.ts:85 메타성 short
-- KG-49-8 pilot-plan.ts:19·25 관리 화면 제목 「상담 유입 기록표」「근거 콘텐츠」 · order-form 8행 「구축·세팅이 있는 곳은」
-- KG-49-1~6 (Arch 브리프 그대로)
+- KG-50-7 레이트리밋이 x-forwarded-for 첫 값을 믿음(Vercel 밖이면 우회)
+- KG-50-8 /admin no_site 카드에 「AI 답 확인 요청」 두 번(이름표 + wants)
+- KG-50-1~6 은 브리프 그대로

@@ -2,6 +2,14 @@
 *Read this before reading anything else. If it covers current state, skip BUILD-LOG.*
 
 
+## Where We Stopped (2026-10-15 밤 늦게) — Step 50 브리프(홈페이지 없는 사장님 진단)
+
+- handoff/ARCHITECT-BRIEF.md = Step 50. Step 49 브리프는 handoff/research/ARCHITECT-BRIEF-step49.md
+- 입력 하나에 길 셋: 홈페이지(그대로) · 블로그·SNS·플레이스 주소(그 플랫폼 robots 를 매번 실측, 점수 없음) · 주소 없음(질문 3개 + no_site 리드 → /admin). KG-49-1 결과 패널 쉬운 말 · #start 「주소만 넣으면」 · #case 카드 1 DB 단정 같이
+- 결정 D152~D160, KG-50-1~6 BUILD-LOG
+- 다음: Bob(builder) → step50/verify.mjs(104 + 새 단정, 16 스크린샷) → Richard → main 푸시 → cited.kr 확인
+- 원장 몫: no_site 요청이 /admin 에 오면 손으로 AI 네 곳에 묻고 메일(KG-50-6)
+
 ## Where We Stopped (2026-10-15 밤) — Step 49 브리프(사이티드 랜딩 쉬운 말 · 메타 문구 걷기)
 
 - handoff/ARCHITECT-BRIEF.md = Step 49. Step 48 브리프는 handoff/research/ARCHITECT-BRIEF-step48.md. Step 48 배포(37b7557) + 원장 정정 9e63bbd(#film 제목만 D140 · #geo 라벨 원리 D141)
