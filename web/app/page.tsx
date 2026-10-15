@@ -71,7 +71,7 @@ const FAQ: [string, string][] = [
 const FILM = {
   mp4: "/media/cited-promo.mp4",
   poster: "/media/cited-promo-poster.jpg",
-  title: "사이티드가 하는 일을 45초로",
+  title: "사이티드가 하는 일",
 };
 const FILM_LINES = [
   "「○○구 코딩학원 추천해줘」 — AI는 이름을 두세 개만 부릅니다. 그 안에 있어야 비교가 시작됩니다.",
@@ -131,7 +131,7 @@ const SCHEMA = {
       "@type": "VideoObject",
       "@id": `${BASE}/#film`,
       name: FILM.title,
-      description: "사이티드(Cited)가 하는 일을 45초로 정리한 영상입니다. 영상 속 숫자와 가격은 이 페이지 본문과 같은 근거에서 가져왔습니다.",
+      description: "손님이 AI에게 업체 추천을 물었을 때 이름이 빠지는 이유와, 사이티드(Cited)가 그걸 재고 고치는 방법.",
       thumbnailUrl: `${BASE}${FILM.poster}`,
       contentUrl: `${BASE}${FILM.mp4}`,
       uploadDate: "2026-10-15",
@@ -278,12 +278,10 @@ export default async function Home() {
           </div>
         </header>
 
-        {/* ── 45초 영상 (D135–D138) ── */}
+        {/* ── 홍보 영상 (D135–D138, 문구 D140: 원장 「사이티드가 하는 일」만) ── */}
         <section id="film" className="lp-sec lp-ground">
           <div className="wrap">
-            <div className="lp-lab">45초로 보기</div>
             <h2 className="lp-h2">{FILM.title}</h2>
-            <p className="lp-sub">소리가 있습니다. 영상 속 숫자와 가격은 아래 본문과 같은 근거에서 가져왔습니다.</p>
             <video
               className="lp-film"
               controls
@@ -308,7 +306,7 @@ export default async function Home() {
         {/* ── GEO 란 ── */}
         <section id="geo" className="lp-sec lp-white">
           <div className="wrap">
-            <div className="lp-lab">사이티드가 하는 일</div>
+            <div className="lp-lab">원리</div>
             <h2 className="lp-h2">AI는 추천할 이름을<br /><span className="hl">어디서 고르나요?</span></h2>
             <p className="lp-define">
               AI 는 우리 홈페이지만 보고 고르지 않습니다. 비교 글, 후기, 업체 목록을 같이 읽고 거기 자주 나오는 이름을 꼽습니다.

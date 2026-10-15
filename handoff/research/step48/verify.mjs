@@ -192,7 +192,7 @@ ok(faqScreen[2]?.[1]?.endsWith(PILOT.after), "FAQ 3 끝 = PILOT.after");
   });
   ok(!!F, "#film 있음");
   ok(F?.bg.includes("lp-ground") && /lp-hero/.test(F?.prev ?? "") && F?.next === "geo", `#film 배경 lp-ground · 히어로 바로 뒤 · 다음 절 #geo (${F?.prev} › ${F?.bg} › ${F?.next})`);
-  ok(F?.lab === "45초로 보기" && F?.h2 === "사이티드가 하는 일을 45초로" && F?.sub === "소리가 있습니다. 영상 속 숫자와 가격은 아래 본문과 같은 근거에서 가져왔습니다.", `#film 라벨·제목·부제 (${F?.lab} | ${F?.h2} | ${F?.sub})`);
+  ok(!F?.lab && F?.h2 === "사이티드가 하는 일" && !F?.sub, `#film 제목만 (D140) (${F?.lab} | ${F?.h2} | ${F?.sub})`);
   ok(F?.preload === "none" && F?.autoplay === false, `video preload=${F?.preload} · autoplay ${F?.autoplay}`);
   ok(F?.controls && F?.inline && F?.custom === 0, "기본 컨트롤 · playsinline · 커스텀 재생 버튼 0");
   ok(F?.net !== 2 && F?.buffered === 0, `로드 뒤 영상을 받지 않음 (networkState ${F?.net}, buffered ${F?.buffered})`);

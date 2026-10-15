@@ -1906,3 +1906,5 @@ Should Fix:
 - 함정 기록: noindex 스위치 env 이름은 `NEXT_PUBLIC_ALLOW_INDEX`(layout.tsx:10). Step 47 로그의 「ALLOW_INDEX=true」로 빌드하면 noindex 가 붙어 단정 1개가 FAIL 한다
 - mp4·poster 손대지 않음. 다른 절·히어로 문구 변경 없음
 - D139 (Arch, 2026-10-15): #film 부제·VideoObject 설명 「같은 측정」→「숫자와 가격은 … 같은 근거」 (Richard Step 48 제안 4 — 가격은 측정이 아님)
+- D140 (원장, 2026-10-15): #film 은 제목 「사이티드가 하는 일」만. 「45초로 보기」 라벨·「소리가 있습니다…」 부제 삭제 — 영상을 설명하는 말(메타 문구)은 AI 티. VideoObject 설명도 내용 문장으로
+- D141 (Arch): #geo 라벨 「사이티드가 하는 일」→「원리」 (바로 위 #film 제목과 겹침)
