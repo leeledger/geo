@@ -22,4 +22,10 @@ for (const [name, w] of Object.entries(want)) {
   if (a !== b) { bad = true; console.error(`${name} 다름\n  bots.ts: ${b}\n  web    : ${a}`); }
   else console.log(`${name} 같음 (${w.length})`);
 }
+
+// web/lib/bots.ts 는 academy/lib/bots.ts 의 글자 그대로 사본이다(Step 51 D164). 줄바꿈만 무시한다
+const lf = (t) => t.replace(/\r\n/g, "\n");
+const copy = fs.readFileSync(new URL("../lib/bots.ts", import.meta.url), "utf8");
+if (lf(copy) !== lf(bots)) { bad = true; console.error("web/lib/bots.ts 가 academy/lib/bots.ts 와 다름 — 다시 복사"); }
+else console.log("web/lib/bots.ts 사본 같음");
 process.exit(bad ? 1 : 0);

@@ -2010,3 +2010,36 @@ Should Fix:
 - 세팅 점검 결과: 사이트·robots·사이트맵(13)·llms.txt·홈 JSON-LD(Organization·Service·FAQPage·VideoObject) 됨. IndexNow 키 파일 404 → web/public/a931193391cc4f6984e95709b4e2b3ef.txt 추가(배포 뒤 매시 점검이 「됨」으로 닫는다 · 사람 일감 setup-send 도 그때 닫힘)
 - 사람 몫: 구글 서치콘솔 cited.kr 속성 권한(일감 setup-gsc 열림)
 - 남은 것(새 단계 감 — Arch): ① cited.kr 크롤러·사람 방문 기록 — web 에 proxy.ts 가 없다. academy/proxy.ts 와 같은 판별 + /api/crawl·/api/visit(x-cited-client cited · crawl_key 는 setup-multiclient.mjs 로 발급 → Vercel env) ② AI 답 측정 — DB 고객 자사는 질문 패널·측정 대상 지정 길이 없다(seed-panel 은 코드 고객만) ③ 경쟁 검색어는 원장 확인 필요
+
+## Step 51 브리프 — cited.kr 을 거래처처럼 잰다 (2026-10-16, Arch)
+원장 지시(10/16): 「cited.kr 도 거래처처럼 관리해야 모니터링을 하지」. 등록(id 15) 뒤 남은 두 구멍 — 크롤러·방문 기록, AI 답 측정. 브리프 = handoff/ARCHITECT-BRIEF.md, Step 50 브리프는 research/ARCHITECT-BRIEF-step50.md.
+- 실측: cited crawl_key NULL(docttak 도) · measure_active false · 파일럿 없음 · crawl_hits 0 · geo 프로젝트 Production env 에 CITED_CRAWL_KEY·VISIT_SALT 없음 · 운영 coverage_by_vendor 정의 = setup-multiclient.mjs 정의 · 네이버 자동완성 「geo 마케팅」에 7개, 「GEO 대행사」「챗gpt 노출」 0개
+- **D164 (Arch)** cited.kr 기록은 새 web/proxy.ts. 판별표는 academy/lib/bots.ts 를 web/lib/bots.ts 로 글자 그대로 복사 — web 은 web/ 만 배포돼 저장소 밖 import 를 못 한다. 사본 대조는 check-crawler-class.mjs 에(visit.ts 사본 규약과 같은 방식)
+- **D165 (Arch)** 모양은 아이로그 proxy(event.waitUntil · 키 없으면 no-op · 새 의존성 없음). 보내는 곳은 같은 배포 origin 의 /api/crawl·/api/visit, 헤더 x-cited-client: cited + x-cited-key. academy proxy 의 x-crawl-key 는 학원 자체 라우트 규약이라 web 라우트에 안 맞는다
+- **D166 (Arch)** matcher 에서 _next·api/·admin·그림·영상 파일을 뺀다. llms.txt·robots.txt·sitemap.xml 은 크롤러가 읽는 곳이라 남긴다. 사람 방문은 cited_admin 쿠키가 있으면 안 센다(원장 자기 방문). 경로 거르기는 순수 함수 decide 에서 한 번 더
+- **D167 (Arch)** env 는 Production 에만: CITED_CRAWL_KEY(setup-multiclient.mjs 발급 — docttak 키도 같이 생기나 무해, 한 번 만든 키는 안 바꾼다) · VISIT_SALT(새 32바이트). 파일로 넣고 env pull 로 길이 확인. 미리보기는 키가 없어 기록 안 함
+- **D168 (Arch)** next.config.mjs 는 건드리지 않는다. Next 실행 순서상 redirects 가 proxy 보다 먼저라 옛 도메인 봇 요청은 308 만 받고 기록 안 됨 → cited.kr 로 따라온 요청에서 한 번 기록(이중 집계 없음). 라이브 회귀로 확인
+- **D169 (Arch)** 라이브 검증 요청은 /step51-verify-* 경로로만, 확인 뒤 DELETE 하고 지운 행 수를 적는다. 시험 행이 실적에 남으면 지어낸 숫자다
+- **D170 (Arch)** AI 측정은 4번째 코드 고객이 아니라 seed-panel 에 DB 고객 길. 까닭: clients.mjs 덩어리는 60줄 넘는 중복이고 loadClients 가 코드 설정을 DB 위에 덮어 /admin/clients 편집이 안 먹게 된다. 측정기(측정대상·측정설정)는 이미 DB answer_pattern 으로 잰다 — 빠진 건 패널을 넣는 길뿐. 새 고객 삽입은 코드 고객만, DB 고객은 /admin/clients 등록이 먼저
+- **D171 (Arch)** cited 패널 20 = keyword 17(네이버 자동완성 원문, 원응답 파일 보관) + brand 3. 대화체 없음. 모자라면 등록 경쟁 검색어 6개로 채우고 그래도 모자라면 멈춘다. brand 는 기존 집계(case-report·pm-report)가 이미 머리 숫자에서 뺀다
+- **D172 (Arch)** 파일럿 값은 문서딱과 같은 0원 리허설 꼴. 경쟁사는 probe/prompts/geo-kr.json brand_universe 앞 5곳 이름. 질문은 approved=false, 승인은 원장 /admin/pilots. --apply 는 Arch 가 리뷰 뒤
+- **D173 (Arch)** 측정 몫: env 고정값이 없으면 측정상한이 고객 하나에 +20(유료 → 학원 → 자사 순서라 학원 몫은 안 줄어든다). Claude 하루 호출이 20 늘어난다. GitHub vars 가 고정돼 있으면 cited 는 기존 예산 일감으로 떨어진다 — Bob 이 vars 유무 보고
+- KG-51-1 경쟁 검색어 6개 원장 확인(등록 때부터 열림)
+- KG-51-2 구글 서치콘솔 cited.kr 권한 — 사람 몫(setup-gsc 일감)
+- KG-51-3 cited_admin 쿠키 없는 원장 기기(폰 등)의 랜딩 방문은 못 거른다
+- KG-51-4 /admin/ops·/admin/clients 에 cited 크롤러·방문이 제대로 보이는지 미확인
+- KG-51-5 ai-web-measure(화면 측정)·daily-agent 개선 루프가 cited 를 어떻게 다루는지 미확인 — 승인 뒤 첫 실행 로그로 본다
+
+### Step 51 — Bob 빌드 — DONE (2026-10-16, Bob) · Richard 대기 · 커밋·배포·--apply 안 함
+- 51a: web/lib/bots.ts(academy 사본) · web/lib/cited-proxy.ts(decide, import 없음) · web/proxy.ts(아이로그 꼴, origin 의 /api/crawl·/api/visit, x-cited-client cited) · check-proxy.mjs 새로 · check-crawler-class.mjs 끝에 사본 대조. next.config 무변경, 새 의존성 없음
+- env: setup-multiclient.mjs → cited·docttak crawl_key 생성. geo Production 에 CITED_CRAWL_KEY·VISIT_SALT 파일로 넣음. env pull 대조: 키 36자(DB 키와 같음) · 소금 64자 · 둘 다 hex 만(BOM·줄바꿈 없음). 임시 파일 지움, 값은 어디에도 안 적음
+- 51b: seed-panel.mjs DB 고객 길(패널점검(m, 이름원문) · 덩어리도 DB 행도 없으면 멈춤 · id 대조는 코드 고객만) · seed-cited-panel.mjs · test-seed-panel.mjs
+- 자동완성 실측(2026-10-16, 원응답 handoff/research/step51/autocomplete.json): 14씨앗 중 8개 빈 목록. 고른 원문 13개 + 등록 경쟁 검색어 4개(GEO 대행사 · GEO 마케팅 업체 · AEO 대행사 · AI 검색 노출 대행) = keyword 17
+  - 버림: 「aeo」·「AEO 뜻」(같은 목록에 AEO 인증·aeon — 뜻이 갈림) · 「AEO GEO 마케팅」(씨앗 aeo 1위, 이미 q2) · 「aeo 마케팅」(AEO마케팅 과 띄어쓰기·대소문자만 다름) · aeon mall·AEO 인증·aeon·aeonian·aeon atm·aeon atm 찾는법(다른 뜻) · LLMops 뜻·ll mondo 뜻(다른 뜻)
+- seed-panel --client cited dry → handoff/research/step51/seed-dry.txt(이름 판별 DB 값과 같음 · 파일럿 새로 · 질문 20). ilog·docttak dry 도 전과 같게 돎
+- D173 확인: gh variable list(leeledger/geo)에 CLAUDE_MEASURE_RESERVE·CLAUDE_DAILY_MAX 둘 다 없음(secret 에도 없음) → env 고정값 없음, cited 몫 +20 이 측정상한에 자동으로 붙는다
+- 검증: check-proxy 전부 통과 · check-crawler-class 통과(사본 같음) · test-visit 94/0 · test-seed-panel 10/0 · test-docttak 35/0 · tsc 0 · next build 통과(ƒ Proxy 잡힘)
+- 메모: test-visit 은 `node --experimental-strip-types` 로 돌려야 한다(브리프 Acceptance 의 맨 node 로는 .ts import 에서 멈춤 — 파일 머리 주석이 맞다)
+- **D174 (2026-10-16, Arch)** cited 패널: 「aeo」·「AEO 뜻」은 뺀 채로 둔다(뜻 갈림). 「geo 최적화 영어로」도 뺀다 — 용어 풀이 질문이라 답에 회사 이름이 나올 일이 드물다. 자리는 5번째 등록 경쟁 검색어 「챗GPT 회사 노출 방법」으로. keyword 17 = 자동완성 원문 12 + 등록 검색어 5. Bob 반영: seed-cited-panel.mjs 교체 · seed-dry.txt 다시 뽑음(질문 20 · keyword 17 · brand 3 · 이름 판별 DB 값과 같음) · test-seed-panel 10/10
+
+- **D175 (2026-10-16, Arch)** 「geo 마케팅 뜻」「geo 최적화 뜻」은 남긴다. 자동완성 상위 그대로이고 사업주가 실제로 치는 말. 「영어로」는 번역 질문이라 뺐지만 「뜻」 답에는 업체 예시가 붙을 수 있다. 원장 승인 단계에서 걸러질 수 있다.

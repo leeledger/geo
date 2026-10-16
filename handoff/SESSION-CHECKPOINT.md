@@ -2,6 +2,14 @@
 *Read this before reading anything else. If it covers current state, skip BUILD-LOG.*
 
 
+## Where We Stopped (2026-10-16) — Step 51 브리프(cited.kr 을 거래처처럼 잰다)
+
+- handoff/ARCHITECT-BRIEF.md = Step 51. Step 50 브리프는 handoff/research/ARCHITECT-BRIEF-step50.md
+- 51a web/proxy.ts(아이로그 모양 · bots.ts 사본 · cited_admin 쿠키 제외 · next.config 무변경) + env CITED_CRAWL_KEY·VISIT_SALT / 51b seed-panel DB 고객 길 + seed-cited-panel(네이버 자동완성 17 + brand 3)
+- 결정 D164~D173, KG-51-1~5 BUILD-LOG
+- 다음: Bob(builder) → Richard → main 푸시 → Arch 라이브 확인(GPTBot UA 로 /step51-verify-bot → crawl_hits client 15, 옛 도메인 308 회귀, 시험 행 DELETE) → seed-panel --client cited --apply
+- 원장 몫: /admin/pilots 에서 cited 질문 20 승인 · 경쟁 검색어 확인 · GSC 권한
+
 ## Where We Stopped (2026-10-15 밤 늦게) — Step 50 브리프(홈페이지 없는 사장님 진단)
 
 - handoff/ARCHITECT-BRIEF.md = Step 50. Step 49 브리프는 handoff/research/ARCHITECT-BRIEF-step49.md

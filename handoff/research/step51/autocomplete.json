@@ -1,0 +1,123 @@
+{
+  "source": "https://ac.search.naver.com/nx/ac?q=<seed>&st=100&r_format=json&q_enc=UTF-8&r_enc=UTF-8",
+  "fetched_at": "2026-10-16T07:05:47.061Z",
+  "fetched_at_kst": "2026-10-16 16:05:47",
+  "seeds": [
+    {
+      "seed": "geo 마케팅",
+      "status": 200,
+      "items": [
+        "geo 마케팅",
+        "AEO GEO 마케팅",
+        "geo 마케팅 대행사",
+        "geo 마케팅 뜻",
+        "geo 마케팅 회사",
+        "geo 마케팅 방법",
+        "geo 마케팅 비용"
+      ],
+      "raw": "{\n\"query\" : [\"geo 마케팅\"],\n\"items\" : [\n[[\"geo 마케팅\"],[\"AEO GEO 마케팅\"],[\"geo 마케팅 대행사\"],[\"geo 마케팅 뜻\"],[\"geo 마케팅 회사\"],[\"geo 마케팅 방법\"],[\"geo 마케팅 비용\"]]\n]\n}"
+    },
+    {
+      "seed": "geo 대행사",
+      "status": 200,
+      "items": [],
+      "raw": "{\n\"query\" : [\"geo 대행사\"],\n\"items\" : [\n[]\n]\n}"
+    },
+    {
+      "seed": "geo 최적화",
+      "status": 200,
+      "items": [
+        "geo 최적화",
+        "geo 최적화 뜻",
+        "geo 최적화 영어로"
+      ],
+      "raw": "{\n\"query\" : [\"geo 최적화\"],\n\"items\" : [\n[[\"geo 최적화\"],[\"geo 최적화 뜻\"],[\"geo 최적화 영어로\"]]\n]\n}"
+    },
+    {
+      "seed": "aeo",
+      "status": 200,
+      "items": [
+        "AEO GEO 마케팅",
+        "AEO 뜻",
+        "aeo",
+        "AEO마케팅",
+        "aeon mall",
+        "AEO 인증",
+        "aeon",
+        "aeonian",
+        "aeon atm",
+        "aeon atm 찾는법"
+      ],
+      "raw": "{\n\"query\" : [\"aeo\"],\n\"items\" : [\n[[\"AEO GEO 마케팅\"],[\"AEO 뜻\"],[\"aeo\"],[\"AEO마케팅\"],[\"aeon mall\"],[\"AEO 인증\"],[\"aeon\"],[\"aeonian\"],[\"aeon atm\"],[\"aeon atm 찾는법\"]]\n]\n}"
+    },
+    {
+      "seed": "aeo 마케팅",
+      "status": 200,
+      "items": [
+        "aeo 마케팅"
+      ],
+      "raw": "{\n\"query\" : [\"aeo 마케팅\"],\n\"items\" : [\n[[\"aeo 마케팅\"]]\n]\n}"
+    },
+    {
+      "seed": "ai 검색 최적화",
+      "status": 200,
+      "items": [
+        "ai 검색 최적화"
+      ],
+      "raw": "{\n\"query\" : [\"ai 검색 최적화\"],\n\"items\" : [\n[[\"ai 검색 최적화\"]]\n]\n}"
+    },
+    {
+      "seed": "ai 검색 노출",
+      "status": 200,
+      "items": [],
+      "raw": "{\n\"query\" : [\"ai 검색 노출\"],\n\"items\" : [\n[]\n]\n}"
+    },
+    {
+      "seed": "생성형 엔진 최적화",
+      "status": 200,
+      "items": [
+        "생성형엔진최적화"
+      ],
+      "raw": "{\n\"query\" : [\"생성형 엔진 최적화\"],\n\"items\" : [\n[[\"생성형엔진최적화\"]]\n]\n}"
+    },
+    {
+      "seed": "챗gpt 노출",
+      "status": 200,
+      "items": [],
+      "raw": "{\n\"query\" : [\"챗gpt 노출\"],\n\"items\" : [\n[]\n]\n}"
+    },
+    {
+      "seed": "챗gpt 마케팅",
+      "status": 200,
+      "items": [],
+      "raw": "{\n\"query\" : [\"챗gpt 마케팅\"],\n\"items\" : [\n[]\n]\n}"
+    },
+    {
+      "seed": "챗gpt 검색 노출",
+      "status": 200,
+      "items": [],
+      "raw": "{\n\"query\" : [\"챗gpt 검색 노출\"],\n\"items\" : [\n[]\n]\n}"
+    },
+    {
+      "seed": "ai 마케팅 대행",
+      "status": 200,
+      "items": [],
+      "raw": "{\n\"query\" : [\"ai 마케팅 대행\"],\n\"items\" : [\n[]\n]\n}"
+    },
+    {
+      "seed": "llmo",
+      "status": 200,
+      "items": [
+        "LLMops 뜻",
+        "ll mondo 뜻"
+      ],
+      "raw": "{\n\"query\" : [\"llmo\"],\n\"items\" : [\n[[\"LLMops 뜻\"],[\"ll mondo 뜻\"]]\n]\n}"
+    },
+    {
+      "seed": "퍼플렉시티 노출",
+      "status": 200,
+      "items": [],
+      "raw": "{\n\"query\" : [\"퍼플렉시티 노출\"],\n\"items\" : [\n[]\n]\n}"
+    }
+  ]
+}

@@ -5,8 +5,9 @@
  *   node scripts/seed-panel.mjs --client ilog             (기본·--dry) 넣을 것을 찍기만 한다. DB 안 씀
  *   node scripts/seed-panel.mjs --client docttak --apply  넣는다 — Arch 가 돌린다
  *
- * 고객사 칸(geo.clients)이 없고 패널 파일에 새고객이 있으면 clients.mjs 의 id·이름·도메인으로 새로 넣는다.
+ * 고객사 칸(geo.clients)이 없고 패널 파일에 새고객이 있으면 clients.mjs 의 id·이름·도메인으로 새로 넣는다(코드 고객만).
  * clients.mjs 의 id 와 DB id 가 다르면 멈춘다 — 회사 루프(company.mjs)가 id 로 설정을 찾는다.
+ * DB 고객(clients.mjs 덩어리 없음, 예: cited)은 /admin/clients 에 먼저 등록돼 있어야 하고, 이름 판별 말은 DB answer_pattern 과 대조한다 (Step 51 D170).
  * 승인은 원장이 /admin/pilots 에서 한다. 질문은 approved=false 로만 넣고, 이미 있는 칸은 덮어쓰지 않는다.
  */
 import fs from "node:fs";
@@ -17,15 +18,18 @@ import { 코드덩어리 } from "../clients.mjs";
 const 패널파일 = {
   ilog: () => import("./seed-ilog-panel.mjs"),
   docttak: () => import("./seed-docttak-panel.mjs"),
+  cited: () => import("./seed-cited-panel.mjs"),
 };
 
-/** 패널 파일 하나가 넣을 수 있는 모양인지 — 순수 함수. 틀리면 이유 글자, 맞으면 null */
-export function 패널점검(m) {
+/**
+ * 패널 파일 하나가 넣을 수 있는 모양인지 — 순수 함수. 틀리면 이유 글자, 맞으면 null.
+ * 이름원문 = 코드 고객이면 clients.mjs answerRe.source, DB 고객이면 DB answer_pattern(부르는 쪽이 넘긴다)
+ */
+export function 패널점검(m, 이름원문 = 코드덩어리(m.SLUG)?.answerRe.source ?? null) {
   if (m.패널.length !== 20) return `질문이 ${m.패널.length}개`;
   if (new Set(m.패널.map(([, x]) => x)).size !== 20) return "같은 질문이 있음";
-  const 덩어리 = 코드덩어리(m.SLUG);
-  if (!덩어리) return `clients.mjs 에 ${m.SLUG} 덩어리 없음`;
-  if (m.이름말() !== 덩어리.answerRe.source) return "이름 판별 말이 clients.mjs 와 다름";
+  if (!이름원문) return "이름 판별 말 없음 — /admin/clients 에서 넣는다";
+  if (m.이름말() !== 이름원문) return 코드덩어리(m.SLUG) ? "이름 판별 말이 clients.mjs 와 다름" : "이름 판별 말이 DB answer_pattern 과 다름";
   return null;
 }
 
@@ -53,10 +57,11 @@ if (직접) {
   const db = await pool.connect();
   const q = (s, p = []) => db.query(s, p).then((r) => r.rows);
   try {
-    const 틀림 = 패널점검(m);
-    if (틀림) throw new Error(틀림);
     let [c] = await q(`select id, name, answer_pattern, measure_active from geo.clients where slug = $1`, [SLUG]);
-    if (c && c.id !== 덩어리.id) throw new Error(`${SLUG} DB id ${c.id} ≠ clients.mjs id ${덩어리.id}`);
+    if (!덩어리 && !c) throw new Error(`${SLUG} 고객사 없음 — /admin/clients 에서 먼저 등록`);
+    const 틀림 = 패널점검(m, 덩어리 ? 덩어리.answerRe.source : c.answer_pattern);
+    if (틀림) throw new Error(틀림);
+    if (덩어리 && c && c.id !== 덩어리.id) throw new Error(`${SLUG} DB id ${c.id} ≠ clients.mjs id ${덩어리.id}`);
     const 새로 = !c;
     if (새로) {
       if (!m.새고객) throw new Error(`${SLUG} 고객사 없음`);

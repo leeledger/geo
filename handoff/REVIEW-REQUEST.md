@@ -1,54 +1,59 @@
-# Review Request — Step 50
-Date: 2026-10-15
+# Review Request — Step 51
+Date: 2026-10-16
 Ready for Review: YES
-Status: DONE — verify ALL PASS 179 (옛 104 + 새 75) · tsc 0 · build 통과 · 새 의존성 0 · 시험 행 삭제됨
+Status: DONE (배포 전 범위. 커밋·푸시·배포·seed-panel --apply 안 함)
 
 ## Files Changed
-- web/lib/robots.ts:1-79 — 새. parseRobots(같은 UA 합치기·소문자)·verdict(명시 그룹 우선·최장 일치·동률 Allow·`*`·`$`·빈 Disallow 무시)·robotsState(2xx ok · 4xx(429 빼고) none · 나머지 fail).
-- web/lib/platform-check.ts:13-58 — BOT_PLAIN · PLATFORMS(호스트→이름만, 정책 없음) · platformOf.
-- web/lib/platform-check.ts:61-79 — classifyTarget: error 3종(주소·스마트플레이스·뿌리)·포트 error·정확 일치 platform·나머지 site. 사용자정보·# 버리고 https 로.
-- web/lib/platform-check.ts:84-145 — safeFetch: https·허용 호스트·포트/계정 없음·redirect manual 3홉 홉마다 확인·8초·2MB·진단 UA 그대로. fetch 주입 가능(시험용).
-- web/lib/platform-check.ts:159-228 — judgeHost(fail→null, none→모두 true, self 표시) · readPage(title·description·textLen·iframe) · buildLines(브리프 문장 틀 그대로).
-- web/lib/platform-check.ts:231-266 — checkPlatform: 페이지 1회(짧은 주소는 끝 주소로 재판정) + robots(블로그는 PC·모바일 둘).
-- web/lib/no-site.ts:1-24 — askQuestions(템플릿 3개)·clean·josa.
-- web/app/api/scan/route.ts:36-50,70 — classifyTarget 먼저 → 400 사람 말 / platform → checkPlatform(saveScan 안 함) / site 는 그대로 + kind:"site".
-- web/app/api/lead/route.ts:46-81 — source no_site(세 칸 필수·서버가 질문 재생성·클라 concerns 버림)·platform_check(wants). 그 밖 source 무시.
-- web/lib/leads.ts:121-139 — saveLead source 선택 인자.
-- web/app/admin/page.tsx:44-61 — Lead.source · SOURCE_LABEL 이름표를 카드 둘째 줄 앞에.
-- web/app/ScanForm.tsx:1-373 — 세 길. placeholder·aria·busy·formnote+「주소가 없어요」, 길 C(질문 만들기·복사·물어봐 주세요), 결과 B(점수 없음·lines·봇 줄·PC/모바일 다르면 둘 다·KST 확인 시각), 결과 A 쉬운 말(plat-caps·가중치 0 행 숨김·PRIO 먼저/다음/여유 있을 때). placeholder prop 삭제.
-- web/lib/scan.ts — export(UA·stripTags·BOTS) · SITE_LABELS 6개 · notes 문자열 9개. 로직·가중치 무변경.
-- web/lib/platform.ts:57,63,127,136 — 문자열만: robots.txt→봇 규칙 파일(2곳 note·advice), CAP_LABEL 됨/일부만/안 됨.
-- web/app/page.tsx:47-50,662-672 — FAQ 2 첫 문장 홈페이지 몫 · 새 FAQ 3 · #start h2·lp-sub·.ps · placeholder prop 삭제.
-- web/app/globals.css:~555-575 — linkbtn·pres·pbot·ns 스타일.
-- handoff/research/step50/verify.mjs — step49 복사 + 50-R·C·A1~A4·S·L0~L3·U·K. 스크린샷 step50/{1440,390}-{hero,start,A,B-naver,B-instagram,error,C-questions,C-done}.png (+1440-B-fail.png).
+- web/lib/bots.ts (새) — academy/lib/bots.ts 바이트 그대로 사본(cmp 같음)
+- web/lib/cited-proxy.ts (새, import 없음) — `decide({pathname, cookie, hasKey, isBot})`: 키 없음·/api·/admin(하위) → null, 봇 → crawl, cited_admin 쿠키 → null, 그 밖 → visit
+- web/proxy.ts (새) — 아이로그 proxy 꼴. `new URL("/api/crawl"|"/api/visit", req.nextUrl.origin)` 로 x-cited-client cited + x-cited-key 를 waitUntil 로 보냄, fetch 는 try/catch 로 삼킴. visit 은 readVisit(req, VISIT_SALT). matcher 는 브리프 글자 그대로
+- web/scripts/check-proxy.mjs (새) — decide·identify 단정 + admin-auth.ts COOKIE 글자 대조 + proxy.ts matcher 문자열을 정규식으로 걸림/안 걸림
+- web/scripts/check-crawler-class.mjs:27-32 — 끝에 web/lib/bots.ts = academy/lib/bots.ts(CRLF→LF) 대조, 다르면 exit 1
+- academy/scripts/seed-panel.mjs:8-10, 20, 23-35, 60-64 — 패널파일에 cited · `패널점검(m, 이름원문 = 코드덩어리?.answerRe.source ?? null)` · 덩어리·DB 행 둘 다 없으면 「고객사 없음 — /admin/clients 에서 먼저 등록」 · id 대조는 코드 고객만. 1인자 호출(test-docttak)은 기본값으로 전과 같다
+- academy/scripts/seed-cited-panel.mjs (새) — docttak 꼴. 새고객 없음, 이름말 = DB answer_pattern 글자, 파일럿 0원 리허설 + 경쟁사 brand_universe 앞 5곳
+- academy/scripts/test-seed-panel.mjs (새) — 10 단정(아래)
+- handoff/research/step51/autocomplete.json (새) — 14씨앗 원응답(raw 포함), 2026-10-16 KST
+- handoff/research/step51/seed-dry.txt (새) — `seed-panel --client cited` dry 출력
 
-## 바뀐 옛 단정
-| 옛 단정 | 새 단정 | 까닭 |
-|---|---|---|
-| FAQ 화면 10 · JSON-LD 10 | 11 · 11 | 새 FAQ 3 「홈페이지가 없어도 진단받을 수 있나요?」 |
-| FAQ 3 끝 = PILOT.after | FAQ 4(비용) 끝 = PILOT.after | 비용 문답이 한 칸 밀림 |
-| [49-10] 펼친 답 10개 · want[2] 에 「홈페이지 제작 250만원」 | 11개 · want[3] | 같은 까닭 |
-| OUT 기본값 step49 | step50 | 브리프 |
-그 밖 104개는 문자 그대로 유지(req() 가 요청마다 다른 x-forwarded-for 를 붙인 것만 다름 — 5/분 리밋).
+## Env (geo Production)
+- setup-multiclient.mjs 실행 → cited·docttak crawl_key 생성(뷰는 같은 정의)
+- CITED_CRAWL_KEY · VISIT_SALT 를 파일로 `vercel env add ... production <` 넣음
+- env pull 대조: CITED_CRAWL_KEY 36자 · DB 키와 같음 · hex 만 / VISIT_SALT 64자 · hex 만. BOM·줄바꿈 없음. 받은 파일·임시 파일 지움, 값은 어디에도 안 적음
 
-## Deviations
-1. platform.ts 의 Shopify·Webflow note 와 platformAdvice 의 「robots.txt」도 「봇 규칙 파일」로 바꿈. 브리프는 scan.ts notes·CAP_LABEL 만 짚었지만 이 문장들도 결과 A 패널에 뜬다(50-U 0회 목표).
-2. 결과 B 연락처 부제: 「진단한 주소**와 결과가** 함께 접수됩니다」 → 「진단한 주소가 함께 접수됩니다」. platform_check 리드는 site 만 저장하고 결과는 안 남긴다(D152·D160). 「결과도 접수」는 사실이 아님.
-3. 짧은 주소(naver.me)가 허용 밖·뿌리 주소로 가거나 못 열리면 결과는 「이 주소를 열어 보지 못했습니다. (응답 n)」 한 줄(hosts 0, 마지막 줄 없음). 브리프에 이 경우 틀이 없었고 「이 규칙은 …이 정합니다」는 정할 플랫폼이 없어 뺌.
-4. BOT_PLAIN 은 scan.ts 가 아니라 platform-check.ts 에 둠(scan.ts diff 를 문자열·export 로 묶으려고).
-5. 길 C 문구 「{상호}가」를 받침 보고 이/가로(josa, no-site.ts). platform-check 의 은/는·이/가도 같은 함수.
-6. 주소 입력이 바뀌면 이전 결과·오류를 지운다. 브리프는 「지금 동작 유지」라 했지만 지금 코드는 제출 때만 지웠다 — 브리프의 뜻(바뀌면 지움)을 따름.
-7. #start lp-sub 끝 「홈페이지가 없어도 됩니다.」는 브리프 문장에 없어 빠짐.
-8. verify 가 cited.kr 진단(50-A3·화면 A 2회)으로 생긴 geo.scans 3행도 id 로 지움 — 영업 깔때기 숫자(scans30d)를 안 흐리려고.
-9. 결과 A 연락처 부제의 「없이30일」 붙음(옛 JSX 줄바꿈 탓)이 고쳐짐 — 문구는 같음.
+## 패널 (keyword 17 + brand 3)
+자동완성 원문 12개(씨앗 순 → 순위 순):
+geo 마케팅(1) · AEO GEO 마케팅(2) · geo 마케팅 대행사(3) · geo 마케팅 뜻(4) · geo 마케팅 회사(5) · geo 마케팅 방법(6) · geo 마케팅 비용(7) — 씨앗 geo 마케팅
+geo 최적화(1) · geo 최적화 뜻(2) — 씨앗 geo 최적화
+AEO마케팅(4) — 씨앗 aeo · ai 검색 최적화(1) · 생성형엔진최적화(1)
+등록 경쟁 검색어로 채운 5개: GEO 대행사 · GEO 마케팅 업체 · AEO 대행사 · AI 검색 노출 대행 · 챗GPT 회사 노출 방법
+brand: 사이티드 어떤 회사야? · cited.kr 뭐 하는 곳이야? · 사이티드 GEO
+
+빈 목록 씨앗 8개: geo 대행사 · ai 검색 노출 · 챗gpt 노출 · 챗gpt 마케팅 · 챗gpt 검색 노출 · ai 마케팅 대행 · 퍼플렉시티 노출 (+ llmo 는 결과가 다른 뜻뿐)
+버린 것·까닭:
+- 「aeo」(aeo 3위)·「AEO 뜻」(aeo 2위) — 같은 목록에 AEO 인증·aeon 이 섞여 있어 뜻이 갈린다
+- 「geo 최적화 영어로」(geo 최적화 3위) — 용어 풀이 질문이라 회사 이름이 나올 일이 드물다(D174, Arch)
+- 「AEO GEO 마케팅」(aeo 1위) — q2 와 같은 글자
+- 「aeo 마케팅」(씨앗 aeo 마케팅 1위) — AEO마케팅 과 띄어쓰기·대소문자만 다름(먼저 나온 쪽을 남김)
+- aeon mall · AEO 인증 · aeon · aeonian · aeon atm · aeon atm 찾는법 — 다른 뜻
+- LLMops 뜻 · ll mondo 뜻 — 다른 뜻
+- 남의 회사 이름이 든 결과는 없었다
+
+## 측정 몫 (D173)
+`gh variable list` (leeledger/geo): CLAUDE_MEASURE_RESERVE 없음 · CLAUDE_DAILY_MAX 없음 (secret 에도 없음). 있는 vars: MEASURE_ENGINES · MEASURE_EVERY_DAYS · REPAIR_ENABLED · WRITER_PROVIDER. → 고정값 없음, cited 몫 +20 이 자동으로 붙는다
+
+## Verification
+- `node --experimental-strip-types web/scripts/check-proxy.mjs` — 전부 통과(키 없음 2 · GPTBot·ClaudeBot·PerplexityBot identify·/·/llms.txt · 봇+admin쿠키 → crawl · 사람 visit/null 5 · /api·/admin 경로 8 · 쿠키 글자 대조 · matcher 걸림 6 / 안 걸림 8)
+- `node web/scripts/check-crawler-class.mjs` — AI_BOTS 같음(20) · SEARCH_BOTS 같음(5) · 사본 같음
+- `node --experimental-strip-types academy/scripts/test-visit.mjs` — 94 통과 · 0 실패
+- `node academy/scripts/test-seed-panel.mjs` — 10/10
+- `node academy/scripts/test-docttak.mjs` — 35 통과 · 0 실패
+- web `node ./node_modules/typescript/bin/tsc --noEmit` — 0 · `npm run build` — 통과, 「ƒ Proxy (Middleware)」 잡힘
+- seed-panel dry: cited(이름 판별 DB 값 = 파일 값 · 파일럿 새로 · 질문 20 · keyword 17 · brand 3), ilog·docttak dry 도 전처럼 돎
 
 ## Open Questions
-- 결과 B 봇 줄의 순서는 BOTS 순서(가중치 표). 사람이 보기엔 「막힘」을 위로 모으는 게 나을 수 있음 — 브리프에 없어 손대지 않음.
-- 「확인하지 못했습니다」: 실측에서 나옴 — m.place.naver.com 이 우리 UA 에 429 (1440-B-fail.png). 390 은 안 찍음(브리프 8상태 밖).
-- safeFetch 는 robots 리다이렉트도 허용 호스트 안에서만 따른다. 플랫폼 robots 가 CDN 다른 호스트로 넘기면 fail 로 나온다(현재 실측엔 없음).
-- 실측 판정(오늘 23시): 네이버 블로그 PC·모바일 같음 — 「PC·모바일 다릅니다」 줄은 단위 시험으로만 확인됨. 인스타는 ChatGPT 검색·ChatGPT-User·Perplexity-User·네이버 검색·Gemini 학습·Common Crawl 막힘.
+- (닫힘, D174) 「aeo」·「AEO 뜻」 뺀 채 유지 · 「geo 최적화 영어로」 → 「챗GPT 회사 노출 방법」
+- test-visit 은 맨 `node` 로는 .ts import 에서 멈춘다. 브리프 Acceptance 의 명령 대신 파일 머리 주석대로 `--experimental-strip-types` 로 돌렸다
+- matcher 시험은 문자열을 `^…$` 정규식으로 본다. Next 의 path-to-regexp 변환과 같다고 보장하지 않는다 — 라이브 확인(Acceptance)이 최종
 
 ## Out of Scope (logged in BUILD-LOG)
-- KG-50-7 레이트리밋이 x-forwarded-for 첫 값을 믿음(Vercel 밖이면 우회)
-- KG-50-8 /admin no_site 카드에 「AI 답 확인 요청」 두 번(이름표 + wants)
-- KG-50-1~6 은 브리프 그대로
+- KG-51-1~5 그대로. 새로 고친 것 없음

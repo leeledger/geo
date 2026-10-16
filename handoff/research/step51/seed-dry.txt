@@ -1,0 +1,27 @@
+사이티드 (client 15) · dry — DB 안 씀
+  파일럿: 새로 — 0원 리허설, 오늘부터 30일
+  경쟁사: 지오랭크, 서치폴라리스, 제스트컴퍼니, 넥스트티, 비즈스프링
+  이름 판별: 사\s?이\s?티\s?드|cited\.kr → 사\s?이\s?티\s?드|cited\.kr
+  측정 대상 고정(measure_active): false → true  (리허설 30+7일이 지나도 계속 잰다)
+  질문 20개 (approved=false · 원장이 /admin/pilots 에서 승인)
+  q1  keyword  geo 마케팅   ← 네이버 자동완성 · 씨앗 geo 마케팅 · 1위
+  q2  keyword  AEO GEO 마케팅   ← 네이버 자동완성 · 씨앗 geo 마케팅 · 2위
+  q3  keyword  geo 마케팅 대행사   ← 네이버 자동완성 · 씨앗 geo 마케팅 · 3위
+  q4  keyword  geo 마케팅 뜻   ← 네이버 자동완성 · 씨앗 geo 마케팅 · 4위
+  q5  keyword  geo 마케팅 회사   ← 네이버 자동완성 · 씨앗 geo 마케팅 · 5위
+  q6  keyword  geo 마케팅 방법   ← 네이버 자동완성 · 씨앗 geo 마케팅 · 6위
+  q7  keyword  geo 마케팅 비용   ← 네이버 자동완성 · 씨앗 geo 마케팅 · 7위
+  q8  keyword  geo 최적화   ← 네이버 자동완성 · 씨앗 geo 최적화 · 1위
+  q9  keyword  geo 최적화 뜻   ← 네이버 자동완성 · 씨앗 geo 최적화 · 2위
+  q10 keyword  AEO마케팅   ← 네이버 자동완성 · 씨앗 aeo · 4위
+  q11 keyword  ai 검색 최적화   ← 네이버 자동완성 · 씨앗 ai 검색 최적화 · 1위
+  q12 keyword  생성형엔진최적화   ← 네이버 자동완성 · 씨앗 생성형 엔진 최적화 · 1위
+  q13 keyword  GEO 대행사   ← 등록 경쟁 검색어(guides.ts 겨냥)
+  q14 keyword  GEO 마케팅 업체   ← 등록 경쟁 검색어(guides.ts 겨냥)
+  q15 keyword  AEO 대행사   ← 등록 경쟁 검색어(guides.ts 겨냥)
+  q16 keyword  AI 검색 노출 대행   ← 등록 경쟁 검색어(guides.ts 겨냥)
+  q17 keyword  챗GPT 회사 노출 방법   ← 등록 경쟁 검색어(guides.ts 겨냥)
+  q18 brand    사이티드 어떤 회사야?   ← 이름 질문 — 학원·아이로그·문서딱 패널과 같은 꼴
+  q19 brand    cited.kr 뭐 하는 곳이야?   ← 이름 질문 — 학원·아이로그·문서딱 패널과 같은 꼴
+  q20 brand    사이티드 GEO   ← 등록 브랜드 검색어
+  단계: keyword 17 · brand 3
