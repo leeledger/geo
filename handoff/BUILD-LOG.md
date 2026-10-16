@@ -2043,3 +2043,14 @@ Should Fix:
 - **D174 (2026-10-16, Arch)** cited 패널: 「aeo」·「AEO 뜻」은 뺀 채로 둔다(뜻 갈림). 「geo 최적화 영어로」도 뺀다 — 용어 풀이 질문이라 답에 회사 이름이 나올 일이 드물다. 자리는 5번째 등록 경쟁 검색어 「챗GPT 회사 노출 방법」으로. keyword 17 = 자동완성 원문 12 + 등록 검색어 5. Bob 반영: seed-cited-panel.mjs 교체 · seed-dry.txt 다시 뽑음(질문 20 · keyword 17 · brand 3 · 이름 판별 DB 값과 같음) · test-seed-panel 10/10
 
 - **D175 (2026-10-16, Arch)** 「geo 마케팅 뜻」「geo 최적화 뜻」은 남긴다. 자동완성 상위 그대로이고 사업주가 실제로 치는 말. 「영어로」는 번역 질문이라 뺐지만 「뜻」 답에는 업체 예시가 붙을 수 있다. 원장 승인 단계에서 걸러질 수 있다.
+
+### Step 51 — Arch 라이브 확인·--apply — DONE (2026-10-16, Arch)
+- 배포: 36de857 → geo Production(geo-qkfqmuc3x, 별칭 cited.kr·www.cited.kr) Ready. 시험 전 client 15 = crawl_hits 0 · site_visits 0
+- 봇: GPTBot UA → cited.kr/step51-verify-bot(404 응답) → crawl_hits client 15 · GPTBot · openai · 그 path 한 줄 (16:12:13 KST)
+- 봇: 같은 UA → /llms.txt(200) → crawl_hits client 15 한 줄
+- 사람: 브라우저 UA + sec-fetch-dest document → /step51-verify-visit → site_visits client 15 · desktop · direct 한 줄
+- 쿠키 cited_admin=x → /step51-verify-admin → 행 없음
+- 옛 도메인: geo-rose-nine.vercel.app/step51-verify-old → 308 · location https://cited.kr/step51-verify-old · 행 없음. 옛 도메인 /api/crawl GET → 405(넘기지 않음)
+- cited.kr / 200 · /geo 200 · /admin 307 → /admin/login 200
+- 시험 행 DELETE 3줄(crawl_hits 2 · site_visits 1, id 로 지움). 지운 뒤 client 15 = 0 · 0, /step51% 경로 0
+- seed-panel --client cited --apply → 파일럿 19459339-bd84-4364-922e-14f03b723cb1 · 질문 20(keyword 17 · brand 3 · 승인 0) · measure_active false→true. 원장 몫: /admin/pilots 승인
