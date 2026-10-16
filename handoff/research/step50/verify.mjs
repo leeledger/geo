@@ -427,7 +427,7 @@ ok(T.proof === 0 && T.caseLab.includes("첫 적용 · 수도권 코딩·로봇 �
 
 // keep-all
 const wb = await p.evaluate(() => {
-  const sels = [".lp-lede", ".lp-hero .formnote", "#geo .lp-define", "#geo .lp-note", "#data .lp-sub", "#data .lp-split-foot", "#case .lp-sub", "#case h2", "#who .lp-sub", "#services .lp-sub", "#how .lp-sub", "#why .lp-sub", "#price .lp-sub", ".lp-pcompare", "#nots .lp-sub", ".lp-faq-a p", "#start .lp-sub", "#film h2", ".lp-film-text li", ".lp-foot .desc", ".lp-foot .wm"];
+  const sels = [".lp-lede", ".lp-hero .formnote", "#geo .lp-define", "#geo .lp-note", "#data .lp-sub", "#data .lp-split-foot", "#case .lp-sub", "#case h2", "#who .lp-sub", ".lp-flow-panel p", "#how .lp-sub", "#why .lp-sub", "#price .lp-sub", ".lp-pcompare", "#nots .lp-sub", ".lp-faq-a p", "#start .lp-sub", "#film h2", ".lp-film-text li", ".lp-foot .desc", ".lp-foot .wm"];
   return sels.map((s) => [s, document.querySelector(s) ? getComputedStyle(document.querySelector(s)).wordBreak : "missing"]);
 });
 const notKeep = wb.filter(([, v]) => v !== "keep-all");

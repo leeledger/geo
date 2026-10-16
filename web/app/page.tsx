@@ -501,23 +501,20 @@ export default async function Home() {
           <div className="wrap">
             <div className="lp-lab">서비스</div>
             <h2 className="lp-h2">사이티드에 맡기면<br /><span className="hl">무엇을 하나요?</span></h2>
-            <p className="lp-sub">
-              모든 곳은 30일 파일럿(한 달 시범 계약) 하나로 시작합니다. 홈페이지가 없으면 홈페이지 제작, AI 가 못 읽는 홈페이지면 기술 세팅(AI가 읽게 손봄)을 한 번 더 합니다.
-              쓸 만한 홈페이지가 있으면 새로 만들지 않습니다. 월 구독은 파일럿을 끝낸 곳에만 안내합니다.
-            </p>
             <div className="lp-svcs">
-              {SERVICES.map((sv) => (
+              {SERVICES.map((sv, i) => (
                 <Link className="lp-card lp-hov lp-svc" key={sv.slug} href={`/services/${sv.slug}`}>
                   <div className="lp-svc-hd">
                     <span className="mono no">{sv.no}</span>
                   </div>
-                  <h3>{sv.name}</h3>
+                  <h3>{sv.name}{sv.name === "기술 세팅" && <span className="lp-gl">(AI가 읽게 손봄)</span>}</h3>
                   <div className="q">{sv.question}</div>
                   <p>{sv.short}</p>
                   <ul>
                     {sv.does.slice(0, 3).map((d) => <li key={d.t}><Check />{d.t}</li>)}
                   </ul>
-                  <div className="terms">{termLine(sv.terms)}</div>
+                  {/* 서비스 절 머리 문단을 걷어(원장 10/16) 두 낱말이 처음 나오는 자리가 카드로 왔다 — 풀이도 여기서 한 번 */}
+                  <div className="terms">{i === 0 ? termLine(sv.terms).replace("30일 파일럿", "30일 파일럿(한 달 시범 계약)") : termLine(sv.terms)}</div>
                 </Link>
               ))}
             </div>
