@@ -1993,3 +1993,12 @@ Should Fix:
 - 풀이 첫 자리가 카드로 옮겨 감: 01 측정 카드 조건 줄 「30일 파일럿(한 달 시범 계약)」, 02 카드 제목 「기술 세팅 (AI가 읽게 손봄)」(작은 회색)
 - verify: keep-all 목록 「#services .lp-sub」→「.lp-flow-panel p」. ALL PASS 183
 - 참고: 원장이 본 「처음부터 전부 맡기실 필요는 없습니다」 제목은 47b 이전 판이다(운영 cited.kr 에는 이미 없음 — 브라우저 캐시이거나 design/cited-landing 시안)
+
+### 학원 홈에 유튜브 모션 영상 넣기 (2026-10-16, Bob · 원장 지시) · 커밋·배포 안 함
+- 영상: https://youtu.be/FMgemA2a7_c 「AI가 코드를 써주는데, 왜 아직 코딩을 배울까요」(채널 로봇&코딩 AI, 2026-10-15 올림, 41초 — oEmbed·watch 페이지에서 확인). 제목이 홈 #why 절 제목과 같아 그 절 리드 문단 바로 밑에 넣음
+- academy/content/home.html #why: `<div class="film rise"><iframe youtube-nocookie … loading="lazy">` — 설명 문구 안 붙임(메타 문구 금지). public/style.css 끝에 .film(최대 880px · 16:9 자리 먼저 잡기)
+- content/schema.json @graph 에 VideoObject(#video · uploadDate·duration PT41S·embedUrl·thumbnailUrl hqdefault · 설명은 #why 리드 문장 그대로 · publisher #org)
+- 확인: test-faq-sync 23 PASS · test-ai-page 30 PASS · tsc 0 · next build 통과 · 로컬 1440/390 에서 iframe 880×495 / 342×192, 영상 제목 뜸, 가로 넘침 없음, 콘솔 오류 0
+- 배포: 학원은 git push 로 안 나간다 — academy/ 에서 `npx vercel --prod --yes` (CLAUDE.md 함정)
+
+- **D163 (2026-10-16, Arch)** 학원 홈 #why 영상은 `rwSd_ErIviI`(45초, 10/15 03:24 PDT, homepage-hype 최종본)로. 빌더가 넣은 `FMgemA2a7_c`(41초 첫 판)는 제목이 h2와 같았지만, 원장이 고화질·박진감으로 다시 만들라 한 게 이쪽. VideoObject 값은 oEmbed·시청 페이지로 확인.

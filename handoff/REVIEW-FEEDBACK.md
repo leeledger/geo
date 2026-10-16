@@ -1,26 +1,19 @@
-# Review Feedback — D162 (서비스 머리 문단 삭제 · 제작/세팅을 진행 1단계로 통합)
+# Review Feedback — 학원 홈 #why 유튜브 영상 삽입
 Date: 2026-10-16
-Ready for Builder: YES
+Ready for Builder: YES (영상 선택은 Arch 결정 — 아래 Escalate)
 
 ## Must Fix
-없음.
+- 없음
 
 ## Should Fix
-- web/app/FlowSteps.tsx:18 (confidence: 7/10) — 「새 사이트를 연 날(세팅을 마친 날)부터」 에서 「또는」이 빠졌다. 이대로면 괄호가 「새 사이트를 연 날」의 바꿔 말하기처럼 읽힌다(세팅만 하는 곳은 새 사이트를 열지 않는다). 원본 research/paid-pilot-order-form.md:21 · web/lib/services.ts:51 은 「(또는 세팅을 마친 날)」. — 「또는」을 넣어 원문과 맞춘다.
+- 없음
 
 ## Escalate to Architect
-없음.
-
-## Appendix (참고, 조치 불요)
-- 렌더 순서상 「30일 파일럿」「기술 세팅」의 실제 첫 등장은 #film 의 접힌 「영상 속 문장 그대로 보기」(page.tsx:84-85 FILM_LINES)다. 영상 원문 그대로라는 약속이 있어 거기 풀이를 붙이지 않는 게 맞다. 펼친 본문 기준 첫 등장은 #services 카드가 맞다.
-
-## 확인한 것
-1. 「파일럿을 끝낸 곳에만 안내합니다」 — FlowSteps.tsx:36(진행 4단계)에 그대로 살아 있다. #price(page.tsx:559)에도 「월 구독은 파일럿 뒤에 정합니다」.
-2. 1단계 p2 순서(첫 7일 측정 → 제작/세팅 → 연 날부터 30일 → 전후) = order-form 「순서」. 「쓸 만한 홈페이지가 있으면 새로 만들지 않습니다」는 삭제된 머리 문단에서 옮긴 문장. 지어낸 내용 없음.
-3. 풀이 각 1회: 「(한 달 시범 계약)」은 page.tsx:517 한 곳, 「(AI가 읽게 손봄)」은 page.tsx:510 한 곳. 카드 순서 01 측정 → 02 기술 세팅이라 01 카드 안에 「기술 세팅」이 먼저 나오지 않는다.
-4. .replace 매치: SERVICES[0].terms[0] = { k:"비용", v:START }, START = 「30일 파일럿 39만원으로 시작 · …」(services.ts:72). termLine 은 비용이면 값만 내므로 「30일 파일럿」이 문자열에 있다 — 치환된다.
-5. 글 규칙: 서론·빈 강조·흐린 어미·숫자 회피 없음. 문단 길이 80~400자 안.
-- tsc --noEmit: 통과(exit 0). `"p2" in f` 좁히기 문제없음, .lp-flow-panel p 스타일이 둘째 문단에도 걸린다.
+- 어느 영상을 넣을지. 채널(@robotncoding, UCvAcsJPFdvXxVON-sQUHmkQ)에 공개 영상이 2개다.
+  - FMgemA2a7_c 「AI가 코드를 써주는데, 왜 아직 코딩을 배울까요」 41초, 2026-10-15T02:37:48-07:00, utm_campaign=homepage-motion — 지금 들어간 것
+  - rwSd_ErIviI 「AI가 코드를 쓰는 시대, 코드보다 먼저 배워야 할 것은?」 45초, 2026-10-15T03:24:29-07:00 (47분 뒤), 설명 링크 utm_campaign=homepage-hype — tools/motion-pipeline.mjs homepage-hype --sec 45 --music hype 로 만든 판. BUILD-LOG·research 어디에도 이 ID 기록이 없다
+  - 권고: rwSd_ErIviI. 나중에 올린 최종 파이프라인 판이고 내용(무엇을 만들지 정하고 왜 안 되는지 찾는 힘)이 #why 리드와 같은 말을 한다. 제목이 #why h2 와 글자까지 같은 건 FMgemA2a7_c 쪽이라 Bob 선택도 근거는 있다 — 원장 의도 확인 필요
+  - 바꾸면 고칠 곳: home.html:79 iframe src·title, schema.json VideoObject name·thumbnailUrl(i.ytimg.com/vi/rwSd_ErIviI/hqdefault.jpg)·uploadDate(2026-10-15T03:24:29-07:00)·duration(PT45S)·embedUrl·url, BUILD-LOG 기록. 값은 위가 oEmbed·watch 페이지에서 확인한 것
 
 ## Cleared
-page.tsx · FlowSteps.tsx · landing.css diff 검토 — 빠진 주장 없음, 순서는 주문서와 맞고, 풀이는 첫 등장에 한 번, 타입 통과. 위 한 글자 수정만 권한다.
+oEmbed·watch 페이지로 VideoObject 값 검증(제목·썸네일·uploadDate 일치, duration PT41S 는 videoDetails.lengthSeconds=41 과 일치 — microformat 은 PT0M42S 로 1초 차, 반올림 차이라 무해), schema.json 파싱 정상, 영상 주변 메타 문구 없음, iframe title 있음·loading=lazy·youtube-nocookie, .film aspect-ratio 16/9 로 자리 선점(레이아웃 밀림 없음)·클래스 충돌 없음, .rise 관찰 스크립트(home.html:1159)는 클래스만 붙여 히어로 스크립트에 영향 없음, test-faq-sync 23 PASS·test-ai-page 30 PASS.
