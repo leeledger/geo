@@ -1,28 +1,17 @@
-# Review Feedback — Step 50
-Date: 2026-10-15
-Ready for Builder: YES
+# Review Feedback — 공개 문구에서 「대표가 운영」 삭제 (원장 요청 10/16)
+Date: 2026-10-16
+Ready for Builder: NO
 
 ## Must Fix
-None.
+- academy/scripts/case-report.mjs:562 · web/public/case/academy.html:530 (confidence: 7/10) — 「다음 고객사에서 확인할 것은 기술이 아니라 걸리는 시간입니다.」 전에는 바로 앞 문장 「원장 본인 학원이라」가 이 학원이 고객이 아니라는 걸 알려 줬다. 그 문장이 「이 학원은 사이트를 바로 고칠 수 있었습니다」로 바뀌면서, 이제 「다음 고객사」는 이 학원을 첫 고객사로 읽히게 만든다. 체크 (2)와 D122 위반이다. — 「첫 고객사에서」(또는 「실제 고객사에서」)로 바꾼다. case-report.mjs 를 고친 뒤 academy.html 을 다시 생성한다. 두 파일이 서로 맞아야 한다.
 
 ## Should Fix
-- web/lib/ops.ts:336 (confidence: 8/10). The funnel counts leads only when `scan_id is not null or source = 'free_scan'`, so `platform_check` and `no_site` leads never reach `leads30d`. It does not break anything, and leaving them out of `scanToLeadPct` is arguably correct because these paths create no scans. But the owner will not see the new leads in that count. This needs a product call (see Escalate). Do not change it inside Step 50.
-- KG-50-7, rate limit trusts x-forwarded-for (confidence: 9/10). This is not new: `git log -S x-forwarded-for` traces it to 20ff4f0, the initial build, and Step 50 did not touch clientIp/rateLimited. On Vercel the edge overwrites X-Forwarded-For with the real client IP, so a client cannot spoof it there. It is only bypassable off-Vercel. The limiter is also per-instance memory. Keep it logged. It does not block this step.
+- web/app/page.tsx:83 FILM_LINES (confidence: 6/10) — 「소개글(대부분 의무 안내문이었다)」는 합니다체 문단 안에 반말 조각이 들어간 것이다. 화면 라벨(cited-promo.html:259)로는 괜찮지만, 대본 줄에서는 어색하다. — 「소개글 188 → 933자(원래 글은 대부분 의무 안내문)」로 쓰거나, 화면과 대본을 같이 「의무 안내문이 대부분」으로 바꾼다.
+- cited-promo.html:256 원문 라벨 「학부모가 이 학원을 물으면 · 네이버 AI 의 답」 (confidence: 5/10, 확인 필요) — case-report 09.10 의 근거는 「…라고만 답하고 있었다」이다. 「라고만」이 「이 한 줄이 다였습니다」를 뒷받침하고, 「수업 얘기는 없었습니다」는 인용문 자체로 확인된다. 다만 「학부모가 물으면」이라는 질문 틀은 출처에 없다. 어떤 질의로 이 답이 나왔는지 기록이 있으면 그대로 두고, 없으면 「이 학원을 물으면 · 네이버 AI 의 답」으로 줄인다.
+- cited-promo.html:12, :248 (confidence: 4/10) — HTML 주석에 아직 「도입 사례」가 남아 있다(「직접 측정·도입 사례·가격」, `<!-- S4 … : 도입 사례 -->`). 화면에는 안 나오지만 파일이 academy/public 아래에서 공개된다. 「첫 적용」으로 바꾼다.
 
 ## Escalate to Architect
-- Should /admin/ops "30일 리드" (leads30d) include `platform_check` / `no_site` leads? I cannot settle this at the code level. It changes the sales-funnel number the owner reads, and the brief (D160) is silent on it.
-
-## Appendix (confidence < 7, no action required)
-- web/lib/robots.ts:29 (4/10). `User-agent: Googlebot/2.1` is stored as `googlebot/2.1` and does not match the `Googlebot` id, so the bot falls to `*`. RFC 9309 expects product tokens without a version. None of the hosts measured so far do this.
-- safeFetch rejects port/userinfo on every hop (line 119), but [50-S] does not test those two cases on a redirect hop. They are cheap to add next time.
+- 없음.
 
 ## Cleared
-Reviewed all of the following and they pass:
-- **SSRF guard.** safeFetch takes https only, checks the allowlist by exact host match (tistory by anchored regex only), and rejects any port or userinfo. It re-checks every redirect hop with `redirect: "manual"`, follows at most 3 hops, shares one 8s timeout across the call, caps the body at 2MB and sends no credentials. The only fetches in platform-check go through it, and the robots URL is built from an allowlisted host.
-- **No stored XSS.** api/lead `no_site` rebuilds the questions from `clean()`ed fields and drops the client's `concerns`. /admin renders them as React text, and nothing in the change uses innerHTML.
-- **Truth.** Every platform sentence comes from a live robots/page fetch. Yeti on Naver hosts is marked self, left out of counts, and shown as 「… 자체 검색 — 이 규칙으로 판단 못 함」. A 429, 5xx or no response gives 「확인하지 못했습니다」 with the honest siteband-scan UA.
-- **robots.ts matcher.** I ran 19 unit cases of my own: longest match, Allow wins ties, `*`, `$`, merging repeated UA groups, several UAs in one group, case, empty Disallow, falling back to `*`, BOM and comments. All behave as RFC 9309 specifies.
-- **FAQ and hero.** One FAQ array feeds both the screen and the JSON-LD (11 = 11). Hero max is 371 (limit 400). The new copy follows the brief's wording.
-- **Verify script.** A diff against step49 shows only the 4 old assertions documented in REVIEW-REQUEST changed. Test leads and scans were deleted by id.
-- **Screenshots.** B-naver, B-instagram, B-fail and C-questions look right.
-- Deviations 1–9 are accepted.
+grep 결과 대표가 운영 / 직접 운영 / 원장 본인 / 대표 학원 / 원장이 직접 표현은 랜딩·llms.txt·사례 기록·영상 화면에 하나도 남지 않았다. 사례 기록 09.06 의 「원장 본인 인증이 필요해」 한 곳만 걸리는데, 이것은 학원 원장의 계정 인증 이야기라 운영자를 밝히지 않는다. 새 숫자는 없다. 188→933, 32편, 6개, 화장실 인용문은 모두 case-report 09.10 과 page.tsx:406-407 에 근거가 있다. FILM_LINES S4 는 화면 문구와 일치한다. tsc --noEmit 는 오류 없이 통과(exit 0)했다.

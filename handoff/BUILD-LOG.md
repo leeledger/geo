@@ -1976,3 +1976,12 @@ Should Fix:
 - layout.tsx 에 twitter card summary_large_image 한 줄
 - 확인: 로컬 / · /services · /geo/geo-cost 의 head 에 icon·apple-touch-icon·og:image(1200×630·alt) 다 있음 · 파일 4개 200 · tsc 0 · build 통과 · step50 verify 다시 ALL PASS 179
 - 굽는 스크립트는 scratchpad(저장소 밖). 다시 구울 일이 생기면 tools/ 로 옮길 것
+
+### 사이티드에서 학원 운영자 밝힘 걷기 (2026-10-16, Bob · 원장 지시) · 커밋·배포 안 함
+- D161 (원장): 사이티드 쪽 공개 글에 「대표(원장)가 직접 운영하는 학원」이라고 쓰지 않는다. 「첫 적용」은 그대로 — 「고객사」「도입 사례」로도 쓰지 않는다(유료 고객처럼 읽히면 지어낸 것, D122)
+- 바꾼 곳: page.tsx(#case 라벨·부제 · FAQ 「얼마나 걸리나요」 · 영상 문구 FILM_LINES · 푸터 링크 「첫 적용 기록(대표 학원)」 · #data 끝 문장) · llms.txt 절 제목·본문 · case-report.mjs 생성기 3곳 + public/case/academy.html 같은 3곳(다시 뽑지 않고 글자만 — 숫자 그대로) · 영상 원본 cited-promo.html 라벨
+- 영상: cited-promo.html 라벨을 「첫 적용 · 수도권 코딩·로봇 학원」으로 고치고 motion-render.mjs 로 다시 구움(같은 음악 cited.wav, 프레임 단위라 박자 그대로) → web/public/media/cited-promo.mp4 교체
+- 남긴 것: 「원장 본인 인증이 필요해…」(학원 원장 일반 — 사이티드 대표라는 말 아님) · sales.mjs 시험 문장(금지말 검사용)
+- 영상 S4 맥락 (원장 10/16 「화장실·무선인터넷이 잘못 나온 걸 보여줘야 하는데 맥락이 안 읽힌다」): 출처 줄 「학부모가 이 학원을 물으면 · 네이버 AI 의 답」, 인용 아래 빨간 줄 「학원 소개는 이 한 줄이 다였습니다. 수업 얘기는 없었습니다.」(근거 case-report 09.10 「…라고만 답하고 있었다」), 소개글 칸 「대부분 의무 안내문이었다」(근거 랜딩 #case 「188자가 대부분 의무 게시 안내문」). 새 숫자 없음. FILM_LINES 도 같은 글자로
+- 다시 굽기 확인: 새 1440p 원본의 5·12·20·35·42초 프레임이 옛 원본과 픽셀 차 0, 음악 MD5 같음 → 박자 그대로. 웹용 1920×1080·30fps·4.45MB 로 교체(옛 4.42MB). 포스터(첫 장면)는 그대로
+- 확인: tsc 0 · build · step50 verify ALL PASS 183(+1 llms·리포트 운영자 밝힘 0, +3 화면 금지말)

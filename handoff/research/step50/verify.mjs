@@ -256,6 +256,11 @@ ok(ll.body.includes(PILOT.price) && PILOT.refund.every((x) => ll.body.includes(x
 ok(ll.body.includes("https://cited.kr/#start") && ll.body.includes("https://cited.kr/case/academy.html") && !ll.body.includes("도입 사례"), "llms.txt 연락·전체 기록 주소 · 「도입 사례」 0");
 ok(!fs.existsSync("C:/dev/AGO&GEO/web/public/llms.txt"), "public/llms.txt 삭제됨");
 {
+  const caseHtml = (await req("/case/academy.html")).body;
+  const hit = ["대표가 운영", "직접 운영", "본인 학원", "남에게 팔기"].filter((w) => ll.body.includes(w) || caseHtml.includes(w));
+  ok(hit.length === 0, `[원장 10/16] llms.txt·케이스 리포트에 학원 운영자 밝힘 0${hit.length ? " — " + hit.join(",") : ""}`);
+}
+{
   const before = fs.readFileSync(`${OUT}/robots-before.txt`, "utf8").replace(/\r/g, "").trim().split("\n");
   const now = rb.body.replace(/\r/g, "").trim().split("\n");
   const diff = [];
@@ -393,7 +398,7 @@ const T = await p.evaluate(() => ({
 }));
 for (const [n, v] of [["hero lede", T.lede], ["#geo define", T.define], ["footer desc", T.foot], ["footer ©", T.bottom], ["title", head.title]]) ok(v.includes("사이티드(Cited)"), `「사이티드(Cited)」 in ${n}`);
 ok(T.price.includes("39만원") && T.price.includes("절반") && T.price.includes("전액"), "#price sub 「39만원」·「전액」·「절반」 = PILOT price·refund[0]·refund[1]");
-for (const bad of ["geo-rose-nine", "도입 사례", "크롤러 누적 방문", "채점 기준 바뀜"]) {
+for (const bad of ["geo-rose-nine", "도입 사례", "크롤러 누적 방문", "채점 기준 바뀜", "대표가 운영", "직접 운영", "대표 학원"]) {
   const at = await p.evaluate((bad) => [...document.querySelectorAll(".lp *")].filter((e) => e.children.length === 0 && e.textContent.includes(bad)).map((e) => e.className || e.tagName), bad);
   ok(!T.all.includes(bad), `화면에 「${bad}」 0${at.length ? " — 남은 곳: " + at.join(", ") : ""}`);
 }
@@ -406,7 +411,7 @@ ok(T.startSub.includes("「○○구 치과 추천해줘」"), "#start 부제에
 // 48:256 → 히어로 링크 삭제
 ok(T.heroAnchors === 0, `히어로 안 a[href^="#"] ${T.heroAnchors}개`);
 // 48:257 → 증거 줄 삭제 · 같은 머리말은 #case 라벨(D122)
-ok(T.proof === 0 && T.caseLab.includes("첫 적용 · 사이티드 대표가 운영하는"), `.lp-proof ${T.proof} · #case 라벨 「${T.caseLab}」`);
+ok(T.proof === 0 && T.caseLab.includes("첫 적용 · 수도권 코딩·로봇 학원") && !T.caseLab.includes("운영"), `.lp-proof ${T.proof} · #case 라벨 「${T.caseLab}」`);
 // 48:258 → 증거 칸 숫자는 #case 로
 {
   const m = T.card3.match(/AI 가 읽을 수 있는 글은 (\d+)편입니다/);

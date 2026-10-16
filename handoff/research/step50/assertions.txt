@@ -53,6 +53,7 @@ PASS llms.txt 머리 = 사이티드(Cited) + 정의문
 PASS llms.txt 가격·환불·월 구독이 PILOT 과 같음
 PASS llms.txt 연락·전체 기록 주소 · 「도입 사례」 0
 PASS public/llms.txt 삭제됨
+PASS [원장 10/16] llms.txt·케이스 리포트에 학원 운영자 밝힘 0
 PASS robots.txt 전·후 차이는 Sitemap 줄 하나 (Sitemap: https://geo-rose-nine.vercel.app/sitemap.xml ⇒ Sitemap: https://cited.kr/sitemap.xml)
 PASS /services canonical = https://cited.kr/services
 PASS /services/measure canonical = https://cited.kr/services/measure
@@ -90,8 +91,8 @@ PASS VideoObject contentUrl https://cited.kr/media/cited-promo.mp4 · thumbnailU
 PASS VideoObject name·uploadDate·duration·inLanguage (사이티드가 하는 일 · 2026-10-15 · PT45S · ko)
 PASS VideoObject publisher → https://cited.kr/#org (Organization 참조)
 PASS poster 200 image/jpeg 33412B
-PASS mp4 200 video/mp4 4420959B (파일 4420959B)
-PASS Range bytes=0-1023 → 206 bytes 0-1023/4420959 1024B
+PASS mp4 200 video/mp4 4450699B (파일 4450699B)
+PASS Range bytes=0-1023 → 206 bytes 0-1023/4450699 1024B
 PASS 「사이티드(Cited)」 in hero lede
 PASS 「사이티드(Cited)」 in #geo define
 PASS 「사이티드(Cited)」 in footer desc
@@ -102,20 +103,23 @@ PASS 화면에 「geo-rose-nine」 0
 PASS 화면에 「도입 사례」 0
 PASS 화면에 「크롤러 누적 방문」 0
 PASS 화면에 「채점 기준 바뀜」 0
+PASS 화면에 「대표가 운영」 0
+PASS 화면에 「직접 운영」 0
+PASS 화면에 「대표 학원」 0
 PASS 절 순서 film › geo › data › case › who › services › how › why › price › diff › nots › faq › guides › start
 PASS #proof 없음
 PASS 네비 하는 일 · 가이드 · 서비스 · 요금 · 진행 · 첫 적용 기록 · 자주 묻는 것
 PASS #start 부제에 자가 확인 「○○구 치과 추천해줘」
 PASS 히어로 안 a[href^="#"] 0개
-PASS .lp-proof 0 · #case 라벨 「첫 적용 · 사이티드 대표가 운영하는 수도권 코딩·로봇 학원 · 41일차」
-PASS #case 라벨 「41일차」 · 카드 3 「글은 49편」
+PASS .lp-proof 0 · #case 라벨 「첫 적용 · 수도권 코딩·로봇 학원 · 42일차」
+PASS #case 라벨 「42일차」 · 카드 3 「글은 49편」
 PASS 화면에 「· 빙 · M/D 측정」 꼴 0
 PASS #case 카드 1 정의문 「검색엔진 한 곳 이상에서」 유지 (D134)
 PASS 바뀐 한국어 블록 word-break: keep-all (21곳 전부)
 PASS [49-3] #faq·#guides 밖 화면 글자에 「llms.txt」 0
 PASS [49-4] 영어 라벨 [] · .lp-svc 라틴 낱말(「AI」 제외) [] · .lp-svc .tag 0
 PASS [49-5] 화면·FAQ JSON-LD 에 업계 말 0
-PASS [49-6] 풀이 5개 첫 자리·1번 (30일 파일럿@3183 기술 세팅@3248 기준선 보고@3467 봇@1461 구조화 데이터@2225)
+PASS [49-6] 풀이 5개 첫 자리·1번 (30일 파일럿@3151 기술 세팅@3216 기준선 보고@3435 봇@1461 구조화 데이터@2193)
 PASS [49-7] 메타 문구 0
 PASS [49-10] FAQ 펼친 화면 답 = JSON-LD 답 11개 · FAQ 4(비용) 「홈페이지 제작 250만원」
 PASS 업종 버튼: 질문 바뀜 (마포구에서 임플란트 잘하는 치과 추천해줘 → 법인 세무 잘 보는 세무사 사무소 추천해줘)
@@ -139,13 +143,13 @@ PASS [50-A3] 「blog.naver.com」 → 400 사람 말 오류 「블로그·계정
 PASS [50-A3] 「localhost」 → 400 사람 말 오류 「주소를 다시 확인해 주세요. (예: blog.naver.com/아이디)」
 PASS [50-A3] 「127.0.0.1」 → 400 사람 말 오류 「올바른 홈페이지 주소를 입력해 주세요. (예: example.co.kr)」
 PASS [50-A3] cited.kr → kind site · total 82 · grade 우수
-PASS [50-L1] no_site → 200 · source no_site · concerns = askQuestions (가짜 무시) 「송파구 코딩학원 추천 / 송파구에서 코딩학원 찾는데 어디가 좋아? / STEP50-VERIFY-1792072931938 어떤 곳이야?」
+PASS [50-L1] no_site → 200 · source no_site · concerns = askQuestions (가짜 무시) 「송파구 코딩학원 추천 / 송파구에서 코딩학원 찾는데 어디가 좋아? / STEP50-VERIFY-1792125616438 어떤 곳이야?」
 PASS [50-L1] company 빈칸 → 400 「상호·지역·업종을 적어 주세요.」
 PASS [50-L1] area 빈칸 → 400 「상호·지역·업종을 적어 주세요.」
 PASS [50-L1] industry 빈칸 → 400 「상호·지역·업종을 적어 주세요.」
 PASS [50-L3] platform_check → source platform_check · site https://blog.naver.com/robotncoding · wants 블로그·SNS 할 일
 PASS [50-L3] source "admin" → 옛 규칙 source contact
-PASS [50-L2] /admin 카드 이름표 「주소 없음 · AI 답 확인 요청」 · 질문 3개 (STEP50-VERIFY-1792072931938 step50-verify@example.com · 10. 15. 23:02 주소 없음 · AI 답 확인 요청 · AI 답 확인 요청 · 송파구 코딩학원 추천 / 송파구에서 코딩학원 찾는데 어디가 좋아? / STEP50-VERIFY-179)
+PASS [50-L2] /admin 카드 이름표 「주소 없음 · AI 답 확인 요청」 · 질문 3개 (STEP50-VERIFY-1792125616438 step50-verify@example.com · 10. 16. 13:40 주소 없음 · AI 답 확인 요청 · AI 답 확인 요청 · 송파구 코딩학원 추천 / 송파구에서 코딩학원 찾는데 어디가 좋아? / STEP50-VERIFY-179)
 PASS [50-L2] platform_check 카드 이름표 「블로그·SNS 진단 뒤」
 note: 시험 리드 3행 삭제 (3건 만듦)
 note: 시험 진단 1행 삭제 (1건 만듦)
@@ -163,7 +167,7 @@ PASS [50-U] 결과 A 행 6개 · 가중치 0 행 빠짐 (AI 봇이 들어오는�
 note: 결과 A 할 일 = 다음 "우리는·저희는" 같은 대명사 주어가 9회 나옵니다. AI가 문장만 떼어가면 주어가 사라집니다 — 브랜드명을 문장 안에 넣으세요. | 여유 있을 때 Next.js 감지 — 기술적으로는 전부 가능합니다. 다만 배포 절차를 타므로 콘텐츠 발행 경로(CMS 연동 여부)를 확인하세요.
 PASS [50-U 1440] B-naver: 점수·「위험」 없음 · lines 3줄 화면에 그대로 · KST 확인 시각
 PASS [50-U] 네이버 검색 줄 「네이버 블로그 자체 검색 — 이 규칙으로 판단 못 함」
-PASS [50-U] 확인 날짜가 서울 날짜 (10/15)
+PASS [50-U] 확인 날짜가 서울 날짜 (10/16)
 PASS [50-U 1440] B-instagram: 점수·「위험」 없음 · lines 3줄 화면에 그대로 · KST 확인 시각
 PASS [50-U 1440] 잡주소 오류 「주소를 다시 확인해 주세요. (예: blog.naver.com/아이디)」
 PASS [50-U 1440] 길 C 질문 3개 = askQuestions · 복사 버튼 3

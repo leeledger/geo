@@ -9,8 +9,8 @@
   /* 사이티드 홍보 45초. 1920×1080, motion-render.mjs 로 프레임 단위로 굽는다.
      박자·컷은 homepage-hype 와 같은 128BPM 격자(마디 1.875초):
        0 · 3.75 · 9.375 · 16.875 · 24.375 · 31.875(드롭) · 37.5 · 41.25
-     문구·숫자 출처: web/public/llms.txt · web/app/page.tsx (직접 측정·도입 사례·가격). 지어낸 것 없음.
-     학원은 고객사가 아니라 대표가 운영하는 곳이다 — 「도입 사례」가 아니라 「첫 적용」(Step 47 D122). 이름·지역은 가린다.
+     문구·숫자 출처: web/public/llms.txt · web/app/page.tsx (직접 측정·첫 적용·가격). 지어낸 것 없음.
+     학원은 유료 고객사가 아니다 — 「도입 사례」가 아니라 「첫 적용」(Step 47 D122). 이름·지역은 가리고, 누가 운영하는지도 밝히지 않는다(원장 2026-10-16).
      불안 팔기 없음 — 「지금 안 하면」 류 대신 측정된 사실과 보장하지 않는 것을 말한다. */
   :root{--deep:#060D19;--deep2:#0B1830;--ink:#E7EDF6;--ink2:#C3CDDB;--faint:#8592A6;
         --blue:#6BAEFF;--blue2:#1B5FD6;--good:#2FBF8A;--crit:#E0766A}
@@ -124,12 +124,13 @@
              border-left:10px solid var(--crit)}
   .s4 .quote .src{font-family:"IBM Plex Mono",monospace;font-size:26px;color:var(--faint);letter-spacing:.1em}
   .s4 .quote .t{font-size:64px;font-weight:800;margin-top:14px;line-height:1.35}
-  .s4 .fixes{position:absolute;left:150px;top:640px;display:flex;gap:80px}
+  .s4 .quote .bad{font-size:38px;font-weight:700;color:var(--crit);margin-top:18px}
+  .s4 .fixes{position:absolute;left:150px;top:700px;display:flex;gap:80px}
   .s4 .fix .k{font-size:30px;color:var(--faint)}
   .s4 .fix .v{font-size:84px;font-weight:900;font-variant-numeric:tabular-nums;margin-top:8px}
   .s4 .fix .v s{color:#4A5870;text-decoration-thickness:6px}
   .s4 .quoteWrap{}
-  .s4 .note{position:absolute;left:150px;top:850px;width:1620px;font-size:40px;line-height:1.5;color:var(--ink2)}
+  .s4 .note{position:absolute;left:150px;top:890px;width:1620px;font-size:40px;line-height:1.5;color:var(--ink2)}
   .s4 .note b{color:var(--ink)}
 
   /* ── S5 드롭: 하는 일 ── */
@@ -244,17 +245,18 @@
   <p class="why slam" style="--d:21.563s">AI는 홈페이지만 읽지 않습니다.<br><span class="b">AI가 참고하는 비교 글·목록에 이름이 있어야 합니다.</span></p>
 </section>
 
-<!-- S4 24.375 – 31.875 : 도입 사례 -->
+<!-- S4 24.375 – 31.875 : 첫 적용 -->
 <section class="sc s4" style="--a:24.375s;--b:31.82s">
-  <div class="head"><div class="lab up" style="--d:24.4s">첫 적용 · 사이티드 대표가 운영하는 학원</div></div>
+  <div class="head"><div class="lab up" style="--d:24.4s">첫 적용 · 수도권 코딩·로봇 학원</div></div>
   <div class="start slam" style="--d:24.6s">착수 때, 학부모 질문 6개 <span class="r">전부 미노출.</span></div>
   <div class="quoteWrap">
     <div class="quote swipe" style="--d:25.781s">
-      <div class="src">네이버 AI 가 이 학원을 소개한 문장</div>
+      <div class="src">학부모가 이 학원을 물으면 · 네이버 AI 의 답</div>
       <div class="t">「무선 인터넷과 남녀 구분 화장실을 제공합니다」</div>
+      <div class="bad up" style="--d:26.6s">학원 소개는 이 한 줄이 다였습니다. 수업 얘기는 없었습니다.</div>
     </div>
     <div class="fixes">
-      <div class="fix up" style="--d:27.188s"><div class="k">소개글</div><div class="v"><s>188</s> → <span class="b">933</span>자</div></div>
+      <div class="fix up" style="--d:27.188s"><div class="k">소개글 · 대부분 의무 안내문이었다</div><div class="v"><s>188</s> → <span class="b">933</span>자</div></div>
       <div class="fix up" style="--d:27.656s"><div class="k">AI 가 못 읽던 블로그 글</div><div class="v"><span class="b">32</span>편 이전</div></div>
     </div>
   </div>
