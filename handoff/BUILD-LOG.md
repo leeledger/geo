@@ -2002,3 +2002,11 @@ Should Fix:
 - 배포: 학원은 git push 로 안 나간다 — academy/ 에서 `npx vercel --prod --yes` (CLAUDE.md 함정)
 
 - **D163 (2026-10-16, Arch)** 학원 홈 #why 영상은 `rwSd_ErIviI`(45초, 10/15 03:24 PDT, homepage-hype 최종본)로. 빌더가 넣은 `FMgemA2a7_c`(41초 첫 판)는 제목이 h2와 같았지만, 원장이 고화질·박진감으로 다시 만들라 한 게 이쪽. VideoObject 값은 oEmbed·시청 페이지로 확인.
+
+### cited.kr 을 자사 고객으로 등록 (2026-10-16, Bob · 원장 지시 「cited.kr 도 거래처처럼 관리해야 모니터링을 하지」) · 커밋·배포 안 함
+- /admin/clients 「등록」과 같은 길(client-core 입력검사 → 등록 → 점검하고맞추기)로 넣음: geo.clients id 15 · slug cited · 사이티드 · cited.kr · 자사 · status active
+  - 답에서 찾을 이름 「사이티드, cited.kr」 — 「Cited」 낱말은 영어 답의 "cited sources" 에 걸려 뺌
+  - 경쟁 검색어 6: GEO 대행사 · GEO 마케팅 업체 · AEO 대행사 · AI 검색 노출 대행 · 챗GPT 회사 노출 방법 · GEO 비용(guides.ts 가 노린 말 기준) / 브랜드: 사이티드 · 사이티드 GEO
+- 세팅 점검 결과: 사이트·robots·사이트맵(13)·llms.txt·홈 JSON-LD(Organization·Service·FAQPage·VideoObject) 됨. IndexNow 키 파일 404 → web/public/a931193391cc4f6984e95709b4e2b3ef.txt 추가(배포 뒤 매시 점검이 「됨」으로 닫는다 · 사람 일감 setup-send 도 그때 닫힘)
+- 사람 몫: 구글 서치콘솔 cited.kr 속성 권한(일감 setup-gsc 열림)
+- 남은 것(새 단계 감 — Arch): ① cited.kr 크롤러·사람 방문 기록 — web 에 proxy.ts 가 없다. academy/proxy.ts 와 같은 판별 + /api/crawl·/api/visit(x-cited-client cited · crawl_key 는 setup-multiclient.mjs 로 발급 → Vercel env) ② AI 답 측정 — DB 고객 자사는 질문 패널·측정 대상 지정 길이 없다(seed-panel 은 코드 고객만) ③ 경쟁 검색어는 원장 확인 필요
