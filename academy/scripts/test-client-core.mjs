@@ -8,6 +8,7 @@ import {
   페이지줄읽기, 페이지줄글, 바깥글입력검사, 바깥글config, 바깥글폼값,
   권한판정, 탐침읽기, 탐침저장, 점검저장,
   금지말찾기, 보낼글말, 갈래, 채널정리,
+  이름말들, 이름판별고침, 판별말저장, 판별말고치고맞추기, 일감제목, 원장금지말찾기,
 } from "../../web/lib/client-core.mjs";
 
 let 통과 = 0, 실패 = 0;
@@ -279,7 +280,7 @@ const 홈html = `<html><head><script type="application/ld+json">{"@type":"Dentis
   const row = { slug: "miso", name: "미소치과", domain: D, relation: "외부", config: { indexnow: { mode: "우리", key: KEY }, gsc: false, wantGsc: true, answerTerms: ["미소치과", "miso.kr"] } };
   const 줄 = 체크리스트(row, d, { pilot: null });
   const 사람칸 = 줄.filter((x) => x.상태 === "사람");
-  봄("체크리스트 — 사람 칸 셋(보낼 것·GSC·파일럿)", JSON.stringify(사람칸.map((x) => x.id)) === '["send","gsc","measure"]', 사람칸.map((x) => x.id).join(","));
+  봄("체크리스트 — 사람 칸 둘(보낼 것·GSC) · 계약 전 측정은 기다림(D254)", JSON.stringify(사람칸.map((x) => x.id)) === '["send","gsc"]' && 줄.find((x) => x.id === "measure").상태 === "기다림", 사람칸.map((x) => x.id).join(","));
   const 보낼 = 줄.find((x) => x.id === "send");
   // Step 55b(D232) — 기술 목록은 고칠것(원장·세션만), 고객에게는 보낼글 한 문장
   봄("체크리스트 — 고칠것 묶음 하나에 다섯 가지", /5가지/.test(보낼.고칠것) && 보낼.고칠것.includes(`${KEY}.txt`) && 보낼.고칠것.includes("GPTBot") && 보낼.고칠것.includes("sitemap.xml")
@@ -296,7 +297,7 @@ const 홈html = `<html><head><script type="application/ld+json">{"@type":"Dentis
     const 감지 = 체크리스트({ ...row, config: { ...row.config, auto: { 플랫폼: { kind: "빌더", name: "카페24" } } } }, d).find((x) => x.id === "send");
     봄("체크리스트 — detectPlatform 빌더 → 빌더 보낼글", 감지.보낼글 === 보낼글말.빌더("미소치과", "카페24"));
     const g = 줄.find((x) => x.id === "gsc");
-    봄("체크리스트 — gsc 할일은 고객에게 묻지 않음", g.할일 === "고객에게 따로 묻지 않습니다. 홈페이지 관리자 아이디를 받으면 저희가 구글 서치콘솔에 직접 등록합니다. 끝나면 「권한 받음」을 누릅니다.");
+    봄("체크리스트 — gsc 할일은 고객에게 묻지 않음", g.할일 === "고객에게 따로 묻지 않습니다. 홈페이지 관리자 아이디를 받으면 저희가 구글 검색 관리 화면에 직접 등록합니다. 끝나면 「권한 받음」을 누릅니다.");
   }
   {
     // Step 56 D245 — 키 파일 하나만 빠짐 → 고객에게 안 묻는다(보낼글 없음) · setup-send 는 닫힘. dns 와 상관없이
@@ -311,7 +312,7 @@ const 홈html = `<html><head><script type="application/ld+json">{"@type":"Dentis
       봄(`동기화 — 키 파일만(dns ${dns ?? "없음"}) → setup-send 안 열고 닫음`, !계.열기.some((t) => t.key === "setup-send") && 계.닫기.some((t) => t.key === "setup-send" && t.status === "닫힘"));
       // D250 — 잊히지 않게 내부 일감 setup-keyfile(고객 글 아님)
       const 키일 = 계.열기.find((t) => t.key === "setup-keyfile");
-      봄(`동기화 — 키 파일만(dns ${dns ?? "없음"}) → setup-keyfile 내부 일감 · 키·주소 · 고객에게 안 물음`, !!키일 && /내부/.test(키일.title) && 키일.detail.includes(`${KEY}.txt`) && /고객에게 묻지 않음/.test(키일.detail), JSON.stringify(키일));
+      봄(`동기화 — 키 파일만(dns ${dns ?? "없음"}) → setup-keyfile 내부 일감 · 키·주소 · 고객에게 안 물음`, !!키일 && /고객에게 안 물음/.test(키일.title) && 키일.detail.includes(`${KEY}.txt`) && /고객에게 묻지 않습니다/.test(키일.detail), JSON.stringify(키일));
     }
     const 키와robots = 체크리스트(row, { ...다른칸됨, robots: d.robots }).find((x) => x.id === "send");
     봄("체크리스트 — 키 파일 + robots 빠짐 → 지금처럼 보낼글", 키와robots.상태 === "사람" && 키와robots.보낼글 === 보낼글말.사이트("미소치과") && /2가지/.test(키와robots.사람말));
@@ -327,9 +328,9 @@ const 홈html = `<html><head><script type="application/ld+json">{"@type":"Dentis
   봄("파이프 — 키 파일 없음 → indexnow 끔", 파이프(row.config, d).indexnow === false && 파이프({ marketing: { enabled: true } }, d).marketing === true && 파이프({}, {}).posts === false);
   // 동기화 계획
   const 계획 = 일감계획({ ...row, id: 9 }, 줄, "https://x.test");
-  봄("동기화 — 사람 칸 셋을 연다(setup-<칸>)", JSON.stringify(계획.열기.map((t) => t.key)) === '["setup-send","setup-gsc","setup-measure"]');
-  봄("동기화 — 제목은 사람 말", 계획.열기[0].title === "미소치과: 고객 담당에게 보낼 것이 있습니다" && 계획.열기[1].title === "미소치과: 구글 서치콘솔 권한을 받아 주세요"
-    && 계획.열기[2].title === "미소치과: 파일럿을 시작해 주세요");
+  봄("동기화 — 사람 칸 둘을 연다(setup-<칸>) · 계약 전 setup-measure 는 닫힘(D254)", JSON.stringify(계획.열기.map((t) => t.key)) === '["setup-send","setup-gsc"]'
+    && 계획.닫기.find((t) => t.key === "setup-measure")?.status === "닫힘");
+  봄("동기화 — 제목은 사람 말", 계획.열기[0].title === "미소치과: 고객 담당에게 보낼 것이 있습니다" && 계획.열기[1].title === "미소치과: 구글 검색 관리 화면 권한을 받아 주세요");
   봄("동기화 — 링크 /admin/clients/<slug> · 보낼글이 detail(고칠것 아님)", 계획.열기.every((t) => t.link === "https://x.test/admin/clients/miso") && 계획.열기[0].detail === 보낼.보낼글 && !금지말찾기(계획.열기[0].detail).length);
   const 다됨 = 일감계획({ ...row, id: 9 }, 체크리스트({ ...row, relation: "자사", config: { ...row.config, gsc: true } }, { ...d, robots: { status: 200, blocked: [] },
     sitemap: { status: 200, ok: true, pages: 1, url: "u" }, llmsTxt: { status: 200, ok: true }, homeLdTypes: ["X"], indexnowFile: { status: 200, ok: true } }));
@@ -621,14 +622,71 @@ const 홈html = `<html><head><script type="application/ld+json">{"@type":"Dentis
   const 원 = 줄id(단(["됨", "원장", "대기", "됨", "원장"]), "auto");
   봄("auto 줄 — 원장 단계 → 사람 · 할일 = 그 단계 말들", 원.상태 === "사람" && 원.할일 === "업종지역 말\n질문 말" &&원.사람말 === "업종·지역·질문 20개 단계에서 멈췄습니다");
   const 계 = 일감계획({ slug: "a", name: "가게" }, [원]);
-  봄("동기화 55 — setup-auto 열기 · 제목", 계.열기[0]?.key === "setup-auto" && 계.열기[0].title === "가게: 자동 세팅이 멈췄습니다" && 계.열기[0].detail === "업종지역 말\n질문 말");
+  봄("동기화 55 — setup-auto 열기 · 제목", 계.열기[0]?.key === "setup-auto" && 계.열기[0].title === "가게: 자동 준비가 멈췄습니다 — 원장님이 보실 곳이 있습니다" && 계.열기[0].detail === "업종지역 말\n질문 말");
   봄("name 줄 — 흔하지 않음 → 됨", 줄id({}, "name").상태 === "됨");
   const 흔 = 줄id({ answerTerms: ["강동구 수학 학원", "송파코딩학원", "a.kr"] }, "name");
-  봄("name 줄 — 흔한 말 → 사람 · 할일에 그 말", 흔.상태 === "사람" && 흔.할일 === "강동구 수학 학원, 송파코딩학원 은(는) 남의 답에도 걸립니다. 「자세히」에서 고객만의 이름·도메인으로 바꿉니다", 흔.할일);
+  봄("name 줄 — 흔한 말 → 사람 · 할일에 그 말", 흔.상태 === "사람" && 흔.할일 === "「강동구 수학 학원」「송파코딩학원」은(는) 다른 가게 이름에도 들어 있어, 남의 답까지 이 고객 것으로 셉니다. 「자세히」에서 이 고객만 쓰는 이름(간판 이름·줄임말)을 넣어 주세요", 흔.할일);
   봄("name 줄 — 판별 말 없음 → 사람", 줄id({ answerTerms: [] }, "name").상태 === "사람");
-  봄("동기화 55 — setup-name 제목", 일감계획({ slug: "a", name: "가게" }, [흔]).열기[0].title === "가게: 이름 판별 말을 바꿔 주세요");
-  봄("measure 줄 — 자동 질문 있으면 할일이 그 말", 체크리스트({ ...행(단(["됨", "됨", "됨", "됨", "됨"])), relation: "외부" }, {}, { pilot: null }).find((x) => x.id === "measure").할일
-    === "계약이 되면 「파일럿 시작」에 담당자·입금·약관 칸을 넣습니다. 질문 20개는 자동으로 만들어 두었습니다.");
+  봄("동기화 55 — setup-name 제목", 일감계획({ slug: "a", name: "가게" }, [흔]).열기[0].title === "가게: AI 답에서 이 고객을 찾을 이름을 정해 주세요");
+  const 측 = 체크리스트({ ...행(단(["됨", "됨", "됨", "됨", "됨"])), relation: "외부" }, {}, { pilot: null }).find((x) => x.id === "measure");
+  봄("measure 줄 — 계약 전 기다림 · 자동 질문 있으면 그 말 · 할일 없음(D254)", 측.상태 === "기다림" && 측.사람말.includes("질문 20개는 만들어 두었습니다") && 측.할일 === undefined, 측.사람말);
+  봄("동기화 57 — 계약 전 measure 기다림 → 옛 setup-measure 닫힘, 열지 않음", 일감계획({ slug: "a", name: "가게" }, [측]).닫기[0]?.key === "setup-measure" && !일감계획({ slug: "a", name: "가게" }, [측]).열기.length);
+  봄("동기화 57 — 질문 승인 기다림(파일럿 있음)도 닫힘", 일감계획({ slug: "a", name: "가게" }, 체크리스트({ ...행({}), relation: "외부" }, {}, { pilot: { id: "p", status: "진행", approved: false } })).닫기.some((t) => t.key === "setup-measure" && t.status === "닫힘"));
+}
+{
+  // D252 — 흔한 판별 말 자동 고침
+  봄("이름말들 — 그대로 · 띄어쓰기 뺀 것만(줄기 없음, D257)", JSON.stringify(이름말들("미소 영어학원")) === JSON.stringify(["미소 영어학원", "미소영어학원"]), JSON.stringify(이름말들("미소 영어학원")));
+  // D257 — 업종어를 뗀 줄기는 보통 문장·남의 학원에 걸린다. 다섯 이름 어느 것도 줄기 말이 안 나온다
+  for (const [이름, 줄기] of [["행복한공부방", "행복한"], ["맛있는카페", "맛있는"], ["우리동네학원", "우리동네"], ["대치수학학원", "대치수학"], ["잠실미술학원", "잠실미술"]]) {
+    const 말 = 이름말들(이름);
+    const 고침 = 이름판별고침({ id: 7, slug: "a", name: 이름, domain: null, config: { answerTerms: ["송파구 영어 학원"], auto: { 출처: { 판별말: "자동: x" } } } });
+    봄(`이름말들 D257 — ${이름} → 줄기 「${줄기}」 없음`, !말.includes(줄기) && !고침.terms.includes(줄기) && 말.every((x) => x.replace(/\s+/g, "") === 이름), JSON.stringify({ 말, terms: 고침.terms }));
+  }
+  봄("이름말들 — 흔한 이름은 빈 목록", 이름말들("송파 영어학원").length === 0 && 이름말들("Cited").length === 0);
+  const 자동행 = (terms, 출처 = "자동: x") => ({ id: 7, slug: "a", name: "미소 영어학원", domain: null, relation: "외부", config: { answerTerms: terms, auto: { 출처: { 판별말: 출처 } } } });
+  const g1 = 이름판별고침(자동행(["송파구 영어 학원", "miso.kr"]));
+  봄("이름판별고침 — 자동 출처 · 흔한 말 → 이름 말만으로 갈아 끼움(홈페이지 없음 → 도메인 없음)", g1.바꿀 && JSON.stringify(g1.terms) === JSON.stringify(["미소 영어학원", "미소영어학원"]), JSON.stringify(g1));
+  봄("이름판별고침 — 사이트 고객은 도메인을 붙인다", JSON.stringify(이름판별고침({ ...자동행(["송파구 영어 학원"]), domain: "www.miso.kr" }).terms) === JSON.stringify(["미소 영어학원", "미소영어학원", "miso.kr"]));
+  const 강 = 이름판별고침(자동행(["내신영어 학원", "송파구 영어 학원", "원장말"], "원장"), { 강제: true });
+  봄("이름판별고침 D258 — 강제면 원장 말·일반 말까지 전부 이름 말로", 강.바꿀 && JSON.stringify(강.terms) === JSON.stringify(["미소 영어학원", "미소영어학원"]), JSON.stringify(강));
+  봄("이름판별고침 D258 — 강제여도 이미 이름 말뿐이면 그대로", !이름판별고침(자동행(["미소 영어학원", "미소영어학원"], "원장"), { 강제: true }).바꿀);
+  봄("이름판별고침 — 원장 출처는 안 덮음", !이름판별고침(자동행(["송파구 영어 학원"], "원장")).바꿀);
+  봄("이름판별고침 — 원장 출처라도 강제(원장 지시)면 바꿈", 이름판별고침(자동행(["송파구 영어 학원"], "원장"), { 강제: true }).바꿀);
+  봄("이름판별고침 — 자동 세팅 전 고객(auto 없음)은 안 덮음", !이름판별고침({ name: "미소 영어학원", config: { answerTerms: ["송파구 영어 학원"] } }).바꿀);
+  봄("이름판별고침 — 이름 자체가 흔하면 안 바꿈", !이름판별고침({ ...자동행(["송파 영어학원"]), name: "송파 영어학원" }).바꿀);
+  봄("이름판별고침 — 흔한 말 없으면 그대로", !이름판별고침(자동행(["미소영어학원"])).바꿀);
+  const 이름줄 = (row) => 체크리스트(row, {}).find((x) => x.id === "name");
+  봄("name 줄 — 고칠 수 있는 흔한 말 → 기다림(매시 루프가 고침)", 이름줄(자동행(["송파구 영어 학원"])).상태 === "기다림");
+  봄("name 줄 — 원장 출처 흔한 말 → 사람", 이름줄(자동행(["송파구 영어 학원"], "원장")).상태 === "사람");
+  봄("name 줄 — 고친 뒤 → 됨", 이름줄(자동행(g1.terms)).상태 === "됨");
+  // 저장 — 가짜 q 로 SQL 값만 본다
+  const 받은 = [];
+  const 가짜 = async (sql, p = []) => { 받은.push({ sql, p }); return /^update geo\.clients/.test(sql.trim()) ? [{ id: 7 }] : []; };
+  const n = await 판별말저장(가짜, 자동행(["송파구 영어 학원", "miso.kr"]), g1.terms, new Date("2026-10-17T01:00:00Z"));
+  const up = 받은[0];
+  봄("판별말저장 — answerTerms·패턴·출처·읽은 값 조건", n === 1 && up.p[0] === 7 && up.p[1] === JSON.stringify(g1.terms) && up.p[2] === answerPattern(g1.terms.join(","), "")
+    && up.p[3] === "자동: 이름에서 다시 만듦 2026-10-17" && up.p[4] === JSON.stringify(["송파구 영어 학원", "miso.kr"]) && /coalesce\(config->'answerTerms', '\[\]'::jsonb\) = \$5::jsonb/.test(up.sql), JSON.stringify(up.p));
+  // 매시 고리 — 고객 둘(고칠 것 하나 · 원장 출처 하나) + 코드 고객은 안 봄
+  const 행들 = [{ ...자동행(["송파구 영어 학원"]), id: 7, slug: "a", status: "active", derived: {} },
+    { ...자동행(["송파구 영어 학원"], "원장"), id: 8, slug: "b", status: "active", derived: {} },
+    { ...자동행(["송파구 영어 학원"]), id: 1, slug: "robotncoding", status: "active", derived: {} }];
+  const 쓴 = [], 로그 = [];
+  const 고리q = async (sql, p = []) => {
+    const t = sql.trim();
+    if (t.startsWith("select to_jsonb(c) as r from geo.clients")) return 행들.map((r) => ({ r }));
+    if (t.startsWith("update geo.clients")) { 쓴.push(p[0]); return [{ id: p[0] }]; }
+    if (t.includes("from geo.pilots")) return [];
+    if (t.startsWith("select status from geo.agent_tasks")) return [];
+    if (t.startsWith("insert into geo.agent_tasks")) return [{ id: 1, status: "사람 대기" }];
+    if (t.startsWith("update geo.agent_tasks")) return [];
+    return [];
+  };
+  const 고친수 = await 판별말고치고맞추기(고리q, { admin: "https://x.test", log: (x) => 로그.push(x) });
+  봄("매시 고리 — 자동 출처만 고침 · 코드 고객 안 봄 · 로그에 이름 없음", 고친수 === 1 && JSON.stringify(쓴) === "[7]" && 로그.every((x) => !x.includes("미소") && !x.includes("송파")), 로그.join(" | "));
+}
+{
+  // D255 — 원장 일감 제목 금지어 0(전 조합은 test-client-copy)
+  봄("일감제목 — 원장 일감 금지어 0", Object.values(일감제목).every((f) => !원장금지말찾기(f("가게")).length), Object.values(일감제목).map((f) => f("가게")).filter((t) => 원장금지말찾기(t).length).join(" / "));
 }
 
 console.log(`${통과} 통과 · ${실패} 실패`);

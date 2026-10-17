@@ -164,6 +164,20 @@ export const 고객금지말 = ["robots", "sitemap", "사이트맵", "llms", "in
 /** 글 → 든 금지어 목록(없으면 []) */
 export const 금지말찾기 = (글) => { const s = String(글 ?? "").toLowerCase(); return 고객금지말.filter((w) => s.includes(w)); };
 
+/**
+ * 원장 일감 금지어(D255) — 「오늘 원장님이 하실 일」에 뜨는 제목·할 일 글에 이 말이 있으면 원장은 무슨 일인지 모른다.
+ * 고객 글 금지어(D233)와 따로 둔다. 내부 기술 목록 「고칠것」(Claude 세션용)은 일감으로 안 뜨니 예외. test-client-copy 가 전 조합을 돈다. 대소문자 무시
+ */
+export const 원장금지말 = ["판별 말", "판별말", "파일럿", "크롤러", "착수", "세팅", "indexnow", "서치콘솔", "search console", "robots", "sitemap", "사이트맵",
+  "llms", "json-ld", "jsonld", "키 파일", "도메인", "씨앗"];
+export const 원장금지말찾기 = (글) => { const s = String(글 ?? "").toLowerCase(); return 원장금지말.filter((w) => s.includes(w)); };
+
+/** 계약 일감 글(D254) — 리허설이 있어도 「시작」을 요구하지 않는다. 할 일 순서 1번 줄도 이 글을 쓴다 */
+export const 계약말 = {
+  제목: (n) => `${n}: 계약하셨으면 입금 받은 날을 넣어 주세요`,
+  할일: "그날부터 30일을 셉니다(홈페이지를 새로 만드는 곳은 연 날부터). 아직 계약 전이면 그대로 두세요",
+};
+
 // ─────────────────────────────────────────── 등록 · 고치기
 /** 칸이 없는 DB 에서도 돌게 — add column if not exists 만 */
 export async function 고객칸준비(q) {
@@ -703,7 +717,7 @@ const 됨 = "됨", 기다림 = "기다림", 사람 = "사람", 없음 = "해당�
 
 /** 자동 세팅 다섯 단계(auto-setup-core 와 같은 순서) */
 export const 자동단계 = ["사이트", "업종지역", "검색어", "파일럿", "질문"];
-export const 자동단계말 = { 사이트: "사이트 상태", 업종지역: "업종·지역", 검색어: "검색어", 파일럿: "리허설 파일럿", 질문: "질문 20개" };
+export const 자동단계말 = { 사이트: "사이트 상태", 업종지역: "업종·지역", 검색어: "검색어", 파일럿: "연습 측정 준비", 질문: "질문 20개" };
 
 /** 사이트 점검 8줄 — 홈페이지가 없으면(플랫폼·없음) 전부 해당없음 */
 const 사이트줄칸 = [["site", "사이트 열림"], ["robots", "AI 크롤러 허용(robots)"], ["sitemap", "사이트맵"], ["llms", "llms.txt"], ["jsonld", "홈 JSON-LD"],
@@ -815,7 +829,7 @@ export function 체크리스트(row, derived, { pilot = null } = {}) {
         줄.push({ id: "send", 칸: "고객 담당에게 보낼 것", 상태: 기다림, 사람말: "키 파일만 빠졌습니다 — 고객에게 묻지 않습니다. 접근 권한이 있으면 우리가 올리고, 없으면 원장·Claude 세션 몫(고칠 것)", 고칠것: 글 });
         // 잊히지 않게 내부 일감 하나(D250) — 키 파일 줄을 사람으로 돌려 setup-keyfile 을 연다. 고객에게 가는 글 아님
         const 키줄 = 줄.find((x) => x.id === "keyfile");
-        Object.assign(키줄, { 상태: 사람, 할일: `원장·Claude 세션 몫(고객에게 묻지 않음): ${base}/${k.key}.txt 에 한 줄 「${k.key}」 을 올립니다. 접근 권한이 있으면 우리가 올리고, 없으면 관리자 아이디를 받을 때 같이 합니다` });
+        Object.assign(키줄, { 상태: 사람, 할일: `고객에게 묻지 않습니다. 홈페이지에 글자 파일 하나(${base}/${k.key}.txt, 내용은 「${k.key}」 한 줄)를 올리면 새 글을 검색엔진에 바로 알립니다. 관리자 아이디가 있으면 저희가 올리고, 없으면 아이디를 받을 때 같이 합니다` });
       } else if (c.onboard?.dns === "우리") {
         줄.push({ id: "send", 칸: "고객 담당에게 보낼 것", 상태: 기다림, 사람말: `우리가 고칩니다: ${빠진칸.join(" · ")}`, 고칠것: 글 });
       } else {
@@ -840,16 +854,15 @@ export function 체크리스트(row, derived, { pilot = null } = {}) {
         : g?.state === "모름" ? `원장 PC 가 봤지만 판정 기준을 아직 못 정했습니다(${g.at}). `
         : "원장 PC 가 아직 안 봤습니다. ";
       줄.push({ id: "gsc", 칸: "구글 서치콘솔 권한", 상태: 사람, 사람말: `${본것}권한을 받아야 구글 색인 요청을 돌릴 수 있습니다`,
-        할일: "고객에게 따로 묻지 않습니다. 홈페이지 관리자 아이디를 받으면 저희가 구글 서치콘솔에 직접 등록합니다. 끝나면 「권한 받음」을 누릅니다." });
+        할일: "고객에게 따로 묻지 않습니다. 홈페이지 관리자 아이디를 받으면 저희가 구글 검색 관리 화면에 직접 등록합니다. 끝나면 「권한 받음」을 누릅니다." });
     }
   }
 
-  // AI 측정 — 외부 고객은 파일럿·질문 승인이 있어야 잰다
+  // AI 측정 — 외부 고객은 파일럿·질문 승인이 있어야 잰다.
+  // 계약 전(파일럿 없음·자동 리허설)은 원장 일감이 아니다(D254) — 매일 「오늘 할 일」에 쌓이지 않게 기다림. 계약은 고객 화면 「할 일 순서」 1번 줄이 말한다
   if (row.relation !== "외부") 줄.push({ id: "measure", 칸: "AI 측정(파일럿·질문 승인)", 상태: 없음, 사람말: "자사는 파일럿 없이 잽니다(리허설은 따로)" });
-  else if (!pilot) 줄.push({ id: "measure", 칸: "AI 측정(파일럿·질문 승인)", 상태: 사람, 사람말: "파일럿이 없어 AI 답을 아직 안 잽니다",
-    할일: c.auto?.단계?.질문?.상태 === "됨"
-      ? "계약이 되면 「파일럿 시작」에 담당자·입금·약관 칸을 넣습니다. 질문 20개는 자동으로 만들어 두었습니다."
-      : "계약이 되면 이 화면의 「파일럿 시작」에 담당자·입금·약관 칸을 넣습니다. 질문 20개가 만들어집니다." });
+  else if (!pilot) 줄.push({ id: "measure", 칸: "AI 측정(파일럿·질문 승인)", 상태: 기다림,
+    사람말: `계약 전입니다. ${c.auto?.단계?.질문?.상태 === "됨" ? "질문 20개는 만들어 두었습니다. " : ""}계약하면 아래 「계약 칸」에 입금 받은 날을 넣습니다` });
   else if (!pilot.approved) 줄.push({ id: "measure", 칸: "AI 측정(파일럿·질문 승인)", 상태: 기다림, 사람말: "고객이 질문 20개를 승인하면 첫 측정을 시작합니다" });
   else 줄.push({ id: "measure", 칸: "AI 측정(파일럿·질문 승인)", 상태: 됨, 사람말: "질문이 승인돼 AI 답을 잽니다" });
 
@@ -874,13 +887,16 @@ export function 체크리스트(row, derived, { pilot = null } = {}) {
     else 줄.push({ id: "auto", 칸: "자동 세팅", 상태: 기다림, 사람말: `자동 세팅 ${된수}/${자동단계.length} — 고객 화면 판이나 매시 회사 루프가 잇습니다` });
   }
 
-  // 이름 판별 말(D224) — 흔한 말은 남의 답에도 걸려 레퍼런스 숫자를 더럽힌다
+  // 이름 판별 말(D224) — 흔한 말은 남의 답에도 걸려 레퍼런스 숫자를 더럽힌다. 고객 이름으로 고칠 수 있으면 매시 루프가 고친다(D252)
   const 판별 = Array.isArray(c.answerTerms) ? c.answerTerms.filter((x) => typeof x === "string") : [];
   const 흔한 = 판별.filter(이름흔함);
+  const 남의답 = "다른 가게 이름에도 들어 있어, 남의 답까지 이 고객 것으로 셉니다";
+  const 넣을말 = "「자세히」에서 이 고객만 쓰는 이름(간판 이름·줄임말)을 넣어 주세요";
   if (!판별.length) 줄.push({ id: "name", 칸: "이름 판별 말", 상태: 사람, 사람말: "AI 답에서 이 고객을 가릴 말이 없습니다",
-    할일: "고객 이름이 흔하고 도메인도 없어 판별 말을 비워 두었습니다. 「자세히」에서 고객만의 이름·도메인을 넣습니다" });
+    할일: `이름이 흔하고 홈페이지도 없어 AI 답에서 이 고객을 찾을 말이 없습니다. ${넣을말}` });
+  else if (흔한.length && 이름판별고침(row).바꿀) 줄.push({ id: "name", 칸: "이름 판별 말", 상태: 기다림, 사람말: `흔한 말 ${흔한.length}개 — 매시 루프가 고객 이름에서 만든 말로 바꿉니다` });
   else if (흔한.length) 줄.push({ id: "name", 칸: "이름 판별 말", 상태: 사람, 사람말: `흔한 말 ${흔한.length}개 — 남의 답도 우리 적중으로 셀 수 있습니다`,
-    할일: `${흔한.join(", ")} 은(는) 남의 답에도 걸립니다. 「자세히」에서 고객만의 이름·도메인으로 바꿉니다` });
+    할일: `「${흔한.join("」「")}」은(는) ${남의답}. ${넣을말}` });
   else 줄.push({ id: "name", 칸: "이름 판별 말", 상태: 됨, 사람말: 판별.join(", ") });
   return 줄;
 }
@@ -895,14 +911,91 @@ export async function 파일럿상태(q, clientId) {
   return p ?? null;
 }
 
+// ─────────────────────────────────────────── 이름 판별 말 자동 고침 (D252)
+const 원장출처 = (x) => String(x ?? "").startsWith("원장");
+/**
+ * 고객 이름에서 만든 판별 말 — 이름 그대로 · 띄어쓰기 뺀 것만(D257). 끝 업종어를 뗀 줄기(「행복한」「대치수학」)는 남의 답·보통 문장에
+ * 걸려 넣지 않는다. 흔한 말·맨 영어 낱말(D223)·2~40자 밖은 뺀다
+ */
+export function 이름말들(name) {
+  const n = String(name ?? "").trim().replace(/\s+/g, " ");
+  return 같은말뺌([n, n.replace(/\s+/g, "")].filter((x) => x && x.length >= 2 && x.length <= 40 && 한글.test(x) && !이름흔함(x)));
+}
+
+/**
+ * 흔한 판별 말을 고객 이름에서 만든 말로 바꿀까 → { 바꿀, terms, 까닭 }. 순수.
+ * 바꾸면 판별 말 전부를 이름말들 + 도메인(홈페이지가 사이트·빌더일 때)으로 갈아 끼운다(D257) — 다른 말은 남기지 않는다.
+ * 출처가 「원장」인 말·자동 세팅 전 고객(원장이 폼에 쓴 말)은 덮지 않는다(D229).
+ * 강제(원장 지시, fix-name-terms --client-id — D258)면 출처와 흔한 말 유무를 안 보고 이름만으로 갈아 끼운다(원장이 넣은 일반 말도 뺀다).
+ * 이름 자체가 흔해 만들 말이 없으면 바꾸지 않는다(그때만 원장 일감)
+ */
+export function 이름판별고침(row, { 강제 = false } = {}) {
+  const c = row?.config && typeof row.config === "object" ? row.config : {};
+  const terms = Array.isArray(c.answerTerms) ? c.answerTerms.filter((x) => typeof x === "string") : [];
+  const 흔한 = terms.filter(이름흔함);
+  if (!강제 && !흔한.length) return { 바꿀: false, terms, 까닭: "흔한 말 없음" };
+  if (!강제 && (!c.auto || 원장출처(c.auto.출처?.판별말))) return { 바꿀: false, terms, 까닭: "원장이 넣은 말" };
+  const 새말 = 이름말들(row.name);
+  if (!새말.length) return { 바꿀: false, terms, 까닭: "이름 자체가 흔함" };
+  const 홈 = 갈래(row);
+  const 새 = 같은말뺌([...새말, ...(홈 === "사이트" || 홈 === "빌더" ? [도메인정리(row.domain)] : [])]);
+  if (JSON.stringify(새) === JSON.stringify(terms)) return { 바꿀: false, terms, 까닭: "이미 이름 말뿐" };
+  return { 바꿀: true, terms: 새, 까닭: `판별 말 ${terms.length}개(흔함 ${흔한.length}) → 이름에서 만든 말 ${새.length}개` };
+}
+
+/**
+ * 고친 판별 말을 저장 — config.answerTerms · answer_pattern · auto.출처.판별말. 읽은 뒤 바뀌었으면(동시에 원장이 고침) 안 쓴다 → 바뀐 행 수
+ */
+export async function 판별말저장(q, row, terms, at = new Date()) {
+  const c = row.config && typeof row.config === "object" ? row.config : {};
+  const 제외 = Array.isArray(c.answerExclude) ? c.answerExclude : [];
+  const 출처 = `자동: 이름에서 다시 만듦 ${at.toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" })}`;
+  const rows = await q(`update geo.clients set answer_pattern = $3,
+         config = case when config ? 'auto' and jsonb_typeof(config->'auto') = 'object'
+                       then jsonb_set(jsonb_set(config, '{answerTerms}', $2::jsonb), '{auto,출처}', coalesce(config #> '{auto,출처}', '{}'::jsonb) || jsonb_build_object('판별말', $4::text))
+                       else jsonb_set(config, '{answerTerms}', $2::jsonb) end
+       where id = $1 and coalesce(config->'answerTerms', '[]'::jsonb) = $5::jsonb returning id`,
+    [row.id, JSON.stringify(terms), answerPattern(terms.join(","), 제외.join(",")), 출처, JSON.stringify(c.answerTerms ?? [])]);
+  return rows.length;
+}
+
+/**
+ * 회사 루프 매시(D252·D254) — 화면 등록 고객(active)마다: 흔한 판별 말 자동 고침 → 체크리스트 → 사람 일감 맞추기.
+ * 사이트를 열지 않는다(저장된 derived 로). 사이트 없는 고객은 세팅재점검 이 안 고르니, 일감 글이 바뀌거나 닫혀야 할 때 여기서 맞춘다. 멱등.
+ * 로그에는 slug·개수만(고객 이름·말을 안 남긴다)
+ */
+export async function 판별말고치고맞추기(q, { admin, log = console.log, now = new Date() } = {}) {
+  const rows = (await q(`select to_jsonb(c) as r from geo.clients c where c.status = 'active' order by c.id`)).map((x) => x.r)
+    .filter((r) => !CODE_SLUGS.includes(r.slug));
+  let 고침 = 0;
+  for (const row of rows) {
+    try {
+      let 지금 = row;
+      const g = 이름판별고침(row);
+      if (g.바꿀 && await 판별말저장(q, row, g.terms, now)) {
+        고침++;
+        지금 = { ...row, config: { ...row.config, answerTerms: g.terms } };
+        await q(`insert into geo.agent_activity (client_id, agent, action, ok, summary) values ($1, 'setup', '이름 말 고침', true, $2)`, [row.id, g.까닭]);
+        log(`  이름 말 고침 ${row.slug}: ${g.까닭}`);
+      }
+      const 일감 = await 사람일감맞추기(q, 지금, 체크리스트(지금, 지금.derived ?? {}, { pilot: await 파일럿상태(q, row.id) }), { admin });
+      if (일감.열림.length || 일감.닫힘.length) log(`  일감 맞춤 ${row.slug}:${일감.열림.length ? ` 엶 ${일감.열림.join(",")}` : ""}${일감.닫힘.length ? ` 닫음 ${일감.닫힘.join(",")}` : ""}`);
+    } catch (e) {
+      log(`  ⚠ 판별 말·일감 맞추기 ${row.slug} 실패 — ${String(e?.message ?? e).slice(0, 160)}`);
+    }
+  }
+  return 고침;
+}
+
 // ─────────────────────────────────────────── 사람 일감 동기화
-const 일감제목 = {
+/** 원장 일감 제목(D255 — 원장금지말 없음). measure 는 계약 전엔 안 열리고(D254) 남은 옛 일감을 닫는 열쇠로 쓴다 */
+export const 일감제목 = {
   send: (n) => `${n}: 고객 담당에게 보낼 것이 있습니다`,
-  gsc: (n) => `${n}: 구글 서치콘솔 권한을 받아 주세요`,
-  measure: (n) => `${n}: 파일럿을 시작해 주세요`,
-  auto: (n) => `${n}: 자동 세팅이 멈췄습니다`,
-  name: (n) => `${n}: 이름 판별 말을 바꿔 주세요`,
-  keyfile: (n) => `${n}: IndexNow 키 파일을 올려 주세요(내부 — 고객에게 안 물음)`,
+  gsc: (n) => `${n}: 구글 검색 관리 화면 권한을 받아 주세요`,
+  measure: 계약말.제목,
+  auto: (n) => `${n}: 자동 준비가 멈췄습니다 — 원장님이 보실 곳이 있습니다`,
+  name: (n) => `${n}: AI 답에서 이 고객을 찾을 이름을 정해 주세요`,
+  keyfile: (n) => `${n}: 새 글 알림 파일 하나를 홈페이지에 올려야 합니다(고객에게 안 물음)`,
 };
 
 /**
@@ -919,6 +1012,8 @@ export function 일감계획(row, 줄, admin = "https://geo-rose-nine.vercel.app
     const key = `setup-${x.id}`;
     if (x.상태 === 사람) 열기.push({ key, title: 일감제목[x.id](row.name), detail: (x.id === "send" ? x.보낼글 : x.할일) ?? x.사람말, link, payload: { slug: row.slug, 칸: x.id } });
     else if (x.id === "send" && x.상태 === 기다림 && x.고칠것) 닫기.push({ key, status: "닫힘", why: x.사람말 });
+    // 계약 전·질문 승인 기다림은 원장 일감이 아니다(D254) — 옛 「파일럿을 시작해 주세요」를 닫는다
+    else if (x.id === "measure" && x.상태 === 기다림) 닫기.push({ key, status: "닫힘", why: x.사람말 });
     else if (x.상태 === 됨) 닫기.push({ key, status: "완료", why: x.사람말 });
     else if (x.상태 === 없음) 닫기.push({ key, status: "닫힘", why: x.사람말 });
   }

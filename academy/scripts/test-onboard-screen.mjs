@@ -6,6 +6,7 @@
  * 로컬 next dev(운영 DB) + 새 헤드리스 chromium(빈 프로필) + /admin/enter?key= 로 관리자 쿠키만. 원장 로그인 브라우저는 안 연다.
  * 시험 고객(status 'test', 도메인은 우리 랜딩 — 남의 사이트를 두드리지 않는다)을 두 칸 폼으로 등록(Step 55) → 파일럿 시작(사이트 구축 — 자동 리허설을 계약으로 올림) →
  * 상황 저장(도메인 담당 우리 · 블로그 받음) → 줄 상태 단언 → 1440·390 스크린샷 → cited(자사·리허설) 두 폭 → 시험 고객 지우기 · 남은 행 0.
+ * Step 57: 고객 화면·계약 뒤 순서 맨 위 「할 일 순서」(계약 전 · 사이트 구축 계약 뒤) 단언과 두 폭 사진. 단계별 줄은 「자세히」(#ob-detail)에 접혀 있어 펼쳐 본다.
  * 스크린샷은 --out 폴더(없으면 OS 임시 폴더). 저장소에 남기지 않는다
  */
 import fs from "node:fs";
@@ -16,7 +17,7 @@ import { spawn, execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
 import { chromium } from "../../tools/node_modules/playwright/index.mjs";
-import { 지우기 } from "../../web/lib/client-core.mjs";
+import { 지우기, 원장금지말찾기 } from "../../web/lib/client-core.mjs";
 
 if (!process.argv.includes("--live")) {
   console.log("사용: node academy/scripts/test-onboard-screen.mjs --live [--out <폴더>]   (로컬 next dev + 운영 DB 에 시험 고객을 넣었다 지운다)");
@@ -72,15 +73,18 @@ const 남은행 = async (id, 파일럿) => {
 };
 
 const 사진들 = [];
-/** 두 폭에서 가로 넘침 없음 + 전체 화면 사진 */
-const 두폭 = async (page, url, 이름) => {
+/** 단계별 줄 「자세히」를 펼친다 — 이미 펼친 것(자사·리허설)은 그대로 */
+const 펼침 = async (page) => { await page.locator("#ob-detail").evaluate((d) => { d.open = true; }); };
+/** 두 폭에서 가로 넘침 없음 + 전체 화면 사진. 계약 뒤 순서는 단계 줄을 펼쳐 찍는다 */
+const 두폭 = async (page, url, 이름, { 접두 = "onboard", 기다릴 = '[data-stage="contract"]' } = {}) => {
   for (const [w, h] of [[1440, 900], [390, 844]]) {
     await page.setViewportSize({ width: w, height: h });
     await page.goto(url);
-    await page.locator('[data-stage="contract"]').waitFor();
+    if (접두 === "onboard") await 펼침(page);
+    await page.locator(기다릴).waitFor();
     const { sw, iw } = await page.evaluate(() => ({ sw: document.documentElement.scrollWidth, iw: window.innerWidth }));
     봄(`${이름} ${w} — 가로 넘침 없음`, sw <= iw, `scrollWidth ${sw} > innerWidth ${iw}`);
-    const 파일 = path.join(출력, `onboard-${이름}-${w}.png`);
+    const 파일 = path.join(출력, `${접두}-${이름}-${w}.png`);
     await page.screenshot({ path: 파일, fullPage: true });
     사진들.push(파일);
   }
@@ -129,8 +133,23 @@ try {
   봄("시험 고객 생김 — status test · 외부", row?.status === "test" && row?.relation === "외부");
   봄("고객 화면에 「계약 뒤 순서」 링크", (await page.locator(`a[href="/admin/clients/${SLUG}/onboard"]`).count()) === 1);
 
-  // 3. 파일럿 시작 전 — 진단 통과 순서 · 파일럿 원장님 몫
+  // 3. 파일럿 시작 전 — 고객 화면 맨 위 할 일 순서(Step 57 D256)
+  await page.goto(`${BASE}/admin/clients/${SLUG}`);
+  const 할일 = async () => page.locator('[data-testid="todo-order"] [data-todo]').evaluateAll((xs) => xs.map((x) => `${x.getAttribute("data-todo")}:${x.getAttribute("data-state")}:${x.getAttribute("data-who")}`));
+  const 전할일 = await 할일();
+  console.log(`  계약 전 할 일 순서(${await page.locator('[data-testid="todo-order"]').getAttribute("data-branch")}): ${전할일.join(" · ")}`);
+  봄("계약 전 — 1번 계약·입금 날 = 지금 할 차례 · 원장님", 전할일[0] === "contract:지금 할 차례:원장님", 전할일[0]);
+  봄("계약 전 — 나머지는 됨 아님(아직)", 전할일.slice(1).every((x) => x.split(":")[1] === "아직"), 전할일.join(" · "));
+  봄("계약 전 — 체크리스트는 「자세히」에 접힘", (await page.locator("#checks").getAttribute("open")) === null);
+  const 할일글 = await page.locator('[data-testid="todo-order"]').innerText();
+  봄("할 일 순서 글 — 원장 일감 금지어 0", !원장금지말찾기(할일글).length, 원장금지말찾기(할일글).join(","));
+  await 두폭(page, `${BASE}/admin/clients/${SLUG}`, "계약전", { 접두: "client", 기다릴: '[data-testid="todo-order"]' });
+
+  // 3-2. 계약 뒤 순서 — 진단 통과 순서 · 파일럿 원장님 몫
+  await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto(`${BASE}/admin/clients/${SLUG}/onboard`);
+  봄("계약 뒤 순서 맨 위에도 할 일 순서 · 단계 줄은 접힘", (await page.locator('[data-testid="todo-order"]').count()) === 1 && (await page.locator("#ob-detail").getAttribute("open")) === null);
+  await 펼침(page);
   const 단계순서 = async () => (await page.locator("[data-stage]").evaluateAll((xs) => xs.map((x) => x.getAttribute("data-stage")))).join(",");
   const 줄상태 = async (stage, rid) => page.locator(`[data-stage="${stage}"] [data-row="${rid}"]`).getAttribute("data-state");
   봄("파일럿 없음 — 진단 통과 순서", (await 단계순서()) === "contract,receive,site,kickoff,baseline,run30,day30", await 단계순서());
@@ -153,6 +172,15 @@ try {
   파일럿들 = (await q(`select id::text as id, needs_build from geo.pilots where client_id = $1`, [id])).map((r) => r.id);
   봄("파일럿 하나 · 사이트 구축", 파일럿들.length === 1 && (await q(`select needs_build from geo.pilots where client_id = $1`, [id]))[0]?.needs_build === "build");
 
+  // 4-2. 사이트 구축 계약 뒤 — 고객 화면 할 일 순서: 홈페이지 만들기 시작이 2번째 줄, 지금 할 차례
+  await page.goto(`${BASE}/admin/clients/${SLUG}`);
+  const 뒤할일 = await 할일();
+  console.log(`  계약 뒤 할 일 순서(${await page.locator('[data-testid="todo-order"]').getAttribute("data-branch")}): ${뒤할일.join(" · ")}`);
+  봄("구축 갈래 — 2번째 줄 홈페이지 만들기 시작 · 지금 할 차례 · 저희", 뒤할일[1] === "build:지금 할 차례:저희", 뒤할일[1]);
+  봄("구축 갈래 — 계약 됨 · 7줄", 뒤할일[0].startsWith("contract:됨") && 뒤할일.length === 7, 뒤할일.join(" · "));
+  await 두폭(page, `${BASE}/admin/clients/${SLUG}`, "구축", { 접두: "client", 기다릴: '[data-testid="todo-order"]' });
+  await page.setViewportSize({ width: 1440, height: 900 });
+
   // 5. 상황 바꾸기 — 잘못된 값은 저장 안 됨
   const 옛config = (await q(`select config from geo.clients where id = $1`, [id]))[0].config;
   await page.goto(`${BASE}/admin/clients/${SLUG}/onboard`);
@@ -167,11 +195,13 @@ try {
 
   // 6. 상황 저장 — 도메인 담당 우리 · 블로그 받음
   await page.goto(`${BASE}/admin/clients/${SLUG}/onboard`);
+  await 펼침(page);
   await page.locator("#situation > summary").click();
   await page.locator('#situation select[name="dns"]').selectOption("우리");
   await page.locator('#situation select[name="blog"]').selectOption("받음");
   await page.locator('#situation button[type="submit"]').click();
   await page.waitForURL("**saved=1**", { timeout: 90000 });
+  await 펼침(page);
   const 새config = (await q(`select config from geo.clients where id = $1`, [id]))[0].config;
   봄("config.onboard 저장 — dns 우리 · blog 받음", 새config.onboard?.dns === "우리" && 새config.onboard?.blog === "받음", JSON.stringify(새config.onboard));
   const { onboard: _o, ...나머지 } = 새config;

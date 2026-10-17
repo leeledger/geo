@@ -189,7 +189,7 @@ export function 사실뽑기(html, name) {
   let 업종 = null;
   const ld업종 = [...new Set(ld타입(h).types.flatMap((t) => 업종표.filter((x) => x.ld.includes(t)).map((x) => `${x.업종}|${t}`)))];
   const ld종류 = [...new Set(ld업종.map((x) => x.split("|")[0]))];
-  if (ld종류.length === 1) 업종 = { 값: ld종류[0], 출처: `홈 JSON-LD @type ${ld업종[0].split("|")[1]}` };
+  if (ld종류.length === 1) 업종 = { 값: ld종류[0], 출처: `홈페이지에 적힌 업종 정보(${ld업종[0].split("|")[1]})` };
   if (!업종) {
     const 이름업종 = 업종낱말들(name).map(낱말업종).filter(Boolean);
     const 종류 = [...new Set(이름업종.map((x) => x.업종))];
@@ -200,19 +200,19 @@ export function 사실뽑기(html, name) {
     const 제목업종 = 업종낱말들(제목).map(낱말업종).filter(Boolean);
     const 종류 = [...new Set(제목업종.map((x) => x.업종))];
     if (종류.length === 1) 업종 = { 값: 종류[0], 출처: `홈 제목 「${제목업종[0].말}」` };
-    else 업종 = { 값: null, 출처: 종류.length > 1 ? `모름 — 홈 제목에 업종 말이 ${종류.length}개(${종류.join("·")})` : "모름 — JSON-LD·이름·홈 제목에 업종표 말이 없음" };
+    else 업종 = { 값: null, 출처: 종류.length > 1 ? `모름 — 홈페이지 제목에 업종이 ${종류.length}개(${종류.join("·")})라 하나로 못 정했습니다` : "모름 — 홈페이지에서 업종을 못 찾았습니다" };
   }
   // 지역
   let 지역 = null;
   const ld지역 = ld주소들(h).flatMap(주소지역);
   const ld하나 = 하나만(ld지역);
-  if (ld하나) 지역 = { 값: ld하나.값, 출처: `홈 JSON-LD address 「${앞(ld하나.글, 40)}」` };
-  else if (ld지역.length) 지역 = { 값: null, 출처: `모름 — 홈 JSON-LD 주소의 시군구가 ${new Set(ld지역.map((x) => x.값)).size}곳(${[...new Set(ld지역.map((x) => x.값))].join("·")})` };
+  if (ld하나) 지역 = { 값: ld하나.값, 출처: `홈페이지에 적힌 주소 「${앞(ld하나.글, 40)}」` };
+  else if (ld지역.length) 지역 = { 값: null, 출처: `모름 — 홈페이지에 적힌 주소가 ${new Set(ld지역.map((x) => x.값)).size}곳(${[...new Set(ld지역.map((x) => x.값))].join("·")})이라 하나로 못 정했습니다` };
   else {
     const 본 = 본문지역(글자만(h));
     const 본하나 = 하나만(본);
-    if (본하나) 지역 = { 값: 본하나.값, 출처: `홈 본문 「${앞(본하나.글, 40)}」` };
-    else 지역 = { 값: null, 출처: 본.length ? `모름 — 홈 본문의 시군구가 ${new Set(본.map((x) => x.값)).size}곳(${[...new Set(본.map((x) => x.값))].join("·")})` : "모름 — 홈에 「시도 시군구」 꼴 주소가 없음" };
+    if (본하나) 지역 = { 값: 본하나.값, 출처: `홈페이지 글 「${앞(본하나.글, 40)}」` };
+    else 지역 = { 값: null, 출처: 본.length ? `모름 — 홈페이지 글에 지역이 ${new Set(본.map((x) => x.값)).size}곳(${[...new Set(본.map((x) => x.값))].join("·")})이라 하나로 못 정했습니다` : "모름 — 홈페이지에 주소가 없습니다" };
   }
   return { 업종, 지역 };
 }
@@ -444,11 +444,12 @@ export async function 임대(q, id, k, at) {
   return rows.length > 0;
 }
 
-const 사람말 = {
-  홈못엶: (e) => `홈페이지를 못 열었습니다(${e}). 다시 시도합니다`,
+/** 단계 말 — 「원장」으로 멈추면 원장 일감 할 일 글이 된다(D255 원장금지말 없음, test-client-copy). 기술 까닭은 오류 칸에만 */
+export const 사람말 = {
+  홈못엶: () => "홈페이지를 못 열었습니다. 다시 시도합니다",
   넘김: (주소) => `홈페이지 주소가 다른 곳으로 넘어갑니다: ${주소}. 「자세히」에서 맞는 주소로 고칩니다`,
   채널없음: "블로그 주소 전체를 「계약 뒤 순서」 상황 바꾸기 채널 칸에 넣어 주세요",
-  모름: (빠짐) => `${빠짐}을 못 찾았습니다. 고객 화면 자동 세팅 판에 두 칸을 넣으면 이어서 합니다`,
+  모름: (빠짐) => `${빠짐}을 못 찾았습니다. 고객 화면 맨 위 판에 업종·지역 두 칸을 넣으면 이어서 합니다`,
   후보적음: (n) => `질문 후보가 ${n}개뿐입니다(17개 필요). 「자세히」에서 경쟁 검색어를 넣고 다시 시도합니다`,
 };
 
@@ -496,10 +497,10 @@ const 단계실행 = {
       if (!(h.status >= 200 && h.status < 300)) {
         const 넘김 = /다른 주소로 넘어가/.exec(h.error ?? "");
         const 어디 = /\((https?:\/\/[^)]+)\)/.exec(h.error ?? "")?.[1] ?? "";
-        return { 상태: "실패", 말: 넘김 ? 사람말.넘김(어디) : 사람말.홈못엶(h.error ?? `코드 ${h.status}`), 오류: h.error ?? `코드 ${h.status}` };
+        return { 상태: "실패", 말: 넘김 ? 사람말.넘김(어디) : 사람말.홈못엶(), 오류: h.error ?? `코드 ${h.status}` };
       }
       const needs = 갈 === "빌더" ? "setup" : 사이트상태(derived);
-      if (!needs) return { 상태: "실패", 말: "robots·사이트맵·llms.txt 중 못 연 것이 있어 사이트 상태를 정하지 않았습니다. 다시 엽니다", 오류: derived.errors.join(" / ") };
+      if (!needs) return { 상태: "실패", 말: "홈페이지에서 못 연 곳이 있어 상태를 정하지 않았습니다. 다시 엽니다", 오류: derived.errors.join(" / ") };
       const html = 홈.status >= 200 && 홈.status < 300 ? 홈.body ?? "" : "";
       const 플 = deps.detectPlatform && html ? deps.detectPlatform(html, 홈.headers ?? {}, `https://${도메인정리(row.domain)}/`) : null;
       const 빌더 = builderOf(도메인정리(row.domain));
@@ -509,7 +510,7 @@ const 단계실행 = {
       await 칸쓰기(q, row.id, 쓰기);
       const 빠짐 = [["robots", Array.isArray(derived.robots?.blocked) && !derived.robots.blocked.length], ["사이트맵", derived.sitemap?.ok === true],
         ["llms.txt", derived.llmsTxt?.ok === true], ["JSON-LD", (derived.homeLdTypes ?? []).length > 0]].filter(([, ok]) => !ok).map(([k]) => k);
-      return { 상태: "됨", 말: needs === "none" ? "홈페이지에 빠진 것이 없습니다 — 제안: 구축 없음" : 갈 === "빌더" ? `${빌더?.name ?? "빌더"} 사이트 — 제안: 기술 세팅` : `빠진 것 ${빠짐.length}개(${빠짐.join("·")}) — 제안: 기술 세팅` };
+      return { 상태: "됨", 말: needs === "none" ? "홈페이지에 빠진 것이 없습니다 — 제안: 구축 없음" : 갈 === "빌더" ? `${빌더?.name ?? "빌더"} 사이트 — 제안: 기술 세팅` : `홈페이지에 손볼 곳 ${빠짐.length}군데 — 제안: 손보기(무엇인지는 「자세히」 칸별 점검)` };
     }
     if (갈 === "플랫폼") {
       const ch = 첫채널(c);
@@ -571,7 +572,7 @@ const 단계실행 = {
     if (후보.length < 17) {
       return { 상태: "원장", 말: `${사람말.후보적음(후보.length)} — 자동완성 ${쓴자동} · 틀 ${쓴틀}${막힘}` };
     }
-    return { 상태: "됨", 말: `자동완성 ${쓴자동} · 틀 ${쓴틀} · 경쟁 검색어 ${경쟁.length >= 3 ? `${경쟁.length}개` : "3개가 안 돼 비움"} (씨앗 ${원.씨앗.length}개)${막힘}` };
+    return { 상태: "됨", 말: `자동완성 ${쓴자동} · 틀 ${쓴틀} · 경쟁 검색어 ${경쟁.length >= 3 ? `${경쟁.length}개` : "3개가 안 돼 비움"} (찾은 검색어 ${원.씨앗.length}개)${막힘}` };
   },
 
   async 파일럿(q, row) {
@@ -580,18 +581,18 @@ const 단계실행 = {
     const [새] = await q(`insert into geo.pilots (client_id, started_on, ends_on, status, needs_build)
         values ($1, (now() at time zone 'Asia/Seoul')::date, (now() at time zone 'Asia/Seoul')::date + 29, '리허설', $2)
         on conflict (client_id) do nothing returning id`, [row.id, needs]);
-    if (새) return { 상태: "됨", 말: `리허설 파일럿을 만들었습니다(필요한 준비 제안: ${준비말[needs]}) — 입금·계약 칸은 비움` };
+    if (새) return { 상태: "됨", 말: `연습 측정을 준비했습니다(필요한 준비 제안: ${준비말[needs]}) — 입금·계약 칸은 비움` };
     const [있음] = await q(`select id, status from geo.pilots where client_id = $1`, [row.id]);
-    return { 상태: "됨", 말: `파일럿이 이미 있습니다(${있음?.status ?? "?"}) — 새로 만들지 않았습니다` };
+    return { 상태: "됨", 말: `측정 준비가 이미 있습니다(${있음?.status ?? "?"}) — 새로 만들지 않았습니다` };
   },
 
   async 질문(q, row) {
     const c = row.config, a = c.auto;
     const [p] = await q(`select id, status from geo.pilots where client_id = $1`, [row.id]);
-    if (!p) return { 상태: "실패", 말: "파일럿이 없습니다", 오류: "pilot 없음" };
+    if (!p) return { 상태: "실패", 말: "연습 측정 준비가 아직 없습니다", 오류: "pilot 없음" };
     const 후보 = Array.isArray(a.후보) ? a.후보 : [];
     if (후보.length < 17) return { 상태: "원장", 말: 사람말.후보적음(후보.length) };
-    if (!String(row.answer_pattern ?? "").trim()) return { 상태: "원장", 말: "이름 판별 말이 없어 질문을 넣지 않았습니다. 「자세히」에서 고객만의 이름·도메인을 넣으면 이어서 합니다" };
+    if (!String(row.answer_pattern ?? "").trim()) return { 상태: "원장", 말: "AI 답에서 이 고객을 찾을 이름이 없어 질문을 넣지 않았습니다. 「자세히」에서 이 고객만 쓰는 이름을 넣으면 이어서 합니다" };
     // 이미 질문이 있으면(원장이 넣었거나 앞 시도가 넣음) 덮지 않는다 — 측정 켜기도 안 건드린다(Step 56 D243)
     const [있음] = await q(`select count(*)::int n from geo.pilot_questions where pilot_id = $1`, [p.id]);
     if (Number(있음?.n) > 0) return { 상태: "됨", 말: `질문이 이미 ${있음.n}개 있습니다 — 넣지 않았습니다` };
@@ -621,7 +622,7 @@ export async function 자동한걸음(q, slug, deps = {}) {
   const row = await 행읽기(q, slug);
   if (!row) return { 단계: null, 상태: "없음", 말: "고객을 못 찾았습니다" };
   const auto = row.config?.auto;
-  if (!auto?.단계) return { 단계: null, 상태: "없음", 말: "자동 세팅이 없는 고객입니다" };
+  if (!auto?.단계) return { 단계: null, 상태: "없음", 말: "자동 준비가 없는 고객입니다" };
   const k = 다음단계(auto, now, { 실패도: deps.실패도 !== false });
   if (!k) {
     // 세 번 다 시간 안에 못 끝낸 단계(도는중·시도 3) — 원장으로

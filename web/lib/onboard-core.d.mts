@@ -49,3 +49,12 @@ export type Onboard칸 = {
   setupReportOn: string | null;
 };
 export function onboard입력검사(f: Record<string, unknown>): { ok: boolean; 칸: Onboard칸; 오류: string[] };
+
+export type 할일누가 = "원장님" | "저희" | "고객";
+export type 할일상태 = "됨" | "지금 할 차례" | "아직";
+export const 할일누가: { 원장: "원장님"; 저희: "저희"; 고객: "고객" };
+export const 할일상태: { 됨: "됨"; 지금: "지금 할 차례"; 아직: "아직" };
+export const 자동말: string;
+export type 할일줄 = { n: number; id: string; 일: string; 누가: 할일누가; 상태: 할일상태; 말: string; 링크?: string | null };
+export type 할일결과 = { 갈래: "none" | "setup" | "build"; 갈래말: string; 취소: boolean; 줄: 할일줄[]; 자동말: string };
+export function 할일순서(입력: 착수입력, 오늘?: string | number | Date): 할일결과 | null;

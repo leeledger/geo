@@ -85,6 +85,14 @@ export function 일감계획(row: Record<string, any>, 줄: 줄[], admin?: strin
   닫기: { key: string; status: string; why: string }[];
 };
 export function 사람일감맞추기(q: Q, row: Record<string, any>, 줄: 줄[], opts?: { admin?: string }): Promise<{ 열림: string[]; 닫힘: string[] }>;
+export const 원장금지말: string[];
+export function 원장금지말찾기(글: unknown): string[];
+export const 계약말: { 제목: (n: string) => string; 할일: string };
+export const 일감제목: Record<"send" | "gsc" | "measure" | "auto" | "name" | "keyfile", (n: string) => string>;
+export function 이름말들(name: unknown): string[];
+export function 이름판별고침(row: Record<string, any>, opts?: { 강제?: boolean }): { 바꿀: boolean; terms: string[]; 까닭: string };
+export function 판별말저장(q: Q, row: Record<string, any>, terms: string[], at?: Date): Promise<number>;
+export function 판별말고치고맞추기(q: Q, opts?: { admin?: string; log?: (s: string) => void; now?: Date }): Promise<number>;
 export function 재점검고르기<T extends { id: number; slug: string; status: string; derived?: any }>(rows: T[], now?: number, max?: number): T[];
 export function 점검하고맞추기(q: Q, row: Record<string, any>, opts?: { fetch?: FetchLike; admin?: string }): Promise<{ derived: Derived; 줄: 줄[]; 일감: { 열림: string[]; 닫힘: string[] } }>;
 export function 세팅재점검(q: Q, opts?: { now?: number; max?: number; admin?: string; log?: (s: string) => void }): Promise<string[]>;

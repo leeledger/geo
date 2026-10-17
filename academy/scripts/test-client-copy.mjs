@@ -1,8 +1,12 @@
 // 고객에게 가는 글 금지어 전수(Step 55b D233) — 착수순서·체크리스트를 갈래 × dns × needs_build × 밀린 날 × 빠진 것 전 조합으로 돌려
 // 보낼글 · setup-send 일감 글 · 재촉 글을 모아 금지어(client-core 고객금지말)가 0 인지 본다. DB·네트워크 없음.
+// 원장 일감 금지어 전수(Step 57 D255) — 같은 조합 + 이름 판별 말·자동 세팅 멈춤·계약 갈래에서 열리는 원장 일감 제목·할 일 글,
+// 자동 세팅 단계 말(원장으로 멈추면 할 일 글이 된다), 정찰 notracker 문구, 할 일 순서 줄에서 원장금지말 0.
 //   node scripts/test-client-copy.mjs
-import { 체크리스트, 일감계획, 고객금지말, 금지말찾기 } from "../../web/lib/client-core.mjs";
-import { 착수순서 } from "../../web/lib/onboard-core.mjs";
+import fs from "node:fs";
+import { 체크리스트, 일감계획, 고객금지말, 금지말찾기, 원장금지말, 원장금지말찾기, 일감제목, 계약말, 자동단계, 자동단계말 } from "../../web/lib/client-core.mjs";
+import { 착수순서, 할일순서 } from "../../web/lib/onboard-core.mjs";
+import { 사람말 as 자동사람말, 사실뽑기 } from "../../web/lib/auto-setup-core.mjs";
 
 let 통과 = 0, 실패 = 0;
 const 봄 = (이름, 참, 보탬 = "") => { if (참) 통과++; else { 실패++; console.log(`✗ ${이름}${보탬 ? ` — ${보탬}` : ""}`); } };
@@ -18,16 +22,20 @@ const 점검 = {
   전부: { checkedAt: "t", home: { status: 200 }, robots: { status: 200, blocked: ["GPTBot"] }, sitemap: { status: 404, ok: false, url: "u" }, llmsTxt: { status: 404, ok: false, head: "" },
     homeLdTypes: [], indexnowFile: { status: 404, ok: false } },
 };
+// 키 파일만 빠짐(D250) — setup-keyfile 원장 일감이 열린다
+점검.키만 = { ...점검.없음, indexnowFile: { status: 404, ok: false } };
 const 업무 = (needs, 밀림) => ["intake", "questions", "inquiry-sheet", "local-audit", "manual-baseline", "baseline-report", ...(needs === "none" ? [] : ["site-launch"]),
   "content-draft", "content-approve", "content-publish", "manual-day30", "final-report", "renewal"].map((code) => ({ code, status: "대기", due_on: 더하기(오늘, -밀림) }));
 
 const 모음 = [];
+/** 원장에게 보이는 글 — 일감 제목·할 일(detail, send 는 보낼글이라 고객 글 시험 몫)·할 일 순서 줄 */
+const 원장모음 = [];
 let 조합 = 0;
 for (const [갈래, domain] of Object.entries(갈래들)) {
   for (const dns of ["고객", "우리", "모름", null]) {
     for (const needs of ["none", "setup", "build", null]) {
       for (const 밀림 of [0, 3, 10]) {
-        for (const 빠짐 of ["없음", "전부"]) {
+        for (const 빠짐 of ["없음", "전부", "키만"]) {
           for (const 블로그 of [null, "받음"]) {
             조합++;
             const onboard = { ...(dns ? { dns } : {}), ...(블로그 ? { blog: 블로그 } : {}), channels: 채널들[갈래] };
@@ -42,6 +50,9 @@ for (const [갈래, domain] of Object.entries(갈래들)) {
             for (const s of r.단계) for (const x of s.줄) if (x.보낼글) 모음.push({ 이름, 단계: s.id, 줄: x.id, 글: x.보낼글, 갈래, 빠짐, 밀림, needs });
             for (const t of 일감계획(row, 세팅줄).열기.filter((t) => t.key === "setup-send")) 모음.push({ 이름, 단계: "일감", 줄: "setup-send", 글: t.detail, 갈래, 빠짐, 밀림 });
             for (const x of 세팅줄) if (x.보낼글) 모음.push({ 이름, 단계: "체크리스트", 줄: x.id, 글: x.보낼글, 갈래, 빠짐, 밀림 });
+            for (const t of 일감계획(row, 세팅줄).열기) 원장모음.push({ 이름, 줄: t.key, 글: t.key === "setup-send" ? t.title : `${t.title}\n${t.detail}` });
+            const 순서 = 할일순서({ row, derived, 세팅줄, pilot, tasks: pilot ? 업무(needs, 밀림) : [], questions: [], content: [], ai: [], checks: [], audits: [], 로그인일감: [], 크롤: null }, 오늘);
+            for (const x of 순서?.줄 ?? []) 원장모음.push({ 이름, 줄: `순서 ${x.id}`, 글: `${x.일}\n${x.말}` });
           }
         }
       }
@@ -50,7 +61,7 @@ for (const [갈래, domain] of Object.entries(갈래들)) {
 }
 
 console.log(`조합 ${조합}개 · 고객 글 ${모음.length}개`);
-봄(`조합 ${조합}개를 돌림 · 고객 글 ${모음.length}개 모음`, 조합 === 4 * 4 * 4 * 3 * 2 * 2 && 모음.length > 100);
+봄(`조합 ${조합}개를 돌림 · 고객 글 ${모음.length}개 모음`, 조합 === 4 * 4 * 4 * 3 * 3 * 2 && 모음.length > 100);
 const 걸림 = 모음.map((x) => ({ ...x, 말: 금지말찾기(x.글) })).filter((x) => x.말.length);
 봄(`금지어 0 (목록 ${고객금지말.length}개)`, !걸림.length, 걸림.slice(0, 5).map((x) => `${x.이름} ${x.단계}.${x.줄} [${x.말.join(",")}] ${x.글.slice(0, 80)}`).join("\n   "));
 봄("blog.naver.com 고객 — robots·sitemap·llms·IndexNow 를 말하는 고객 글 0", !모음.filter((x) => x.갈래 === "플랫폼").some((x) => /robots|sitemap|사이트맵|llms|indexnow/i.test(x.글)));
@@ -64,6 +75,44 @@ const 걸림 = 모음.map((x) => ({ ...x, 말: 금지말찾기(x.글) })).filter
 봄("빌더 고객 — 빌더 이름 + 관리자 아이디", 모음.filter((x) => x.갈래 === "빌더" && x.단계 === "체크리스트").every((x) => x.글.includes("아임웹 관리자 아이디로")));
 봄("블로그 채널이 있으면 블로그 아이디 요청 글", 모음.some((x) => x.갈래 === "플랫폼" && x.줄 === "blog" && x.글.includes("네이버 블로그 아이디로 저희가 들어갈 수 있게")));
 봄("불안 팔지 않음 — 「늦」「서두르」「놓치」 0", !모음.some((x) => /늦|서두르|놓치/.test(x.글)));
+
+// ─────────────── 원장 일감 금지어(D255)
+// 이름 판별 말 — 흔한 말(원장 출처라 자동으로 못 고침) · 빈 말
+for (const terms of [["송파구 영어 학원"], []]) {
+  const row = { slug: "a", name: "가나영어학원", domain: null, relation: "외부", config: { answerTerms: terms, auto: { 출처: { 판별말: "원장" } } } };
+  for (const t of 일감계획(row, 체크리스트(row, {})).열기) 원장모음.push({ 이름: `name ${terms.length}`, 줄: t.key, 글: `${t.title}\n${t.detail}` });
+}
+// 자동 세팅 멈춤 — 단계마다 원장으로 멈춘 말(단계 말 표 · 시간 초과 · 3번째 실패 꼴)
+const 멈춘말 = [자동사람말.홈못엶(), 자동사람말.넘김("https://x.kr/"), 자동사람말.채널없음, 자동사람말.모름("업종·지역"), 자동사람말.후보적음(9),
+  ...자동단계.flatMap((k) => [`${자동단계말[k]} 단계가 3번 다 시간 안에 안 끝났습니다. 「다시 시도」를 누릅니다`, `${자동단계말[k]} 단계가 오류로 멈췄습니다. 다시 시도합니다 — 3번째도 안 돼 멈췄습니다`])];
+for (const 말 of 멈춘말) {
+  const row = { slug: "a", name: "가게", domain: null, relation: "외부", config: { answerTerms: ["가나다라"], auto: { 단계: { 사이트: { 상태: "원장", 말 } } } } };
+  for (const t of 일감계획(row, 체크리스트(row, {})).열기) 원장모음.push({ 이름: "auto", 줄: t.key, 글: `${t.title}\n${t.detail}` });
+}
+// 자동 세팅 판에 뜨는 말 원문(D260) — 단계 말(됨·원장·실패 전부, 원장으로 멈추면 할 일 글이 된다) · 업종·지역 출처 힌트.
+// 기술 까닭은 오류 칸에만 둔다(시험 밖). 사람말 표는 위에서 함수로 돌렸다
+const 자동원문 = fs.readFileSync(new URL("../../web/lib/auto-setup-core.mjs", import.meta.url), "utf8").split(/\r?\n/)
+  .flatMap((l) => [...l.matchAll(/(?:말|출처): (["`])(.*?)\1/g)].map((m) => m[2]));
+for (const html of ["", "<title>치과 미용실</title><p>서울 송파구 1</p><p>서울 강남구 2</p>", '<script type="application/ld+json">{"@type":"Dentist","address":"서울 송파구 1"}</script>']) {
+  const 사실 = 사실뽑기(html, "가게");
+  자동원문.push(사실.업종.출처, 사실.지역.출처);
+}
+for (const 글 of 자동원문) 원장모음.push({ 이름: "auto 원문", 줄: "말", 글 });
+// 정찰 notracker(사람 대기로 열린다) — 제목·왜·할 일 원문
+const 정찰 = fs.readFileSync(new URL("./scout.mjs", import.meta.url), "utf8");
+const 정찰블록 = /report\(`notracker-[\s\S]*?\);/.exec(정찰)?.[0] ?? "";
+원장모음.push({ 이름: "scout", 줄: "notracker", 글: 정찰블록.replace(/report\(`notracker-\$\{c\.slug\}`, "기회",/, "") });
+// 일감 제목 표 전부 · 계약 할 일
+for (const [k, f] of Object.entries(일감제목)) 원장모음.push({ 이름: "제목표", 줄: k, 글: f("가게") });
+원장모음.push({ 이름: "계약", 줄: "할일", 글: 계약말.할일 });
+
+console.log(`원장 글 ${원장모음.length}개 · 자동 원문 ${자동원문.length}줄`);
+봄("원장 글을 모았다 — 일감·할 일 순서·자동 말·정찰", 원장모음.length > 500 && 자동원문.length >= 5 && 정찰블록.includes("AI가 사이트를 읽으러"), `${원장모음.length} · ${자동원문.length} · ${정찰블록.length}`);
+const 원장걸림 = 원장모음.map((x) => ({ ...x, 말: 원장금지말찾기(x.글) })).filter((x) => x.말.length);
+봄(`원장 일감 금지어 0 (목록 ${원장금지말.length}개)`, !원장걸림.length, 원장걸림.slice(0, 6).map((x) => `${x.이름} ${x.줄} [${x.말.join(",")}] ${x.글.slice(0, 90)}`).join("\n   "));
+봄("열린 원장 일감 종류 — send·gsc·keyfile·name·auto 가 다 나옴 · 계약 전 measure 는 안 열림", ["setup-send", "setup-gsc", "setup-keyfile", "setup-name", "setup-auto"].every((k) => 원장모음.some((x) => x.줄 === k))
+  && !원장모음.some((x) => x.줄 === "setup-measure"));
+봄("build 갈래 — 할 일 순서 2번째 줄이 홈페이지 만들기 시작", 원장모음.some((x) => x.줄 === "순서 build"));
 
 console.log(`${통과} 통과 · ${실패} 실패`);
 if (실패) process.exitCode = 1;

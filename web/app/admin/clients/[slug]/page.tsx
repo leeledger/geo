@@ -8,12 +8,15 @@ import { 다음단계, 멈춘단계, 자동요약, 임대초, type Auto } from "
 import { createPilot } from "@/lib/pilot-actions";
 import { recheckClient, markGscGranted, deleteTestClient } from "@/lib/client-actions";
 import { NEEDS_BUILD, NEEDS_BUILD_LABEL } from "@/lib/pilot-plan";
+import { getOnboard } from "@/lib/onboard";
+import { 할일순서 } from "@/lib/onboard-core.mjs";
 import AdminNav from "../../AdminNav";
 import SubmitButton from "../../SubmitButton";
 import CopyButton from "../../ops/CopyButton";
 import ClientForm from "../ClientForm";
 import AutoSetupPanel, { type 판줄 } from "./AutoSetupPanel";
 import MarketingForm from "../MarketingForm";
+import TodoOrder from "../TodoOrder";
 import "../clients.css";
 
 export const dynamic = "force-dynamic";
@@ -22,7 +25,8 @@ export const runtime = "nodejs";
 export const maxDuration = 60;
 
 /**
- * 고객 한 곳(Step 38 → 55). 맨 위 자동 세팅 판(두 칸 등록 고객) → 체크리스트(됨·기다림·사람·해당없음) → 점검 근거 → 자세히(고치기) → 파일럿 시작(외부·파일럿 없음) → 지우기(시험만).
+ * 고객 한 곳(Step 38 → 57). 맨 위 할 일 순서(외부 고객, D256) → 자동 세팅 판(두 칸 등록 고객) → 자세히 접힘: 체크리스트(됨·기다림·사람·해당없음) →
+ * 점검 근거 → 자세히(고치기) → 계약 칸(외부·파일럿 없음) → 지우기(시험만).
  * 점검 근거(고객 사이트 본문 앞 300자)는 이 화면에만 보인다.
  */
 
@@ -83,6 +87,9 @@ export default async function Page({ params, searchParams }: {
   const pilot = await 파일럿상태(q, row.id);
   const d = (row.derived ?? {}) as Partial<Derived>;
   const 줄 = 체크리스트(row, d, { pilot });
+  // 할 일 순서 — 계약 뒤 순서와 같은 입력(getOnboard)을 읽는다. 코드·자사 고객은 없음
+  const 순서 = 코드 ? null : await getOnboard(slug).then((x) => (x ? 할일순서(x) : null));
+  const 원장몫 = 줄.filter((x) => x.상태 === "사람").length;
   const 말 = errText(err, f);
   const 값 = 폼값(row);
   const 폼 = Object.fromEntries(Object.entries(값).map(([k, v]) => [k, typeof v === "boolean" ? (v ? "on" : "") : v]));
@@ -126,12 +133,15 @@ export default async function Page({ params, searchParams }: {
           <p className="adm-empty">코드로 설정한 고객입니다(academy/clients.mjs). 화면에서 고치지 않습니다.</p>
         ) : (
           <>
+            {순서 && <TodoOrder r={순서} />}
             {auto?.단계 && 요약 && (
               <AutoSetupPanel slug={slug} 줄={판줄들(auto, 지금)} 다음={다음단계(auto, new Date(지금), { 실패도: false }) ?? 멈춘단계(auto, new Date(지금))} 끝={요약.끝} 된={요약.된} 살아있음={살아있음}
                 사실={{ 업종: auto.사실?.업종?.값 ?? "", 지역: auto.사실?.지역?.값 ?? "" }}
                 출처={{ 업종: auto.사실?.업종?.출처 ?? "아직 안 읽음", 지역: auto.사실?.지역?.출처 ?? "아직 안 읽음" }} />
             )}
-            <section aria-labelledby="ck-h">
+            <details className="adm-more" id="checks" open={순서 ? undefined : true}>
+              <summary>자세히 — 칸별 점검{원장몫 ? ` (원장님 몫 ${원장몫})` : ""}</summary>
+              <section className="in" aria-labelledby="ck-h">
               <h2 id="ck-h">세팅 체크리스트</h2>
               <p className="sub">마지막 점검 {kst(d.checkedAt)} · 매시 회사 루프가 24시간 지난 고객을 다시 엽니다</p>
               <ul className="cl-checks" data-testid="checklist">
@@ -156,7 +166,6 @@ export default async function Page({ params, searchParams }: {
                             <SubmitButton className="adm-btn">권한 받음</SubmitButton>
                           </form>
                         )}
-                        {x.id === "measure" && <div><a className="adm-btn alt" href="#pilot">파일럿 시작 폼으로</a></div>}
                       </div>
                     )}
                     {x.고칠것 && (
@@ -177,7 +186,8 @@ export default async function Page({ params, searchParams }: {
                 )}
                 {pilot && <Link href={`/admin/pilots/${pilot.id}`}>파일럿 화면 열기</Link>}
               </div>
-            </section>
+              </section>
+            </details>
 
             <details className="adm-more">
               <summary>점검 근거 — 상태 코드·형식·본문 앞부분</summary>
@@ -220,7 +230,7 @@ export default async function Page({ params, searchParams }: {
 
             {row.relation === "외부" && !pilot && (
               <details className="adm-more" id="pilot" open={err && ["missing", "terms", "needs"].includes(err) ? true : undefined}>
-                <summary>파일럿 시작 — 계약 칸</summary>
+                <summary>계약 칸 — 계약하면 입금 받은 날을 넣습니다</summary>
                 <div className="in">
                   <p className="sub">입금을 확인한 뒤 넣습니다. 착수·기준선·30일 업무가 생깁니다. 이름·도메인·답에서 찾을 이름은 이 고객 정보에서 씁니다.
                     {리허설 ? " 자동 세팅이 만든 리허설 파일럿을 계약으로 올립니다 — 이미 만든 질문 20개는 그대로 둡니다." : " 질문 20개가 만들어집니다."}</p>

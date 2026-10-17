@@ -141,6 +141,9 @@ try {
 
   // 5. 체크리스트 — 화면
   await page.goto(`${BASE}/admin/clients/${SLUG}`);
+  // 체크리스트는 「할 일 순서」 아래 「자세히」에 접혀 있다(Step 57 D256)
+  봄("할 일 순서가 맨 위 — 체크리스트는 접힘", (await page.locator('[data-testid="todo-order"]').count()) === 1 && (await page.locator("#checks").getAttribute("open")) === null);
+  await page.locator("#checks > summary").click();
   const 칸상태 = async (cid) => page.locator(`[data-check="${cid}"]`).getAttribute("data-state");
   봄("체크리스트 뜸(12줄)", (await page.locator('[data-testid="checklist"] li').count()) === 12);
   봄("사이트 열림 = 됨", (await 칸상태("site")) === "됨");
@@ -150,9 +153,10 @@ try {
   const 고칠 = (await page.locator('[data-check="send"] details.fix pre').textContent()) ?? ""; // 접힌 details 안이라 innerText 는 빈 글자
   봄("고칠 것(원장·세션만)에 키 파일 이름·내용 · 복사 단추 없음", 고칠.includes(`https://${DOMAIN}/${key}.txt`) && 고칠.includes(`내용은 이 한 줄입니다: ${key}`)
     && (await page.locator('[data-check="send"] details.fix button').count()) === 0, 고칠.slice(0, 200));
-  봄("GSC = 사람 · 파일럿 = 사람", (await 칸상태("gsc")) === "사람" && (await 칸상태("measure")) === "사람");
+  봄("GSC = 사람 · 계약 전 측정 = 기다림(원장 일감 아님, D254)", (await 칸상태("gsc")) === "사람" && (await 칸상태("measure")) === "기다림");
   봄("바깥 글 = 해당없음 · 이름 판별 말 = 됨", (await 칸상태("offsite")) === "해당없음" && (await 칸상태("name")) === "됨");
-  봄("자동 세팅 판이 맨 위", (await page.locator('[data-testid="auto-setup"]').count()) === 1
+  봄("할 일 순서 → 자동 세팅 판 → 체크리스트", (await page.locator('[data-testid="auto-setup"]').count()) === 1
+    && (await page.locator('[data-testid="todo-order"]').boundingBox()).y < (await page.locator('[data-testid="auto-setup"]').boundingBox()).y
     && (await page.locator('[data-testid="auto-setup"]').boundingBox()).y < (await page.locator('[data-testid="checklist"]').boundingBox()).y);
 
   // 6. 동기화 — 회사 루프와 같은 함수를 이 id 로
@@ -163,7 +167,7 @@ try {
   console.log(`  동기화 1차 엶 [${s1.열림.join(",")}] · 2차 엶 [${s2.열림.join(",")}]`);
   for (const t of 일감) console.log(`     ${t.dedupe_key} · ${t.status} · ${t.title}`);
   const 사람키 = 줄.filter((x) => x.상태 === "사람").map((x) => `setup-${x.id}`).sort();
-  봄("사람 대기 일감 = 체크리스트 사람 칸(send·gsc·measure 포함)", ["setup-gsc", "setup-measure", "setup-send"].every((k) => 사람키.includes(k))
+  봄("사람 대기 일감 = 체크리스트 사람 칸(send·gsc 포함 · 계약 전 measure 없음)", ["setup-gsc", "setup-send"].every((k) => 사람키.includes(k)) && !사람키.includes("setup-measure")
     && JSON.stringify(일감.filter((t) => t.status === "사람 대기").map((t) => t.dedupe_key).sort()) === JSON.stringify(사람키) && 일감.every((t) => t.kind === "setup"), 사람키.join(","));
   봄("두 번 돌려도 중복 없음", s2.열림.length === 0);
   봄("제목 사람 말 · 링크 고객 화면 · setup-send 글 금지어 0", 일감.some((t) => t.title === `${NAME}: 고객 담당에게 보낼 것이 있습니다`) && 일감.every((t) => t.link === `${BASE}/admin/clients/${SLUG}`)
@@ -187,6 +191,7 @@ try {
 
   // 9. GSC 권한 받음 버튼 → 체크리스트 됨 → 동기화가 닫음
   await page.goto(`${BASE}/admin/clients/${SLUG}`);
+  await page.locator("#checks > summary").click();
   await page.locator('[data-check="gsc"] button[type="submit"]').click();
   await page.waitForLoadState("networkidle");
   await page.locator('[data-check="gsc"][data-state="됨"]').waitFor();

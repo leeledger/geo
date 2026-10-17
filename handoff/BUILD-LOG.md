@@ -2292,3 +2292,32 @@ Step 55 배포 fa21483. 브리프 handoff/ARCHITECT-BRIEF.md, Step 55 브리프�
 - 시험: test-clients 110 · test-auto-setup-core 156 · test-client-core 241 · test-client-copy 11 · test-client-status 14 · test-onboard-core 18 · test-docttak 35 · test-ilog-loop 42 — 전부 0 실패 · tsc 0
 
 - **D251 (2026-10-17, Arch)** 측정 「유료」 묶음은 입금 확인(paid_on)이 있어야 한다. 리허설·미입금 파일럿(id 18, price 39만)이 유료 몫·k 를 먹고 있었다. 이제 「측정」 묶음(맨 뒤, k 에 안 셈). test-ilog-loop 43/0(새 시험 1) · test-docttak 35/0 · test-clients 110/0. 「삼성영어학원」(자동완성)은 다른 학원 이름일 수 있어 원장 승인 때 빼도록 알림.
+
+## Step 57 — 원장 할 일을 사람 말로 (Arch, 2026-10-17)
+- 원장: 현황판 id 18 일감 3건 「이것도 다 무슨 말인지 모르겠어」.
+- D252 이름 판별 말 자동 고침(원장 출처 제외, id 18 은 원장 지시로 1회) · D253 사이트 없는 고객엔 크롤러 일감 없음 · D254 「파일럿 시작」→ 계약했을 때 입금일만, 오늘 할 일에 안 쌓임 · D255 원장 일감 금지어 시험.
+- D256 새 고객 「할 일 순서」 맨 위 목록(원장: 「해야 할일을 순서대로 직관적으로… 홈페이지가 없으면 그것을 먼저」). build 갈래는 「홈페이지 만들기 시작」을 맨 앞 큰 일로, 여는 날만 기준선 7일 뒤 — 주문서 순서와 충돌 없음.
+
+### Step 57 빌드 (2026-10-17, Bob) — DONE_WITH_CONCERNS(D254 등급 해석 1건, 아래)
+- **D256 할 일 순서** onboard-core `할일순서()` + `TodoOrder.tsx` — 고객 화면·계약 뒤 순서 맨 위. build 7줄(2번째 「홈페이지 만들기 시작」) · setup 6줄 · none 4줄. 갈래 = 계약 파일럿 needs_build → 리허설 제안 → auto.사이트상태 → 홈페이지 없음·플랫폼 build / 고칠 것 setup / none. 고객 줄 「n일째 기다림」은 착수순서 고객줄 일수(기록 날짜 있을 때만). 상세 체크리스트(#checks)·단계 줄(#ob-detail)은 「자세히」로 접음(자사·리허설처럼 순서가 없으면 펼친 채).
+  - 구축 시안 줄(착수순서 site.draft)도 「기준선 먼저」에서 「바로 만듦 — 여는 날만 기준선 뒤」로 맞췄다(setup 의 손보기는 기준선 먼저 그대로).
+- **D252** `이름말들`·`이름판별고침`·`판별말저장`(읽은 answerTerms 가 그대로일 때만 씀)·업종떼기(auto-setup-words, 업종표+학원꼴+어학원, 과목 가운데는 안 자름). 출처 원장·auto 없는 옛 고객은 안 덮음. 고칠 수 있으면 name 줄 = 기다림(일감 안 엶).
+  - 매시 `판별말고치고맞추기`(company.mjs, 자동이어하기 뒤) — active 화면 고객 전부: 판별 말 고침 → 체크리스트 → 사람일감맞추기. 사이트를 안 연다. 사이트 없는 고객은 세팅재점검이 안 골라 옛 일감(id 18 setup-measure)이 안 닫히던 것을 여기서 닫는다.
+  - `fix-name-terms.mjs` --dry 기본. --client-id 면 원장 지시로 출처 무시. 출력 id·개수만. id 18 --dry: 판별 말 3개(흔함 1) → 5개(흔함 0) · 뺄 1 · 더할 3. **--apply 안 함(Arch 몫)**.
+- **D253** scout notracker·crawl 은 갈래 없음·플랫폼이면 안 냄. scout --json 실측: notracker/crawl 0건 → 열린 notracker(id 18)는 매시 「신호 사라짐」으로 닫힌다(company 592–605, scout 출처). 문구는 브리프대로.
+- **D254 결정(Bob, Arch 확인 요청)** 현황판에 「기회/낮은 칸」 등급이 없다 — scout 기회는 사람 대기 priority 60 으로 그대로 「오늘 할 일」에 뜬다(company 513), Todo 는 사람 대기 전부(5줄 넘으면 자세히). 그래서 계약 전 measure 는 사람 대신 **기다림**(일감 안 엶, 옛 setup-measure 닫힘). 계약 할 일은 할 일 순서 1번 줄(원장님·지금 할 차례, 글은 `계약말.할일`)이 말한다. `일감제목.measure` = 브리프 제목(닫는 열쇠 겸).
+- **D255** client-core `원장금지말`·`원장금지말찾기`. 일감제목 전부·gsc/keyfile/name 할일·자동 세팅 멈춤 말(auto-setup-core `사람말` export, 자동단계말 「리허설 파일럿」→「연습 측정 준비」, 홈 못 엶 까닭은 오류 칸에만)·scout notracker·할 일 순서 줄을 test-client-copy 가 전수(원장 글 7,621개) — 0. todo-text 의 measure 줄은 지움.
+- 시험: test-client-core 258 · test-auto-setup-core 162 · test-client-copy 15 · test-onboard-core 24 · test-clients 110 · test-docttak 35 · test-ilog-loop 43 · test-todo-words 17 · test-client-status 14 — 전부 0 실패 · tsc 0 · next build 통과 · test-onboard-screen --live 39/0(시험 고객 id 28 지움, 30칸 0행). test-client-screen 은 단언만 새 동작에 맞춤(안 돌림).
+
+#### Known Gaps (Step 57)
+- KG-57-1 rescan-<slug>(대기)·nomeasure 가 도메인 없는 고객(id 18)에도 나간다 — 자동 일감이라 원장 몫은 아니지만 rescan 이 null 도메인을 어떻게 다루는지 안 봤다
+- KG-57-2 AutoSetupPanel 제목·체크리스트 칸 이름(「자동 세팅」「구글 서치콘솔 권한」「IndexNow 키 파일」)은 그대로 — 원장 일감이 아니라 「자세히」 안 화면이다
+- KG-57-3 css 마지막 손질(.to-row 좌우 여백 11px)은 스크린샷 뒤에 넣었다 — 다음 화면 시험 때 한 번 더 찍는다
+
+### Step 57 리뷰 반영 (2026-10-17, Bob) — Richard FAIL(Must Fix 1) → Arch D257–D260
+- **D257 (Must Fix)** 자동으로 다시 만드는 판별 말은 이름 그대로 · 띄어쓰기 뺀 이름(+ 사이트·빌더면 도메인)뿐. 업종떼기(줄기)는 지웠다(auto-setup-words·d.mts·시험). 고치면 판별 말 전부를 이 묶음으로 갈아 끼운다(다른 말 안 남김). 이름 자체가 흔하면 전처럼 원장 일감. 시험: 행복한공부방·맛있는카페·우리동네학원·대치수학학원·잠실미술학원 — 줄기 말 0.
+- **D258** --client-id(원장 지시)면 출처·흔한 말 유무와 상관없이 원장이 넣은 일반 말까지 이름 말로 갈아 끼운다. id 18 --dry: `판별 말 3개(흔함 1) → 2개(흔함 0) · 뺄 말 3 · 더할 말 2`. --apply 안 함.
+- **D259** build 「만들기 시작」 아직 글에서 「가장 큰 일이라 맨 앞에 둡니다」(메타 문구) 뺌. 「홈페이지 열기」 날짜는 site-launch 업무 기한(자세히·다음 고비와 같은 근거) — 착수일이 비어도 나온다.
+- **D260** 자동 세팅 판 업종·지역 출처 힌트를 사람 말로(「홈페이지에서 업종을 못 찾았습니다」「홈페이지에 주소가 없습니다」「홈페이지에 적힌 업종 정보(…)」 등). 사이트 단계 됨 말의 robots·llms·JSON-LD 목록 → 「손볼 곳 n군데」, 파일럿·씨앗 들어간 됨 말 3개도 고침. test-client-copy 가 auto-setup-core 의 모든 `말:`·`출처:` 글자 + 사실뽑기 결과 출처를 원장금지말로 본다(자동 원문 40줄, 원장 글 7,649개 — 0).
+- 시험: test-client-core 265 · test-auto-setup-core 156 · test-client-copy 15 · test-onboard-core 24 · test-clients 110 · test-docttak 35 · test-ilog-loop 43 · test-todo-words 17 · test-client-status 14 — 0 실패 · tsc 0 · next build 통과. --live 화면 시험은 다시 안 돌림.
+- KG-57-4 자동완성 질문 출처(「네이버 자동완성 · 씨앗 …」, auto-setup-core 337)와 경쟁 검색어 출처(565)는 파일럿 질문 패널·config 에 남는 글이라 그대로 — 원장 화면에 뜨면 같은 손질

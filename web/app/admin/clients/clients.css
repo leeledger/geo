@@ -83,3 +83,21 @@
 .cl-row .fix pre{margin:6px 0 0;white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px;color:var(--ink2)}
 @media(max-width:720px){.as-row{grid-template-columns:minmax(0,1fr) auto}.as-m,.as-t{grid-column:1/-1}}
 .cl-row .fix summary{color:var(--ink2);cursor:pointer}
+/* 할 일 순서(Step 57) — 번호 · 일 · 누가 칩 · 상태 · 말. 좁은 폭에선 번호·일 줄과 말 줄로 접힌다 */
+.to{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 16px;margin:12px 0 18px}
+.to h2{margin:0;word-break:keep-all}
+.to-b{font-size:15px;color:var(--ink2);font-weight:700;margin-left:6px}
+.to-list{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:6px}
+.to-row{display:grid;grid-template-columns:28px 190px 64px 104px minmax(0,1fr);gap:10px;align-items:start;border-top:1px solid var(--line);padding:9px 11px 0;word-break:keep-all;min-width:0}
+.to-row.now{background:#1d1a14;border:1px solid #5c4a2a;border-radius:10px;padding:9px 10px}
+.to-row.done{opacity:.75}
+.to-n{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:999px;border:1px solid var(--line);font-size:13px;color:var(--ink2)}
+.to-k{font-weight:800}
+.to-who{font-size:13px;color:var(--ink2);border:1px solid var(--line);border-radius:999px;padding:1px 8px;justify-self:start;white-space:nowrap}
+.to-s{font-weight:800;font-size:14px;white-space:nowrap}
+.to-s.done{color:var(--cool)}
+.to-s.now{color:#F0CE87}
+.to-s.wait{color:var(--ink2)}
+.to-m{font-size:15px;min-width:0;overflow-wrap:anywhere}
+.to-auto,.to-none{margin:10px 0 0;font-size:14px;color:var(--ink2);word-break:keep-all}
+@media(max-width:720px){.to-row{grid-template-columns:24px minmax(0,1fr) auto;gap:6px 8px}.to-s{grid-column:2/-1}.to-who{grid-column:3;grid-row:1}.to-m{grid-column:2/-1}}

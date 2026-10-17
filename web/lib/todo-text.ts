@@ -205,7 +205,6 @@ export function todoText(t: TodoTask, now = Date.now(), ctx: TodoContext = {}): 
     const slug = typeof p.slug === "string" && /^[a-z0-9-]{1,40}$/.test(p.slug) ? p.slug : null;
     const why = 칸 === "send" ? "복사해 보낼 글이 고객 화면 체크리스트에 있습니다. 반영되면 매시 점검이 알아서 닫습니다"
       : 칸 === "gsc" ? "권한을 받으면 고객 화면에서 「권한 받음」을 누릅니다"
-      : 칸 === "measure" ? "계약이 되면 고객 화면 「파일럿 시작」에 계약 칸을 넣습니다"
       : cut(plain(first(t.detail)), 90);
     const href = slug ? `/admin/clients/${slug}` : t.link ? localHref(t.link) : "/admin/clients";
     return { title: cut(t.title, 60), why, action: { type: "link", label: "고객 화면 열기", href }, doing };

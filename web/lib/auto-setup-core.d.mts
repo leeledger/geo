@@ -54,3 +54,4 @@ export function 재시도(q: Q, slug: string, k: string): Promise<boolean>;
 export function 사실입력검사(f: Record<string, unknown>): { ok: boolean; 업종: string; 지역: string; 오류: string[] };
 export function 사실저장(q: Q, slug: string, x: { 업종: string; 지역: string }, now?: Date): Promise<boolean>;
 export function 자동이어하기(q: Q, opts?: { max?: number; admin?: string; deps?: Deps; log?: (s: string) => void; now?: () => Date }): Promise<string[]>;
+export const 사람말: { 홈못엶: () => string; 넘김: (주소: string) => string; 채널없음: string; 모름: (빠짐: string) => string; 후보적음: (n: number) => string };

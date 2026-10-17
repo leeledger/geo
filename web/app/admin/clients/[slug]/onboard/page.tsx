@@ -6,11 +6,12 @@ import { CODE_SLUGS } from "@/lib/client-core.mjs";
 import { markGscGranted } from "@/lib/client-actions";
 import { getOnboard } from "@/lib/onboard";
 import { saveOnboard } from "@/lib/onboard-actions";
-import { 착수순서, type 줄상태 } from "@/lib/onboard-core.mjs";
+import { 착수순서, 할일순서, type 줄상태 } from "@/lib/onboard-core.mjs";
 import { 자동요약, type Auto } from "@/lib/auto-setup-core.mjs";
 import AdminNav from "../../../AdminNav";
 import SubmitButton from "../../../SubmitButton";
 import CopyButton from "../../../ops/CopyButton";
+import TodoOrder from "../../TodoOrder";
 import "../../clients.css";
 
 export const dynamic = "force-dynamic";
@@ -20,6 +21,7 @@ export const runtime = "nodejs";
  * 계약 뒤 순서(Step 54d). 계약한 고객 한 곳을 「계약 → 받을 것 → 사이트 → 질문 승인·착수 → 첫 7일 기준선 → 30일 → 30일 판정」 한 줄로.
  * 줄마다 누가 · 지금 상태(DB 근거) · 어디서. 읽기와 「상황 바꾸기」 저장만 — 활동·일감·로그에 쓰지 않는다(D215).
  * 고치기·파일럿 시작·파일럿 계약 칸은 복제하지 않고 링크만(D216).
+ * 맨 위는 「할 일 순서」(Step 57 D256) — 단계별 줄 전부는 그 아래 「자세히」에 접는다(자사·리허설처럼 순서가 없으면 펼친 채).
  */
 
 const 상태반: Record<줄상태, string> = { 됨: "done", "도는 중": "run", "원장님 몫": "human", "고객 기다림": "cust", 아직: "wait", 해당없음: "na", "못 읽음": "bad" };
@@ -51,6 +53,7 @@ export default async function Page({ params, searchParams }: {
   const row = 입력.row;
   const 코드 = CODE_SLUGS.includes(slug);
   const r = 코드 ? null : 착수순서(입력);
+  const 순서 = 코드 ? null : 할일순서(입력);
   const ob = (row.config?.onboard ?? {}) as Record<string, any>;
   const ch = (ob.channels ?? {}) as Record<string, string | null>;
   // 자동 세팅 요약 한 줄 — 판은 고객 화면에만 있다(복제하지 않는다, 55e)
@@ -81,6 +84,7 @@ export default async function Page({ params, searchParams }: {
           <p className="adm-empty">코드로 설정한 고객입니다. 계약 순서가 없습니다</p>
         ) : (
           <>
+            {순서 && <TodoOrder r={순서} />}
             {r.띠.length > 0 && (
               <div className="ob-band" data-testid="band">
                 {r.띠.map((x) => <p key={x}>{x}</p>)}
@@ -91,6 +95,9 @@ export default async function Page({ params, searchParams }: {
               {r.다음고비 && <> · 다음 고비 <b>{r.다음고비}</b></>}
             </p>
 
+            <details className="adm-more" id="ob-detail" open={순서 ? undefined : true}>
+              <summary>자세히 — 단계별 줄 전부(원장님 몫 {r.요약.원장})</summary>
+              <div className="in">
             {r.단계.map((s, i) => (
               <section className="ob-stage" data-stage={s.id} key={s.id} aria-labelledby={`ob-${s.id}`}>
                 <h2 id={`ob-${s.id}`}><span className="ob-n">{i + 1}</span>{s.이름}</h2>
@@ -124,6 +131,8 @@ export default async function Page({ params, searchParams }: {
                 </ul>
               </section>
             ))}
+              </div>
+            </details>
 
             <details className="adm-more" id="situation" open={err === "onboard" ? true : undefined}>
               <summary>상황 바꾸기 — 도메인 담당·서치어드바이저·빙·블로그·기존 채널·이관</summary>

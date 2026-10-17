@@ -98,11 +98,11 @@ const J = JSON.stringify;
 {
   const ld = (x) => `<script type="application/ld+json">${typeof x === "string" ? x : J(x)}</script>`;
   const g = 사실뽑기(ld({ "@graph": [{ "@type": "WebSite" }, { "@type": "Dentist", address: { "@type": "PostalAddress", addressRegion: "서울특별시", addressLocality: "송파구" } }] }), "미소");
-  봄("사실 — JSON-LD @graph Dentist · address 송파구", g.업종.값 === "치과" && /Dentist/.test(g.업종.출처) && g.지역.값 === "송파구" && /JSON-LD/.test(g.지역.출처), J(g));
+  봄("사실 — JSON-LD @graph Dentist · address 송파구", g.업종.값 === "치과" && /Dentist/.test(g.업종.출처) && g.지역.값 === "송파구" && /적힌 주소/.test(g.지역.출처), J(g));
   const arr = 사실뽑기(ld([{ "@type": "Organization", address: "경기도 성남시 분당구 정자동 1" }]), "미소치과");
   봄("사실 — JSON-LD 배열 · 글자 주소 · 시 아래 구", arr.업종.값 === "치과" && /이름/.test(arr.업종.출처) && arr.지역.값 === "분당구", J(arr));
   const 깨짐 = 사실뽑기(`${ld("{깨짐")}<title>잠실 미소치과</title><p>서울 송파구 올림픽로 1</p>`, "미소");
-  봄("사실 — 깨진 JSON-LD 건너뜀 → 제목·본문", 깨짐.업종.값 === "치과" && /제목/.test(깨짐.업종.출처) && 깨짐.지역.값 === "송파구" && /본문/.test(깨짐.지역.출처), J(깨짐));
+  봄("사실 — 깨진 JSON-LD 건너뜀 → 제목·본문", 깨짐.업종.값 === "치과" && /제목/.test(깨짐.업종.출처) && 깨짐.지역.값 === "송파구" && /홈페이지 글/.test(깨짐.지역.출처), J(깨짐));
   const 둘 = 사실뽑기("<p>본점 서울 송파구 1</p><p>강남점 서울 강남구 2</p>", "미소치과");
   봄("사실 — 지역 둘 → 모름(지점 여럿을 하나로 안 찍음)", 둘.지역.값 === null && /2곳/.test(둘.지역.출처));
   봄("사실 — 같은 지역 여러 번은 하나", 사실뽑기("<p>서울 송파구 1</p><footer>서울특별시 송파구</footer>", "미소치과").지역.값 === "송파구");

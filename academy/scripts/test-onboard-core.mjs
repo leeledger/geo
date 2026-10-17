@@ -4,7 +4,7 @@
 // 하나라도 틀리면 종료코드 1.
 import fs from "node:fs";
 import assert from "node:assert/strict";
-import { 착수순서, onboard입력검사 } from "../../web/lib/onboard-core.mjs";
+import { 착수순서, 할일순서, onboard입력검사 } from "../../web/lib/onboard-core.mjs";
 
 let fail = 0, pass = 0;
 const t = (name, f) => {
@@ -282,6 +282,83 @@ t("요약 · 다음 고비 · 사람말에 영문 상태값 없음", () => {
   assert.equal(r.다음고비, "기준선 보고 10/19");
   const 글 = r.단계.flatMap((s) => s.줄.map((x) => x.사람말)).join(" ");
   assert.ok(!/\b(none|setup|build|pending|done|todo)\b/.test(글), 글.match(/\b(none|setup|build|pending|done|todo)\b/)?.[0]);
+});
+
+// ─────────────── 할 일 순서(Step 57 D256)
+const 할일 = (r) => r.줄.map((x) => `${x.id}:${x.상태}:${x.누가}`);
+const 리허설 = (needs) => ({ id: "p-r", status: "리허설", needs_build: needs, paid_on: null, started_on: "2026-10-12", ends_on: "2026-11-10" });
+
+t("57-1 build 갈래(홈페이지 없음·리허설 제안) — 7줄 · 2번째가 홈페이지 만들기 시작 · 계약 전엔 1번만 지금", () => {
+  const r = 할일순서(입력({ row: { domain: null }, pilot: 리허설("build"), questions: 질문(0) }), 오늘);
+  assert.equal(r.갈래, "build");
+  assert.deepEqual(r.줄.map((x) => x.id), ["contract", "build", "receive", "questions", "launch", "period", "report"]);
+  assert.deepEqual(r.줄.map((x) => x.n), [1, 2, 3, 4, 5, 6, 7]);
+  assert.equal(r.줄[1].일, "홈페이지 만들기 시작");
+  assert.deepEqual(할일(r), ["contract:지금 할 차례:원장님", "build:아직:저희", "receive:아직:고객", "questions:아직:고객", "launch:아직:원장님", "period:아직:저희", "report:아직:저희"]);
+  assert.equal(r.줄[0].말, "그날부터 30일을 셉니다(홈페이지를 새로 만드는 곳은 연 날부터). 아직 계약 전이면 그대로 두세요");
+  assert.equal(r.줄[0].링크, "/admin/clients/miso#pilot");
+  assert.equal(r.줄[1].말, "계약하면 바로 시작합니다");
+  assert.ok(r.줄[3].말.startsWith("질문 20개는 만들어 두었습니다"), r.줄[3].말);
+  // 만들기를 미루는 말이 아니다 — 여는 날만 7일 뒤
+  assert.ok(r.줄[4].말.startsWith("만들기 시작 7일 뒤부터 엽니다"), r.줄[4].말);
+  assert.equal(r.자동말, "질문 만들기·측정은 저희가 알아서 합니다");
+});
+
+t("57-2 build 계약 뒤 — 만들기 지금 · 받을 것 n일째 기다림(기한 기록 있을 때만) · 기준선 뒤 열기 지금", () => {
+  const p = 파일럿({ needs_build: "build", kickoff_on: "2026-10-05" });
+  const 기한 = { intake: "2026-10-12" };
+  const r = 할일순서({ ...입력({ row: { domain: null }, pilot: p }), tasks: 업무("build", 기한) }, 오늘);
+  assert.deepEqual(할일(r).slice(0, 5), ["contract:됨:원장님", "build:지금 할 차례:저희", "receive:지금 할 차례:고객", "questions:지금 할 차례:고객", "launch:지금 할 차례:원장님"]);
+  assert.ok(r.줄[2].말.endsWith(" · 5일째 기다림"), r.줄[2].말);
+  // 기한이 미래면 일수 없음 — 지어내지 않는다
+  const r2 = 할일순서(입력({ row: { domain: null }, pilot: 파일럿({ needs_build: "build" }) }), 오늘);
+  assert.ok(!r2.줄[2].말.includes("일째"), r2.줄[2].말);
+  assert.equal(r2.줄[4].상태, "아직");
+  // D259 — 여는 날은 「자세히」·다음 고비와 같은 근거(site-launch 업무 기한), 착수일이 비어도 나온다
+  assert.ok(r2.줄[4].말.endsWith(" · 10/20부터"), r2.줄[4].말);
+  const 상세 = 착수순서(입력({ row: { domain: null }, pilot: 파일럿({ needs_build: "build" }) }), 오늘);
+  assert.ok(상세.다음고비.startsWith("사이트 열기 10/20"), 상세.다음고비);
+  // 연 날 · 시안 보인 날 → 됨
+  const r3 = 할일순서(입력({ row: { domain: null }, onboard: { draftShownOn: "2026-10-08" }, pilot: 파일럿({ needs_build: "build", kickoff_on: "2026-10-01", site_launch_on: "2026-10-09" }) }), 오늘);
+  assert.equal(r3.줄[1].상태, "됨");
+  assert.equal(r3.줄[4].상태, "됨");
+  assert.equal(r3.줄[5].상태, "지금 할 차례");
+});
+
+t("57-3 setup 갈래 — 6줄 · 관리자 권한(고객) → 질문 → 손보기(저희, 7일 뒤)", () => {
+  const r = 할일순서(입력({ pilot: 리허설("setup") }), 오늘);
+  assert.equal(r.갈래, "setup");
+  assert.deepEqual(r.줄.map((x) => `${x.id}:${x.누가}`), ["contract:원장님", "access:고객", "questions:고객", "fix:저희", "period:저희", "report:저희"]);
+  assert.ok(r.줄[3].말.startsWith("첫 7일 동안 지금 상태를 잰 뒤 손봅니다"), r.줄[3].말);
+  const 우리 = 할일순서(입력({ onboard: { dns: "우리" }, pilot: 파일럿({ needs_build: "setup" }) }), 오늘);
+  assert.equal(우리.줄[1].상태, "됨");
+});
+
+t("57-4 none 갈래 — 4줄 · 30일은 입금일부터", () => {
+  const r = 할일순서(입력({ pilot: 리허설("none") }), 오늘);
+  assert.equal(r.갈래, "none");
+  assert.deepEqual(r.줄.map((x) => x.id), ["contract", "questions", "period", "report"]);
+  assert.equal(r.줄[2].일, "입금일부터 30일");
+  const 계약 = 할일순서(입력({ pilot: 파일럿() }), 오늘);
+  assert.deepEqual(할일(계약).slice(0, 3), ["contract:됨:원장님", "questions:지금 할 차례:고객", "period:지금 할 차례:저희"]);
+  assert.equal(계약.줄[0].말, "10/10 입금을 확인했습니다");
+});
+
+t("57-5 갈래 정하기 — 파일럿 없으면 자동 세팅 사이트상태 → 홈페이지 없음/플랫폼 build → 고칠 것 setup → none", () => {
+  assert.equal(할일순서(입력({ row: { config: { auto: { 사이트상태: "none" } } } }), 오늘).갈래, "none");
+  assert.equal(할일순서(입력({ row: { domain: "blog.naver.com" } }), 오늘).갈래, "build");
+  assert.equal(할일순서(입력({ row: { domain: null } }), 오늘).갈래, "build");
+  assert.equal(할일순서(입력(), 오늘).갈래, "setup"); // 세팅줄 send 에 고칠것
+  assert.equal(할일순서({ ...입력(), 세팅줄: [] }, 오늘).갈래, "none");
+  // 계약한 파일럿 needs_build 가 리허설 제안보다 먼저
+  assert.equal(할일순서(입력({ row: { config: { auto: { 사이트상태: "build" } } }, pilot: 파일럿({ needs_build: "none" }) }), 오늘).갈래, "none");
+});
+
+t("57-6 자사 null · 취소면 줄 없음", () => {
+  assert.equal(할일순서(입력({ row: { relation: "자사" } }), 오늘), null);
+  const r = 할일순서(입력({ pilot: 파일럿({ cancelled_on: "2026-10-15" }) }), 오늘);
+  assert.equal(r.취소, true);
+  assert.equal(r.줄.length, 0);
 });
 
 console.log(`${pass} 통과 · ${fail} 실패`);

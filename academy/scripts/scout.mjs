@@ -24,6 +24,7 @@ import fs from "node:fs";
 import { Pool } from "pg";
 import { loadClients } from "../clients.mjs";
 import { 검색판정 } from "../serp-judge.mjs";
+import { 갈래 } from "../../web/lib/client-core.mjs";
 
 for (const l of fs.readFileSync(new URL("../.env.local", import.meta.url), "utf8").split(/\r?\n/)) {
   const m = /^([A-Z_]+)=(.*)$/.exec(l);
@@ -153,7 +154,10 @@ for (const c of clients) {
    * 처음엔 이걸 안 갈라서 아이로그(측정 장치를 아직 못 단 고객사)에
    * 「36시간 크롤러 안 왔습니다」라는 헛경보를 냈다.
    * 헛경보를 내는 정찰은 없느니만 못하다 — 두 번 울면 아무도 안 본다.
+   *
+   * 홈페이지가 없는 고객(도메인 없음·블로그·플레이스만)은 장치를 달 사이트가 없다(D253) — 둘 다 안 낸다.
    */
+  const 사이트있음 = !["없음", "플랫폼"].includes(갈래(c));
   const [ever] = await q(`
     select count(*)::int n from academy.crawl_hits where client_id = $1`, P).catch(() => [{ n: 0 }]);
   // 기록 장치를 일부러 안 다는 곳(문서딱 — 정적 사이트·추적 금지)은 장치 일감이 헛일이다(D57, briefing.mjs 와 같은 조건).
@@ -161,19 +165,19 @@ for (const c of clients) {
   // 신호를 안 내면 옛 notracker 일감은 회사 루프에서 「신호 사라짐」으로 닫힌다
   const 설정 = 고객설정.get(c.slug);
   const 일부러없음 = !!설정?.siteLog && 설정.출처?.siteLog !== "기본";
-  if (ever.n === 0) {
+  if (사이트있음 && ever.n === 0) {
+    // 원장 일감으로 뜬다(사람 대기) — 원장 일감 금지어 없이(D255)
     if (!일부러없음) report(`notracker-${c.slug}`, "기회",
-      `${c.name} — 크롤러 방문을 아직 안 재고 있습니다`,
-      "기록이 한 줄도 없습니다. 끊긴 게 아니라 측정 장치를 아직 안 달았습니다. " +
-      "AI 가 실제로 읽어 가는지는 서버에 기록을 심어야만 압니다 — 검색 콘솔에도 안 나옵니다.",
-      "고객사 서버에 크롤러 기록 장치를 다세요. 남의 서버라 협의가 먼저입니다.");
-  } else {
+      `${c.name} — AI가 사이트를 읽으러 오는지 아직 못 봅니다`,
+      "방문 기록이 한 줄도 없습니다. 끊긴 게 아니라 기록 장치를 아직 안 붙였습니다.",
+      "방문 기록 장치를 저희가 붙입니다. 홈페이지 관리자 권한만 있으면 됩니다");
+  } else if (사이트있음) {
     const [ch] = await q(`
       select count(*)::int n from academy.crawl_hits
        where client_id = $1 and seen_at > now() - interval '36 hours'`, P).catch(() => [{ n: -1 }]);
     if (ch.n === 0) {
       report(`crawl-${c.slug}`, "막힘",
-        `${c.name} — 36시간 동안 크롤러가 안 왔습니다`,
+        `${c.name} — 36시간 동안 AI가 사이트를 읽으러 오지 않았습니다`,
         "전에는 오던 크롤러가 멈췄습니다. 사이트가 죽었거나 robots 가 막고 있거나 색인에서 빠졌습니다.",
         "주소가 열리는지, robots.txt 가 정상인지 먼저 보세요.");
     }
