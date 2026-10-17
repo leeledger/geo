@@ -320,11 +320,13 @@ export const 마소로그인화면 = (u) => /^https:\/\/(login\.live\.com|login\
  * 선택자·문구는 실측 전이다(D186 과 같이 원장의 첫 --all 이 첫 확인). 모르는 화면이면 아무것도 더 안 치고 멈춘다.
  * 버튼은 화면마다 #idSIButton9 하나(다음 → 로그인 → 예). 「예」는 #acceptButton 일 때도 있다
  */
+// 2026-10 원장 --all 실측: 개인 계정 화면이 새 디자인(입력칸 테두리 안 라벨 「전자 메일 또는 전화번호」·파란 「다음」)이라 옛 선택자가 안 맞았다(D200).
+// 새 화면 후보(#usernameEntry·#passwordEntry·data-testid=primaryButton)를 옛것과 함께 둔다. 여전히 실측 전 — 모르면 멈춘다
 const 마소칸 = {
-  이메일: 'input[type="email"][name="loginfmt"]:visible',
-  비번: 'input[type="password"][name="passwd"]:visible',
-  버튼: "#idSIButton9:visible",
-  유지예: "#acceptButton:visible, #idSIButton9:visible",
+  이메일: 'input[type="email"][name="loginfmt"]:visible, input#usernameEntry[type="email"]:visible, input[type="email"][autocomplete="username"]:visible',
+  비번: 'input[type="password"][name="passwd"]:visible, input#passwordEntry[type="password"]:visible',
+  버튼: '#idSIButton9:visible, button[type="submit"][data-testid="primaryButton"]:visible',
+  유지예: '#acceptButton:visible, #idSIButton9:visible, button[type="submit"][data-testid="primaryButton"]:visible',
 };
 const 마소표지 = [
   ["비번틀림", /(account|계정) (or|또는) (password|암호|비밀번호)[^\n]*(incorrect|잘못)|password is incorrect|암호가 (잘못|올바르지)|비밀번호가 (잘못|올바르지)/i],

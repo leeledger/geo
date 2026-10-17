@@ -2128,3 +2128,5 @@ Should Fix:
 - KG-53-7 마소 표지 문구(2단계·캡차·비번틀림)는 공개 화면 실측 전 추정. 실제 이메일 화면에 「코드」「본인 확인」 같은 글자가 늘 있으면 처음부터 멈춘다(안전 쪽 실패)
 
 - **D199 (2026-10-17, Arch)** 리뷰 Should Fix 반영: 마이크로소프트 마지막 단계 시간초과도 「모르는화면」(blocked). kin-find --dry/--look 의 로그인 시도는 그대로 둔다(원장이 손으로 돌리는 확인용, 20시간 제한이 막는다). KG-53-5(빙 만료 → /webmasters/about)는 원장 --all 뒤 실제 만료 때 확인.
+
+- **D200 (2026-10-17, Arch)** 원장 --all 결과(12:55): naver(학원 force11) 저장·자동 로그인 성공, naver-docttak 저장·성공, naver-hostingkr 취소, microsoft 저장·「모르는화면」(이메일 첫 화면에서 아무것도 안 침). 화면은 새 디자인 개인 계정 로그인. 새 화면 선택자 후보(#usernameEntry·#passwordEntry·primaryButton)를 옛것과 함께 추가. 3단계는 「유지」 문구를 봐야 누르므로 다른 화면의 primaryButton 을 누르지 않는다. test-auto-login 242/0. 비번 칸 대신 코드 받기 화면이 나오면 2단계로 멈추는 게 맞다.
