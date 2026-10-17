@@ -2290,3 +2290,5 @@ Step 55 배포 fa21483. 브리프 handoff/ARCHITECT-BRIEF.md, Step 55 브리프�
 - REVIEW-REQUEST 의 daily-agent 설명을 고쳤다. 건너뛰는 것은 「다시 색인 알림」 갈래(494)뿐이고, 새 초안 쓰기(write-draft)는 사이트 없는 고객도 지금처럼 돈다(브리프 58줄대로)
 - **D250 (Arch, D245 보완)** 키 파일만 빠지면 키 파일 줄이 사람으로 바뀌고 내부 일감 setup-keyfile 이 열린다. 기존 setup-<칸> 길을 쓰고, 일감제목에 keyfile 을 더했다. 보내는 글이 아니라 원장·Claude 세션 몫이다. 키 파일이 열리면 완료로 닫히고, 다른 칸도 빠지면 열지 않는다(보낼글이 맡는다)
 - 시험: test-clients 110 · test-auto-setup-core 156 · test-client-core 241 · test-client-copy 11 · test-client-status 14 · test-onboard-core 18 · test-docttak 35 · test-ilog-loop 42 — 전부 0 실패 · tsc 0
+
+- **D251 (2026-10-17, Arch)** 측정 「유료」 묶음은 입금 확인(paid_on)이 있어야 한다. 리허설·미입금 파일럿(id 18, price 39만)이 유료 몫·k 를 먹고 있었다. 이제 「측정」 묶음(맨 뒤, k 에 안 셈). test-ilog-loop 43/0(새 시험 1) · test-docttak 35/0 · test-clients 110/0. 「삼성영어학원」(자동완성)은 다른 학원 이름일 수 있어 원장 승인 때 빼도록 알림.

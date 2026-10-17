@@ -90,7 +90,8 @@ export function 대상고르기(rows, 오늘) {
   const 유료 = [], 학원 = [], 자사 = [], 측정 = [];
   for (const r of rows) {
     if (r.slug === HOUSE) 학원.push({ ...r, 묶음: "학원" });
-    else if (진행중(r) && Number(r.price) > 0) 유료.push({ ...r, 묶음: "유료" });
+    // 입금 확인(paid_on)이 있어야 유료다 — 리허설·미입금 파일럿이 유료 몫을 먹지 않게(D251, 2026-10-17 id 18)
+    else if (진행중(r) && Number(r.price) > 0 && r.paid_on) 유료.push({ ...r, 묶음: "유료" });
     else if ((진행중(r) || r.measure_active === true) && r.relation === "자사") 자사.push({ ...r, 묶음: "자사" });
     else if (진행중(r) || r.measure_active === true) 측정.push({ ...r, 묶음: "측정" });
   }
@@ -107,7 +108,7 @@ export const 고객수 = (대상) => 대상.filter((r) => r.묶음 === "유료" 
 
 const 고객행 = `select c.id, c.slug, c.name, c.domain, c.answer_pattern, c.measure_active, c.relation,
     p.price, p.started_on::text as started_on, p.ends_on::text as ends_on,
-    p.kickoff_on::text as kickoff_on, p.needs_build, p.site_launch_on::text as site_launch_on, p.cancelled_on::text as cancelled_on,
+    p.kickoff_on::text as kickoff_on, p.needs_build, p.site_launch_on::text as site_launch_on, p.cancelled_on::text as cancelled_on, p.paid_on::text as paid_on,
     (select count(*) from geo.pilot_questions pq where pq.pilot_id = p.id and pq.approved)::int as approved_n
   from geo.clients c left join geo.pilots p on p.client_id = c.id`;
 // 시험 고객(status test, Step 37)은 이름으로 콕 집을 때만 잰다 — company·daily-agent 와 같은 규칙. 돈 쓰는 길이라 구조로 막는다

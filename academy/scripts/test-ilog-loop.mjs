@@ -113,7 +113,7 @@ const 행 = (o) => ({ answer_pattern: null, measure_active: false, relation: "�
   kickoff_on: null, needs_build: "none", site_launch_on: null, cancelled_on: null, approved_n: 0, ...o });
 const 학원행 = 행({ id: 1, slug: "robotncoding", name: "학원", domain: "robotncoding.com", relation: "자사", price: 0, started_on: "2026-09-17", ends_on: "2026-10-17", approved_n: 20 });
 const 아이로그행 = (n) => 행({ id: 2, slug: "ilog", name: "아이로그", domain: "ilog.ai.kr", relation: "자사", measure_active: true, started_on: "2026-09-30", ends_on: "2026-10-30", approved_n: n });
-const 유료행 = 행({ id: 3, slug: "paid", name: "유료", domain: "paid.example", price: 390000, started_on: "2026-09-25", ends_on: "2026-10-24", approved_n: 20 });
+const 유료행 = 행({ id: 3, slug: "paid", name: "유료", domain: "paid.example", price: 390000, started_on: "2026-09-25", ends_on: "2026-10-24", approved_n: 20, paid_on: "2026-09-25" });
 // Step 32 D45 — 상한은 고객 수 k 로. k=0·1 은 Step 30 값 그대로여야 한다
 t("학원만 있는 날 — k=0 · 40·22·60 그대로", () => {
   assert.equal(고객수(대상고르기([학원행], 오늘)), 0);
@@ -333,6 +333,13 @@ t("나이 닫기 제거 — 세션일감닫기 없음 · daily-agent 는 미처�
   assert.match(루프, /verdict='미처리'/);
   assert.doesNotMatch(루프, /세션일감닫기/);
   assert.doesNotMatch(세션, /세션일감닫기|status='닫힘'/);
+});
+
+t("미입금 리허설 파일럿 — 유료 아님, k 에 안 셈(D251)", () => {
+  const 미입금 = { ...유료행, id: 4, slug: "unpaid", paid_on: null, measure_active: true, relation: "외부" };
+  const 대상 = 대상고르기([학원행, 미입금], 오늘);
+  assert.equal(대상.find((r) => r.slug === "unpaid")?.묶음, "측정");
+  assert.equal(고객수(대상), 0);
 });
 
 console.log(`\n${pass} 통과 · ${fail} 실패`);
