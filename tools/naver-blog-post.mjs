@@ -32,13 +32,13 @@
  * 글을 고쳤으면 새로 올리지 말고 --update 를 쓴다.
  * 같은 내용이 두 벌 올라가면 네이버 검색에서 서로 갉아먹는다.
  */
-import { chromium } from "playwright";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import os from "node:os";
 import { spawnSync } from "node:child_process";
 import { Pool } from "pg";
+import { 프로필열기, 자동로그인, 자동로그인할까, 저장값있음, 상태읽기, 상태쓰기, 세션남은일 } from "./auto-login.mjs";
 
 const BLOG_ID = process.env.NAVER_BLOG_ID || "force11";
 const DRY = process.argv.includes("--dry");
@@ -189,7 +189,8 @@ console.log(post.title);
 console.log(`  문단 ${BLOCKS.filter((b) => b.t).length} · 소제목 ${BLOCKS.filter((b) => b.h).length}` +
             ` · 사진 ${BLOCKS.filter((b) => b.img).length} · 태그 ${TAGS.length}`);
 
-const ctx = await chromium.launchPersistentContext(path.resolve(process.cwd(), PROFILE), {
+// 잠금 없는 도구가 프로필을 쥐었으면 60초씩 3번 더 해 본다(Step 52)
+const ctx = await 프로필열기(path.resolve(process.cwd(), PROFILE), {
   headless: false,
   viewport: { width: 1440, height: 940 },
   locale: "ko-KR",
@@ -207,15 +208,33 @@ await page.goto(
 );
 await page.waitForTimeout(12000);
 
+/**
+ * 로그인 화면으로 튀었으면 학원 프로필에 한해 저장값으로 먼저 혼자 다시 로그인한다(Step 52 D178).
+ * 안 되면 기존 줄을 글자 그대로 찍는다 — local-agent 가 /로그인이 필요/ 로 사람 일감을 올린다. 그 아래 줄이 멈춘 까닭(일감 근거)
+ */
 if (/nid\.naver\.com/.test(page.url())) {
-  console.log("네이버 로그인이 필요합니다. 창에서 로그인해 주세요 (최대 8분).");
-  const t0 = Date.now();
-  while (Date.now() - t0 < 480000 && /nid\.naver\.com/.test(page.url())) await page.waitForTimeout(2500);
-  await page.waitForTimeout(9000);
+  const 판단 = 자동로그인할까(PROFILE, 저장값있음("naver"), 상태읽기("naver"), Date.now());
+  const r = 판단.할까 ? await 자동로그인(page, ctx, "naver") : null;
+  if (r?.ok) {
+    console.log("✓ 네이버 자동 로그인");
+    await page.waitForTimeout(9000);
+  } else {
+    console.log("네이버 로그인이 필요합니다. 창에서 로그인해 주세요 (최대 8분).");
+    console.log(r ? `자동 로그인 멈춤: ${r.사유}${r.화면 ? ` · 화면 ${r.화면}` : ""}` : `자동 로그인 안 함: ${판단.까닭}`);
+    const t0 = Date.now();
+    while (Date.now() - t0 < 480000 && /nid\.naver\.com/.test(page.url())) await page.waitForTimeout(2500);
+    await page.waitForTimeout(9000);
+  }
 }
 
 const F = page.frames().find((f) => /PostWriteForm/i.test(f.url()));
 if (!F) { console.log("에디터 프레임을 못 찾았습니다."); await ctx.close(); process.exit(1); }
+// 에디터가 떴으면 로그인돼 있다 — 학원 프로필이면 막힘을 풀고(bad 는 그대로) 세션 남은 날을 남긴다(D181)
+if (PROFILE === ".browser-profile") {
+  if (저장값있음("naver")) 상태쓰기("naver", { blocked: false });
+  const 남은 = 세션남은일(await ctx.cookies("https://nid.naver.com").catch(() => []));
+  console.log(남은 === null ? "NID_AUT 남은 날 모름" : `NID_AUT 남은 ${남은}일`);
+}
 
 // 임시저장 복구 팝업 — '취소'를 정확히 맞춘다. /취소/ 로 두면 툴바의 '취소선'이 걸린다.
 const restore = F.getByRole("button", { name: "취소", exact: true }).first();

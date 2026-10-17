@@ -59,3 +59,6 @@ tools/.kin-find-day.json
 
 # 유튜브 API 열쇠 — OAuth 클라이언트 비밀값·갱신 토큰. 올라가면 채널이 통째로 열린다 (tools/yt-api.mjs)
 .yt-secret/
+
+# 네이버 자동 로그인 저장값(DPAPI 로 암호화된 아이디·비번)·상태·스크린샷 — 암호화돼 있어도 저장소에 두지 않는다 (tools/save-login.mjs)
+tools/.secrets/

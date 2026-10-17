@@ -2,6 +2,14 @@
 *Read this before reading anything else. If it covers current state, skip BUILD-LOG.*
 
 
+## Where We Stopped (2026-10-17) — Step 52 브리프(네이버 자동 재로그인)
+
+- handoff/ARCHITECT-BRIEF.md = Step 52. Step 51 브리프는 handoff/research/ARCHITECT-BRIEF-step51.md
+- 52a 저장(save-login · Get-Credential → Export-Clixml DPAPI · tools/.secrets gitignore) / 52b auto-login.mjs(20시간 1회 · 긍정 판정 · 멈추면 스크린샷) / 52c naver-blog-post 210행 + local-agent 근거·남은 날
+- 결정 D176~D184, KG-52-1~5 BUILD-LOG
+- 다음: Bob(builder) → test-auto-login(카나리아 유출 시험) → Richard → 커밋 → 원장 1회 `node tools/save-login.mjs naver` → Arch 가 state.json·활동 「네이버 세션 N일 남음」 확인
+- 원장 몫: save-login 1회 · KG-52-1 고객 블로그 비번 보관 여부
+
 ## Where We Stopped (2026-10-16) — Step 51 브리프(cited.kr 을 거래처처럼 잰다)
 
 - handoff/ARCHITECT-BRIEF.md = Step 51. Step 50 브리프는 handoff/research/ARCHITECT-BRIEF-step50.md

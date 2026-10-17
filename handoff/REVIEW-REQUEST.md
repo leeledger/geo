@@ -1,59 +1,69 @@
-# Review Request — Step 51
-Date: 2026-10-16
+# Review Request — Step 52 (네이버 자동 재로그인) · 2차(리뷰 반영)
+Date: 2026-10-17
 Ready for Review: YES
-Status: DONE (배포 전 범위. 커밋·푸시·배포·seed-panel --apply 안 함)
+Status: DONE_WITH_CONCERNS (test-login-live --live 회귀는 Arch 몫 · 실측은 원장 첫 save-login 으로(D186))
+
+## 2차 반영 (REVIEW-FEEDBACK 1차 · Arch 결정)
+- Must Fix → (a) D185: 키 `naver-session-soon` (tools/auto-login.mjs 세션경고 insert·update, 시험 2곳). 새 시험: 세션경고가 실제로 넣는 키를 뽑아 web/lib/todo-text.ts(TS 깎아 임시 파일)에 넣으면 action.type ≠ login · 「로그인 창이 뜹니다」 없음, 대조로 login-naver 는 login
+- 클릭 뒤 판정: `표지찾기(page, { 비번먼저: true })` — 비번틀림 글자를 캡차 요소보다 먼저. 시나리오 「비번틀림+캡차」→ 비번틀림·bad=true. 기존 「캡차」 시나리오는 캡차만 뜨는 화면으로
+- 비번 칸 선택자 `input#pw[type="password"], input[name="pw"][type="password"]`. 시나리오 「비번 칸이 글자칸」→ 모르는화면·입력 이벤트 0·제출 0
+- Acceptance 5 → D186: 원장의 첫 save-login 실행을 실측으로 친다
+- 결과: test-auto-login **138 통과 · 0 실패**, test-login 56 · 0. --live·실제 네이버는 안 돌림
 
 ## Files Changed
-- web/lib/bots.ts (새) — academy/lib/bots.ts 바이트 그대로 사본(cmp 같음)
-- web/lib/cited-proxy.ts (새, import 없음) — `decide({pathname, cookie, hasKey, isBot})`: 키 없음·/api·/admin(하위) → null, 봇 → crawl, cited_admin 쿠키 → null, 그 밖 → visit
-- web/proxy.ts (새) — 아이로그 proxy 꼴. `new URL("/api/crawl"|"/api/visit", req.nextUrl.origin)` 로 x-cited-client cited + x-cited-key 를 waitUntil 로 보냄, fetch 는 try/catch 로 삼킴. visit 은 readVisit(req, VISIT_SALT). matcher 는 브리프 글자 그대로
-- web/scripts/check-proxy.mjs (새) — decide·identify 단정 + admin-auth.ts COOKIE 글자 대조 + proxy.ts matcher 문자열을 정규식으로 걸림/안 걸림
-- web/scripts/check-crawler-class.mjs:27-32 — 끝에 web/lib/bots.ts = academy/lib/bots.ts(CRLF→LF) 대조, 다르면 exit 1
-- academy/scripts/seed-panel.mjs:8-10, 20, 23-35, 60-64 — 패널파일에 cited · `패널점검(m, 이름원문 = 코드덩어리?.answerRe.source ?? null)` · 덩어리·DB 행 둘 다 없으면 「고객사 없음 — /admin/clients 에서 먼저 등록」 · id 대조는 코드 고객만. 1인자 호출(test-docttak)은 기본값으로 전과 같다
-- academy/scripts/seed-cited-panel.mjs (새) — docttak 꼴. 새고객 없음, 이름말 = DB answer_pattern 글자, 파일럿 0원 리허설 + 경쟁사 brand_universe 앞 5곳
-- academy/scripts/test-seed-panel.mjs (새) — 10 단정(아래)
-- handoff/research/step51/autocomplete.json (새) — 14씨앗 원응답(raw 포함), 2026-10-16 KST
-- handoff/research/step51/seed-dry.txt (새) — `seed-panel --client cited` dry 출력
+- .gitignore:62-64 — `tools/.secrets/` 한 줄 + 까닭 주석
+- tools/auto-login.mjs (새) — 비밀폴더·저장값있음·상태읽기/쓰기(네 칸만)·시도가능(20h)·자동로그인할까·복호화(고정 문구)·프로필열기(60s x3)·세션남은일·멈춤줄·남은날줄·세션경고(naver-session-soon)·자동로그인(사전 판정→복호화→한 글자씩 60~160ms→상태 유지→클릭 1번→긍정 판정·스크린샷 10장)
+- tools/save-login.mjs (새) — 잠금 대기(30s, 15분, exit 3)·OS 잠금 wx·Get-Credential→Export-Clixml(PowerShell 안에서만)·상태 초기화·로그아웃→Write→자동로그인·✗ 면 5분 창·5초 뒤 ctx.close·잠금 해제
+- tools/naver-blog-post.mjs:35-41 — chromium import 빼고 auto-login import
+- tools/naver-blog-post.mjs:~192 — `프로필열기`로 교체(옵션 그대로)
+- tools/naver-blog-post.mjs:~210-235 — nid 분기: 자동로그인할까→자동로그인, 실패/안 함이면 기존 줄 글자 그대로 + 「자동 로그인 멈춤|안 함: …」 + 기존 8분 대기. 에디터 확인 뒤 학원 프로필이면 blocked=false(저장값 있을 때)·`NID_AUT 남은 N일|날 모름`
+- tools/local-agent.mjs:27 — auto-login import
+- tools/local-agent.mjs:~107-114 — `사람로그인(kind, what, 근거)`: evidence 에 근거 덧붙임, naver 일감 detail 끝 문장
+- tools/local-agent.mjs:~142-185 — 세션 남은 날 활동 「네이버 세션」 + 세션경고(실행당 한 번), 로그인 필요 분기에 멈춤줄 근거·활동 summary
+- academy/scripts/test-auto-login.mjs (새) — 단위 + 가짜 nid 화면 12 시나리오(자식 프로세스) + 카나리아 유출 검사
 
-## Env (geo Production)
-- setup-multiclient.mjs 실행 → cited·docttak crawl_key 생성(뷰는 같은 정의)
-- CITED_CRAWL_KEY · VISIT_SALT 를 파일로 `vercel env add ... production <` 넣음
-- env pull 대조: CITED_CRAWL_KEY 36자 · DB 키와 같음 · hex 만 / VISIT_SALT 64자 · hex 만. BOM·줄바꿈 없음. 받은 파일·임시 파일 지움, 값은 어디에도 안 적음
+## 결과
+- `node academy/scripts/test-auto-login.mjs` → **122 통과 · 0 실패** (약 90초)
+  - 시험이 진짜로 잡는지 확인: 분류를 망가뜨리자 10 실패, 복호화 값을 base64 로 console.log 하게 심자 「유출 — 자식 stdout+stderr」 실패(base64·base64 그대로). 둘 다 되돌림
+- 회귀 `node academy/scripts/test-login.mjs` → 56 통과 · 0 실패 (이전 56)
+- 회귀 `test-login-live.mjs --live` → **못 돌림** (운영 DB 쓰기 — 자동 모드 분류기 거부). Arch 가 돌려 주세요
+- `git check-ignore -v tools/.secrets/naver.xml` → `.gitignore:64:tools/.secrets/	tools/.secrets/naver.xml`. `git status --porcelain` 에 .secrets 없음. tools/.secrets 폴더 자체가 없음(실제 저장값 안 만듦)
+- `node tools/save-login.mjs foo` → 사용법, exit 1
+- `node --check` 5파일 통과
 
-## 패널 (keyword 17 + brand 3)
-자동완성 원문 12개(씨앗 순 → 순위 순):
-geo 마케팅(1) · AEO GEO 마케팅(2) · geo 마케팅 대행사(3) · geo 마케팅 뜻(4) · geo 마케팅 회사(5) · geo 마케팅 방법(6) · geo 마케팅 비용(7) — 씨앗 geo 마케팅
-geo 최적화(1) · geo 최적화 뜻(2) — 씨앗 geo 최적화
-AEO마케팅(4) — 씨앗 aeo · ai 검색 최적화(1) · 생성형엔진최적화(1)
-등록 경쟁 검색어로 채운 5개: GEO 대행사 · GEO 마케팅 업체 · AEO 대행사 · AI 검색 노출 대행 · 챗GPT 회사 노출 방법
-brand: 사이티드 어떤 회사야? · cited.kr 뭐 하는 곳이야? · 사이티드 GEO
+## Acceptance 4 — console. 줄 (u·p·복호화 결과를 받는 줄 없음)
+```
+tools/auto-login.mjs:91   프로필 재시도 회차(i)만
+tools/save-login.mjs:20   사용법 고정 문구
+tools/save-login.mjs:48   15분 초과 고정 문구
+tools/save-login.mjs:49   기다림 고정 문구
+tools/save-login.mjs:64   취소 고정 문구
+tools/save-login.mjs:65   저장 실패 고정 문구(PowerShell 출력 안 붙임)
+tools/save-login.mjs:67   저장 완료 고정 문구
+tools/save-login.mjs:90   ✓ 고정 문구
+tools/save-login.mjs:93   r.사유(고정 분류 글자)·r.화면(스크린샷 경로)만
+tools/save-login.mjs:94   고정 문구
+tools/save-login.mjs:97   고정 문구
+tools/save-login.mjs:101  고정 문구(catch 의 e 를 안 씀)
+```
+naver-blog-post 에 더한 줄도 판단.까닭·r.사유·r.화면·남은 날 숫자만 찍는다. 자동로그인은 오류를 밖으로 안 던진다(Playwright 오류 문구가 근거로 새지 않게).
 
-빈 목록 씨앗 8개: geo 대행사 · ai 검색 노출 · 챗gpt 노출 · 챗gpt 마케팅 · 챗gpt 검색 노출 · ai 마케팅 대행 · 퍼플렉시티 노출 (+ llmo 는 결과가 다른 뜻뿐)
-버린 것·까닭:
-- 「aeo」(aeo 3위)·「AEO 뜻」(aeo 2위) — 같은 목록에 AEO 인증·aeon 이 섞여 있어 뜻이 갈린다
-- 「geo 최적화 영어로」(geo 최적화 3위) — 용어 풀이 질문이라 회사 이름이 나올 일이 드물다(D174, Arch)
-- 「AEO GEO 마케팅」(aeo 1위) — q2 와 같은 글자
-- 「aeo 마케팅」(씨앗 aeo 마케팅 1위) — AEO마케팅 과 띄어쓰기·대소문자만 다름(먼저 나온 쪽을 남김)
-- aeon mall · AEO 인증 · aeon · aeonian · aeon atm · aeon atm 찾는법 — 다른 뜻
-- LLMops 뜻 · ll mondo 뜻 — 다른 뜻
-- 남의 회사 이름이 든 결과는 없었다
-
-## 측정 몫 (D173)
-`gh variable list` (leeledger/geo): CLAUDE_MEASURE_RESERVE 없음 · CLAUDE_DAILY_MAX 없음 (secret 에도 없음). 있는 vars: MEASURE_ENGINES · MEASURE_EVERY_DAYS · REPAIR_ENABLED · WRITER_PROVIDER. → 고정값 없음, cited 몫 +20 이 자동으로 붙는다
-
-## Verification
-- `node --experimental-strip-types web/scripts/check-proxy.mjs` — 전부 통과(키 없음 2 · GPTBot·ClaudeBot·PerplexityBot identify·/·/llms.txt · 봇+admin쿠키 → crawl · 사람 visit/null 5 · /api·/admin 경로 8 · 쿠키 글자 대조 · matcher 걸림 6 / 안 걸림 8)
-- `node web/scripts/check-crawler-class.mjs` — AI_BOTS 같음(20) · SEARCH_BOTS 같음(5) · 사본 같음
-- `node --experimental-strip-types academy/scripts/test-visit.mjs` — 94 통과 · 0 실패
-- `node academy/scripts/test-seed-panel.mjs` — 10/10
-- `node academy/scripts/test-docttak.mjs` — 35 통과 · 0 실패
-- web `node ./node_modules/typescript/bin/tsc --noEmit` — 0 · `npm run build` — 통과, 「ƒ Proxy (Middleware)」 잡힘
-- seed-panel dry: cited(이름 판별 DB 값 = 파일 값 · 파일럿 새로 · 질문 20 · keyword 17 · brand 3), ilog·docttak dry 도 전처럼 돎
+## Acceptance 5 — 실측: 못 함 (BLOCKED, Arch 판단 필요)
+빈 임시 프로필(scratchpad)로 `https://nid.naver.com/nidlogin.login` 을 열어 DOM 만 읽는 스크립트가 자동 모드 분류기에 거부됨([Third-Party Attack]). 우회하지 않았다. 학원 프로필 NID_AUT 남은 날도 같은 까닭으로 안 읽었다.
+지금 들어간 선택자는 **알려진 nid 구조로 넣은 후보**고 실측값이 아니다.
+- 아이디 `input#id, input[name="id"]` · 비번 `input#pw, input[name="pw"][type="password"]`
+- 상태 유지 `input#keep, input#nvlong, input[name="nvlong"]`(라벨 `label[for=<id>]` 클릭, 안 되면 check force. 그래도 꺼져 있으면 안 누르고 모르는화면)
+- 로그인 `[id="log.login"], button.btn_login, form#frmNIDLogin button[type="submit"]`
+- 캡차 요소 `#captcha, #captchaimg, #chptcha`(보일 때만) · 문구 /자동입력 ?방지|자동 입력 방지|보안문자|보이는 대로 입력/
+- 2단계 /2단계 인증|2차 인증|OTP 인증/ · 새기기 /새로운 기기|새 기기|새로운 환경|등록되지 않은 기기|기기 인증/ · 보호조치 /보호조치|보호 조치|도용이 의심|이용이 제한/ · 비번틀림 /비밀번호를 (잘못|정확하게)|비밀번호가 (잘못|일치하지)/
+- 문구는 body innerText(보이는 글자)로만 본다
+틀렸을 때 일어나는 일: 칸을 못 찾으면 아무것도 안 치고 `모르는화면`(blocked) → 오늘과 같은 사람 일감 + 스크린샷. 실계정 잠김 위험 쪽으로는 안 기운다. 단, 정상 로그인 화면에 위 문구가 보이면 매번 사전 판정에서 멈춘다(헛 blocked) — 실측으로만 지울 수 있는 위험.
+제안: Arch 또는 원장이 `C:\Users\force\AppData\Local\Temp\claude\C--dev-AGO-GEO\4532bd60-6822-4139-9841-8e77d27995eb\scratchpad\probe-nid.mjs`(빈 임시 프로필·헤드리스·읽기만·끝나면 프로필 삭제)를 돌려 선택자를 맞추거나, 원장 1회 save-login 결과(✓/✗ 사유·스크린샷)로 확인.
 
 ## Open Questions
-- (닫힘, D174) 「aeo」·「AEO 뜻」 뺀 채 유지 · 「geo 최적화 영어로」 → 「챗GPT 회사 노출 방법」
-- test-visit 은 맨 `node` 로는 .ts import 에서 멈춘다. 브리프 Acceptance 의 명령 대신 파일 머리 주석대로 `--experimental-strip-types` 로 돌렸다
-- matcher 시험은 문자열을 `^…$` 정규식으로 본다. Next 의 path-to-regexp 변환과 같다고 보장하지 않는다 — 라이브 확인(Acceptance)이 최종
+- 선택자 실측(위). Acceptance 6(원장 save-login 1회)이 사실상 첫 실측이 된다
+- 세션 확인 뒤 blocked=false 는 저장값이 있을 때만 쓴다(저장값 없는 PC 에 .secrets 폴더를 만들지 않게)
+- 사람로그인 evidence: insert 때 `coalesce($4,'')`, 충돌 때 근거가 있을 때만 덧붙임
 
 ## Out of Scope (logged in BUILD-LOG)
-- KG-51-1~5 그대로. 새로 고친 것 없음
+- 우려 두 줄(실측·live 회귀)만 BUILD-LOG Step 52 빌드 절에. 새 Known Gap 없음

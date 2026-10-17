@@ -24,6 +24,7 @@ import pg from "pg";
 import { indexClients, loadClients } from "../academy/clients.mjs";
 import { 빙미등록 } from "./bing-site.mjs";
 import { CODE_SLUGS, 탐침읽기, 탐침저장 } from "../web/lib/client-core.mjs";
+import { 멈춤줄, 남은날줄, 세션경고, 저장값있음 } from "./auto-login.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const LOCK = path.join(HERE, ".local-agent.lock");
@@ -103,11 +104,13 @@ const KST = () => new Date().toLocaleString("sv-SE", { timeZone: "Asia/Seoul" })
 const 활동 = (agent, action, ok, summary, taskId = null, clientId = 1) =>
   q(`insert into geo.agent_activity (client_id, agent, action, ok, summary, task_id, run_url) values ($6,$1,$2,$3,$4,$5,'local-agent')`,
     [agent, action, ok, String(summary).slice(0, 1000), taskId, clientId]).catch(() => {});
-const 사람로그인 = (kind, what) =>
-  q(`insert into geo.agent_tasks (client_id, agent, kind, dedupe_key, title, detail, status, priority, payload)
-     values (1, 'deliver', 'human', $1, $2, $3, '사람 대기', 5, '{"sticky":true}'::jsonb)
-     on conflict (client_id, dedupe_key) do update set status='사람 대기', updated_at=now()`,
-    [`login-${kind}`, `${what} 로그인이 풀렸습니다`, `로컬 에이전트가 ${what} 일을 못 했습니다. 현황판 「로그인 창 열기」를 누르거나 PC 에서 node tools/open-session.mjs 로 로그인하면 다음 실행(12:40·19:10)부터 다시 돕니다.`]);
+// 근거(멈춘 까닭 한 줄)가 있으면 evidence 뒤에 붙인다. 자동 다시 로그인은 네이버만(Step 52) — 그 안내도 네이버 일감에만
+const 사람로그인 = (kind, what, 근거 = null) =>
+  q(`insert into geo.agent_tasks (client_id, agent, kind, dedupe_key, title, detail, status, priority, payload, evidence)
+     values (1, 'deliver', 'human', $1, $2, $3, '사람 대기', 5, '{"sticky":true}'::jsonb, coalesce($4::text, ''))
+     on conflict (client_id, dedupe_key) do update set status='사람 대기', updated_at=now(),
+       evidence = case when $4::text is null then geo.agent_tasks.evidence else left(coalesce(geo.agent_tasks.evidence, '') || E'\n' || $4::text, 4000) end`,
+    [`login-${kind}`, `${what} 로그인이 풀렸습니다`, `로컬 에이전트가 ${what} 일을 못 했습니다. 현황판 「로그인 창 열기」를 누르거나 PC 에서 node tools/open-session.mjs 로 로그인하면 다음 실행(12:40·19:10)부터 다시 돕니다.${kind === "naver" ? " 저장된 로그인 값이 있으면 먼저 혼자 다시 로그인해 보고, 막혔을 때만 이 일감이 뜹니다." : ""}`, 근거]);
 const 로그인됨 = (kind) =>
   q(`update geo.agent_tasks set status='완료', done_at=now(), updated_at=now() where client_id=1 and dedupe_key=$1 and status='사람 대기'`, [`login-${kind}`]);
 
@@ -138,6 +141,7 @@ try {
                          and a.status not in ('완료', '닫힘'))
       order by published_at limit 3`);
   let 네이버막힘 = false;
+  let 세션봄 = false;
   for (const p of posts) {
     기록(`네이버 이관: ${p.slug}`);
     // 시작 전에 시도를 남긴다. 발행 뒤에 프로세스가 죽어도 다음 실행이 같은 글을 또 올리지 않게
@@ -151,6 +155,13 @@ try {
     const [after] = await q(`select naver_log_no from academy.posts where slug=$1`, [p.slug]);
     // 발행 버튼을 누르기 직전에 찍는 줄이 있으면 올라갔을 수 있다. 시간 초과도 어디서 죽었는지 모르니 같은 취급
     const 발행했을수도 = /발행 버튼을 누릅니다|ETIMEDOUT|timed out|SIGTERM/i.test(r.out);
+    // 세션 남은 날(D181) — 로그인이 확인된 실행에서 한 번만
+    const 남은 = 남은날줄(r.out);
+    if (남은 !== null && !세션봄) {
+      세션봄 = true;
+      await 활동("deliver", "네이버 세션", true, `${남은}일 남음`);
+      await 세션경고(q, 남은, 저장값있음("naver"), KST()).catch((e) => 기록(`세션 경고 실패 ${e.message}`));
+    }
     if (after?.naver_log_no) {
       // 근거(logNo)를 같이 남긴다 — 빈 완료는 감사 R3 가 「근거 없는 완료」로 잡는다
       await q(`update geo.agent_tasks set status='완료', done_at=now(), updated_at=now(), evidence = left(coalesce(evidence, '') || E'\n' || $2, 4000) where id=$1`,
@@ -170,8 +181,10 @@ try {
       await 로그인됨("naver");
     } else if (/로그인이 필요/.test(r.out)) {
       네이버막힘 = true;
-      await 사람로그인("naver", "네이버 블로그");
-      await 활동("deliver", "네이버 이관 멈춤", false, "로그인 필요");
+      // 자동 로그인이 멈춘 까닭·스크린샷 경로(또는 안 한 까닭)를 일감 근거로
+      const 멈춤 = 멈춤줄(r.out);
+      await 사람로그인("naver", "네이버 블로그", 멈춤 ? `${KST()} ${멈춤}` : null);
+      await 활동("deliver", "네이버 이관 멈춤", false, 멈춤 ? `로그인 필요 — ${멈춤}` : "로그인 필요");
       break;
     } else {
       await 활동("deliver", `네이버 이관 실패: ${p.title}`, false, 끝(r.out));

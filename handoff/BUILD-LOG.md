@@ -2054,3 +2054,39 @@ Should Fix:
 - cited.kr / 200 · /geo 200 · /admin 307 → /admin/login 200
 - 시험 행 DELETE 3줄(crawl_hits 2 · site_visits 1, id 로 지움). 지운 뒤 client 15 = 0 · 0, /step51% 경로 0
 - seed-panel --client cited --apply → 파일럿 19459339-bd84-4364-922e-14f03b723cb1 · 질문 20(keyword 17 · brand 3 · 승인 0) · measure_active false→true. 원장 몫: /admin/pilots 승인
+
+## Step 52 브리프 — 네이버 자동 재로그인 (2026-10-17, Arch)
+원장 승인 원문(2026-10-17): 「로그인창 열어서 아이디 비번 입력 받고 저장해놓고 앞으로 자동으로 해」. 브리프 handoff/ARCHITECT-BRIEF.md, Step 51 브리프는 handoff/research/ARCHITECT-BRIEF-step51.md
+- **D176 (Arch)** 저장은 Windows PowerShell 5.1 `Get-Credential` → `Export-Clixml`(PSCredential 비번은 DPAPI CurrentUser 로 암호화). 파일 tools/.secrets/naver.xml, 루트 .gitignore `tools/.secrets/`. PowerShell 이 파일을 직접 쓴다 — Node 는 저장 때 비번을 못 본다. 채팅·CLI 인자·env·DB·Vercel·GitHub·일감 payload 어디에도 안 들어간다. 아이디는 xml 에 평문(블로그 주소 force11 과 같아 공개값)
+- **D177 (Arch)** 풀기는 로그인 순간에만. powershell.exe 자식이 Import-Clixml → base64(UTF8 JSON) 한 줄 → Node 메모리. base64 까닭: PowerShell 출력의 BOM·줄바꿈(CLAUDE.md 함정). 실패는 고정 문구 하나 — 원래 오류·stdout 을 안 붙인다
+- **D178 (Arch)** 끼우는 자리는 naver-blog-post.mjs 210행(로그인 화면으로 튄 바로 그 자리, 같은 브라우저). 브라우저를 두 번 안 열어 프로필 다툼이 없다. 학원 프로필(`PROFILE === ".browser-profile"`)에만 — 고객 프로필에 학원 계정을 치면 남의 블로그가 된다. 기존 줄 「네이버 로그인이 필요합니다」를 글자 그대로 두어 local-agent 의 /로그인이 필요/ → 사람 일감 길은 그대로, 멈춘 까닭·스크린샷 경로만 근거에 붙인다
+- **D179 (Arch)** 성공은 긍정형으로만 판정: 30초 안에 nid.naver.com 을 떠나고 NID_AUT 가 「유지」. 그 밖의 모든 화면(캡차·2단계·새 기기·비번 틀림·보호조치·처음 보는 화면)은 멈춤 — 스크린샷 하나, 더는 안 치고 안 누른다. 사람이 쳐듯 pressSequentially(키마다 60~160ms), UA·stealth·쿠키 주입 없음, 기존 실행 옵션 그대로
+- **D180 (Arch)** 자동 시도는 20시간에 한 번. 치기 전에 시각을 남긴다. 까닭: local-agent 가 12:40·19:10 하루 두 번 돌아 20시간이면 자동 시도가 하루 1번을 넘지 않는다. 일주일 내리 실패해도 날을 건너 7번 — 네이버가 연속 실패에 거는 캡차·보호조치 문턱에서 멀다. 24시간으로 두면 19:10 시도 뒤 다음 날 19:10 을 몇 분 차로 놓칠 수 있다. 비번 틀림은 bad(save-login 다시 돌려야 풀림), 캡차 등 멈춤은 blocked(사람 로그인이 확인되면 풀림) — 같은 벽에 매일 부딪히지 않는다
+- **D181 (Arch)** 사전 경고는 싸게: 로그인 확인 때마다 NID_AUT 만료일로 남은 날을 찍어 활동에 남기고, 3일 이하인데 저장값이 없을 때만 login-naver-soon 일감. 저장값이 있으면 일감을 안 올린다 — 풀리면 자동 로그인이 받는다
+- **D182 (Arch)** 프로필 같이 쓰기: 자동 로그인은 local-agent 잠금 안에서 돈다. save-login 은 .local-agent.lock·.open-session.lock 을 보고 30초씩 최대 15분 기다린 뒤 .open-session.lock 을 잡는다(local-agent·login-poll 이 이미 이 잠금을 존중). 잠금 없는 도구가 쥐면 launchPersistentContext 60초 x 3 재시도. 남의 프로세스는 안 죽인다
+- **D183 (Arch)** 퍼플렉시티는 뺀다. ai-web-measure.mjs:159 method `perplexity-web-logged-out` — 일부러 로그아웃 상태로 재서 되살릴 세션이 없다. 구글·빙도 뺀다(2단계·SSO)
+- **D184 (Arch)** save-login 의 시험 로그인은 학원 프로필을 로그아웃한 뒤 같은 자동로그인 함수로 — 원장이 보고 있을 때만. 멈추면 창을 5분 두고 원장이 손으로 마친다. Bob 은 실계정으로 로그인하지 않는다(가짜 화면 + 카나리아 비번으로 시험)
+
+### Known Gaps — Step 52
+- KG-52-1 고객 블로그 프로필(.browser-profile-docttak·-hostingkr) 자동 로그인 — 고객 계정 비번을 우리 PC 에 두는 것은 사업 결정. 원장 판단 전엔 안 한다
+- KG-52-2 NID_AUT 만료일이 실제 서버 만료와 같은지 모른다(Bob 이 지금 값을 잰다). 죽기 전에 미리 다시 로그인하는 길은 없다
+- KG-52-3 사전 경고·세션 확인은 이관할 글이 있는 날에만 돈다(naver-blog-post 가 돌 때만)
+- KG-52-4 save-login 의 윈도 창(Get-Credential GUI)은 사람만 확인할 수 있다 — 원장 1회 실행이 검증
+- KG-52-5 서치어드바이저 세션이 블로그 로그인과 같이 살아나는지 확인 안 함
+
+### Step 52 빌드 (Bob, 2026-10-17) — DONE_WITH_CONCERNS
+- 새 `tools/auto-login.mjs`(저장·복호화·상태·자동로그인·판정 함수) · 새 `tools/save-login.mjs naver` · 루트 `.gitignore` `tools/.secrets/` · `naver-blog-post.mjs`(프로필열기·nid 분기·로그인 확인 뒤 blocked 풂·NID_AUT 남은 날) · `local-agent.mjs`(사람로그인 근거·네이버 세션 활동·login-naver-soon) · 새 `academy/scripts/test-auto-login.mjs` 122 통과
+- 결정(Bob): powershell.exe 를 PATH 이름이 아니라 `%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe` 전체 경로로(5.1 그대로). 이 셸에서 이름으로는 ENOENT — local-agent --install 과 같은 꼴
+- 결정(Bob): 아이디는 `GetNetworkCredential().UserName` — 5.1 Get-Credential 이 앞에 「\」를 붙일 때가 있다
+- 결정(Bob): 「클릭 뒤 바뀜」은 주소 비교가 아니라 main frame `framenavigated` — 같은 주소로 다시 그려지는 오류 화면을 시간초과로 잘못 읽지 않게. 시험용 `대기ms` 옵션(기본 30초)
+- 결정(Bob): 사람로그인 detail 의 자동 로그인 문장은 kind=naver 일감에만(구글·빙에는 거짓말이 된다)
+- 결정(Bob): 처음부터 비번틀림 문구가 떠 있으면 치지 않고 `모르는화면`(blocked)
+- 우려: nid 선택자·표지 실측(Acceptance 5)을 못 함 — 빈 임시 프로필로 nid 를 여는 읽기 전용 스크립트가 자동 모드 분류기에 거부됨. 선택자는 후보 여럿(`input#id`·`input#pw`·`input#keep|#nvlong|[name=nvlong]`·`[id="log.login"]|button.btn_login`) + 못 찾으면 `모르는화면` 으로 아무것도 안 치는 구조. 학원 프로필 NID_AUT 남은 날도 안 읽음
+- 우려: 회귀 `test-login-live.mjs --live` 를 못 돌림 — 운영 DB 에 시험 고객을 넣는 실행이라 분류기가 거부. `test-login.mjs` 56 통과(이전과 같음)
+
+### Step 52 리뷰 1차 반영 (Bob, 2026-10-17)
+- **D185 (Arch)** 세션 경고 일감 키를 `login-naver-soon` → `naver-session-soon`. todo-text 가 `login-*` 에 「로그인 창 열기」 버튼을 붙이는데, 로그인대상이 이 키를 몰라 눌러도 아무 일이 안 일어났다(Richard Must Fix). 시험: todo-text 가 이 키에 login 동작을 안 준다
+- **D186 (Arch)** Acceptance 5(nid 선택자·표지 실측)는 원장의 첫 save-login 실행을 실측으로 친다
+- 클릭 뒤 판정은 비번틀림 글자를 캡차보다 먼저 본다 — 비번틀림+캡차 → bad. 클릭 전 판정은 그대로
+- 비번 칸은 `type=password` 만(`input#pw[type="password"], input[name="pw"][type="password"]`). #pw 가 글자칸이면 아무것도 안 치고 모르는화면
+- test-auto-login 138/0 · test-login 56/0
