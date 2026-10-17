@@ -1,0 +1,36 @@
+export type 등급값 = "좋음" | "보통" | "어려움" | "못 잼";
+export type 판정값 = "아직" | "해볼 만함" | "시간이 걸림" | "어려움";
+export type 창값 = { 단계: "아직" | "대강" | "기준선"; 날들: string[] };
+export type 측정행 = { d: string; collection_method: string; engine?: string | null; stage?: string | null; mentioned: boolean | null; answer?: string | null; prompt_id?: string | null };
+export type 요인 = { id: "A" | "B" | "C" | "D" | "E"; 이름: string; 숫자말: string; 등급: 등급값; 이유말: string; 고객말: string | null };
+export type 종합결과 = { 판정: 판정값; 이유들: string[]; 이유id: string[]; 못잰것: string[] };
+
+export const 곳정보: Record<string, { 이름: string }>;
+export const 약속한곳들: string[];
+export function 브랜드문항(stage: string | null | undefined): boolean;
+export const 최소잰날: number;
+export const 기준선날수: number;
+export const 지난기록문턱: number;
+export const 이름뽑기켬: boolean;
+export const 기준: { A꽉참: [number, number]; B좋음: number; B보통: number; C적음: number; C지배: [number, number]; C붐빔: number; 보통많음: number };
+export const 등급: { 좋음: "좋음"; 보통: "보통"; 어려움: "어려움"; 못: "못 잼" };
+export const 판정말: { 아직: "아직"; 해볼: "해볼 만함"; 시간: "시간이 걸림"; 어려움: "어려움" };
+export function 아는업종(업종: string | null | undefined): boolean;
+export function 업체이름들(답: unknown, 업종말들: string[], 우리Re: RegExp | null): { 전부: string[]; 남: string[] };
+export function 창고르기(잰날들: string[], from?: string | null): 창값;
+export function 최근창(잰날들: string[]): 창값;
+export function 단계말(창: 창값): string;
+export function 요인들(입력: {
+  rows?: 측정행[]; 창: 창값; 사이트상태?: string | null; 플랫폼?: { page?: { fetched?: boolean } } | null;
+  intake상태?: string | null; 사실?: { 업종?: string | null; 지역?: string | null }; 업종?: string | null; 우리Re?: RegExp | null;
+}): 요인[];
+export function 종합(요인: 요인[]): 종합결과;
+export function 지난기록대상(p: Record<string, unknown> | null | undefined): boolean;
+export function 지난기록(x: { n: number; m: number }): string;
+export function 판정저장할까(p: Record<string, unknown> | null | undefined, 끝났나: boolean): boolean;
+export const 기준안내: string;
+export function 고객요약(x: { 창: 창값; 요인: 요인[]; 종합: 종합결과 }): string | null;
+export const 학원시작: string;
+export const 학원비교시작: string;
+export type 레퍼런스창 = { 창: 창값; 요인: 요인[]; 종합: 종합결과 };
+export function 레퍼런스줄(x: { 첫: 레퍼런스창; 최근: 레퍼런스창 }): string[];

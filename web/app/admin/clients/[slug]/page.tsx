@@ -9,7 +9,8 @@ import { createPilot } from "@/lib/pilot-actions";
 import { recheckClient, markGscGranted, deleteTestClient } from "@/lib/client-actions";
 import { NEEDS_BUILD, NEEDS_BUILD_LABEL } from "@/lib/pilot-plan";
 import { getOnboard } from "@/lib/onboard";
-import { 할일순서 } from "@/lib/onboard-core.mjs";
+import { 할일순서, 착수순서 } from "@/lib/onboard-core.mjs";
+import { getFeasibility } from "@/lib/feasibility";
 import AdminNav from "../../AdminNav";
 import SubmitButton from "../../SubmitButton";
 import CopyButton from "../../ops/CopyButton";
@@ -17,6 +18,7 @@ import ClientForm from "../ClientForm";
 import AutoSetupPanel, { type 판줄 } from "./AutoSetupPanel";
 import MarketingForm from "../MarketingForm";
 import TodoOrder from "../TodoOrder";
+import Feasibility from "../Feasibility";
 import "../clients.css";
 
 export const dynamic = "force-dynamic";
@@ -88,7 +90,12 @@ export default async function Page({ params, searchParams }: {
   const d = (row.derived ?? {}) as Partial<Derived>;
   const 줄 = 체크리스트(row, d, { pilot });
   // 할 일 순서 — 계약 뒤 순서와 같은 입력(getOnboard)을 읽는다. 코드·자사 고객은 없음
-  const 순서 = 코드 ? null : await getOnboard(slug).then((x) => (x ? 할일순서(x) : null));
+  const 입력 = 코드 ? null : await getOnboard(slug);
+  const 순서 = 입력 ? 할일순서(입력) : null;
+  // 착수 판정(Step 58) — 할 일 순서가 있는 고객만. 받을 것(intake) 상태는 계약 뒤 순서와 같은 줄을 읽는다
+  const 판정 = 입력 && 순서
+    ? await getFeasibility(row, 착수순서(입력).단계.find((s) => s.id === "receive")?.줄.find((x) => x.id === "intake")?.상태 ?? null, 입력.pilot)
+    : null;
   const 원장몫 = 줄.filter((x) => x.상태 === "사람").length;
   const 말 = errText(err, f);
   const 값 = 폼값(row);
@@ -134,6 +141,7 @@ export default async function Page({ params, searchParams }: {
         ) : (
           <>
             {순서 && <TodoOrder r={순서} />}
+            {판정 && <Feasibility r={판정} />}
             {auto?.단계 && 요약 && (
               <AutoSetupPanel slug={slug} 줄={판줄들(auto, 지금)} 다음={다음단계(auto, new Date(지금), { 실패도: false }) ?? 멈춘단계(auto, new Date(지금))} 끝={요약.끝} 된={요약.된} 살아있음={살아있음}
                 사실={{ 업종: auto.사실?.업종?.값 ?? "", 지역: auto.사실?.지역?.값 ?? "" }}

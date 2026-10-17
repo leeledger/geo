@@ -101,3 +101,28 @@
 .to-m{font-size:15px;min-width:0;overflow-wrap:anywhere}
 .to-auto,.to-none{margin:10px 0 0;font-size:14px;color:var(--ink2);word-break:keep-all}
 @media(max-width:720px){.to-row{grid-template-columns:24px minmax(0,1fr) auto;gap:6px 8px}.to-s{grid-column:2/-1}.to-who{grid-column:3;grid-row:1}.to-m{grid-column:2/-1}}
+/* 착수 판정(Step 58) — 할 일 순서 바로 아래 */
+.fz{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 16px;margin:0 0 18px;word-break:keep-all;min-width:0}
+.fz h2{margin:0;word-break:keep-all}
+.fz-b{font-size:15px;color:var(--ink2);font-weight:700;margin-left:6px}
+.fz-v{margin:10px 0 0;font-size:20px;font-weight:800}
+.fz-v.good,.fz-g.good{color:var(--ok)}
+.fz-v.mid,.fz-g.mid{color:var(--warn)}
+.fz-v.hard,.fz-g.hard{color:var(--crit)}
+.fz-v.none,.fz-g.none{color:var(--ink2)}
+.fz-list{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:6px}
+.fz-row{display:grid;grid-template-columns:120px 64px minmax(0,1fr);gap:10px;align-items:start;border-top:1px solid var(--line);padding-top:8px;min-width:0}
+.fz-k{font-weight:800}
+.fz-g{font-weight:800;font-size:14px;white-space:nowrap}
+.fz-n{font-size:15px;min-width:0;overflow-wrap:anywhere}
+.fz-h3{margin:12px 0 0;font-weight:800;font-size:15px}
+.fz-why{margin:6px 0 0;padding-left:20px;font-size:15px;display:grid;gap:4px;overflow-wrap:anywhere}
+.fz-mut{color:var(--ink2)}
+.fz-past{margin:12px 0 0;font-size:15px}
+.fz-foot{margin:6px 0 0;font-size:14px;color:var(--ink2)}
+.fz-err{margin:10px 0 0;color:var(--crit)}
+.fz-send{display:grid;gap:8px;min-width:0;margin-top:4px}
+.fz-send textarea{width:100%;min-height:190px;font:inherit;font-size:14px;overflow-wrap:anywhere;box-sizing:border-box}
+.fz-ref{margin-top:12px}
+.fz-ref summary{cursor:pointer;color:var(--ink2);font-size:14px}
+@media(max-width:720px){.fz-row{grid-template-columns:minmax(0,1fr) auto}.fz-n{grid-column:1/-1}}

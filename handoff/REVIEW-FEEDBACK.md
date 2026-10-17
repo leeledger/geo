@@ -1,34 +1,52 @@
-# Review Feedback — Step 57 (Round 2)
+# Review Feedback — Step 58 (착수 판정 + D273 고객에게 보낼 요약)
 Date: 2026-10-17
 Ready for Builder: YES
 
-Re-ran: test-client-core 265/0 · test-auto-setup-core 156/0 · test-client-copy 15/0 · test-onboard-core 24/0 · test-clients 110/0 · test-docttak 35/0 · test-ilog-loop 43/0 · test-todo-words 17/0 · test-client-status 14/0 · web tsc 0. No --live runs.
-
 ## Must Fix
-None.
-
-Round 1's Must Fix is resolved by D257. The generic stems are gone:
-- 업종떼기 is removed, and nothing references it anymore.
-- `이름말들` (client-core.mjs:920-923) now returns only the full name and the no-space name, both still filtered by 이름흔함 and the Korean-text check.
-- The five negative names are covered in test-client-core.
+없음.
 
 ## Should Fix
-None open.
-- D259: the meta sentence is gone. The 홈페이지 열기 date now comes from the site-launch due date (onboard-core 열날), the same source as 「자세히」 and 다음 고비.
-- D260: the 업종·지역 출처 hints in auto-setup-core.mjs:192-215 are in plain words. test-client-copy now checks every 말/출처 string in that file.
-- KG-57-4 (the 씨앗 출처 at auto-setup-core 565) is logged correctly as out of scope.
+- web/lib/feasibility-core.mjs:269 + web/app/admin/clients/Feasibility.tsx:26 (confidence: 9/10) — 라벨 바꿀 때(Arch 노트: 「해볼 만한가」·「AI가 이미 이름을 부르나」·「AI가 업체를 꼽아 주나」·「경쟁」·「홈페이지」·「AI가 쓸 재료」, 글자 A~E 없앰) 글자가 두 곳에서 찍힌다: TSX `{x.id} {x.이름}`, 레퍼런스 `창줄` 의 `${x.id} ${x.이름} ${x.등급}`. 둘 다 고친다. 이름은 core 의 `이름:` 필드(143·119·180·193행)만 바꾸면 이유·못 잰 것(`줄말`)이 따라 바뀐다. `data-factor={x.id}` 와 `이유id` 는 내부 값이니 둔다. 제목은 Feasibility.tsx:17 의 TSX 글자(시험 대상 아님).
+  옛 라벨을 단정하는 시험: **없음.** test-feasibility-core·test-client-copy 어디에도 「이미 불림」「이름 자리」「쓸 사실」, 요인 `이름` 비교가 없다(140행 `.이름` 은 곳정보 비교). 바꾼 뒤 test-client-copy 를 다시 돌린다 — 새 라벨도 원장금지말 검사를 거쳐야 한다.
+- web/lib/feasibility.ts:74-75 (confidence: 6/10) — 지난 기록 n 은 고객 수가 아니라 파일럿 행 수다. 한 고객이 유료 파일럿을 두 번 하면 「지난 n곳」이 두 번 센다. 지금은 유료 0곳이고 n<5 에선 m 이 안 보여서 해가 없다. `count(distinct p.client_id)` 로 할지, 문구를 「n번」으로 할지 KG 로 적어 둔다.
+- web/lib/feasibility-core.mjs:207 (confidence: 5/10, 확인 필요) — 규칙 1 「아직」은 A·B 가 둘 다 못 잼이면 걸린다. 업종을 모르는 앱 고객(B 는 늘 못 잼)이 기준선 창에서 곳마다 잰 날 4일 미만이면, 7일 넘게 쟀는데도 「첫 측정이 끝나면 대강 나옵니다」가 뜬다. 브리프 글자 그대로라 Must Fix 는 아니다. 조건에 `창.단계 === "아직"` 을 더하는 게 싸다. Arch 가 판단할 일.
 
 ## Escalate to Architect
-None.
-
-## id 18 --apply
-Safe to apply. Re-verified dry run: `id 18: 판별 말 3개(흔함 1) → 2개(흔함 0) · 뺄 말 3 · 더할 말 2`.
-- The two new terms are the client's full registered name and its no-space form. Both are distinctive.
-- The generic 원장 phrase from round 1 is dropped. No domain is added, because this client has no site.
-- Trade-off: answers that shorten the name will no longer count. That loses some recall but creates no false hits, which is the honest side of the 「지어내지 않는다」 rule.
-- The write uses compare-and-set, so it is skipped if 원장 edits the terms first.
-- A run without an id still leaves id 18 alone (원장 source) and id 15 alone (nothing 흔함).
-- The output shows only ids and counts.
+- 이름 품질 관문 — scratchpad names-sample-step58.txt 를 봤다. 고유 20개 중 상호가 아닌 것 5개(동네+업종 3, 과목+업종 1, 학년+업종 1) = 25%. 30% 선 밑이라 `이름뽑기켬=true` 는 그대로 통과다. 다만 학원 최근 창의 C 「어려움」(두 곳이 103번 중 70번)이 레퍼런스 종합 「시간이 걸림」을 혼자 정한다. 그 두 곳 중 하나라도 동네+업종 같은 일반 말이면 레퍼런스 판정이 이름 아닌 것에서 나온 셈이다. 저장소 밖에서 그 두 이름이 실제 상호인지 한 번 봐 달라(이름은 여기 안 적음). 판정이 뒤집히는 일이라 코드에서 결정할 수 없다.
 
 ## Cleared
-Round 2 (D257–D260) was reviewed against the round 1 findings. All are resolved, the tests and tsc are green, and the id 18 apply is safe. Step 57 is clear.
+아래를 보고 통과로 판단했다. 숫자는 전부 ai_measurements 의 n/k 셈과 저장된 상태에서만 나온다. 퍼센트와 나눗셈은 없다.
+
+**지난 기록**
+- n<5 에서는 m·「곳 중」이 안 나온다. n=0..4, m=0..n 을 전부 시험한다.
+- 무작위 500개 시험은 의미가 있다.
+  - 답 원문에 「50% 할인」을 심어 둔다.
+  - 이 시험이 요인·종합·지난기록·고객요약·레퍼런스줄이 내는 글을 전부 검사한다. 그래서 원문이 새어도, 문구 틀에 퍼센트가 생겨도 잡힌다.
+
+**가림**
+- 고객 요약과 C 에는 경쟁 이름이 없고 숫자만 나간다.
+- 레퍼런스 줄에는 이름·동네·도메인이 없다. fz-test-ref 스크린샷으로 확인했다.
+- 판은 page.tsx:81-82 의 isAdmin 아래에서만 그려진다.
+
+**규칙**
+- 등급 경계가 브리프와 같다. A 5k≥4n, B 2k≥n·5k≥n, C T<10·5t2≥3T·d≥15.
+- 종합은 첫 번째 맞는 규칙을 따른다. 규칙 2→3→4 순서다.
+- 창은 기준선이면 첫 7 잰 날이다. 유료 고객은 started_on 부터 센다.
+- 기준선 창에서 곳마다 잰 날이 4일 미만이면 못 잼이다.
+- 못 잼은 종합에서 세지 않는다.
+- D274 는 Arch 결정대로 반영됐다.
+
+**pilot-report.mjs:234**
+- `!DRY && 판정저장할까` 가 유료·리허설 아님·끝남일 때만 쓴다.
+- `p.*` 에 paid_on·status 가 들어 있다.
+- 결론.결과 값이 check 제약 셋과 같다.
+- dry 경로는 건드리지 않는다.
+
+**고객 요약**
+- 사람 말이다. 정직한 마지막 줄이 있다.
+- 고객금지말(D233)·원장금지말 0, 불안 말 0.
+
+**시험과 스크린샷**
+- 시험 8개 모두 0 실패다. feasibility-core 78, client-copy 19, onboard-core 24, client-core 265, clients 110, docttak 35, ilog-loop 43, auto-setup-core 156.
+- web tsc 0 이다.
+- fz-* 스크린샷 1440·390 에서 가로 넘침이 보이지 않았다.

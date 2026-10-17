@@ -156,6 +156,10 @@ alter table geo.pilots add column if not exists refund_terms_sent_on date;
 alter table geo.pilots add column if not exists invoice_issued_on date;
 alter table geo.pilots add column if not exists cancelled_on date;
 alter table geo.pilots add column if not exists refund_amount int;
+-- 끝난 유료 파일럿의 판정(Step 58 D266) — academy/scripts/pilot-report.mjs --stage final 이 쓴다(리허설·안 끝남은 안 씀). 착수 판정 「지난 기록」이 센다
+alter table geo.pilots add column if not exists verdict text check (verdict in ('성공', '실패', '판정 보류'));
+alter table geo.pilots add column if not exists verdict_reason text;
+alter table geo.pilots add column if not exists verdict_on date;
 -- 업무 기한의 기준(등록|착수|시작|끝)과 며칠 뒤. 없으면(옛 파일럿) 기한을 다시 세지 않는다
 alter table geo.pilot_tasks add column if not exists anchor text;
 alter table geo.pilot_tasks add column if not exists offset_days int;

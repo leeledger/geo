@@ -5,7 +5,7 @@
 
 ## Current Status
 
-**Active step:** Step 43 학원 글 자동 감수·발행 — BRIEFED (Bob 대기, 2026-10-10). 브리프 handoff/ARCHITECT-BRIEF.md · 결정 D81~D94
+**Active step:** Step 58 착수 판정(잰 숫자로만, 퍼센트 없음) — BUILT, 리뷰 대기 (Bob, 2026-10-17). 브리프 handoff/ARCHITECT-BRIEF.md · 결정 D261~D272
 **Last cleared:** Step 0 — 2026-09-11 (설치 이전 작업 기록)
 **Pending deploy:** NO
 
@@ -2321,3 +2321,36 @@ Step 55 배포 fa21483. 브리프 handoff/ARCHITECT-BRIEF.md, Step 55 브리프�
 - **D260** 자동 세팅 판 업종·지역 출처 힌트를 사람 말로(「홈페이지에서 업종을 못 찾았습니다」「홈페이지에 주소가 없습니다」「홈페이지에 적힌 업종 정보(…)」 등). 사이트 단계 됨 말의 robots·llms·JSON-LD 목록 → 「손볼 곳 n군데」, 파일럿·씨앗 들어간 됨 말 3개도 고침. test-client-copy 가 auto-setup-core 의 모든 `말:`·`출처:` 글자 + 사실뽑기 결과 출처를 원장금지말로 본다(자동 원문 40줄, 원장 글 7,649개 — 0).
 - 시험: test-client-core 265 · test-auto-setup-core 156 · test-client-copy 15 · test-onboard-core 24 · test-clients 110 · test-docttak 35 · test-ilog-loop 43 · test-todo-words 17 · test-client-status 14 — 0 실패 · tsc 0 · next build 통과. --live 화면 시험은 다시 안 돌림.
 - KG-57-4 자동완성 질문 출처(「네이버 자동완성 · 씨앗 …」, auto-setup-core 337)와 경쟁 검색어 출처(565)는 파일럿 질문 패널·config 에 남는 글이라 그대로 — 원장 화면에 뜨면 같은 손질
+
+## Step 58 브리프 — 착수 판정: 잰 숫자로만 (Arch, 2026-10-17)
+원장: 「고객사가 처음 의뢰하고 착수시 우리 사이티드 솔루션으로 성공할수있는 성공률 일종의 그런 지표를 제시할수 있을까」 「현재 상태를 반영해서」. 브리프 handoff/ARCHITECT-BRIEF.md, Step 57 브리프는 handoff/research/ARCHITECT-BRIEF-step57.md.
+DB 확인(읽기 전용): geo.pilots 5개 전부 리허설·paid_on null. 유료 판정 0곳 → 지난 성공률 없음.
+- **D261** 성공률·퍼센트를 만들지 않는다. 대신 「착수 판정」 — 잰 요인마다 실제 숫자 + 좋음/보통/어려움, 고정 규칙으로 해볼 만함/시간이 걸림/어려움(+잰 날 0 이면 「아직」), 이유 목록. 판 전체에 「%」「성공률」「확률」「가능성」 0.
+- **D262** 요인 5개: A 이미 불림(mentioned, 약속한 곳별, brand 뺌) · B 이름 자리(업체 이름이 나온 답 비율) · C 경쟁(다른 업체 수·상위 두 곳 몫) · D 홈페이지(auto.사이트상태/needs_build) · E 쓸 사실(intake 상태·auto.사실 업종·지역). Step 50 플랫폼 판정은 저장된 게 page.fetched·hosts 뿐이라 D 의 덧말로만.
+- **D263** 등급 기준(정한 기준 — 잰 성공률 아님, 화면에 그렇게 적는다). A: 성공 정의가 「늘었다」라 잰 모든 곳이 5k≥4n 이면 어려움(늘 자리 없음), 모두 0 이면 보통(0에서 시작이 보통), 그 밖 k≥1 좋음. B: 2k≥n 좋음 · 5k≥n 보통 · 밑 어려움. C: T<10 좋음 · T≥10 이고 5·t2≥3·T 어려움 · d≥15 보통 · 그 밖 좋음. D: none/setup/build = 좋음/보통/어려움. E: intake 됨 좋음 · 업종·지역 둘 다 앎 보통 · 그 밖 어려움. 비교는 곱셈.
+- **D264** 종합 규칙(첫 번째 맞는 것): 아직(A·B 못 잼) → 어려움(B 어려움 · A 어려움 · C·D 둘 다 어려움) → 시간이 걸림(어려움 하나라도 · 보통 3개+) → 해볼 만함. 못 잼은 세지 않고 따로 적는다.
+- **D265** 「지난 n곳 중 m곳 성공」은 n≥5 일 때만. 밑이면 「판정 끝난 유료 파일럿 n곳 — 5곳부터 성공 수를 적습니다」(m 없음). 근거: 5곳 밑에선 한 곳이 20칸 넘게 흔들고, 1~2곳이면 그 고객과 결과가 특정된다. n 이 커도 퍼센트로 바꾸지 않는다.
+- **D266** n = 유료(paid_on 있음, status≠리허설)·verdict 있음. 끝나고도 판정 보류면 n 에 넣고 성공엔 안 넣는다(보수적으로). verdict 는 pilot-report.mjs 가 끝난 유료 파일럿만 geo.pilots 새 칸(verdict·verdict_reason·verdict_on)에 쓴다. 리허설은 안 쓴다(D251 과 같은 선).
+- **D267** 창: 잰 날 0 → 아직(D·E 만) · 1~6일 → 「대강 n일」(모든 날, 곳별 최소 날 없음) · 7일+ → 기준선(첫 7 잰 날 고정; 유료면 started_on 부터). 기준선 창에선 곳마다 4일(pilot-report-core 최소잰날) 미만이면 그 곳 못 잼.
+- **D268** 업체 이름 뽑기는 auto-setup-words(낱말들·낱말업종·업종말·이름흔함) 재사용 + 끝 조사 떼기. 고객 업종 말만. 업종 모름·표 밖(앱 고객)이면 B·C 못 잼(0 으로 세지 않는다). 품질 관문: 학원 창 무작위 30개 중 30% 넘게 틀리면 `이름뽑기켬=false` 로 내보낸다. 이름은 저장소·handoff 에 안 쓴다.
+- **D269** A 는 곳별(주문서 「곳이 다르면 합치지 않습니다」). B·C 는 질문 묶음의 성격이라 네 곳 답을 합쳐 센다 — 원장 화면 내부 지표, 고객 보고서에 안 나간다.
+- **D270** 보이는 곳: /admin/clients/<slug> 「할 일 순서」 바로 아래(비코드 고객). 고객·랜딩·케이스 리포트·영업 자료로 안 내보낸다. 경쟁 업체 이름은 숫자로만.
+- **D271** 무료 진단(/api/scan)에는 이번에 안 붙인다 — 그 자리엔 AI 답이 없고, 방문자마다 AI 를 묻는 건 돈·남용 문제다. 처음 의뢰 때 「대강」은 고객 등록(두 칸) 뒤 자동 측정 첫날부터 나온다.
+- **D272** 레퍼런스 = 학원(client 1)에 같은 함수: 첫 7 잰 날(9/24~, case-report 비교시작) vs 최근 7 잰 날. 학원 시작 9/05·AI 매일 측정 9/24 — 손대기 전 AI 숫자는 없다고 그대로 쓴다(「시작 20일째부터 잰 첫 7일」). 이름·동네·도메인·경쟁 이름 가림. 자사라 n 에 안 든다. 탐침 실측(brand 뺌): 첫 창 255개 중 학원 이름 69 · 최근 창 383개 중 125 — 코드·화면엔 박지 않는다.
+- KG-58-1 무료 진단 결과에 판정(대강) 붙이기 — 싼 AI 한 번 묻기 방법이 정해지면
+- KG-58-2 판정 추이 저장·매시 루프 미리 계산(지금은 화면 열 때 계산)
+- KG-58-3 유료 판정 5곳이 되면 D263 기준을 실제 성공·실패와 맞춰 다시 본다
+- KG-58-4 탐침·검색 노출·크롤러 방문을 요인으로 넣을지
+
+## Step 58 빌드 — Bob (2026-10-17) · 상태 DONE_WITH_CONCERNS · REVIEW-REQUEST 참고
+파일: web/lib/feasibility-core.mjs(+.d.mts) · web/lib/feasibility.ts · web/app/admin/clients/Feasibility.tsx · web/app/admin/clients/[slug]/page.tsx · clients.css(.fz-*) · web/db/schema.sql(geo.pilots verdict·verdict_reason·verdict_on) · academy/scripts/pilot-report.mjs(끝난 유료만 verdict 씀) · academy/scripts/test-feasibility-core.mjs(새) · test-client-copy.mjs(판 글·고객 요약)
+- **D273**(Arch 덧붙임) 「고객에게 보낼 요약」 — 판 아래, 아직이 아닐 때만. 첫 줄은 늘 A(「AI n곳에 질문 q개를 d일 동안 물어, 답 N개 중 K개에 이름이 나왔습니다」+곳별), 그다음 판정을 움직인 요인 문장. 경쟁 이름 없음·퍼센트 없음. 끝 줄 「이 판단의 기준은 저희가 정해 둔 규칙입니다. 지난 고객 결과를 세어 낸 숫자가 아닙니다.」 · 「보낼 글 복사」
+- **D274**(Bob, Arch 확인 필요) B 의 k = 업체 이름이 뽑힌 답 **또는 mentioned 답**. 브리프대로 낱말 뽑기만 쓰면 학원 최근 창에서 학원 이름이 나온 답 123개 중 70개에서 업체 이름 0개로 나온다(「상호 업종」 띄어 쓴 꼴, 과목이 든 상호는 이름흔함에 걸림). 고객 이름이 나온 답은 정의상 업체 이름이 나온 답이다. C 는 그대로(뽑힌 이름만) — 띄어 쓴 경쟁 상호는 못 센다(KG-58-5)
+- **D275**(Bob) 원장금지말에 「파일럿」「착수」가 있어 판 글을 바꿨다: 지난 기록 「판정 끝난 유료 고객 n곳 — 5곳부터 성공 수를 적습니다」, 기준 안내 「유료 고객 판정이 쌓이면」. 판 제목 「착수 판정」은 브리프 글자 그대로 TSX 에 둠(시험 대상 아님) — Arch 결정
+- **D276**(Bob) 학원 레퍼런스의 D·E 는 사실로 고정(구축 없음·기본 정보 됨), 업종 「코딩학원」(업종표 말). 지난 기록 SQL 은 자사 고객 파일럿을 뺀다
+- **D277**(Bob) D 는 할일순서의 추정 갈래(홈 없음→build)를 쓰지 않는다 — 값(계약·리허설 needs_build, auto.사이트상태)이 없으면 못 잼(브리프 표 「값 없음」)
+- 시험: test-feasibility-core 78 · test-client-copy 19 · test-onboard-core 24 · test-client-core 265 · test-clients 110 · test-docttak 35 · test-ilog-loop 43 · test-auto-setup-core 156 — 0 실패. web tsc 0 · next build 통과
+- KG-58-5 이름 뽑기가 「상호 업종」 띄어 쓴 꼴(예: 「OO 코딩학원」)을 못 잡는다 — 학원 최근 창에서 이 꼴이 가장 많이 나온 경쟁 상호였다. 두 낱말 붙여 보기는 「추천 코딩학원」 같은 거짓 이름을 늘려 이번엔 안 함
+- KG-58-6 운영 DB 에 geo.pilots.verdict 칸이 아직 없다 — 첫 유료 최종 보고 전까지 판에 「지난 기록을 못 읽었습니다」가 뜬다(브리프 실패 모드대로). schema.sql 의 alter 3줄을 미리 돌리면 사라진다(Arch 결정)
+
+- **D278 (2026-10-17, Arch)** Step 58 출고: 라벨 사람 말로(「해볼 만한가」·「AI가 이미 이름을 부르나」·「AI가 업체를 꼽아 주나」·「경쟁」·「홈페이지」·「AI가 쓸 재료」, 글자 A~E 뺌). geo.pilots verdict·verdict_reason·verdict_on 3칸 운영 DB 에 추가(멱등). 학원 최근 창 경쟁 상위 2곳은 실제 학원 이름으로 확인(이름은 기록 안 함) — C 어려움 유지. KG-58-7 지난 기록이 고객 아닌 파일럿 수로 셈 · KG-58-8 업종 모름+엔진별 4일 미만이면 7일 뒤에도 「아직」.

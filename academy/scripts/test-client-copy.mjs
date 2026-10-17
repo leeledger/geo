@@ -2,11 +2,13 @@
 // 보낼글 · setup-send 일감 글 · 재촉 글을 모아 금지어(client-core 고객금지말)가 0 인지 본다. DB·네트워크 없음.
 // 원장 일감 금지어 전수(Step 57 D255) — 같은 조합 + 이름 판별 말·자동 세팅 멈춤·계약 갈래에서 열리는 원장 일감 제목·할 일 글,
 // 자동 세팅 단계 말(원장으로 멈추면 할 일 글이 된다), 정찰 notracker 문구, 할 일 순서 줄에서 원장금지말 0.
+// 착수 판정(Step 58) — 판 글 원장금지말 0 · 고객에게 보낼 요약(D273) 고객금지말 0 · 퍼센트·성공률류 0.
 //   node scripts/test-client-copy.mjs
 import fs from "node:fs";
 import { 체크리스트, 일감계획, 고객금지말, 금지말찾기, 원장금지말, 원장금지말찾기, 일감제목, 계약말, 자동단계, 자동단계말 } from "../../web/lib/client-core.mjs";
 import { 착수순서, 할일순서 } from "../../web/lib/onboard-core.mjs";
 import { 사람말 as 자동사람말, 사실뽑기 } from "../../web/lib/auto-setup-core.mjs";
+import * as 판정 from "../../web/lib/feasibility-core.mjs";
 
 let 통과 = 0, 실패 = 0;
 const 봄 = (이름, 참, 보탬 = "") => { if (참) 통과++; else { 실패++; console.log(`✗ ${이름}${보탬 ? ` — ${보탬}` : ""}`); } };
@@ -113,6 +115,33 @@ const 원장걸림 = 원장모음.map((x) => ({ ...x, 말: 원장금지말찾기
 봄("열린 원장 일감 종류 — send·gsc·keyfile·name·auto 가 다 나옴 · 계약 전 measure 는 안 열림", ["setup-send", "setup-gsc", "setup-keyfile", "setup-name", "setup-auto"].every((k) => 원장모음.some((x) => x.줄 === k))
   && !원장모음.some((x) => x.줄 === "setup-measure"));
 봄("build 갈래 — 할 일 순서 2번째 줄이 홈페이지 만들기 시작", 원장모음.some((x) => x.줄 === "순서 build"));
+
+// ─────────────── 착수 판정(Step 58) — 판의 모든 글자는 원장금지말 0, 고객에게 보낼 요약(D273)은 고객금지말 0 · 퍼센트·성공률류 0
+{
+  const 곳 = Object.keys(판정.곳정보);
+  const 날 = (i) => 더하기(오늘, -10 + i);
+  const 답들 = ["", "알파코딩학원을 추천합니다", "코딩은 일찍 배우면 좋습니다", "**미소치과**에서는"];
+  const 판글 = [], 고객글 = [];
+  for (const 날수 of [0, 3, 9]) for (const 업종 of ["코딩학원", "치과", null, "앱"]) for (const 사이트 of [null, "none", "setup", "build"]) for (const intake of ["됨", "아직", null]) for (const 언급 of [0, 1, 5]) {
+    const 잰 = Array.from({ length: 날수 }, (_, i) => 날(i));
+    const 창 = 판정.창고르기(잰);
+    const rows = 잰.flatMap((d) => 곳.flatMap((m) => Array.from({ length: 5 }, (_, i) => ({ d, collection_method: m, stage: "local", mentioned: i < 언급, answer: 답들[i % 답들.length], prompt_id: `q${i}` }))));
+    const 요인 = 판정.요인들({ rows, 창, 사이트상태: 사이트, 플랫폼: { page: { fetched: 언급 > 0 } }, intake상태: intake, 사실: { 업종, 지역: 언급 ? "송파구" : null }, 업종, 우리Re: 언급 === 5 ? null : /미소\s?치과/i });
+    const 결과 = 판정.종합(요인);
+    판글.push(...요인.flatMap((x) => [x.이름, x.숫자말, x.등급, x.이유말]), 결과.판정, ...결과.이유들, ...결과.못잰것, 판정.단계말(창),
+      ...판정.레퍼런스줄({ 첫: { 창, 요인, 종합: 결과 }, 최근: { 창, 요인, 종합: 결과 } }));
+    const s = 판정.고객요약({ 창, 요인, 종합: 결과 });
+    if (s) 고객글.push(s);
+  }
+  for (let n = 0; n < 8; n++) 판글.push(판정.지난기록({ n, m: Math.floor(n / 2) }));
+  판글.push(판정.기준안내);
+  const 판걸림 = 판글.map((x) => ({ 글: x, 말: 원장금지말찾기(x) })).filter((x) => x.말.length);
+  봄(`착수 판정 글 ${판글.length}개 — 원장금지말 0`, 판글.length > 1000 && !판걸림.length, 판걸림.slice(0, 3).map((x) => `[${x.말.join(",")}] ${x.글.slice(0, 80)}`).join("\n   "));
+  const 고객걸림 = 고객글.map((x) => ({ 글: x, 말: [...금지말찾기(x), ...원장금지말찾기(x)] })).filter((x) => x.말.length);
+  봄(`고객에게 보낼 요약 ${고객글.length}개 — 고객금지말·원장금지말 0`, 고객글.length > 100 && !고객걸림.length, 고객걸림.slice(0, 3).map((x) => `[${x.말.join(",")}] ${x.글.slice(0, 80)}`).join("\n   "));
+  봄("착수 판정·고객 요약 — 「%」「성공률」「확률」「가능성」 0", ![...판글, ...고객글].some((x) => /%|성공률|확률|가능성/.test(x)));
+  봄("고객 요약 — 불안 팔지 않음(「늦」「서두르」「놓치」 0) · 경쟁 이름 없음", !고객글.some((x) => /늦|서두르|놓치|알파/.test(x)));
+}
 
 console.log(`${통과} 통과 · ${실패} 실패`);
 if (실패) process.exitCode = 1;

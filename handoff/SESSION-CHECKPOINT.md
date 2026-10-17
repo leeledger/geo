@@ -2,6 +2,15 @@
 *Read this before reading anything else. If it covers current state, skip BUILD-LOG.*
 
 
+## Where We Stopped (2026-10-17 밤 마지막) — Step 58 브리프(착수 판정 — 잰 숫자로만)
+
+- handoff/ARCHITECT-BRIEF.md = Step 58. Step 57 브리프(배포 9cb0e11)는 handoff/research/ARCHITECT-BRIEF-step57.md
+- 요인 5(A 이미 불림·B 이름 자리·C 경쟁·D 홈페이지·E 쓸 사실) → 좋음/보통/어려움 → 아직/해볼 만함/시간이 걸림/어려움. 퍼센트 0. 「지난 n곳 중 m곳 성공」은 유료 판정 n≥5 부터
+- 새 파일 web/lib/feasibility-core.mjs · feasibility.ts · admin/clients/Feasibility.tsx · test-feasibility-core. geo.pilots verdict 칸 + pilot-report.mjs 가 끝난 유료만 씀
+- 결정 D261~D272, KG-58-1~4 BUILD-LOG
+- 다음: Bob(builder) → 이름 뽑기 품질 관문 30개 Arch 확인 → Richard → 커밋·푸시 → web 운영 /admin/clients/<id 18 slug> 판 「아직」 확인
+- 원장 몫: 없음
+
 ## Where We Stopped (2026-10-17 밤 늦게) — Step 56 브리프(사이트 없는 고객 측정 · Step 55 Should Fix 3 · 키 파일만이면 안 묻기)
 
 - handoff/ARCHITECT-BRIEF.md = Step 56. Step 55 브리프(배포 fa21483)는 handoff/research/ARCHITECT-BRIEF-step55.md

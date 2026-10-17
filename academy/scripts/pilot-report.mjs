@@ -4,7 +4,8 @@
  *   node scripts/pilot-report.mjs --stage baseline --client <slug> [--dry]
  *   node scripts/pilot-report.mjs --stage final    --client <slug> [--dry]
  *
- * DB 에 남은 사실만 적는다. DB 는 읽기만 한다.
+ * DB 에 남은 사실만 적는다. DB 는 읽기만 한다 — 하나만 예외: 끝난 유료 파일럿의 최종 판정을 geo.pilots.verdict 에 쓴다(Step 58 D266,
+ * 리허설·안 끝남·--dry 는 안 씀, 덮어쓰기라 다시 돌려도 같다). 착수 판정의 「지난 기록」이 그 칸을 센다.
  * --dry 는 표준출력만. 아니면 고객별 비공개 폴더 deliverables/<slug>/pilot-reports/ 에 Markdown 과 손 확인 캡처를 쓴다
  * (web/public 이 아니다 — 웹으로 서빙되지 않고, .gitignore 로 저장소에도 안 올라간다).
  * 셈은 academy/pilot-report-core.mjs, 날짜는 academy/pilot-plan.mjs.
@@ -21,6 +22,7 @@ import {
 } from "../pilot-report-core.mjs";
 import { countUsed } from "../../web/lib/marketing-core.mjs";
 import { GROWTH_FOOT } from "../../web/lib/growth-core.mjs";
+import { 판정저장할까 } from "../../web/lib/feasibility-core.mjs";
 
 for (const l of fs.readFileSync(new URL("../.env.local", import.meta.url), "utf8").split(/\r?\n/)) {
   const m = /^([A-Z_]+)=(.*)$/.exec(l); if (m && !process.env[m[1]]) process.env[m[1]] = m[2];
@@ -229,6 +231,14 @@ async function main() {
     const 비교들 = 곳들(rows).map((m) => 곳비교(rows, m, b, f));
     const 겹침 = 창겹침(일정);
     const 결론 = 판정({ 비교들, 문의: inq, 끝났나, 겹침 });
+    if (!DRY && 판정저장할까(p, 끝났나)) {
+      // 운영 DB 에 칸이 없을 수 있다 — schema.sql 과 같은 alter 를 먼저 돈다(ai-measure 방식)
+      await q(`alter table geo.pilots add column if not exists verdict text check (verdict in ('성공', '실패', '판정 보류'))`);
+      await q(`alter table geo.pilots add column if not exists verdict_reason text`);
+      await q(`alter table geo.pilots add column if not exists verdict_on date`);
+      await q(`update geo.pilots set verdict = $2, verdict_reason = $3, verdict_on = $4::date where id = $1`, [p.id, 결론.결과, 결론.이유, 오늘]);
+      console.log(`판정 저장: ${결론.결과}`);
+    }
     const [tasks, audits, content] = await Promise.all([
       q(`select * from geo.pilot_tasks where pilot_id = $1 order by due_on, id`, [p.id]),
       q(`select * from geo.local_audits where pilot_id = $1`, [p.id]),
