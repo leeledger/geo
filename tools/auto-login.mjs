@@ -132,8 +132,9 @@ const 칸 = {
   아이디: 'input#id, input[name="id"]',
   // type=password 만 — 글자가 보이는 칸에 치면 비번이 스크린샷에 찍힌다
   비번: 'input#pw[type="password"], input[name="pw"][type="password"]',
-  유지: 'input#keep, input#nvlong, input[name="nvlong"]',
-  로그인: '[id="log.login"], button.btn_login, form#frmNIDLogin button[type="submit"]',
+  유지: 'input#loginStay, input#keep, input#nvlong, input[name="nvlong"]',
+  // 2026-10 화면: 로그인 버튼이 #loginBtn_row·#loginBtn_column 둘이고 화면 폭에 따라 하나만 보인다(실제 화면에서 확인)
+  로그인: '#loginBtn_row:visible, #loginBtn_column:visible, [id="log.login"], button.btn_login, form#frmNIDLogin button[type="submit"]',
   캡차: "#captcha, #captchaimg, #chptcha",
 };
 const 표지 = [

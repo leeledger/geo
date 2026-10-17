@@ -2090,3 +2090,5 @@ Should Fix:
 - 클릭 뒤 판정은 비번틀림 글자를 캡차보다 먼저 본다 — 비번틀림+캡차 → bad. 클릭 전 판정은 그대로
 - 비번 칸은 `type=password` 만(`input#pw[type="password"], input[name="pw"][type="password"]`). #pw 가 글자칸이면 아무것도 안 치고 모르는화면
 - test-auto-login 138/0 · test-login 56/0
+
+- **D187 (2026-10-17, Arch)** 원장 첫 save-login 실행(11:44): 저장 성공, 자동 로그인은 「모르는화면」으로 아무것도 안 치고 멈춤 → 원장이 손으로 로그인 마침. 원인: 2026-10 네이버 로그인 화면은 버튼이 `#loginBtn_row`/`#loginBtn_column`(폭에 따라 하나만 보임), 유지 체크는 `#loginStay`. 공개 로그인 페이지 HTML 로 확인하고 선택자 추가. test-auto-login 138/0. 실제 자동 로그인 첫 확인은 다음 세션 만료 때.
