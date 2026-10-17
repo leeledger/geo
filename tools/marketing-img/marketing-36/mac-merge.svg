@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 520" width="960" height="520" font-family="'Malgun Gothic','Apple SD Gothic Neo',sans-serif">
+  <rect width="960" height="520" fill="#F7F8FA"/>
+  <text x="48" y="64" font-size="30" font-weight="700" fill="#111827">맥은 기본 앱으로 합쳐요</text>
+  <text x="48" y="100" font-size="18" fill="#4B5563">설치 없음 · 출처: Apple 지원 안내</text>
+
+  <!-- Finder -->
+  <rect x="48" y="130" width="420" height="350" rx="16" fill="#FFFFFF" stroke="#D1D5DB"/>
+  <text x="76" y="176" font-size="24" font-weight="700" fill="#1D4ED8">Finder</text>
+  <g font-size="19" fill="#111827">
+    <circle cx="90" cy="222" r="16" fill="#1D4ED8"/><text x="90" y="229" text-anchor="middle" fill="#fff" font-weight="700">1</text>
+    <text x="120" y="229">첫 쪽 파일부터 차례로 고르기</text>
+    <circle cx="90" cy="282" r="16" fill="#1D4ED8"/><text x="90" y="289" text-anchor="middle" fill="#fff" font-weight="700">2</text>
+    <text x="120" y="289">Control-클릭</text>
+    <circle cx="90" cy="342" r="16" fill="#1D4ED8"/><text x="90" y="349" text-anchor="middle" fill="#fff" font-weight="700">3</text>
+    <text x="120" y="349">빠른 동작 &gt; PDF 생성</text>
+  </g>
+  <rect x="76" y="390" width="364" height="64" rx="10" fill="#EFF6FF"/>
+  <text x="96" y="429" font-size="18" fill="#1E3A8A">쪽은 고른 순서대로 들어가요</text>
+
+  <!-- Preview -->
+  <rect x="492" y="130" width="420" height="350" rx="16" fill="#FFFFFF" stroke="#D1D5DB"/>
+  <text x="520" y="176" font-size="24" font-weight="700" fill="#047857">미리보기</text>
+  <g font-size="19" fill="#111827">
+    <circle cx="534" cy="222" r="16" fill="#047857"/><text x="534" y="229" text-anchor="middle" fill="#fff" font-weight="700">1</text>
+    <text x="564" y="229">파일 &gt; 복제로 사본 만들기</text>
+    <circle cx="534" cy="282" r="16" fill="#047857"/><text x="534" y="289" text-anchor="middle" fill="#fff" font-weight="700">2</text>
+    <text x="564" y="289">다른 PDF를 사이드바로 끌기</text>
+    <circle cx="534" cy="342" r="16" fill="#047857"/><text x="534" y="349" text-anchor="middle" fill="#fff" font-weight="700">3</text>
+    <text x="564" y="349">썸네일을 끌어 순서 바꾸기</text>
+  </g>
+  <rect x="520" y="390" width="364" height="64" rx="10" fill="#FEF3C7"/>
+  <text x="540" y="429" font-size="18" fill="#92400E">고친 내용이 바로 저장돼요</text>
+</svg>

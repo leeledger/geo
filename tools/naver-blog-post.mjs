@@ -105,7 +105,11 @@ const TAGS = [...new Set([...post.tags, ...(MK_ID ? [] : LOCAL)])].slice(0, 30);
 // 루트에서 돌리는데, 그러면 C:/dev/academy/... 를 뒤져 그림을 못 찾는다.
 // 게다가 조용히 「그림 없음」으로 넘어가서 사진 0장짜리 글이 그대로 올라간다.
 // 60행처럼 파일 위치 기준으로 잡으면 어디서 돌리든 맞는다.
-const IMGDIR = fileURLToPath(new URL(`../academy/public/blog/${slug}/`, import.meta.url));
+// 고객 바깥 글(--marketing)의 도해는 학원 사이트(public)에 두지 않는다 — 배포되면 남의 글 그림이 학원 사이트에 실린다.
+// tools/marketing-img/marketing-<id>/ 에 SVG 를 두고 svg-to-png.mjs 로 구워 둔다. 본문엔 ![설명](파일.svg)
+const IMGDIR = MK_ID
+  ? fileURLToPath(new URL(`./marketing-img/${slug}/`, import.meta.url))
+  : fileURLToPath(new URL(`../academy/public/blog/${slug}/`, import.meta.url));
 
 /**
  * DB 도해는 임시 폴더에 SVG 로 풀어 svg-to-png.mjs 로 굽는다. 파싱 오류면 그 도구가 멈추고 PNG 를 안 만든다 —
