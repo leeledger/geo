@@ -19,7 +19,7 @@ import fs from "node:fs";
 import { Pool } from "pg";
 import { 오픈라우터, 재시도, 모델들 } from "./writer-common.mjs";
 import { 클로드코드, 클로드코드있음 } from "./claude-code.mjs";
-import { 측정대상, HOUSE, 예산부족알림, 예산부족닫기, 측정상한, 고객측정일 } from "../measure-targets.mjs";
+import { 측정대상, HOUSE, 예산부족알림, 예산부족닫기, 측정상한, 고객측정일, 인용판정 } from "../measure-targets.mjs";
 import { loadClients, bySlug } from "../clients.mjs";
 import { 탐침측정DDL } from "./loop-grow.mjs";
 
@@ -250,6 +250,9 @@ const main = async () => {
     citations jsonb not null default '[]'::jsonb, note text, raw jsonb not null,
     imported_at timestamptz not null default now(),
     unique (client_id, measured_on, collection_method, engine, prompt_id, attempt))`);
+  // 사이트 없는 고객은 인용이 null(해당없음) — not null 을 푼다. 메타데이터만, 되풀이해도 무해(Step 56 D240)
+  await q(`alter table academy.ai_measurements alter column cited drop not null`);
+  await q(`alter table if exists academy.ai_probe_measurements alter column cited drop not null`);
 
   /**
    * 한 문항 결과를 넣는다. 탐침(p*)은 academy.ai_probe_measurements 로 간다(x.form 이 있으면 탐침).
@@ -257,7 +260,7 @@ const main = async () => {
    */
   const 적재 = async (client, e, x, r) => {
     const mentioned = client.answerRe.test(r.answer);
-    const cited = r.citations.some((c) => c.domain === client.domain || c.domain.endsWith(`.${client.domain}`));
+    const cited = 인용판정(r.citations, client.domain);
     const 탐침 = Boolean(x.form);
     await q(
       `insert into ${탐침 ? "academy.ai_probe_measurements" : "academy.ai_measurements"}

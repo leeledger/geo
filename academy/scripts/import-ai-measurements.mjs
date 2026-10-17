@@ -11,6 +11,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { Pool } from "pg";
+import { 인용판정 } from "../measure-targets.mjs";
 
 for (const l of fs.readFileSync(new URL("../.env.local", import.meta.url), "utf8").split(/\r?\n/)) {
   const m = /^([A-Z_]+)=(.*)$/.exec(l);
@@ -34,6 +35,9 @@ const normalizeDomain = (x) => {
   catch { return String(x.domain ?? x).replace(/^www\./, "").toLowerCase(); }
 };
 
+// 수동 기록의 cited_us 표시는 사이트가 있을 때만 믿는다 — 사이트 없는 고객은 해당없음(null)
+const 인용또는표시 = (판정, 표시) => (판정 === null ? null : 판정 || Boolean(표시));
+
 let rows;
 let meta;
 if (Array.isArray(parsed)) {
@@ -48,7 +52,7 @@ if (Array.isArray(parsed)) {
     attempt: r.attempt ?? 1,
     citations: r.citations ?? [],
     mentioned: Boolean(r.mentioned_us),
-    cited: (r.citations ?? []).some((x) => normalizeDomain(x).endsWith(client.domain)),
+    cited: 인용판정((r.citations ?? []).map(normalizeDomain), client.domain),
     note: r.note ?? null,
     raw: r,
   }));
@@ -66,7 +70,7 @@ if (Array.isArray(parsed)) {
     attempt: r.attempt ?? 1,
     citations: (r.sources ?? []).map((domain) => ({ domain })),
     mentioned: Boolean(r.mentioned_us) || String(r.text ?? "").toLowerCase().includes(client.name.toLowerCase()),
-    cited: Boolean(r.cited_us) || (r.sources ?? []).some((x) => normalizeDomain(x).endsWith(client.domain)),
+    cited: 인용또는표시(인용판정((r.sources ?? []).map(normalizeDomain), client.domain), r.cited_us),
     note: r.note ?? null,
     raw: r,
   }));
@@ -98,6 +102,8 @@ await pool.query(`
     imported_at timestamptz not null default now(),
     unique (client_id, measured_on, collection_method, engine, prompt_id, attempt)
   )`);
+await pool.query(`alter table academy.ai_measurements alter column cited drop not null`);
+await pool.query(`alter table if exists academy.ai_probe_measurements alter column cited drop not null`);
 await pool.query(`create index if not exists ai_measurements_client_day_idx on academy.ai_measurements (client_id, measured_on desc)`);
 
 let written = 0;

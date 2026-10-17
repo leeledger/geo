@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 
 import { isAdmin } from "@/lib/admin-auth";
 import { listClients } from "@/lib/ops";
-import { readAskDays, readAsks, readAskGrid, readProbeGrid, readWeekRates, mainMethod, RESULT_TEXT, type AskResult, type AskDay } from "@/lib/asks";
+import { readAskDays, readAsks, readAskGrid, readProbeGrid, readWeekRates, mainMethod, RESULT_TEXT, 링크없음, 링크해당없음, type AskResult, type AskDay } from "@/lib/asks";
 import AdminNav from "../AdminNav";
 
 /**
@@ -82,12 +82,12 @@ const CSS = `
 `;
 
 /** 날짜 칩 한 칸 — 한 곳이면 그 숫자(이름 질문 빼고), 여러 곳이면 몇 곳인지만 (합치지 않는다) */
-function Chip({ x, on, href }: { x: AskDay; on: boolean; href: string }) {
+function Chip({ x, on, href, noLink }: { x: AskDay; on: boolean; href: string; noLink: boolean }) {
   const p = x.places;
   return (
     <Link href={href} className={on ? "on" : ""} aria-current={on ? "page" : undefined}>
       <b>{mdShort(x.day)} ({dow(x.day)})</b>
-      {p.length === 1 ? `이름 ${p[0].named} · 링크 ${p[0].cited} / ${p[0].n}` : `${p.length}곳에 물음`}
+      {p.length === 1 ? (noLink ? `이름 ${p[0].named} / ${p[0].n} · 링크 ${링크해당없음}` : `이름 ${p[0].named} · 링크 ${p[0].cited} / ${p[0].n}`) : `${p.length}곳에 물음`}
     </Link>
   );
 }
@@ -102,6 +102,7 @@ export default async function AsksPage({
   const clients = await listClients();
   const client = clients.find((x) => x.slug === want) ?? clients[0] ?? null;
   const q = (extra: string) => `${HERE}?${client ? `c=${client.slug}&` : ""}${extra}`;
+  const noLink = client ? 링크없음(client.domain) : false;
 
   let err: string | null = null;
   let days: AskDay[] = [];
@@ -178,13 +179,13 @@ export default async function AsksPage({
           <>
             <h2>날짜</h2>
             <nav className="ak-days" aria-label="측정한 날">
-              {days.slice(0, CHIPS).map((x) => <Chip key={x.day} x={x} on={x.day === day} href={q(`d=${x.day}`)} />)}
+              {days.slice(0, CHIPS).map((x) => <Chip key={x.day} x={x} on={x.day === day} href={q(`d=${x.day}`)} noLink={noLink} />)}
             </nav>
             {days.length > CHIPS && (
               <details className="ak-old" open={!!day && days.findIndex((x) => x.day === day) >= CHIPS}>
                 <summary>그 전 날짜 {days.length - CHIPS}일</summary>
                 <nav className="ak-days" aria-label="그 전 측정한 날">
-                  {days.slice(CHIPS).map((x) => <Chip key={x.day} x={x} on={x.day === day} href={q(`d=${x.day}`)} />)}
+                  {days.slice(CHIPS).map((x) => <Chip key={x.day} x={x} on={x.day === day} href={q(`d=${x.day}`)} noLink={noLink} />)}
                 </nav>
               </details>
             )}
@@ -198,7 +199,7 @@ export default async function AsksPage({
               <ul>
                 {sel.places.map((p) => (
                   <li key={p.method}>
-                    {p.where} — 질문 {p.n}개 중 <b>{p.named}개</b> 답에 {client ? `${client.name} 이름` : "이름"}, <b>{p.cited}개</b> 답에 우리 사이트 링크
+                    {p.where} — 질문 {p.n}개 중 <b>{p.named}개</b> 답에 {client ? `${client.name} 이름` : "이름"}, {noLink ? <>우리 사이트 링크 {링크해당없음}</> : <><b>{p.cited}개</b> 답에 우리 사이트 링크</>}
                     {p.brand.n > 0 && <> · 이름 질문 {p.brand.n}개 중 {p.brand.named}개 — AI 가 이 사이트를 제대로 아는지 확인용(노출 성과 아님)</>}
                     <span>{span(p.first, p.last) ? `물어본 시각 ${span(p.first, p.last)}` : "손으로 잰 기록이라 시각 없음"}</span>
                   </li>

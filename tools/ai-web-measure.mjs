@@ -30,7 +30,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
-import { 측정대상, 예산부족알림, 예산부족닫기, 측정상한, 고객측정일 } from "../academy/measure-targets.mjs";
+import { 측정대상, 예산부족알림, 예산부족닫기, 측정상한, 고객측정일, 인용판정 } from "../academy/measure-targets.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const LOCK = path.join(HERE, ".ai-web-measure.lock");
@@ -302,7 +302,7 @@ const main = async () => {
             실패원문 = { answer: 글.slice(0, 8000), links: r.links.slice(0, 60) };
             if (e.막힘.test(글) || 글.length < 40) throw new Error(e.막힘.test(글) ? "막힘(로그인·캡차)" : "답 없음");
             const mentioned = 이름.test(글);
-            const cited = r.links.some((c) => c.domain === CLIENT.domain || c.domain.endsWith(`.${CLIENT.domain}`));
+            const cited = 인용판정(r.links, CLIENT.domain);
             await q(
               `insert into academy.ai_measurements
                  (client_id, measured_on, collection_method, engine, model, prompt_id, stage, prompt_text,

@@ -298,6 +298,28 @@ const 홈html = `<html><head><script type="application/ld+json">{"@type":"Dentis
     const g = 줄.find((x) => x.id === "gsc");
     봄("체크리스트 — gsc 할일은 고객에게 묻지 않음", g.할일 === "고객에게 따로 묻지 않습니다. 홈페이지 관리자 아이디를 받으면 저희가 구글 서치콘솔에 직접 등록합니다. 끝나면 「권한 받음」을 누릅니다.");
   }
+  {
+    // Step 56 D245 — 키 파일 하나만 빠짐 → 고객에게 안 묻는다(보낼글 없음) · setup-send 는 닫힘. dns 와 상관없이
+    const 다른칸됨 = { ...d, robots: { status: 200, blocked: [] }, sitemap: { status: 200, ok: true, pages: 1, url: "u" }, llmsTxt: { status: 200, ok: true }, homeLdTypes: ["X"] };
+    for (const dns of [undefined, "우리", "고객"]) {
+      const r = { ...row, config: { ...row.config, ...(dns ? { onboard: { dns } } : {}) } };
+      const 키만 = 체크리스트(r, 다른칸됨).find((x) => x.id === "send");
+      봄(`체크리스트 — 키 파일만 빠짐(dns ${dns ?? "없음"}) → send 기다림 · 보낼글 없음 · 고칠것 있음`, 키만.상태 === "기다림" && 키만.보낼글 === undefined
+        && /^키 파일만 빠졌습니다 — 고객에게 묻지 않습니다/.test(키만.사람말) && 키만.고칠것.includes(`${KEY}.txt`), JSON.stringify(키만));
+      const 전부 = 체크리스트(r, 다른칸됨);
+      const 계 = 일감계획({ ...r, id: 9 }, 전부, "https://x.test");
+      봄(`동기화 — 키 파일만(dns ${dns ?? "없음"}) → setup-send 안 열고 닫음`, !계.열기.some((t) => t.key === "setup-send") && 계.닫기.some((t) => t.key === "setup-send" && t.status === "닫힘"));
+      // D250 — 잊히지 않게 내부 일감 setup-keyfile(고객 글 아님)
+      const 키일 = 계.열기.find((t) => t.key === "setup-keyfile");
+      봄(`동기화 — 키 파일만(dns ${dns ?? "없음"}) → setup-keyfile 내부 일감 · 키·주소 · 고객에게 안 물음`, !!키일 && /내부/.test(키일.title) && 키일.detail.includes(`${KEY}.txt`) && /고객에게 묻지 않음/.test(키일.detail), JSON.stringify(키일));
+    }
+    const 키와robots = 체크리스트(row, { ...다른칸됨, robots: d.robots }).find((x) => x.id === "send");
+    봄("체크리스트 — 키 파일 + robots 빠짐 → 지금처럼 보낼글", 키와robots.상태 === "사람" && 키와robots.보낼글 === 보낼글말.사이트("미소치과") && /2가지/.test(키와robots.사람말));
+    const 둘 = 일감계획({ ...row, id: 9 }, 체크리스트(row, { ...다른칸됨, robots: d.robots }), "https://x.test");
+    봄("동기화 — 키 파일 + robots 빠짐 → setup-keyfile 없음(보낼글이 맡음)", !둘.열기.some((t) => t.key === "setup-keyfile"));
+    const 됨줄 = 체크리스트(row, { ...다른칸됨, indexnowFile: { status: 200, ok: true } });
+    봄("동기화 — 키 파일 열리면 setup-keyfile 완료로 닫음", 일감계획({ ...row, id: 9 }, 됨줄).닫기.some((t) => t.key === "setup-keyfile" && t.status === "완료"));
+  }
   봄("체크리스트 — 빠진 사이트 칸은 기다림", ["robots", "sitemap", "llms", "jsonld", "keyfile"].every((id) => 줄.find((x) => x.id === id).상태 === "기다림"));
   봄("체크리스트 — wantGsc 끔 = 해당없음", 체크리스트({ ...row, config: { ...row.config, wantGsc: false } }, d).find((x) => x.id === "gsc").상태 === "해당없음");
   봄("체크리스트 — 파일럿 있고 질문 미승인 = 기다림", 체크리스트(row, d, { pilot: { id: "p", status: "진행", approved: false } }).find((x) => x.id === "measure").상태 === "기다림");

@@ -126,6 +126,10 @@ export async function readWeekRates(client: Client): Promise<WeekRates> {
   };
 }
 
+/** 사이트 없는 고객(블로그만) — 링크 인용은 0 이 아니라 해당없음. 숫자를 쓰지 않는다(Step 56 D238) */
+export const 링크없음 = (domain?: string | null) => !domain;
+export const 링크해당없음 = "해당없음(사이트 없음)";
+
 const resultOf = (m: boolean, c: boolean): AskResult => (m && c ? "both" : c ? "cited" : m ? "named" : "none");
 
 export const RESULT_TEXT: Record<AskResult, string> = {

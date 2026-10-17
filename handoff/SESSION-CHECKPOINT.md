@@ -2,6 +2,14 @@
 *Read this before reading anything else. If it covers current state, skip BUILD-LOG.*
 
 
+## Where We Stopped (2026-10-17 밤 늦게) — Step 56 브리프(사이트 없는 고객 측정 · Step 55 Should Fix 3 · 키 파일만이면 안 묻기)
+
+- handoff/ARCHITECT-BRIEF.md = Step 56. Step 55 브리프(배포 fa21483)는 handoff/research/ARCHITECT-BRIEF-step55.md
+- 56a 측정설정 판별 말만 · 인용판정(domain 없으면 null) / 56b 적는 곳 3 + cited drop not null / 56c 화면 해당없음 / 56d daily-agent·site-check 건너뜀 / 56e 질문 실제 수 / 56f 고리 플랫폼 빼기 / 56g 멈춘단계() · 판 한 번 부르기 / 56h 키 파일만 → 보낼글 없음
+- 결정 D238~D245, KG-56-1 BUILD-LOG. KG-55-10·13 닫음
+- 다음: Bob(builder) → Richard → 커밋·푸시 → 학원 아닌 web 배포 확인 → 읽기만: 측정대상 에 id 18 conf 있음
+- 원장 몫: 없음(id 18 블로그 주소 다시 넣기는 그대로)
+
 ## Where We Stopped (2026-10-17 밤) — Step 55 브리프(두 칸 등록 · 자동 세팅 · 고객 글 기술 말 금지)
 
 - handoff/ARCHITECT-BRIEF.md = Step 55. Step 54 브리프는 handoff/research/ARCHITECT-BRIEF-step54.md

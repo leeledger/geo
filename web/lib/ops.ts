@@ -308,7 +308,7 @@ export async function readOps(client?: Client): Promise<Ops> {
         select measured_on::text as measured_day, collection_method, engine,
                count(*)::int prompts,
                count(*) filter (where cited)::int cited,
-               count(*) filter (where mentioned and not cited)::int mentioned
+               count(*) filter (where mentioned and not coalesce(cited, false))::int mentioned
           from academy.ai_measurements where ${ME}
          group by measured_on, collection_method, engine order by measured_on desc`);
       const comparable = rounds.some((r) => rounds.some((x) =>

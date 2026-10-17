@@ -16,7 +16,7 @@ import { Pool } from "pg";
 import { 파일럿일정, 착수찾기, kst날짜 } from "../pilot-plan.mjs";
 import { 측정설정 } from "../measure-targets.mjs";
 import {
-  곳정보, 곳들, 곳이름, 창, 셈, 몇번, 비율글, 잰날, 브랜드문항, 이름정규식, 경쟁사목록, 점유, 점유칸,
+  곳정보, 곳들, 곳이름, 창, 셈, 몇번, 비율글, 인용해당없음, 잰날, 브랜드문항, 이름정규식, 경쟁사목록, 점유, 점유칸,
   곳비교, 판정, 창겹침, 최소잰날,
 } from "../pilot-report-core.mjs";
 import { countUsed } from "../../web/lib/marketing-core.mjs";
@@ -104,11 +104,14 @@ async function main() {
 
   const out = [];
   const w = (s = "") => out.push(s);
+  const 사이트없음 = !p.domain;   // 블로그만인 고객 — 인용은 해당없음(Step 56)
   const 방법절 = (창들) => {
     w("## 수집 방법");
     w();
     w(`질문은 고객이 승인한 20개 그대로다. 곳마다 하루 1회 묻는다. 한 번 나온 것을 적중으로 세지 않고, 질문×곳마다 「n번 중 k번」으로 적는다. 곳이 다르면 합치지 않는다.`);
-    w(`「언급」은 답에 이름이 나온 것, 「인용」은 출처 목록에 ${p.domain} 이 있는 것이다. 답 원문과 출처는 질문마다 보관해 다시 셀 수 있다.`);
+    w(사이트없음
+      ? `「언급」은 답에 이름이 나온 것이다. ${인용해당없음} — 출처 목록에서 셀 우리 사이트가 없다. 답 원문과 출처는 질문마다 보관해 다시 셀 수 있다.`
+      : `「언급」은 답에 이름이 나온 것, 「인용」은 출처 목록에 ${p.domain} 이 있는 것이다. 답 원문과 출처는 질문마다 보관해 다시 셀 수 있다.`);
     w();
     for (const m of 곳들(rows)) {
       const 엔진 = [...new Set(rows.filter((r) => r.collection_method === m).map((r) => r.engine))].join(", ");
@@ -136,11 +139,11 @@ async function main() {
     for (const x of 대상) {
       const 칸들 = ms.map((m) => {
         const s = 셈(창(rows, 창w).filter((r) => r.collection_method === m && r.position === x.position));
-        return s.n ? `${몇번(s.n, s.m)} · 인용 ${s.c}번` : "안 잼";
+        return s.n ? `${몇번(s.n, s.m)} · ${사이트없음 ? 인용해당없음 : `인용 ${s.c}번`}` : "안 잼";
       });
       w(`| ${x.position}. ${칸(x.text)} | ${칸들.join(" | ")} |`);
     }
-    const 합 = ms.map((m) => 비율글(셈(창(rows, 창w).filter((r) => r.collection_method === m && 대상.some((x) => x.position === r.position)))));
+    const 합 = ms.map((m) => 비율글(셈(창(rows, 창w).filter((r) => r.collection_method === m && 대상.some((x) => x.position === r.position))), 사이트없음));
     w(`| **곳별 합계** | ${합.join(" | ")} |`);
     w();
   };
@@ -253,7 +256,7 @@ async function main() {
         : 겹침 ? "창 겹침 — 비교 안 함"
         : !x.비교됨 ? `표본 부족 (잰 날 ${x.기준날.잰.length}일 · ${x.끝날.잰.length}일)`
         : `언급 비율 ${x.변화}`;
-      w(`| ${곳이름(x.곳)} | ${비율글(x.기준)} | ${비율글(x.끝)} | ${판} |`);
+      w(`| ${곳이름(x.곳)} | ${비율글(x.기준, 사이트없음)} | ${비율글(x.끝, 사이트없음)} | ${판} |`);
     }
     w();
     w("판정은 언급(답에 이름이 나온) 비율로만 한다. 인용 비율은 참고로 옆에 적었다.");

@@ -686,6 +686,7 @@ const EXEC = {
   },
 
   async "site-check"(t, c) {
+    if (!c.domain) return { status: "완료", evidence: "사이트 없음 — 해당없음" };   // 블로그만인 고객(Step 56)
     const home = await fetch(`https://${c.domain}/`).then((r) => r.status).catch((e) => `오류 ${e.message}`);
     const robots = await fetch(`https://${c.domain}/robots.txt`).then(async (r) => `${r.status} ${/Disallow:\s*\/\s*$/m.test(await r.text()) ? "전체 차단 줄 있음" : ""}`).catch((e) => `오류 ${e.message}`);
     const ok = home === 200 && String(robots).startsWith("200") && !String(robots).includes("차단");
@@ -930,6 +931,7 @@ const EXEC = {
   },
 
   async announce(t, c) {
+    if (!c.domain) return { status: "완료", evidence: "사이트 없음 — 색인 알림 해당없음" };   // 블로그만인 고객(Step 56 D249)
     const slug = t.payload.slug;
     const r = 실행(["scripts/indexnow.mjs", "--client", c.slug, `/blog/${slug}`, "/blog", "/"]);
     const sent = r.ok && /접수됨/.test(r.out);

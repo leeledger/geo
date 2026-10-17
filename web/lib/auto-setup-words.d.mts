@@ -8,3 +8,7 @@ export const 모든시군구: string[];
 export const 모든시도말: string[];
 export function 지역짧게(x: string): string;
 export function 이름흔함(term: string): boolean;
+export function 학원업종(업종: string | null | undefined): boolean;
+export function 동의어(업종: string | null | undefined): string[];
+export function 지역동(지역: string): string[];
+export const 의도표: { 공통: [string, "앞" | "뒤"][]; 학원: [string, "앞" | "뒤"][]; 그밖: [string, "앞" | "뒤"][]; 더: [string, "앞" | "뒤"][] };

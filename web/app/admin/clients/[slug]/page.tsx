@@ -4,7 +4,7 @@ import Link from "next/link";
 import { isAdmin } from "@/lib/admin-auth";
 import { inqPool } from "@/lib/inquiries";
 import { CODE_SLUGS, 체크리스트, 폼값, 바깥글폼값, 오류말, 파일럿상태, 갈래, 자동단계, 자동단계말, type Derived } from "@/lib/client-core.mjs";
-import { 다음단계, 자동요약, type Auto } from "@/lib/auto-setup-core.mjs";
+import { 다음단계, 멈춘단계, 자동요약, 임대초, type Auto } from "@/lib/auto-setup-core.mjs";
 import { createPilot } from "@/lib/pilot-actions";
 import { recheckClient, markGscGranted, deleteTestClient } from "@/lib/client-actions";
 import { NEEDS_BUILD, NEEDS_BUILD_LABEL } from "@/lib/pilot-plan";
@@ -89,6 +89,12 @@ export default async function Page({ params, searchParams }: {
   const auto = (row.config?.auto ?? null) as Auto | null;
   const 지금 = Date.now();
   const 요약 = auto?.단계 ? 자동요약(auto) : null;
+  // 도는중이고 임대(90초) 안 — 다른 곳이 정말 돌리는 중일 때만 판이 5초마다 다시 본다(Step 56)
+  const 살아있음 = 자동단계.some((k) => {
+    const s = auto?.단계?.[k];
+    const t = Date.parse(s?.at ?? "");
+    return s?.상태 === "도는중" && Number.isFinite(t) && 지금 - t < 임대초 * 1000;
+  });
   const 사이트있음 = !["없음", "플랫폼"].includes(갈래(row));
   // 파일럿 시작 폼 기본값 — 자동 세팅이 읽은 업종·지역·사이트 상태(원장이 고칠 수 있다, 55f)
   const 기본: Record<string, string> = { district: auto?.사실?.지역?.값 ?? "", category: auto?.사실?.업종?.값 ?? "" };
@@ -121,7 +127,7 @@ export default async function Page({ params, searchParams }: {
         ) : (
           <>
             {auto?.단계 && 요약 && (
-              <AutoSetupPanel slug={slug} 줄={판줄들(auto, 지금)} 다음={다음단계(auto, new Date(지금), { 실패도: false })} 끝={요약.끝} 된={요약.된}
+              <AutoSetupPanel slug={slug} 줄={판줄들(auto, 지금)} 다음={다음단계(auto, new Date(지금), { 실패도: false }) ?? 멈춘단계(auto, new Date(지금))} 끝={요약.끝} 된={요약.된} 살아있음={살아있음}
                 사실={{ 업종: auto.사실?.업종?.값 ?? "", 지역: auto.사실?.지역?.값 ?? "" }}
                 출처={{ 업종: auto.사실?.업종?.출처 ?? "아직 안 읽음", 지역: auto.사실?.지역?.출처 ?? "아직 안 읽음" }} />
             )}

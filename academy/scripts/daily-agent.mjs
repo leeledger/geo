@@ -105,12 +105,14 @@ const 돌기 = async (c, 설정) => {
 
   /** IndexNow 는 키 파일이 안 열리면 보내지 않고 종료코드 0 으로 끝난다. 「접수됨」이 찍혀야 보낸 것이다 */
   const 색인알림 = (path) => {
+    if (!c.domain) return { ok: false, out: "사이트 없음 — 색인 알림 해당없음" };   // 블로그만인 고객(Step 56). 일감 갈래는 미리 건너뛴다
     if (DRY) return { ok: true, out: "(dry)" };
     const res = 실행(["scripts/indexnow.mjs", "--client", SLUG, path]);
     return { ok: res.ok && /접수됨/.test(res.out), out: res.out };
   };
   /** 홈 JSON-LD 가 고객 설정(loop.homeLd — 학원은 주소·석촌|송파)을 다 채우나. 못 가져왔으면 fetched=false — 사람 일로 적지 않는다 */
   const 홈확인 = async () => {
+    if (!c.domain) return { fetched: false, ok: false };   // 사이트 없음 — 가져올 홈이 없다. 일감 갈래는 미리 건너뛴다(Step 56)
     const html = await fetch(`https://${c.domain}/`).then((r) => (r.ok ? r.text() : "")).catch(() => "");
     const ld = [...html.matchAll(/<script[^>]*application\/ld\+json[^>]*>([\s\S]*?)<\/script>/g)].map((m) => m[1]).join("\n");
     return { fetched: Boolean(html), ok: 설정.homeLd.every((re) => re.test(ld)) };
@@ -171,11 +173,12 @@ const 돌기 = async (c, 설정) => {
         const pub = KST(post.published_at ?? new Date());
         // 발행은 실제로 일어났으니 기준일은 발행일이다. 알림 실패는 근거에 남긴다 (사이트맵 전체 알림은 snapshot.yml 이 매일 한다)
         const res = 색인알림(`/blog/${r.target_slug}`);
-        기록.push(`${r.target_prompt} 초안 발행 확인(${pub}) → 색인 알림 ${res.ok ? "접수" : "실패"}`);
+        const 알림 = res.ok ? "접수" : c.domain ? "실패" : "해당없음(사이트 없음)";
+        기록.push(`${r.target_prompt} 초안 발행 확인(${pub}) → 색인 알림 ${알림}`);
         if (!DRY) await q(
           `update geo.agent_runs set status='완료', completed_at=now(), effective_on=$2::date,
              evidence = evidence || $3 where id=$1`,
-          [r.id, pub, `\n${오늘} 발행 확인 · IndexNow ${res.ok ? "접수" : "실패"}`]);
+          [r.id, pub, `\n${오늘} 발행 확인 · IndexNow ${알림}`]);
         r.status = "완료";
         r.effective_on = pub;
       } else if (r.run_day <= 날더하기(오늘, -14)) {
@@ -442,7 +445,7 @@ const 돌기 = async (c, 설정) => {
       `${x.후퇴 ? " · 불리던 질문이 떨어짐" : ""}${우세[x.prompt_id] > 0 ? ` · 경쟁사 이름이 우리보다 ${우세[x.prompt_id]}번 더 나옴` : ""} · ${전체}`;
 
     // 후퇴(D39): 사다리보다 먼저 불리던 글을 다시 민다. 불리던 글이 없거나 글 고치기를 건너뛰는 단계(repeat)면 사다리대로
-    if (x.후퇴 && !점검.skipContent.has(x.stage)) {
+    if (x.후퇴 && !점검.skipContent.has(x.stage) && c.domain) {
       const r = 후퇴.get(x.prompt_id);
       const 글 = 불리던글(r.urls, published)
         ?? published.map((p) => ({ ...p, score: 겹침(x.text, p.title) })).sort((a, b) => b.score - a.score).find((p) => p.score >= 0.4);
@@ -465,6 +468,7 @@ const 돌기 = async (c, 설정) => {
       if (kind === "content" && 점검.skipContent.has(x.stage)) continue;
 
       if (kind === "entity") {
+        if (!c.domain) continue;   // 사이트 없음 — 홈 구조화 데이터는 해당없음, 일감 안 만든다(Step 56)
         const home = await 홈확인();
         if (home.fetched && home.ok) continue; // 이미 갖춰져 있다. 다음 칸
         if (!home.fetched) {
@@ -487,7 +491,7 @@ const 돌기 = async (c, 설정) => {
           .map((p) => ({ ...p, score: 겹침(x.text, p.title) }))
           .sort((a, b) => b.score - a.score)[0];
         const 경로 = (s) => `/blog/${s}`;
-        if (맞는글 && 맞는글.score >= 0.4) {
+        if (맞는글 && 맞는글.score >= 0.4 && c.domain) {
           const hits = await q(
             `select vendor, max(seen_at) at from academy.crawl_hits where client_id=$1 and path=$2 group by vendor`,
             [c.id, 경로(맞는글.slug)]).catch(() => []);

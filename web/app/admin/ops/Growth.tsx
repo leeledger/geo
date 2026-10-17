@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import type { Client, Ops } from "@/lib/ops";
 import { addDays, delta, type Delta, type Growth as G } from "@/lib/growth";
 import { engineName } from "@/lib/agents";
+import { 링크해당없음 } from "@/lib/asks";
 import { 주별칸 } from "@/lib/growth-core.mjs";
 import CoverageChart, { type CovSeries } from "./CoverageChart";
 
@@ -134,7 +135,7 @@ function lowest(g: G) {
 }
 
 /** name — 고른 고객 이름. 없으면 「이름」만 (Step 34 D50: 문서딱 탭에 「학원 이름」이 뜨던 것) */
-export default function Growth({ g, err, name }: { g: G | null; err?: string; name?: string | null }) {
+export default function Growth({ g, err, name, noLink = false }: { g: G | null; err?: string; name?: string | null; noLink?: boolean }) {
   if (!g) {
     return (
       <section className="gr">
@@ -175,7 +176,7 @@ export default function Growth({ g, err, name }: { g: G | null; err?: string; na
               <Card
                 head={<>
                   {engineName(aiTop.engine)}에게 물은 질문 {aiLast.prompts}개 중 <b>{aiLast.mentioned}개</b> 답에 {name ? `${name} 이름` : "이름"}이 나왔습니다
-                  <span className="gc-s"> · 우리 사이트 링크 {aiLast.cited}개 · 이름 질문 빼고</span>
+                  <span className="gc-s"> · 우리 사이트 링크 {noLink ? 링크해당없음 : `${aiLast.cited}개`} · 이름 질문 빼고</span>
                 </>}
                 note={aiTop.brand ? <>
                   이름 질문 {aiTop.brand.prompts}개 중 {aiTop.brand.mentioned}개{aiTop.brand.day !== aiLast.day && ` (${md(aiTop.brand.day)})`} — AI 가 이 사이트를 제대로 아는지 확인용(노출 성과 아님)

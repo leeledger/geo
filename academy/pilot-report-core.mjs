@@ -45,7 +45,9 @@ export function 셈(rows) {
 
 export const 몇번 = (n, k) => `${n}번 중 ${k}번`;
 const 퍼센트 = (k, n) => (n ? `${Math.round((k / n) * 100)}%` : "—");
-export const 비율글 = (s) => (s.n ? `언급 ${몇번(s.n, s.m)}(${퍼센트(s.m, s.n)}) · 인용 ${s.c}번(${퍼센트(s.c, s.n)})` : "안 잼 — 표본 0");
+/** 사이트 없는 고객(인용없음)은 인용 숫자를 안 쓴다 — 0 이 아니라 해당없음(Step 56) */
+export const 인용해당없음 = "인용: 해당없음(사이트 없음)";
+export const 비율글 = (s, 인용없음 = false) => (s.n ? `언급 ${몇번(s.n, s.m)}(${퍼센트(s.m, s.n)}) · ${인용없음 ? 인용해당없음 : `인용 ${s.c}번(${퍼센트(s.c, s.n)})`}` : "안 잼 — 표본 0");
 
 /** 그 곳을 잰 날과 빠진 날 */
 export function 잰날(rows, w) {

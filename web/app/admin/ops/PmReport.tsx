@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import type { PmReport as Data, PmStatus } from "@/lib/pm-report";
-import type { AnswerTable, BrandRow } from "@/lib/asks";
+import { 링크없음, 링크해당없음, type AnswerTable, type BrandRow } from "@/lib/asks";
 
 /**
  * ⓪ 오늘 아침 보고 — 현황판 맨 위, 「오늘 원장님이 하실 일」 위.
@@ -51,7 +51,7 @@ function brandLine(b: BrandRow[]): string {
   return `이름 질문${same ? ` ${b[0].n}개 중` : ""} ${each} — AI 가 이 사이트를 제대로 아는지 확인용(노출 성과 아님)`;
 }
 
-function ClientAnswers({ ans, client }: { ans: AnswerTable; client: { name: string; slug: string } | null }) {
+function ClientAnswers({ ans, client }: { ans: AnswerTable; client: { name: string; slug: string; domain?: string | null } | null }) {
   if (!client) return null;
   return (
     <div className="pm-cl">
@@ -67,7 +67,7 @@ function ClientAnswers({ ans, client }: { ans: AnswerTable; client: { name: stri
                   <tr key={a.엔진}>
                     <td><b>{a.엔진}</b> <span className="pm-ai-note">{월일(a.day)} 측정</span></td>
                     <td className="n">{a.n}개 중 {a.이름}개{a.전체 === false && <span className="pm-ai-note"> (일부만 물음)</span>}</td>
-                    <td className="n">{a.링크없음 ? "링크를 안 보여 줌" : `${a.n}개 중 ${a.인용}개`}</td>
+                    <td className="n">{링크없음(client.domain) ? 링크해당없음 : a.링크없음 ? "링크를 안 보여 줌" : `${a.n}개 중 ${a.인용}개`}</td>
                     <td>{a.비교 ? `${월일(a.비교.day)} ${a.비교.전이름}개 → ${a.비교.지금이름}개 (${a.비교.말})` : "첫 측정"}</td>
                   </tr>
                 ))}
@@ -82,7 +82,7 @@ function ClientAnswers({ ans, client }: { ans: AnswerTable; client: { name: stri
 }
 
 export default function PmReport({ data, ans, client }: {
-  data: Data; ans: AnswerTable; client: { name: string; slug: string } | null;
+  data: Data; ans: AnswerTable; client: { name: string; slug: string; domain?: string | null } | null;
 }) {
   // ① 회사 공통 — 총괄이 하루 한 장 남긴 것. 탭과 무관하다
   let company: ReactNode;

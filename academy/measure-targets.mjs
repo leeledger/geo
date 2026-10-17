@@ -38,7 +38,8 @@ export async function 고객설정준비(q) {
 }
 
 /**
- * 한 고객의 측정 설정. 이름 정규식과 도메인이 둘 다 있어야 잰다. 없으면 null.
+ * 한 고객의 측정 설정. 이름 정규식이 있으면 잰다. 없으면 null.
+ * 도메인이 없는 고객(블로그만·사이트 없음)도 이름은 잰다 — domain 은 null, 인용은 해당없음(Step 56 D238).
  * 정규식은 늘 대소문자 무시(i) — clients.mjs 의 두 덩어리가 다 i 였다.
  */
 export function 측정설정(row) {
@@ -50,9 +51,21 @@ export function 측정설정(row) {
     try { answerRe = new RegExp(원문, "i"); } catch { answerRe = null; }
   }
   if (!answerRe && 덩어리?.answerRe instanceof RegExp) answerRe = 덩어리.answerRe;
+  if (!answerRe) return null;
   const domain = 덩어리?.domain ?? 도메인정리(row.domain);
-  if (!answerRe || !domain) return null;
-  return { id: row.id, slug: row.slug, name: row.name, domain, answerRe };
+  return { id: row.id, slug: row.slug, name: row.name, domain: domain || null, answerRe };
+}
+
+/**
+ * 답의 출처 링크가 우리 사이트인가. domain 이 없으면(빈 글자 포함) null — 해당없음, 거짓(0)이 아니다.
+ * 인용 식은 여기 하나만 둔다. citations: [{ domain }] 또는 도메인 글자
+ */
+export function 인용판정(citations, domain) {
+  if (!domain) return null;
+  return (citations ?? []).some((c) => {
+    const d = String((typeof c === "string" ? c : c?.domain) ?? "");
+    return d === domain || d.endsWith("." + domain);
+  });
 }
 
 /**

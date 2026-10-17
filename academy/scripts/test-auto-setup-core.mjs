@@ -7,10 +7,10 @@ import { 계정이름 } from "../../tools/auto-login.mjs";
 import { 패널점검 } from "./seed-panel.mjs";
 import { answerPattern, CODE_SLUGS, 금지말찾기 } from "../../web/lib/client-core.mjs";
 import { PLATFORMS, platformOf, classifyTarget, 호스트갈래, BUILDER_HOSTS } from "../../web/lib/platform-hosts.mjs";
-import { 이름흔함, 지역짧게, 업종표 } from "../../web/lib/auto-setup-words.mjs";
+import { 이름흔함, 지역짧게, 업종표, 모든시군구, 동의어 } from "../../web/lib/auto-setup-words.mjs";
 import {
   입력나누기, slug고르기, 로마자, 판별말, 사실뽑기, 씨앗, 응답말, 자동완성, 자동완성주소, 자동완성UA, 출처붙임, 거르기, 패널만들기, 두칸칸,
-  다음단계, 자동요약, 자동한걸음, 재시도, 사실입력검사, 사실저장, 자동이어하기, 사이트상태, 임대초,
+  다음단계, 자동요약, 자동한걸음, 재시도, 사실입력검사, 사실저장, 자동이어하기, 사이트상태, 임대초, 멈춘단계, 틀검색어, 넓힌씨앗,
 } from "../../web/lib/auto-setup-core.mjs";
 
 let 통과 = 0, 실패 = 0;
@@ -144,8 +144,8 @@ const J = JSON.stringify;
   const 막 = await 자동완성(["a 치과", "b 치과", "c 치과"], { fetch: 가짜({ "a 치과": ["a 치과의원"], "b 치과": 403 }), 간격: 0 });
   봄("자동완성 — 403 이면 뒤 씨앗은 안 두드림", 부름.length === 2 && 막.씨앗[1].status === 403 && 막.씨앗[2].status === null && /막혀/.test(막.씨앗[2].오류));
   부름.length = 0;
-  const 많 = await 자동완성(Array.from({ length: 20 }, (_, i) => `s${i}`), { fetch: 가짜({}), 간격: 0 });
-  봄("자동완성 — 최대 16번", 부름.length === 16 && 많.씨앗.filter((s) => s.오류 === "최대 16번").length === 4);
+  const 많 = await 자동완성(Array.from({ length: 45 }, (_, i) => `s${i}`), { fetch: 가짜({}), 간격: 0 });
+  봄("자동완성 — 최대 40번(D246)", 부름.length === 40 && 많.씨앗.filter((s) => s.오류 === "최대 40번").length === 5);
   const 느림 = await 자동완성(["a"], { fetch: 가짜({ a: "멈춤" }), 한도: 30, 간격: 0 });
   봄("자동완성 — 요청당 한도 넘으면 시간 초과", 느림.씨앗[0].status === null && /시간 초과/.test(느림.씨앗[0].오류));
 }
@@ -225,9 +225,10 @@ function 가짜DB(clients) {
     }
     if (sql.startsWith("select id, status from geo.pilots where client_id")) return db.pilots.filter((x) => x.client_id === p[0]);
     if (sql.startsWith("select p.id, p.status, p.questions_approved_at")) return [];
+    if (sql.startsWith("select count(*)::int n from geo.pilot_questions")) return [{ n: db.questions.filter((x) => x.pilot_id === p[0]).length }];
     if (sql.startsWith("insert into geo.pilot_questions")) {
       if (db.questions.some((x) => x.pilot_id === p[0] && x.position === p[1])) return [];
-      db.questions.push({ pilot_id: p[0], position: p[1], stage: p[2], text: p[3], approved: false }); return [];
+      db.questions.push({ pilot_id: p[0], position: p[1], stage: p[2], text: p[3], approved: false }); return [{ id: db.questions.length }];
     }
     if (sql.startsWith("select status from geo.agent_tasks")) return db.tasks.filter((t) => t.key === p[1]).map((t) => ({ status: t.status }));
     if (sql.startsWith("insert into geo.agent_tasks")) {
@@ -334,7 +335,8 @@ const 지금 = () => new Date("2026-10-17T03:00:00Z");
   c.config.auto.사실 = { 업종: { 값: "치과", 출처: "x" }, 지역: { 값: "송파구", 출처: "x" } };
   c.config.auto.출처.경쟁 = "원장"; c.config.queries.compete = ["원장이 넣은 말 하나", "둘째 말", "셋째 말"];
   const r = await 자동한걸음(db.q, "cited-2", { fetch: 자동완성표(3), now: 지금, 자동완성옵션: { 간격: 0 } });
-  봄("후보 적음 → 원장 · 후보 수·씨앗을 말에", r.상태 === "원장" && /질문 후보가 \d+개뿐입니다\(17개 필요\)/.test(c.config.auto.단계.검색어.말) && /씨앗 「송파 치과」/.test(c.config.auto.단계.검색어.말), c.config.auto.단계.검색어.말);
+  // D246 — 자동완성이 모자라면 틀로 채우고 됨(원장에게 안 넘김)
+  봄("자동완성 적음 → 틀로 채워 됨 · 「자동완성 n · 틀 m」", r.상태 === "됨" && /^자동완성 \d+ · 틀 \d+/.test(c.config.auto.단계.검색어.말) && c.config.auto.후보.length >= 17, c.config.auto.단계.검색어.말);
   봄("원장 경쟁 검색어는 씨앗으로 쓰고 덮지 않음", J(c.config.queries.compete) === J(["원장이 넣은 말 하나", "둘째 말", "셋째 말"]) && c.config.auto.자동완성.씨앗.some((s) => s.q === "둘째 말"));
   await 자동한걸음(db.q, "cited-2", { now: 지금 });
   봄("후보 적음 → 질문 안 넣음(파일럿만)", db.questions.length === 0 && db.pilots.length === 1);
@@ -363,7 +365,9 @@ const 지금 = () => new Date("2026-10-17T03:00:00Z");
   c.config.auto.단계.사이트 = { 상태: "됨" }; c.config.auto.단계.업종지역 = { 상태: "됨" };
   c.config.auto.사실 = { 업종: { 값: "치과", 출처: "x" }, 지역: { 값: "송파구", 출처: "x" } };
   const r = await 자동한걸음(db.q, "cited-2", { fetch: async () => new Response("", { status: 403 }), now: 지금, 자동완성옵션: { 간격: 0 } });
-  봄("자동완성 403 → 실패 「자동완성이 막혔습니다(상태 403)」 · 원응답 저장", r.상태 === "실패" && r.말.startsWith("자동완성이 막혔습니다(상태 403") && c.config.auto.자동완성.씨앗[0].status === 403, r.말);
+  봄("자동완성 403 → 첫 번만 두드리고 멈춤 · 틀 17 로 됨 · 원응답 저장", r.상태 === "됨" && /^자동완성 0 · 틀 17/.test(r.말) && /403/.test(r.말)
+    && c.config.auto.자동완성.씨앗[0].status === 403 && c.config.auto.자동완성.씨앗.slice(1).every((s) => s.status === null), r.말);
+  봄("자동완성 403 → 경쟁 검색어도 틀(지역 업종 · 추천)", J(c.config.queries.compete.slice(0, 2)) === J(["송파 치과", "송파 치과 추천"]) && /틀/.test(c.config.auto.출처.경쟁), J(c.config.queries.compete));
 }
 {
   // 임대 — 겹친 부름은 한 번 · 지난 임대는 잡음 · 3번 다 시간 초과 → 원장
@@ -420,6 +424,131 @@ const 지금 = () => new Date("2026-10-17T03:00:00Z");
   const 돈 = await 자동이어하기(db.q, { max: 2, deps: { lookup: async () => [{ address: "10.0.0.1" }] }, log: (s) => 줄.push(s), now: 지금 });
   봄("자동이어하기 — 시험 빼고 오래된 것부터 max 곳", J(돈) === J(["s4", "s1"]), J(돈));
   봄("자동이어하기 — 한 줄 로그", 줄.length === 2 && 줄.every((s) => /자동 세팅 s\d: 사이트 실패/.test(s)), J(줄));
+}
+{
+  // D246 검색어 — 자동완성 4개 · 0개 · 403 · 지역 모름 · 중복 없음
+  const 검색어차례 = (사실 = { 업종: { 값: "영어학원", 출처: "x" }, 지역: { 값: "송파구", 출처: "x" } }) => {
+    const r = 새고객();
+    r.config.auto.단계.사이트 = { 상태: "됨" }; r.config.auto.단계.업종지역 = { 상태: "됨" }; r.config.auto.사실 = 사실;
+    return r;
+  };
+  const 넷 = async (url) => {
+    const q = new URL(url).searchParams.get("q");
+    const items = q === "송파 영어학원" ? ["송파 영어학원 원어민", "송파 영어학원 파닉스", "송파 영어교습소 저녁", "송파 영어과외 중1"].map((x) => [x]) : [];
+    return new Response(J({ query: [q], items: [items] }), { status: 200 });
+  };
+  const 열여덟 = (c) => c.config.auto.후보.slice(0, 17);
+  const 키 = (s) => s.replace(/\s+/g, "").toLowerCase();
+  {
+    const db = 가짜DB([검색어차례()]);
+    const r = await 자동한걸음(db.q, "cited-2", { fetch: 넷, now: 지금, 자동완성옵션: { 간격: 0 } });
+    const c = db.clients[0], k = 열여덟(c);
+    봄("검색어 — 자동완성 4 → 됨 · 자동완성 4 · 틀 13", r.상태 === "됨" && /^자동완성 4 · 틀 13/.test(r.말), r.말);
+    봄("검색어 — 자동완성 먼저 · 틀 뒤 · 출처 표시", k.slice(0, 4).every((x) => x.씨앗 && !x.출처) && k.slice(4).every((x) => x.출처 === "틀"));
+    const 패널 = 패널만들기(c.config.auto.후보, "시험치과 송파점", "cited.kr");
+    봄("검색어 — 패널 keyword 17 · 출처 칸 자동완성 4 · 틀 13 · brand 3", 패널.length === 20 && 패널.filter(([s]) => s === "keyword").length === 17
+      && 패널.filter(([, , o]) => /자동완성/.test(o)).length === 4 && 패널.filter(([, , o]) => /^틀/.test(o)).length === 13, J(패널.map(([, , o]) => o)));
+    봄("검색어 — 중복 없음(띄어쓰기 무시)", new Set(k.map((x) => 키(x.text))).size === 17);
+    const 씨 = c.config.auto.자동완성.씨앗.filter((s) => s.차 === 1).map((s) => s.q);
+    봄("검색어 — 씨앗 넓힘(동의어·서울 동) · 1차 24 안", 씨.includes("송파 영어과외") && 씨.includes("잠실동 영어학원") && 씨.length <= 24, J(씨));
+    봄("검색어 — 넘은 요청 40 안", c.config.auto.자동완성.씨앗.filter((s) => s.status !== null).length <= 40);
+  }
+  {
+    const db = 가짜DB([검색어차례()]);
+    const 빈 = async (url) => new Response(J({ query: [new URL(url).searchParams.get("q")], items: [[]] }), { status: 200 });
+    const r = await 자동한걸음(db.q, "cited-2", { fetch: 빈, now: 지금, 자동완성옵션: { 간격: 0 } });
+    const k = 열여덟(db.clients[0]);
+    봄("검색어 — 자동완성 0 → 틀 17 · 됨", r.상태 === "됨" && /^자동완성 0 · 틀 17/.test(r.말) && k.length === 17 && k.every((x) => x.출처 === "틀"), r.말);
+    봄("검색어 — 틀 첫 줄 「송파 영어학원 추천」 · 중복 없음", k[0].text === "송파 영어학원 추천" && new Set(k.map((x) => 키(x.text))).size === 17);
+    봄("검색어 — 틀은 고객 이름·판별 말을 안 담음", k.every((x) => !/시험치과|cited/.test(x.text)));
+  }
+  {
+    const db = 가짜DB([검색어차례()]);
+    let 부른 = 0;
+    const 막 = async () => { 부른++; return new Response("", { status: 403 }); };
+    const r = await 자동한걸음(db.q, "cited-2", { fetch: 막, now: 지금, 자동완성옵션: { 간격: 0 } });
+    봄("검색어 — 403 → 한 번만 두드림 · 틀로 채워 됨", 부른 === 1 && r.상태 === "됨" && 열여덟(db.clients[0]).every((x) => x.출처 === "틀"), `${부른} ${r.말}`);
+  }
+  {
+    const db = 가짜DB([검색어차례({ 업종: { 값: "영어학원", 출처: "x" }, 지역: { 값: null, 출처: "모름" } })]);
+    db.clients[0].config.auto.단계.업종지역 = { 상태: "됨" };
+    const r = await 자동한걸음(db.q, "cited-2", { fetch: async () => { throw new Error("바깥 요청 없어야 함"); }, now: 지금 });
+    봄("검색어 — 지역 모름 → 원장(틀을 못 만든다)", r.단계 === "검색어" && r.상태 === "원장" && !db.clients[0].config.auto.후보, J(r));
+  }
+  봄("틀검색어 — 학원 아닌 곳은 초등·시간표 없음 · 예약 있음", 틀검색어("치과", "수원시").every((x) => !/초등|시간표|소수정예/.test(x)) && 틀검색어("치과", "수원시").includes("수원 치과 예약")
+    && 틀검색어("치과", "수원시").length >= 17);
+  {
+    // D247 — 자동완성 없이 틀만으로 업종표 × 모든시군구 전부 17 이상(중구·서구 같은 한 꼴 지역 포함)
+    const 모자람 = [];
+    for (const { 업종 } of 업종표) for (const g of 모든시군구) {
+      const n = 거르기(틀검색어(업종, g), { 업종, 이름: "", 더말: 동의어(업종) }).length;
+      if (n < 17) 모자람.push(`${g} ${업종} ${n}`);
+    }
+    봄(`틀검색어 — 업종표 × 모든시군구(${업종표.length * 모든시군구.length}) 전부 17 이상`, 모자람.length === 0, 모자람.slice(0, 5).join(", "));
+    봄("거르기 — 「중구 인테리어 추천」은 남고 「구인」 낱말은 빠짐", J(거르기(["중구 인테리어 추천", "중구 인테리어 구인", "중구 인테리어 채용공고"], { 업종: "인테리어" })) === J(["중구 인테리어 추천"]));
+  }
+  봄("틀검색어 — 중복 없음", 틀검색어("영어학원", "송파구").length === new Set(틀검색어("영어학원", "송파구")).size);
+  봄("넓힌씨앗 — 서울 동 · 다른 시도에도 있는 구(강서구)는 동 없음", 넓힌씨앗("영어학원", "강남구").includes("대치동 영어학원") && !넓힌씨앗("영어학원", "강서구").some((x) => /동 /.test(x)));
+}
+{
+  // 56e 질문 단계 — 이미 있으면 됨(measure_active 그대로) · 실제 들어간 줄 수로 말한다
+  const 질문차례 = () => {
+    const r = 새고객();
+    for (const k of ["사이트", "업종지역", "검색어", "파일럿"]) r.config.auto.단계[k] = { 상태: "됨" };
+    r.config.auto.후보 = Array.from({ length: 17 }, (_, i) => `송파 치과 후보${i}`);
+    return r;
+  };
+  const 파일럿 = (db) => db.pilots.push({ id: "p-1", client_id: 50, status: "리허설", needs_build: "none", paid_on: null });
+  const db = 가짜DB([질문차례()]);
+  파일럿(db);
+  for (const i of [1, 2, 3]) db.questions.push({ pilot_id: "p-1", position: i, stage: "keyword", text: `원장 질문 ${i}`, approved: true });
+  const r = await 자동한걸음(db.q, "cited-2", { now: 지금 });
+  봄("질문 이미 3개 → 됨 · 안 넣음 · measure_active 그대로", r.상태 === "됨" && /이미 3개/.test(r.말) && db.questions.length === 3 && db.clients[0].measure_active !== true, J(r));
+  // 경합 — count 는 0 인데 insert 가 0줄(다른 곳이 먼저 넣음)
+  const db2 = 가짜DB([질문차례()]);
+  파일럿(db2);
+  const 원q = db2.q;
+  db2.q = async (s, p) => (s.replace(/\s+/g, " ").trim().startsWith("insert into geo.pilot_questions") ? [] : 원q(s, p));
+  const r2 = await 자동한걸음(db2.q, "cited-2", { now: 지금 });
+  봄("질문 0줄 들어감 → 원장 「질문을 넣지 못했습니다」 · measure_active 안 켬", r2.상태 === "원장" && /질문을 넣지 못했습니다/.test(r2.말) && db2.clients[0].measure_active !== true, J(r2));
+  // 일부만 — 5줄
+  const db3 = 가짜DB([질문차례()]);
+  파일럿(db3);
+  let 들어감 = 0;
+  const 원q3 = db3.q;
+  db3.q = async (s, p) => (s.replace(/\s+/g, " ").trim().startsWith("insert into geo.pilot_questions") && 들어감++ >= 5 ? [] : 원q3(s, p));
+  const r3 = await 자동한걸음(db3.q, "cited-2", { now: 지금 });
+  봄("질문 5줄만 → 원장 · 실제 수 5 · measure_active 안 켬", r3.상태 === "원장" && /5개만/.test(r3.말) && db3.questions.length === 5 && db3.clients[0].measure_active !== true, J(r3));
+  const db4 = 가짜DB([질문차례()]);
+  파일럿(db4);
+  const r4 = await 자동한걸음(db4.q, "cited-2", { now: 지금 });
+  봄("질문 20줄 → 됨 · measure_active · 말에 실제 수", r4.상태 === "됨" && /질문 20개/.test(r4.말) && db4.questions.length === 20 && db4.clients[0].measure_active === true, J(r4));
+}
+{
+  // 56g 멈춘단계 — 순수
+  const a = (s) => ({ 단계: { 사이트: s } });
+  봄("멈춘단계 — 시도 3 · 임대 지남 → 단계", 멈춘단계(a({ 상태: "도는중", at: "2026-10-17T02:57:00Z", 시도: 3 }), 지금()) === "사이트");
+  봄("멈춘단계 — 시도 2 → null", 멈춘단계(a({ 상태: "도는중", at: "2026-10-17T02:57:00Z", 시도: 2 }), 지금()) === null);
+  봄("멈춘단계 — 임대 안 지남 → null", 멈춘단계(a({ 상태: "도는중", at: "2026-10-17T02:59:30Z", 시도: 3 }), 지금()) === null);
+  봄("멈춘단계 — auto 없음 → null", 멈춘단계(null, 지금()) === null);
+}
+{
+  // 56f 매시 고리 — 플랫폼 사이트 대기(확인기 없음)는 자리를 안 먹는다. 멈춘 플랫폼 행은 남는다
+  const 블로그 = 두칸칸({ name: "시험블로그", homepage: "https://blog.naver.com/naver_diary" });
+  const 플랫폼행 = (i) => ({ id: 70 + i, slug: `pf${i}`, name: `블로그${i}`, domain: null, relation: "외부", status: "active", answer_pattern: null,
+    config: { v: 1, answerTerms: [], queries: { compete: [], brand: [] }, onboard: { channels: 블로그.칸.channels }, auto: { ...structuredClone(블로그.칸.auto), at: `2026-10-0${i}T00:00:00Z` } }, derived: {} });
+  const 보통 = { ...새고객(), id: 79, slug: "plain" };
+  보통.config.auto.at = "2026-10-09T00:00:00Z";
+  const db = 가짜DB([플랫폼행(1), 플랫폼행(2), 플랫폼행(3), 보통]);
+  const 돈 = await 자동이어하기(db.q, { max: 3, deps: { lookup: async () => [{ address: "10.0.0.1" }] }, log: () => {}, now: 지금 });
+  봄("고리 — 플랫폼 대기 3곳 + 보통 1곳 · max 3 → 보통이 돈다", J(돈) === J(["plain"]), J(돈));
+  const 멈춘 = 플랫폼행(4);
+  멈춘.config.auto.단계.사이트 = { 상태: "도는중", at: "2026-10-17T02:57:00Z", 시도: 3 };
+  const db2 = 가짜DB([멈춘]);
+  const 돈2 = await 자동이어하기(db2.q, { max: 3, log: () => {}, now: 지금 });
+  봄("고리 — 멈춘 플랫폼 행은 안 빠지고 원장으로", J(돈2) === J(["pf4"]) && db2.clients[0].config.auto.단계.사이트.상태 === "원장", J(돈2));
+  const 돈3 = await 자동이어하기(가짜DB([플랫폼행(5)]).q, { max: 3, deps: { checkPlatform: async () => null }, log: () => {}, now: 지금 });
+  봄("고리 — 확인기가 있으면 플랫폼 행도 고른다", J(돈3) === J(["pf5"]), J(돈3));
 }
 {
   // 금지어 — 자동 세팅 사람 말이 고객 글로 새지 않는다(체크리스트 할일은 원장 몫이지만, 보낼글로 쓰이는 일이 없게 확인)

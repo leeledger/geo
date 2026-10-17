@@ -4,6 +4,7 @@ import Link from "next/link";
 import { isAdmin } from "@/lib/admin-auth";
 import { getPilot } from "@/lib/pilots";
 import { engineName } from "@/lib/agents";
+import { 링크없음 } from "@/lib/asks";
 import { updatePilotTask, updateAudit, approveQuestions, updateQuestion, updateContent, updatePilotContract, markBaselineSent } from "@/lib/pilot-actions";
 import { NEEDS_BUILD, NEEDS_BUILD_LABEL, refundGuide } from "@/lib/pilot-plan";
 import { SURFACES, SHOWN } from "@/lib/manual-checks";
@@ -90,7 +91,7 @@ export default async function Page({ params, searchParams }: { params: Promise<{
           <AdminNav here="/admin/pilots" />
         </div>
         <p className="pd-k">
-          {x.pilot.domain} · {D(x.pilot.started_on)} ~ {D(x.pilot.ends_on)} · 390,000원 입금 {x.pilot.payment_ref} · 업무 {done}/{x.tasks.length} · 질문 승인 {approved}/20 · 측정 {x.ai.length}회 ·
+          {x.pilot.domain || "사이트 없음"} · {D(x.pilot.started_on)} ~ {D(x.pilot.ends_on)} · 390,000원 입금 {x.pilot.payment_ref} · 업무 {done}/{x.tasks.length} · 질문 승인 {approved}/20 · 측정 {x.ai.length}회 ·
           정합성 확인 {x.audits.filter((a: any) => a.verdict !== "미확인").length}/20
         </p>
         <p className="pd-k">
@@ -212,7 +213,7 @@ export default async function Page({ params, searchParams }: { params: Promise<{
           <summary>AI 측정 원장 — {x.ai.length}회</summary>
           <div className="in pd-ai">
             {x.ai.length ? x.ai.map((a: any, i: number) => (
-              <div className="pd-pill" key={i}>{a.day} · {engineName(String(a.engine ?? ""))}<br /><b>언급 {a.mentioned}/{a.n} · 인용 {a.cited}/{a.n}</b></div>
+              <div className="pd-pill" key={i}>{a.day} · {engineName(String(a.engine ?? ""))}<br /><b>언급 {a.mentioned}/{a.n} · {링크없음(x.pilot.domain) ? "인용 해당없음" : `인용 ${a.cited}/${a.n}`}</b></div>
             )) : <span className="sub">아직 측정 없음. 같은 화면·로그인 상태·20문항을 회차마다 유지합니다.</span>}
           </div>
         </details>

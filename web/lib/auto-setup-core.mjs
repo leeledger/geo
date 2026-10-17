@@ -12,7 +12,7 @@ import {
   ld타입, 호스트, 도메인정리, 점검저장, 홈열기, 체크리스트, 사람일감맞추기, 파일럿상태, CODE_SLUGS, 자동단계, 자동단계말, 갈래 as 행갈래,
 } from "./client-core.mjs";
 import { classifyTarget, 호스트갈래, builderOf } from "./platform-hosts.mjs";
-import { 업종표, 업종말, 낱말업종, 낱말들, 업종낱말들, 시도표, 모든시군구, 지역짧게, 이름흔함 } from "./auto-setup-words.mjs";
+import { 업종표, 업종말, 낱말업종, 낱말들, 업종낱말들, 시도표, 모든시군구, 지역짧게, 이름흔함, 동의어, 지역동, 학원업종, 의도표 } from "./auto-setup-words.mjs";
 
 export { 자동단계, 자동단계말, 지역짧게, 업종표 };
 export const 임대초 = 90;
@@ -227,6 +227,28 @@ export function 씨앗(업종, 지역) {
   return [...new Set([`${짧} ${업종}`, `${지역} ${업종}`, `${짧} ${업종} 추천`])];
 }
 
+/** 넓힌 씨앗(D246) — 동의어 「<지역짧게> <동의어>」 · 서울 동 「<동> <업종>」. 고정 표에서만 */
+export const 넓힌씨앗 = (업종, 지역) => [...동의어(업종).map((s) => `${지역짧게(지역)} ${s}`), ...지역동(지역).map((d) => `${d} ${업종}`)];
+
+/**
+ * 틀 검색어(D246) — 자동완성이 모자랄 때 채우는 검색어형 질문. 지어낸 사실이 아니라 손님이 치는 꼴(지역 × 업종·동의어 × 의도).
+ * 순서: 짧은 지역 × 업종 × 의도 → 서울 동 × 업종(·추천) → 짧은 지역 × 동의어(·추천) → 전체 지역 × 업종 × 의도 → 맨 꼴
+ */
+export function 틀검색어(업종, 지역) {
+  const 짧 = 지역짧게(지역);
+  const 의도 = [...의도표.공통, ...(학원업종(업종) ? 의도표.학원 : 의도표.그밖)];
+  const 꼴 = (곳, 무엇, [말, 자리]) => (자리 === "앞" ? `${곳} ${말} ${무엇}` : `${곳} ${무엇} ${말}`);
+  return [...new Set([
+    ...의도.map((x) => 꼴(짧, 업종, x)),
+    ...지역동(지역).flatMap((d) => [`${d} ${업종}`, `${d} ${업종} 추천`]),
+    ...동의어(업종).flatMap((s) => [`${짧} ${s}`, `${짧} ${s} 추천`]),
+    ...의도.map((x) => 꼴(지역, 업종, x)),
+    `${짧} ${업종}`, `${지역} ${업종}`,
+    // 지역이 한 꼴뿐이면(중구 등) 위 두 줄이 겹친다 — 고정 의도 말을 더하고, 그래도 모자랄 몫은 동의어 × 의도(D247)
+    ...(짧 === 지역 ? [...의도표.더.map((x) => 꼴(지역, 업종, x)), ...동의어(업종).flatMap((s) => 의도.map((x) => 꼴(지역, s, x)))] : []),
+  ])];
+}
+
 /** 자동완성 응답 JSON → 말 목록(원응답 순서) */
 export function 응답말(json) {
   const items = Array.isArray(json?.items) ? json.items : [];
@@ -237,11 +259,11 @@ export function 응답말(json) {
 const 쉼 = (ms) => new Promise((r) => setTimeout(r, ms));
 
 /**
- * 네이버 자동완성. 주소는 호스트 고정(사용자 입력은 q 값에만) · 정직한 UA · 요청당 3초 · 전체 25초 · 요청 사이 200ms · 최대 16번.
+ * 네이버 자동완성. 주소는 호스트 고정(사용자 입력은 q 값에만) · 정직한 UA · 요청당 3초 · 전체 25초 · 요청 사이 200ms · 최대 40번(D246).
  * 403·429 를 받으면 그 뒤 씨앗도 두드리지 않는다(막힌 곳을 다시 두드리지 않는다). 5xx·못 읽음은 그 씨앗만 실패로 적는다.
  * 다음씨앗(1차 결과) 이 있으면 1차 뒤에 2차를 같은 한도 안에서. → { fetched_at, 씨앗: [{ q, 차, status, items, 오류? }] }
  */
-export async function 자동완성(씨앗들, { fetch = globalThis.fetch, 다음씨앗 = null, 한도 = 3000, 전체 = 25000, 간격 = 200, 최대 = 16, now = () => new Date() } = {}) {
+export async function 자동완성(씨앗들, { fetch = globalThis.fetch, 다음씨앗 = null, 한도 = 3000, 전체 = 25000, 간격 = 200, 최대 = 40, now = () => new Date() } = {}) {
   const 시작 = Date.now();
   const 결과 = { fetched_at: now().toISOString(), 씨앗: [] };
   let 막힘 = null;
@@ -283,8 +305,8 @@ const 붙임 = (s) => String(s ?? "").replace(/\s+/g, "").toLowerCase();
  * 손님이 칠 말만 — 업종 말(띄어쓰기 무시)이 든 것 · 고객 이름·판별 말 든 것 뺌 · 뜻·영어로·채용·구인·알바·면접·연봉·월급 뺌 ·
  * 띄어쓰기 무시 중복 제거 · 원응답 순서. items 는 글자 또는 { text, … }
  */
-export function 거르기(items, { 판별말: 판별 = [], 업종, 이름 = "" } = {}) {
-  const 업 = 업종말(업종).map(붙임);
+export function 거르기(items, { 판별말: 판별 = [], 업종, 이름 = "", 더말 = [] } = {}) {
+  const 업 = [...업종말(업종), ...더말].map(붙임);
   const 이름들 = [이름, ...판별].map(붙임).filter((x) => x.length >= 2);
   const 본 = new Set();
   const out = [];
@@ -295,7 +317,8 @@ export function 거르기(items, { 판별말: 판별 = [], 업종, 이름 = "" }
     if (!k || 본.has(k)) continue;
     if (!업.some((w) => k.includes(w))) continue;
     if (이름들.some((w) => k.includes(w))) continue;
-    if (빼는말.some((w) => k.includes(w))) continue;
+    // 띄어쓰기 낱말마다 본다 — 붙인 글자로 보면 「중구 인테리어」가 「구인」에 걸린다(D247)
+    if (String(text).toLowerCase().split(/\s+/).some((t) => 빼는말.some((w) => t.includes(w)))) continue;
     본.add(k);
     out.push(x);
   }
@@ -304,12 +327,13 @@ export function 거르기(items, { 판별말: 판별 = [], 업종, 이름 = "" }
 
 // ─────────────────────────────────────────── 패널만들기
 /**
- * keyword 17(자동완성 원문) + brand 3 → [[stage, text, 출처]] 20. seed-panel 패널점검 을 통과하는 모양.
+ * keyword 17(자동완성 원문 먼저, 모자라면 틀 — 출처 칸이 「틀」/「자동완성」을 가른다) + brand 3 → [[stage, text, 출처]] 20. seed-panel 패널점검 을 통과하는 모양.
  * brand = 「<이름> 어떤 곳이야?」 · 「<도메인> 뭐 하는 곳이야?」(없으면 「<이름> 어디에 있어?」) · 「<이름>」 — 기존 패널과 같은 꼴(D171)
  */
 export function 패널만들기(keyword17, name, domain) {
   const kw = keyword17.slice(0, 17).map((x) => (typeof x === "string"
     ? ["keyword", x, "네이버 자동완성"]
+    : x.출처 === "틀" ? ["keyword", x.text, "틀 · 검색어형(지역 × 업종 × 의도)"]
     : ["keyword", x.text, `네이버 자동완성 · 씨앗 ${x.씨앗} · ${x.순위}위`]));
   return [
     ...kw,
@@ -377,6 +401,12 @@ export function 다음단계(auto, now = new Date(), { 실패도 = true } = {}) 
     if (s.상태 === "도는중" && 지남(s.at, now) && (s.시도 ?? 0) < 최대시도) return k;
   }
   return null;
+}
+
+/** 세 번 다 시간 안에 못 끝낸 단계(도는중 · 시도 3 · 임대 지남) — 원장으로 넘길 단계 이름. 없으면 null(순수) */
+export function 멈춘단계(auto, now = new Date()) {
+  if (!auto?.단계) return null;
+  return 자동단계.find((k) => auto.단계[k]?.상태 === "도는중" && (auto.단계[k].시도 ?? 0) >= 최대시도 && 지남(auto.단계[k].at, now)) ?? null;
 }
 
 /** 다섯 단계 중 됨 수 · 끝났나 · 원장 단계 */
@@ -511,34 +541,37 @@ const 단계실행 = {
     const 업종 = a.사실?.업종?.값, 지역 = a.사실?.지역?.값;
     if (!업종 || !지역) return { 상태: "원장", 말: 사람말.모름("업종·지역") };
     const 원장경쟁 = 원장출처(a.출처?.경쟁) ? (c.queries?.compete ?? []) : [];
-    const 일차 = [...new Set([...씨앗(업종, 지역), ...원장경쟁])].slice(0, 8);
+    // 씨앗을 넓힌다(D246) — 기본 3 · 원장 경쟁 · 동의어 · 서울 동. 1차 24 · 2차 16 · 합 40번 안
+    const 일차 = [...new Set([...씨앗(업종, 지역), ...원장경쟁, ...넓힌씨앗(업종, 지역)])].slice(0, 24);
     const 판별 = Array.isArray(c.answerTerms) ? c.answerTerms : [];
-    const 거름옵션 = { 판별말: 판별, 업종, 이름: row.name };
+    const 거름옵션 = { 판별말: 판별, 업종, 이름: row.name, 더말: 동의어(업종) };
     const 원 = await 자동완성(일차, {
       ...(deps.fetch ? { fetch: deps.fetch } : {}), ...(deps.자동완성옵션 ?? {}),
-      다음씨앗: (결과1) => 거르기(출처붙임(결과1), 거름옵션).slice(0, 8).map((x) => x.text),
+      다음씨앗: (결과1) => 거르기(출처붙임(결과1), 거름옵션).slice(0, 16).map((x) => x.text),
     });
     const 받음 = 원.씨앗.filter((s) => s.status === 200);
-    const 쓰기 = [[["auto", "자동완성"], 원]];
-    if (!받음.length) {
-      await 칸쓰기(q, row.id, 쓰기);
-      const 상태들 = [...new Set(원.씨앗.map((s) => s.status ?? s.오류))].join(", ");
-      return { 상태: "실패", 말: `자동완성이 막혔습니다(상태 ${상태들})`, 오류: JSON.stringify(원.씨앗.map((s) => [s.q, s.status, s.오류 ?? ""])) };
-    }
-    const 후보 = 거르기(출처붙임(원.씨앗), 거름옵션);
-    const 경쟁 = 거르기(출처붙임(원.씨앗.filter((s) => s.차 === 1)), 거름옵션).slice(0, 8).map((x) => x.text);
-    쓰기.push([["auto", "후보"], 후보]);
-    await 칸쓰기(q, row.id, 쓰기);
+    // 자동완성 원문 먼저, 모자라면 틀(D246). 막혀도(403·429·못 엶) 틀로 채운다 — 원장에게 넘기지 않는다
+    const 자동 = 거르기(출처붙임(원.씨앗), 거름옵션);
+    const 후보 = 자동.length >= 17 ? 자동 : 거르기([...자동, ...틀검색어(업종, 지역).map((text) => ({ text, 출처: "틀" }))], 거름옵션);
+    const 쓴자동 = Math.min(자동.length, 17), 쓴틀 = Math.min(후보.length, 17) - 쓴자동;
+    const 자동경쟁 = 거르기(출처붙임(원.씨앗.filter((s) => s.차 === 1)), 거름옵션).slice(0, 8).map((x) => x.text);
+    const 짧 = 지역짧게(지역);
+    const 경쟁 = 자동경쟁.length >= 3 ? 자동경쟁
+      : 거르기([...자동경쟁, `${짧} ${업종}`, `${짧} ${업종} 추천`, `${지역} ${업종}`, `${지역} ${업종} 추천`], 거름옵션).slice(0, 8);
+    await 칸쓰기(q, row.id, [[["auto", "자동완성"], 원], [["auto", "후보"], 후보]]);
     if (경쟁.length >= 3) {
       // 원장이 「자세히」에서 넣은 경쟁 검색어는 덮지 않는다(D229) — 같은 문장 안에서 다시 본다
+      const 출처 = 자동경쟁.length >= 3 ? `자동: 네이버 자동완성 1차 씨앗 ${일차.length}개(${일차.join(" · ")})`
+        : `자동: 네이버 자동완성 ${자동경쟁.length}개 · 틀 ${경쟁.length - 자동경쟁.length}개`;
       await q(`update geo.clients set config = jsonb_set(jsonb_set(config, '{queries,compete}', $2::jsonb), '{auto,출처,경쟁}', $3::jsonb)
           where id = $1 and coalesce(config #>> '{auto,출처,경쟁}', '') not like '원장%'`,
-        [row.id, JSON.stringify(경쟁), JSON.stringify(`자동: 네이버 자동완성 1차 씨앗 ${일차.length}개(${일차.join(" · ")})`)]);
+        [row.id, JSON.stringify(경쟁), JSON.stringify(출처)]);
     }
+    const 막힘 = 받음.length ? "" : ` · 자동완성 못 받음(상태 ${[...new Set(원.씨앗.map((s) => s.status ?? s.오류))].join(", ")})`;
     if (후보.length < 17) {
-      return { 상태: "원장", 말: `${사람말.후보적음(후보.length)} — 씨앗 ${원.씨앗.map((s) => `「${s.q}」 ${s.status ?? s.오류}·${s.items.length}개`).join(" · ")}` };
+      return { 상태: "원장", 말: `${사람말.후보적음(후보.length)} — 자동완성 ${쓴자동} · 틀 ${쓴틀}${막힘}` };
     }
-    return { 상태: "됨", 말: `질문 후보 ${후보.length}개 · 경쟁 검색어 ${경쟁.length >= 3 ? `${경쟁.length}개` : "3개가 안 돼 비움"} (씨앗 ${원.씨앗.length}개)` };
+    return { 상태: "됨", 말: `자동완성 ${쓴자동} · 틀 ${쓴틀} · 경쟁 검색어 ${경쟁.length >= 3 ? `${경쟁.length}개` : "3개가 안 돼 비움"} (씨앗 ${원.씨앗.length}개)${막힘}` };
   },
 
   async 파일럿(q, row) {
@@ -559,14 +592,22 @@ const 단계실행 = {
     const 후보 = Array.isArray(a.후보) ? a.후보 : [];
     if (후보.length < 17) return { 상태: "원장", 말: 사람말.후보적음(후보.length) };
     if (!String(row.answer_pattern ?? "").trim()) return { 상태: "원장", 말: "이름 판별 말이 없어 질문을 넣지 않았습니다. 「자세히」에서 고객만의 이름·도메인을 넣으면 이어서 합니다" };
+    // 이미 질문이 있으면(원장이 넣었거나 앞 시도가 넣음) 덮지 않는다 — 측정 켜기도 안 건드린다(Step 56 D243)
+    const [있음] = await q(`select count(*)::int n from geo.pilot_questions where pilot_id = $1`, [p.id]);
+    if (Number(있음?.n) > 0) return { 상태: "됨", 말: `질문이 이미 ${있음.n}개 있습니다 — 넣지 않았습니다` };
     const 패널 = 패널만들기(후보, row.name, 도메인정리(row.domain) || null);
     if (패널.length !== 20 || new Set(패널.map(([, t]) => t)).size !== 20) return { 상태: "원장", 말: "질문 20개가 서로 다르지 않습니다 — 원장님이 질문을 고릅니다" };
+    let 넣음 = 0;
     for (const [i, [stage, text]] of 패널.entries()) {
-      await q(`insert into geo.pilot_questions (pilot_id, position, stage, text, approved) values ($1, $2, $3, $4, false) on conflict (pilot_id, position) do nothing`,
+      const 줄 = await q(`insert into geo.pilot_questions (pilot_id, position, stage, text, approved) values ($1, $2, $3, $4, false) on conflict (pilot_id, position) do nothing returning id`,
         [p.id, i + 1, stage, text]);
+      넣음 += 줄.length;
     }
+    // 들어간 줄만 센다 — 경합으로 0줄이면 「20개 넣음」이라 하지 않는다
+    if (넣음 === 0) return { 상태: "원장", 말: "질문을 넣지 못했습니다. 원장님이 /admin/pilots 에서 확인합니다" };
+    if (넣음 < 20) return { 상태: "원장", 말: `질문이 ${넣음}개만 들어갔습니다(20개 중). 원장님이 /admin/pilots 에서 채웁니다` };
     await q(`update geo.clients set measure_active = true where id = $1`, [row.id]);
-    return { 상태: "됨", 말: `질문 20개(검색어 17 · 이름 3)를 넣었습니다 — 승인은 원장님이 /admin/pilots 에서` };
+    return { 상태: "됨", 말: `질문 ${넣음}개(검색어 17 · 이름 3)를 넣었습니다 — 승인은 원장님이 /admin/pilots 에서` };
   },
 };
 
@@ -584,7 +625,7 @@ export async function 자동한걸음(q, slug, deps = {}) {
   const k = 다음단계(auto, now, { 실패도: deps.실패도 !== false });
   if (!k) {
     // 세 번 다 시간 안에 못 끝낸 단계(도는중·시도 3) — 원장으로
-    const 멈춤 = 자동단계.find((x) => auto.단계[x]?.상태 === "도는중" && (auto.단계[x].시도 ?? 0) >= 최대시도 && 지남(auto.단계[x].at, now));
+    const 멈춤 = 멈춘단계(auto, now);
     if (멈춤) {
       await 칸쓰기(q, row.id, [[["auto", "단계", 멈춤], { ...auto.단계[멈춤], 상태: "원장", at: now.toISOString(), 말: `${자동단계말[멈춤]} 단계가 ${최대시도}번 다 시간 안에 안 끝났습니다. 「다시 시도」를 누릅니다` }]]);
       await 맞추기(q, slug, deps);
@@ -651,8 +692,9 @@ export async function 사실저장(q, slug, { 업종, 지역 }, now = new Date()
 export async function 자동이어하기(q, { max = 3, admin, deps = {}, log = console.log, now = () => new Date() } = {}) {
   const rows = (await q(`select to_jsonb(c) as r from geo.clients c where c.status = 'active' and c.config ? 'auto' order by c.id`)).map((x) => x.r);
   const 지금 = now();
-  const 멈춘 = (a) => 자동단계.some((k) => a?.단계?.[k]?.상태 === "도는중" && (a.단계[k].시도 ?? 0) >= 최대시도 && 지남(a.단계[k].at, 지금));
-  const 고른 = rows.filter((r) => !CODE_SLUGS.includes(r.slug) && (다음단계(r.config.auto, 지금) || 멈춘(r.config.auto)))
+  // 플랫폼 확인기가 없는 고리(company.mjs)에서 플랫폼 고객의 사이트 단계는 「건너뜀」뿐이다 — 자리 3개를 먹지 않게 뺀다(Step 56 D244)
+  const 건너뛸 = (r) => !deps.checkPlatform && !멈춘단계(r.config.auto, 지금) && 다음단계(r.config.auto, 지금) === "사이트" && 단계갈래(r) === "플랫폼";
+  const 고른 = rows.filter((r) => !CODE_SLUGS.includes(r.slug) && (다음단계(r.config.auto, 지금) || 멈춘단계(r.config.auto, 지금)) && !건너뛸(r))
     .sort((a, b) => String(a.config.auto.at ?? "").localeCompare(String(b.config.auto.at ?? "")) || a.id - b.id)
     .slice(0, max);
   for (const r of 고른) {

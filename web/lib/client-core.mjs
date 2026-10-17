@@ -810,7 +810,13 @@ export function 체크리스트(row, derived, { pilot = null } = {}) {
     const 빠진칸 = 사이트칸.filter((x) => x.상태 === 기다림 && x.사람말.endsWith("「고칠 것」에 넣었습니다")).map((x) => x.칸);
     if (고칠것.length) {
       const 글 = [`${row.name} 사이트(${base})에서 고칠 것 ${고칠것.length}가지`, ...고칠것.map((x, i) => `${i + 1}. ${x}`)].join("\n");
-      if (c.onboard?.dns === "우리") {
+      if (빠진칸.length === 1 && 빠진칸[0] === "IndexNow 키 파일") {
+        // 키 파일 하나는 고객에게 물을 일이 아니다(Step 56 D245) — 보낼글 없음. 우리가 고치는 send 라 setup-send 일감은 닫힌다
+        줄.push({ id: "send", 칸: "고객 담당에게 보낼 것", 상태: 기다림, 사람말: "키 파일만 빠졌습니다 — 고객에게 묻지 않습니다. 접근 권한이 있으면 우리가 올리고, 없으면 원장·Claude 세션 몫(고칠 것)", 고칠것: 글 });
+        // 잊히지 않게 내부 일감 하나(D250) — 키 파일 줄을 사람으로 돌려 setup-keyfile 을 연다. 고객에게 가는 글 아님
+        const 키줄 = 줄.find((x) => x.id === "keyfile");
+        Object.assign(키줄, { 상태: 사람, 할일: `원장·Claude 세션 몫(고객에게 묻지 않음): ${base}/${k.key}.txt 에 한 줄 「${k.key}」 을 올립니다. 접근 권한이 있으면 우리가 올리고, 없으면 관리자 아이디를 받을 때 같이 합니다` });
+      } else if (c.onboard?.dns === "우리") {
         줄.push({ id: "send", 칸: "고객 담당에게 보낼 것", 상태: 기다림, 사람말: `우리가 고칩니다: ${빠진칸.join(" · ")}`, 고칠것: 글 });
       } else {
         const 빌더 = 빌더이름(domain, c);
@@ -896,6 +902,7 @@ const 일감제목 = {
   measure: (n) => `${n}: 파일럿을 시작해 주세요`,
   auto: (n) => `${n}: 자동 세팅이 멈췄습니다`,
   name: (n) => `${n}: 이름 판별 말을 바꿔 주세요`,
+  keyfile: (n) => `${n}: IndexNow 키 파일을 올려 주세요(내부 — 고객에게 안 물음)`,
 };
 
 /**

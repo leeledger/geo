@@ -12,12 +12,12 @@ import SubmitButton from "../../SubmitButton";
  * 단계 줄·다음 단계는 서버가 정해 넘긴다 — 여기서는 부르고 그리기만.
  */
 export type 판줄 = { k: string; 이름: string; 상태: string; 말: string; 시각: string; 시도: number; 오류?: string; 몇분전?: number | null };
-type Props = { slug: string; 줄: 판줄[]; 다음: string | null; 끝: boolean; 된: number; 사실: { 업종: string; 지역: string }; 출처: { 업종: string; 지역: string } };
+type Props = { slug: string; 줄: 판줄[]; 다음: string | null; 끝: boolean; 된: number; 살아있음: boolean; 사실: { 업종: string; 지역: string }; 출처: { 업종: string; 지역: string } };
 
 const 상태반: Record<string, string> = { 됨: "done", 대기: "wait", 도는중: "run", 실패: "bad", 원장: "human" };
 const 상태말: Record<string, string> = { 됨: "됨", 대기: "대기", 도는중: "도는 중", 실패: "실패", 원장: "원장님 몫" };
 
-export default function AutoSetupPanel({ slug, 줄, 다음, 끝, 된, 사실, 출처 }: Props) {
+export default function AutoSetupPanel({ slug, 줄, 다음, 끝, 된, 살아있음, 사실, 출처 }: Props) {
   const router = useRouter();
   const 부름 = useRef(false);
   const [도는, set도는] = useState(false);
@@ -35,8 +35,8 @@ export default function AutoSetupPanel({ slug, 줄, 다음, 끝, 된, 사실, �
       .finally(() => { 부름.current = false; set도는(false); router.refresh(); });
   }, [다음, 표, 멈춤, slug, router]);
 
-  // 다른 곳(매시 고리)이 돌리는 중이면 5초마다 다시 본다
-  const 남이도는 = !도는 && 줄.some((x) => x.상태 === "도는중");
+  // 다른 곳(매시 고리)이 돌리는 중이면 5초마다 다시 본다 — 임대 90초 안일 때만(서버가 살아있음으로 넘긴다). 멈춘 판은 다시 보지 않는다
+  const 남이도는 = !도는 && 살아있음;
   useEffect(() => {
     if (!남이도는) return;
     const t = setTimeout(() => router.refresh(), 5000);

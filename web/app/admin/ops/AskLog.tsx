@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import type { Client } from "@/lib/ops";
-import { readAskDays, readAsks, mainMethod, RESULT_TEXT } from "@/lib/asks";
+import { readAskDays, readAsks, mainMethod, RESULT_TEXT, 링크없음, 링크해당없음 } from "@/lib/asks";
 
 /**
  * AI 에게 물어본 질문 — 가장 최근 측정한 날, 매일 자동으로 묻는 곳 하나의 질문 전부.
@@ -45,7 +45,7 @@ export default async function AskLog({ client }: { client: Client | null }) {
           {d.places.map((p) => (
             <p className="al-sum" key={p.method}>
               {md(d.day)} {span(p.first, p.last)} · <b>{p.where}</b>에 질문 {p.n}개(이름 질문 빼고) —
-              {client.name} 이름 <b>{p.named}개</b>, 우리 사이트 링크 <b>{p.cited}개</b>
+              {client.name} 이름 <b>{p.named}개</b>, 우리 사이트 링크 {링크없음(client.domain) ? 링크해당없음 : <b>{p.cited}개</b>}
               {p.brand.n > 0 && <> · 이름 질문 {p.brand.n}개 중 {p.brand.named}개는 확인용(노출 성과 아님)</>}
             </p>
           ))}

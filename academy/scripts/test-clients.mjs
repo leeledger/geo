@@ -5,7 +5,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { CLIENTS, lit, 고객설정, loadClients, 고객고르기, bySlug, indexClients } from "../clients.mjs";
 import { 고객사말, DB고객말 } from "../masks.mjs";
-import { 측정설정, 측정대상, 고객측정일 } from "../measure-targets.mjs";
+import { 측정설정, 측정대상, 고객측정일, 인용판정, 대상고르기 } from "../measure-targets.mjs";
 
 let 통과 = 0, 실패 = 0;
 const 봄 = (이름, 참) => { if (참) 통과++; else { 실패++; console.log(`✗ ${이름}`); } };
@@ -167,6 +167,27 @@ const 가짜q = (행들) => async (sql, p) => 행들.filter((r) => p[0].includes
   && 측정설정({ id: 1, slug: "robotncoding", domain: "x" }).domain === "robotncoding.com");
 봄("측정설정 DB 고객", 측정설정({ id: 9, slug: "zeta", name: "제타", domain: "https://Zeta.kr/", answer_pattern: "제타" }).domain === "zeta.kr");
 봄("측정설정 이름 말 없음 → null", 측정설정({ id: 9, slug: "zeta", domain: "zeta.kr", answer_pattern: "" }) === null);
+// Step 56 — 사이트 없는 고객도 이름은 잰다. domain 은 null(빈 글자 아님)
+{
+  const 블 = 측정설정({ id: 18, slug: "blog-only", name: "블로그만", domain: null, answer_pattern: "블로그만" });
+  봄("측정설정 domain null + 판별 말 → conf · domain null", 블 !== null && 블.domain === null && 블.answerRe.test("블로그만 학원"));
+  봄("측정설정 domain 빈 글자 → domain null", 측정설정({ id: 18, slug: "blog-only", domain: "", answer_pattern: "블로그만" })?.domain === null);
+  봄("측정설정 domain null + 판별 말 없음 → null", 측정설정({ id: 18, slug: "blog-only", domain: null, answer_pattern: "" }) === null);
+  // 회귀 — 코드 3곳 domain 은 DB 값과 상관없이 그대로
+  봄("측정설정 코드 3곳 domain 그대로", [["robotncoding", "robotncoding.com"], ["ilog", "ilog.ai.kr"], ["docttak", "docttak.com"]]
+    .every(([slug, d]) => 측정설정({ id: 1, slug, domain: null, answer_pattern: "" })?.domain === d && 측정설정({ id: 1, slug, domain: "x.kr", answer_pattern: "" })?.domain === d));
+  // 인용판정 — domain 없으면 null(해당없음), 거짓 아님
+  const 링크 = [{ domain: "blog.naver.com" }, { domain: "m.zeta.kr" }];
+  봄("인용판정 domain null → null", 인용판정(링크, null) === null);
+  봄("인용판정 domain 빈 글자 → null", 인용판정(링크, "") === null);
+  봄("인용판정 일치", 인용판정([{ domain: "zeta.kr" }], "zeta.kr") === true);
+  봄("인용판정 하위도메인", 인용판정(링크, "zeta.kr") === true);
+  봄("인용판정 불일치 · 뒤만 같은 남의 도메인", 인용판정(링크, "eta.kr") === false && 인용판정([{ domain: "notzeta.kr" }], "zeta.kr") === false);
+  봄("인용판정 글자 목록·빈 목록", 인용판정(["zeta.kr"], "zeta.kr") === true && 인용판정(undefined, "zeta.kr") === false);
+  // 대상고르기 — domain null 고객이 측정 묶음에 conf 를 갖고 들어간다
+  const 대상 = 대상고르기([{ id: 18, slug: "blog-only", name: "블로그만", domain: null, answer_pattern: "블로그만", measure_active: true, relation: "외부" }], "2026-10-17");
+  봄("대상고르기 domain null 고객 → 측정 묶음 · conf 있음", 대상.length === 1 && 대상[0].묶음 === "측정" && 대상[0].conf?.domain === null && 대상[0].conf.id === 18);
+}
 
 // ─────────────────────────────────────────── 가림 — DB 고객 이름·도메인이 고객사말에
 {

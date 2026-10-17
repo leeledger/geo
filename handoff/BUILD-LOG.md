@@ -2234,3 +2234,59 @@ Should Fix:
 - KG-55-13 ai-measure cited 판정 `c.domain.endsWith("." + domain)` 은 domain 빈 글자면 「.」로 끝나는 출처에 맞는다 — domain null 고객은 측정 대상이 아니라 지금은 안 탄다(KG-55-10 을 풀 때 같이)
 - **D237 (Arch, 10-17)** 네이버 modoo! 는 2025-06-26 종료 — *.modoo.at 은 빌더가 아니라 「홈페이지 없음」과 같다(needs_build build · 사이트 줄 해당없음). KG-55-9 닫음. 반영(Bob): platform-hosts BUILDER_HOSTS 에서 modoo 뺌 · ENDED_HOSTS·endedOf · 호스트갈래 → 「없음」 · 입력나누기 domain null(원문은 auto.입력) · 입력검사(자세히) modoo 거부 · 체크리스트·재점검고르기는 갈래로 따라옴. 시험 +6(test-auto-setup-core 128 · test-client-core 229) · test-client-copy 11 · tsc 0
 - Arch 결정(10-17): KG-55-10 은 Known Gap 으로 두고 Step 56 에서 · KG-55-11 그대로(원장 줄이 열린다) · Bob 결정 ①~⑤ 받아들임
+
+## Step 56 브리프 — 사이트 없는 고객도 잰다 · Step 55 Should Fix 3 · 키 파일만이면 안 묻는다 (2026-10-17, Arch)
+Step 55 배포 fa21483. 브리프 handoff/ARCHITECT-BRIEF.md, Step 55 브리프는 handoff/research/ARCHITECT-BRIEF-step55.md. 원장 「왜이리 오래걸려」 — 가장 작은 변경
+- 실측(읽기만, 10-17): 측정설정은 answerRe·domain 둘 다 없으면 null(measure-targets 54). cited 를 정하는 곳 셋: ai-measure 260 · ai-web-measure 305 · import-ai-measurements 51·69(`endsWith(client.domain)` — 빈 글자면 전부 참). ai_measurements.cited 는 not null default false. 고객별로 링크 수를 보여 주는 화면: asks 90·201 · AskLog 48 · PmReport 70 · pilots/[id] 93·215 · pilot-report 111. case-report·pm-report 는 client_id = 1 고정. daily-agent 는 승인 질문 있는 고객 모두 홈 fetch(114). ai-measure 에 dry 없음 → 실측 측정 안 함
+- **D238 (Arch)** 측정 대상은 이름 판별 말만 있으면 된다. domain 없는 고객은 conf.domain null 로 잰다. KG-55-10 닫음
+- **D239 (Arch)** domain 없는 고객의 cited 는 null 로 적는다(false 아님 — 재지 않은 것을 「안 됨」으로 적지 않는다). 판정은 measure-targets 인용판정 하나. ai_measurements·ai_probe_measurements cited not null 을 푼다(메타데이터만). 빈 글자 domain 도 null — KG-55-13 닫음
+- **D240 (Arch)** 화면·리포트는 고객 domain 이 없으면 링크·인용 칸을 「해당없음(사이트 없음)」으로. 숫자 0 을 쓰지 않는다. SQL 셈은 안 고친다(null = 거짓이라 이름 숫자는 맞다). 학원 고정 리포트는 안 고친다
+- **D241 (Arch)** domain 없는 고객은 daily-agent 의 홈·JSON-LD·색인알림과 company site-check 를 건너뛰고 일감을 만들지 않는다
+- **D242 (Arch)** 질문 단계는 기존 질문 수를 먼저 센다. 있으면 됨「이미 n개 — 넣지 않음」, measure_active 안 건드림. 없으면 returning 으로 실제 넣은 수를 세고 20 일 때만 measure_active. 20 미만은 원장(Richard 55 Should Fix a)
+- **D243 (Arch)** 자동이어하기는 checkPlatform 이 없으면 「다음 = 사이트 · 갈래 = 플랫폼 · 안 멈춤」 행을 slice 전에 뺀다(Should Fix b)
+- **D244 (Arch)** 멈춘 단계 판정은 auto-setup-core 멈춘단계() 하나 — 고리와 고객 화면이 같이 쓴다. 화면은 멈춘 단계를 다음으로 넘겨 autoStep 한 번 → 원장. 5초 다시 보기는 임대 90초 안일 때만(Should Fix c)
+- **D245 (Arch, 제품 판단)** 고칠 것이 IndexNow 키 파일 하나뿐이면 고객에게 아무것도 묻지 않는다. send 줄 = 기다림 + 고칠것(보낼글 없음). 접근 권한이 있으면 우리가 올리고, 없으면 원장·Claude 세션 몫. 열린 setup-send 는 기존 규칙으로 닫힌다. Richard 55 Escalate(고객 A 화면) 답
+
+### Known Gaps (Step 56)
+- KG-56-1 domain 없는 고객의 인용을 블로그·플레이스 주소 경로로 세기(blog.naver.com/<id> 일치) — 지금은 해당없음. id 18 블로그 주소를 다시 받은 뒤
+- KG-55-10 · KG-55-13 닫음(D238·D239)
+
+### Step 56 빌드 (2026-10-17, Bob) — DONE_WITH_CONCERNS · Richard 검토 대기 · 커밋·배포 안 함
+- 56a measure-targets: 측정설정은 answerRe 만 있으면 conf(domain 없으면 null) · 새 export 인용판정(citations, domain) — !domain → null · 코드 3곳 domain 회귀 단언
+- 56b cited 적는 곳 셋 → 인용판정. ai-measure·import-ai-measurements 의 create 뒤에 `alter ... cited drop not null` 두 줄. import 의 수동 cited_us 는 사이트 있을 때만 믿는다(사이트 없으면 null)
+- **DB 실행(Bob, 2026-10-17 16:48 KST, 운영 DB)**: `alter table academy.ai_measurements alter column cited drop not null` · `alter table if exists academy.ai_probe_measurements alter column cited drop not null` 한 번. information_schema 확인 — 전 is_nullable NO/NO → 뒤 YES/YES, default false 그대로. 기존 행 안 바뀜
+- 56c 링크없음·링크해당없음(web/lib/asks.ts) → asks 칩·요약 · AskLog · PmReport · Growth(고른 고객 — noLink prop) · pilots/[id] 「사이트 없음」·「인용 해당없음」 · pilot-report 문장·칸·합계(비율글 두 번째 인자)
+- 56c 편차(Bob): 브리프는 「ops.ts 310 학원 고정, 안 고침」이었지만 ops.ts 는 `client_id = ${c.id}` 고른 고객이다. verdict.mjs 31 도 고른 고객. 둘 다 `mentioned and not cited` 라 cited null 이면 이름 숫자가 0 이 된다(null = 거짓이 아니라 not null = null). `not coalesce(cited, false)` 로 한 단어씩 고침. case-report 114 는 CLIENT_ID = 1 고정이라 그대로
+- 56d daily-agent: 색인알림·홈확인 가드 + 후퇴·entity·content 갈래가 domain 없으면 건너뜀(일감 없음) · 발행 확인 근거는 「해당없음(사이트 없음)」 · company site-check → 완료「사이트 없음 — 해당없음」
+- 56e 질문: count 먼저 → n>0 됨 · returning id 로 센 수 0 → 원장 · 1~19 → 원장(실제 수) · 20 → measure_active
+- 56f/g 멈춘단계(auto, now) export · 자동한걸음·자동이어하기가 같이 씀 · 고리는 checkPlatform 없으면 플랫폼 사이트 대기 행을 slice 전에 뺌 · 고객 화면 다음 = 다음단계 ?? 멈춘단계 · 판은 살아있음(도는중 · 임대 90초 안)일 때만 5초 다시 보기
+- 56h 빠진칸이 키 파일 하나뿐 → send 기다림 · 보낼글 없음 · 고칠것 유지(dns 무관) → 일감계획이 setup-send 닫음
+- **D246 (Arch addendum, 원장 직접 요청 「검색어 저 부분은 세팅을 알아서 하도록해」)** 검색어 단계가 자동완성이 모자라도 원장에게 넘기지 않는다. 반영(Bob):
+  - auto-setup-words: 동의어(업종)(학원은 교습소·공부방·교실·과외·초등·중등 + 과목더, 그 밖은 업종더 표) · 지역동(서울 23구, 중구·강서구는 다른 시도와 이름이 겹쳐 뺌) · 의도표(공통 6 · 학원 6 · 학원 아닌 곳 예약·야간·주말·가격 4)
+  - auto-setup-core: 넓힌씨앗 · 틀검색어(짧은 지역×업종×의도 → 동×업종 → 짧은 지역×동의어 → 전체 지역×업종×의도 → 맨 꼴) · 1차 씨앗 24 · 2차 16 · 자동완성 최대 16 → 40(403·429 멈춤·UA·200ms·전체 25초 그대로) · 거르기 더말(동의어도 업종 말로 친다)
+  - 후보 = 자동완성 원문 먼저, 17 미만이면 틀({ text, 출처: "틀" })로 채움, 거르기로 띄어쓰기 무시 중복 제거. 자동완성을 하나도 못 받아도(403 등) 틀로 채워 됨. 말 「자동완성 n · 틀 m · 경쟁 검색어 k개」(못 받았으면 상태 붙임)
+  - 경쟁 검색어: 자동완성 1차가 3 미만이면 「짧은지역 업종」「짧은지역 업종 추천」「지역 업종」「지역 업종 추천」으로 채움 · 출처 「자동: 네이버 자동완성 n개 · 틀 m개」 · 원장 출처는 안 덮음(D229 그대로)
+  - 패널만들기 출처 칸: 틀 → 「틀 · 검색어형(지역 × 업종 × 의도)」, 자동완성 → 지금처럼 「네이버 자동완성 · 씨앗 … · n위」
+  - 원장 몫은 업종·지역이 모름일 때만(지금 길 그대로). 승인 규칙 그대로(approved false)
+  - 바뀐 옛 단언 3: 최대 16번 → 40번 · 후보 적음 → 원장 은 이제 됨(틀) · 403 → 실패 는 이제 됨(틀 17)
+- 시험: test-clients 110 · test-auto-setup-core 154 · test-client-core 236 · test-client-copy 11 · test-client-status 14 · test-onboard-core 18 · test-docttak 35 · test-ilog-loop 42 — 전부 0 실패. 새 단언은 고친 소스를 HEAD 로 되돌리면 실패함을 확인(client-core 5 실패 · 나머지 두 시험은 새 export 가 없어 멈춤). tsc 0 · next build 통과(D246 앞 · ops.ts 고친 뒤 tsc 0 다시)
+- test-new-client --live: 18 통과 · 2 실패 — 「검색어·페이지·근거」「Claude 안 부름」. marketing-draft 가 오늘(토) 채널이 비어(`채널  · --dry`) 아무것도 안 한다. marketing-draft 는 이번에 바꾼 파일을 하나도 import 하지 않는다 — 요일 탓, 이번 변경과 무관(KG-56-2). 시험 고객 행 남은 것 0
+- 실측 측정(ai-measure) 안 돌림. id 18 에 다시 시도 안 누름(Arch 몫)
+
+### Known Gaps (Step 56 빌드)
+- KG-56-2 test-new-client --live 의 marketing-draft 두 단언이 채널 없는 요일(토)에 실패한다 — 시험이 요일에 기대고 있다
+- KG-56-3 import-ai-measurements.mjs 는 rows 를 만드는 map 이 `client` 를 그 선언(DB 조회)보다 먼저 읽는다(TDZ) — 지금도 돌리면 ReferenceError 로 멈춘다. 이번엔 인용판정만 바꿨고 순서는 안 고쳤다
+- KG-56-4 인용 식 grep 에 남은 것: academy/scripts/loop-review.mjs 128(읽는 쪽, 부를 때 domain null 이면 false — 의존 없는 순수 모듈이라 measure-targets 를 안 끌어옴) · web/lib/asks.ts 160(`!!domain &&` 가드 있음, TS) · tools/ai-web-measure.mjs 125(제외 목록, 인용 아님) · tools/bing-serp.mjs 31(SERP, 인용 아님)
+- KG-56-5 틀/자동완성 출처는 config.auto.후보 와 패널 출처 칸에만 있다. geo.pilot_questions 에는 출처 칸이 없어 리포트가 가르려면 auto.후보 와 글자로 맞춰야 한다 — 칸을 더할지 Arch
+- KG-56-6 ops.ts 의 ai.cited 는 사이트 없는 고객이면 0 으로 셈된다 — 지금 그 값을 그리는 화면은 grep 으로 0곳. 나중에 쓰면 링크없음 처리가 필요
+
+### Step 56 리뷰 반영 (2026-10-17, Bob) — Richard FAIL(Must Fix 1) → Arch 결정 D247–D250
+- **D247 (Arch, Must Fix)** 틀이 업종표 × 모든시군구 전부에서 17 이상. 반영(Bob):
+  - 시도는 저장하지 않는다(auto.사실.지역 은 시군구 이름뿐). 그래서 지역이 한 꼴뿐이면(지역짧게(지역) === 지역 — 중구·서구·동구·남구·북구 등) 의도표.더(순위·평점·리뷰·위치·주차·전화번호·영업시간·잘하는곳 추천)와 동의어 × 의도를 더한다
+  - 거르기의 빼는말은 띄어쓰기 낱말마다 본다. 붙인 글자로 보면 「중구 인테리어」가 「구인」에 걸려, 진짜 자동완성 제안도 빠지고 있었다
+  - 시험: 11,948 조합 모자람 0(전에는 171) · 「중구 인테리어 추천」은 남고 「구인」 낱말은 빠짐
+- **D248 (Arch)** asks 칩: 사이트 없는 고객은 「이름 n / 전체 · 링크 해당없음(사이트 없음)」. 「해당없음 / 20」처럼 분수로 읽히지 않게 했다
+- **D249 (Arch)** company announce: domain 이 없으면 완료 「사이트 없음 — 색인 알림 해당없음」. https://null 로 시작하는 gsc-submit 일감을 막는다
+- REVIEW-REQUEST 의 daily-agent 설명을 고쳤다. 건너뛰는 것은 「다시 색인 알림」 갈래(494)뿐이고, 새 초안 쓰기(write-draft)는 사이트 없는 고객도 지금처럼 돈다(브리프 58줄대로)
+- **D250 (Arch, D245 보완)** 키 파일만 빠지면 키 파일 줄이 사람으로 바뀌고 내부 일감 setup-keyfile 이 열린다. 기존 setup-<칸> 길을 쓰고, 일감제목에 keyfile 을 더했다. 보내는 글이 아니라 원장·Claude 세션 몫이다. 키 파일이 열리면 완료로 닫히고, 다른 칸도 빠지면 열지 않는다(보낼글이 맡는다)
+- 시험: test-clients 110 · test-auto-setup-core 156 · test-client-core 241 · test-client-copy 11 · test-client-status 14 · test-onboard-core 18 · test-docttak 35 · test-ilog-loop 42 — 전부 0 실패 · tsc 0

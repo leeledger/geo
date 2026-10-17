@@ -28,7 +28,7 @@ if (!(await has("ai_measurements"))) {
   const rounds = await q(`
     select measured_on::text as measured_day, collection_method, engine,
            count(*)::int n, count(*) filter (where cited)::int cited,
-           count(*) filter (where mentioned and not cited)::int mentioned
+           count(*) filter (where mentioned and not coalesce(cited, false))::int mentioned
       from academy.ai_measurements where client_id = $1
      group by measured_on, collection_method, engine order by measured_on`, [CLIENT_ID]);
   if (!rounds.length) console.log("  측정 기록 없음");

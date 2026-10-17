@@ -9,7 +9,7 @@ import { readPmReport } from "@/lib/pm-report";
 import { readVisits, type Visits as VisitsData } from "@/lib/visits";
 import { readGrowthReports, type GrowthReports } from "@/lib/growth-reports";
 import { GROWTH_SLUGS } from "@/lib/growth-core.mjs";
-import { readAnswerTable, type AnswerTable } from "@/lib/asks";
+import { readAnswerTable, 링크없음, type AnswerTable } from "@/lib/asks";
 import { readMarketing, type Marketing as MarketingData } from "@/lib/marketing";
 import { readClientStatus, type ClientStatus as ClientStatusData } from "@/lib/client-status";
 import Todo from "./Todo";
@@ -213,7 +213,7 @@ export default async function OpsPage({
         {/* key — 탭을 바꾸면 새로 그린다. 안 그러면 전 탭의 줄을 state 로 들고 있다 */}
         {client && <Marketing m={mk} name={client.name} />}
         <AgentStrip key={client?.slug ?? "-"} initial={agents} slug={client?.slug} />
-        <Growth g={gr.g} err={gr.err} name={client?.name ?? null} />
+        <Growth g={gr.g} err={gr.err} name={client?.name ?? null} noLink={client ? 링크없음(client.domain) : false} />
         <Visits v={vis.v} err={vis.err} name={client?.name ?? "고객사 미선택"} slug={client?.slug} />
         {client && (GROWTH_SLUGS.includes(client.slug) || (gp.ok && gp.weeks.length > 0)) && <GrowthReport data={gp} name={client.name} />}
         <AskLog client={client} />
