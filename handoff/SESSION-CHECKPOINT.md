@@ -2,6 +2,14 @@
 *Read this before reading anything else. If it covers current state, skip BUILD-LOG.*
 
 
+## Where We Stopped (2026-10-17 오후) — Step 53 브리프(모든 네이버 계정 자동 재로그인)
+
+- handoff/ARCHITECT-BRIEF.md = Step 53. Step 52 브리프는 handoff/research/ARCHITECT-BRIEF-step52.md
+- 53a auto-login 계정이름(프로필→계정, 기본값 없음)·네이버다시로그인·세션경고(client·계정) / 53b naver-blog-post·smartplace-keyword·kin-find·local-agent / 53c save-login <계정> · --all(입력 먼저, 시험 차례로, 저장 아이디 요약 표) / 53d 카나리아 교차 시험
+- 결정 D188~D197, KG-53-1~4 BUILD-LOG. KG-52-1 닫음(원장: 「모든 비번을저장해서 알아서해」)
+- 다음: Bob(builder) → Richard → 커밋 → 원장 1회 node tools/save-login.mjs --all → Arch 가 요약 표 BUILD-LOG 에
+- 원장 몫: --all 1회 · KG-53-1 빙 웹마스터를 MS 비번/Authenticator/구글 중 무엇으로 들어가는지
+
 ## Where We Stopped (2026-10-17) — Step 52 브리프(네이버 자동 재로그인)
 
 - handoff/ARCHITECT-BRIEF.md = Step 52. Step 51 브리프는 handoff/research/ARCHITECT-BRIEF-step51.md

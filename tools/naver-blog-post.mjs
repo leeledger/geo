@@ -38,7 +38,7 @@ import fs from "node:fs";
 import os from "node:os";
 import { spawnSync } from "node:child_process";
 import { Pool } from "pg";
-import { 프로필열기, 자동로그인, 자동로그인할까, 저장값있음, 상태읽기, 상태쓰기, 세션남은일 } from "./auto-login.mjs";
+import { 프로필열기, 네이버다시로그인, 계정이름, 저장값있음, 상태쓰기, 세션남은일 } from "./auto-login.mjs";
 
 const BLOG_ID = process.env.NAVER_BLOG_ID || "force11";
 const DRY = process.argv.includes("--dry");
@@ -209,18 +209,17 @@ await page.goto(
 await page.waitForTimeout(12000);
 
 /**
- * 로그인 화면으로 튀었으면 학원 프로필에 한해 저장값으로 먼저 혼자 다시 로그인한다(Step 52 D178).
+ * 로그인 화면으로 튀었으면 그 프로필의 계정 저장값으로만 먼저 혼자 다시 로그인한다(Step 52 · Step 53 D189·D190).
  * 안 되면 기존 줄을 글자 그대로 찍는다 — local-agent 가 /로그인이 필요/ 로 사람 일감을 올린다. 그 아래 줄이 멈춘 까닭(일감 근거)
  */
 if (/nid\.naver\.com/.test(page.url())) {
-  const 판단 = 자동로그인할까(PROFILE, 저장값있음("naver"), 상태읽기("naver"), Date.now());
-  const r = 판단.할까 ? await 자동로그인(page, ctx, "naver") : null;
-  if (r?.ok) {
+  const r = await 네이버다시로그인(page, ctx, PROFILE);
+  if (r.ok) {
     console.log("✓ 네이버 자동 로그인");
     await page.waitForTimeout(9000);
   } else {
     console.log("네이버 로그인이 필요합니다. 창에서 로그인해 주세요 (최대 8분).");
-    console.log(r ? `자동 로그인 멈춤: ${r.사유}${r.화면 ? ` · 화면 ${r.화면}` : ""}` : `자동 로그인 안 함: ${판단.까닭}`);
+    console.log(r.줄);
     const t0 = Date.now();
     while (Date.now() - t0 < 480000 && /nid\.naver\.com/.test(page.url())) await page.waitForTimeout(2500);
     await page.waitForTimeout(9000);
@@ -229,9 +228,10 @@ if (/nid\.naver\.com/.test(page.url())) {
 
 const F = page.frames().find((f) => /PostWriteForm/i.test(f.url()));
 if (!F) { console.log("에디터 프레임을 못 찾았습니다."); await ctx.close(); process.exit(1); }
-// 에디터가 떴으면 로그인돼 있다 — 학원 프로필이면 막힘을 풀고(bad 는 그대로) 세션 남은 날을 남긴다(D181)
-if (PROFILE === ".browser-profile") {
-  if (저장값있음("naver")) 상태쓰기("naver", { blocked: false });
+// 에디터가 떴으면 로그인돼 있다 — 그 프로필의 계정(학원·고객)이면 막힘을 풀고(bad 는 그대로) 세션 남은 날을 남긴다(D181·D194)
+const 계정 = 계정이름(PROFILE);
+if (계정) {
+  if (저장값있음(계정)) 상태쓰기(계정, { blocked: false });
   const 남은 = 세션남은일(await ctx.cookies("https://nid.naver.com").catch(() => []));
   console.log(남은 === null ? "NID_AUT 남은 날 모름" : `NID_AUT 남은 ${남은}일`);
 }

@@ -17,6 +17,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { bingClient } from "./bing-site.mjs";
 import { 빙나감 } from "./login-rules.mjs";
+import { 마이크로소프트다시로그인, 저장값있음, 상태쓰기 } from "./auto-login.mjs";
 
 const CLIENT = await bingClient();
 const SITE = `https://${CLIENT.domain}/`;
@@ -24,17 +25,29 @@ const LOOK = process.argv.includes("--look");
 const DONE = path.join(process.cwd(), "bing-done.json");
 const say = (s) => console.log(`  ${s}`);
 
-const ctx = await chromium.launchPersistentContext(path.join(process.cwd(), ".browser-profile"), {
+const PROFILE = path.join(process.cwd(), ".browser-profile");
+const ctx = await chromium.launchPersistentContext(PROFILE, {
   headless: false, viewport: { width: 1360, height: 900 }, locale: "ko-KR",
   args: ["--disable-blink-features=AutomationControlled"],
 });
 await 가볍게(ctx);
 const page = ctx.pages()[0] ?? (await ctx.newPage());
-await page.goto(`https://www.bing.com/webmasters/submiturl?siteUrl=${encodeURIComponent(SITE)}`, { waitUntil: "domcontentloaded" });
-await page.waitForTimeout(9000);
+const 가기 = async () => {
+  await page.goto(`https://www.bing.com/webmasters/submiturl?siteUrl=${encodeURIComponent(SITE)}`, { waitUntil: "domcontentloaded" });
+  await page.waitForTimeout(9000);
+};
+await 가기();
 say(`${CLIENT.name} · 주소 ${page.url()}`);
 // 로그인이 풀리면 /login 이 아니라 /webmasters/about 안내 쪽으로 간다(2026-10-05 확인). 판정은 login-rules.mjs 한 곳
-if (빙나감(page.url())) { say("로그인이 풀렸습니다 — 빙 웹마스터에 다시 로그인"); await ctx.close(); process.exit(1); }
+// 마이크로소프트 로그인 화면에 섰을 때만 저장값으로 한 번 혼자 다시 로그인(D198). 됐으면 원래 주소로 다시 가서 한 번 더 본다
+if (빙나감(page.url())) {
+  const r = await 마이크로소프트다시로그인(page, ctx, PROFILE);
+  if (r.ok) { say("✓ 마이크로소프트 자동 로그인"); await 가기(); }
+  else say(r.줄);
+  if (!r.ok || 빙나감(page.url())) { say("로그인이 풀렸습니다 — 빙 웹마스터에 다시 로그인"); await ctx.close(); process.exit(1); }
+}
+// 로그인돼 있다 — 사람 로그인 뒤면 막힘을 푼다(bad 는 그대로, 네이버와 같이)
+if (저장값있음("microsoft")) 상태쓰기("microsoft", { blocked: false });
 
 const 글 = (await page.evaluate(() => document.body.innerText)).replace(/\n{2,}/g, "\n");
 // 화면 모양(2026-09-22 확인): 「Quota left for today (URL Submission Only)」 다음 줄에 숫자

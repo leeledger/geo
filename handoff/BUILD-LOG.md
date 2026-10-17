@@ -2092,3 +2092,39 @@ Should Fix:
 - test-auto-login 138/0 · test-login 56/0
 
 - **D187 (2026-10-17, Arch)** 원장 첫 save-login 실행(11:44): 저장 성공, 자동 로그인은 「모르는화면」으로 아무것도 안 치고 멈춤 → 원장이 손으로 로그인 마침. 원인: 2026-10 네이버 로그인 화면은 버튼이 `#loginBtn_row`/`#loginBtn_column`(폭에 따라 하나만 보임), 유지 체크는 `#loginStay`. 공개 로그인 페이지 HTML 로 확인하고 선택자 추가. test-auto-login 138/0. 실제 자동 로그인 첫 확인은 다음 세션 만료 때.
+
+## Step 53 브리프 — 모든 네이버 계정 자동 재로그인 (2026-10-17, Arch)
+원장 원문(2026-10-17): 「모든 비번을저장해서 알아서해」. 브리프 handoff/ARCHITECT-BRIEF.md, Step 52 브리프는 handoff/research/ARCHITECT-BRIEF-step52.md
+- **D188 (Arch)** KG-52-1 닫음 — 답 예. 고객 블로그 네이버 비번도 이 PC 에 둔다. 규칙은 Step 52 그대로(DPAPI 파일 계정마다 tools/.secrets · Get-Credential · 사람처럼 치기 · 캡차/2단계/새 기기/모르는 화면이면 멈춤 · 20시간 1회 · 틀리면 bad)
+- **D189 (Arch)** 프로필 → 계정은 함수 하나(계정이름): .browser-profile → naver, .browser-profile-<slug> → naver-<slug>, 그 밖 null. naver 로 떨어지는 기본값 없음 — 교차 사용을 만들 길 자체를 없앤다. 학원 파일 naver.xml 이름은 안 바꾼다
+- **D190 (Arch)** 자동 로그인 분기를 auto-login.mjs 네이버다시로그인 하나로 모으고 세 곳(naver-blog-post · smartplace-keyword · kin-find)이 부른다. 같은 동작 + 한 곳 잘못이 교차 사용 사고라 공유할 근거가 있다. 출력 줄은 기존 멈춤줄 꼴 그대로
+- **D191 (Arch)** 상태·20시간 한도는 계정마다. 학원은 blog-post 와 smartplace 가 같은 naver 상태를 써서 합쳐 하루 1번을 넘지 않는다
+- **D192 (Arch)** 분류: (a) 학원 네이버 · 고객 네이버 프로필마다(docttak·hostingkr·이후). (b) 구글(GSC·YouTube·빙 가져오기 동의) — 2단계·자동화 브라우저 거부(D183, 실측 안 함). 마이크로소프트(빙) — 빙 웹마스터는 MS/구글/페이스북 어느 것으로도 들어가는데 원장이 무엇을 쓰는지 모른다, 모르는 화면 순서를 짐작으로 짓지 않는다(KG-53-1). 카카오(런즈) — 2단계, 수동 도구. 범위 밖: 오늘학교(prompie, 일정 없음). 해당 없음: 퍼플렉시티(일부러 로그아웃), Brave 제출·빙 측정(로그인 없음)
+- **D193 (Arch)** save-login <계정> + --all. --all 목록 = naver + 디스크의 .browser-profile-<slug> 전부. 입력을 먼저 다 받고(취소=건너뜀) 시험은 차례로, 끝에 저장 아이디가 든 요약 표 — 원장이 계정 뒤바뀜을 눈으로 본다. 시험 주소는 계정 무관하게 nid 로그인(블로그 아이디 불필요)
+- **D194 (Arch)** 사전 경고는 네이버만(NID_AUT 만료일이 싸다). 고객 행마다 naver-session-soon(client_id 다름), 문구의 명령은 그 계정. kin-find 가 매일 돌아 문서딱은 거기서 잰다
+- **D195 (Arch)** 구글·MS 사전 경고는 안 짓는다. 쿠키 만료일이 서버 쪽 해지와 맞는다는 근거가 없다 — 지금의 「풀리면 사람 일감」 그대로
+- **D196 (Arch)** --all 은 .open-session.lock 을 끝까지 쥐고 계정마다·대기 중 60초마다 mtime 갱신. local-agent 는 13분 넘으면 회차를 건너뛴다(기존 exit 3) — 충돌 대신 한 회차 지연
+- **D197 (Arch)** 우회 금지 그대로: 캡차·2단계 안 풂, UA·stealth·쿠키 주입 없음, 실행 옵션 기존 그대로. Bob 은 실계정 로그인·실제 .secrets 접근 금지(카나리아·임시 폴더)
+
+### Known Gaps (Step 53)
+- KG-53-1 빙 웹마스터 계정 종류(MS 비번 / MS Authenticator / 구글로 로그인) 모름. MS 비번만 쓰면 다음 단계에서 login.live.com 흐름을 공개 화면으로 실측해 (a) 로
+- KG-53-2 구글·카카오는 사람 로그인으로 남는다. 사전 경고 없음(D195)
+- KG-53-3 로그인 아이디와 블로그 아이디 자동 대조 없음 — 요약 표 눈 확인만
+- KG-53-4 hostingkr 은 블로그 초안 승인이 있어야 naver-blog-post 가 돈다 — 고객 자동 로그인 첫 실측은 문서딱 kin-find 가 먼저일 것
+- KG-52-5(서치어드바이저 세션) 그대로 열림
+
+### Step 53 빌드 (2026-10-17, Bob) — DONE · Richard 검토 대기
+- **D198 (Arch 추가, 원장 답 2026-10-17)** KG-53-1 닫음 — 빙 웹마스터는 마이크로소프트 계정. microsoft 를 (a) 로: tools/.secrets/microsoft.xml, 학원 .browser-profile 만, bing-submit-urls 가 login.live.com / login.microsoftonline.com 에 섰을 때만. 이메일 → #idSIButton9 → 비번 → #idSIButton9 → 「로그인 상태 유지」 예(#acceptButton / #idSIButton9) → 로그인 화면을 떠남 = 성공. 그 밖(Authenticator 숫자·승인 요청·코드·본인 확인·캡차·계정 고르기·모르는 화면)은 멈춤, 비번틀림은 bad. 선택자 실측 전 — 원장의 --all 이 첫 확인. 사전 경고 없음(D195)
+- auto-login.mjs: 계정이름 · 자동로그인할까(계정) · 네이버다시로그인 · 세션경고(clientId, 계정) · 저장아이디 · 마소계정이름 · 마소자동로그인 · 마이크로소프트다시로그인
+- 호출자: naver-blog-post · smartplace-keyword · kin-find · local-agent(고객 블로그 근거·세션경고, 플레이스·빙 근거) · bing-submit-urls
+- save-login.mjs: naver | naver-<slug> | microsoft | --all. 인자판정·계정목록·프로필경로·창문구 export, main 은 직접 실행일 때만. 잠금 60초 갱신(setInterval, PowerShell 은 비동기 spawn 이라 입력 중에도 돈다)
+- 버그 수정(시험으로 드러남): 네이버 로그인 버튼 선택자 후보 중 `[id="log.login"]`·`button.btn_login`·form submit 에 :visible 이 없어, #loginBtn_row 가 숨고 #loginBtn_column 만 보이는 폭에서 .first() 가 숨은 버튼을 집어 「모르는화면」으로 멈췄다. 후보마다 :visible
+- 시험: test-auto-login 242/0(기존 138 → 새 단정 포함) · test-login 56/0 · test-kin 110/0 · test-clients 99/0. 교차 변이(네이버다시로그인이 늘 "naver" 를 쓰게) 를 넣으면 8개 실패로 잡힘 확인 후 원복
+- 복호화( 호출은 auto-login.mjs 안 2곳(네이버·마소). Acceptance 5 의 「1곳」은 D198 전 기준
+
+### Known Gaps (Step 53 빌드)
+- KG-53-5 빙은 로그인이 풀리면 /webmasters/about 으로 간다(2026-10-05 확인) — 이때는 마소 로그인 화면이 아니라 「자동 로그인 안 함: 로그인 화면이 아님」으로 사람 일감. about 에서 로그인 화면으로 가는 길은 실측 전이라 짐작으로 짓지 않았다. 실제로 자동 로그인이 붙으려면 이 길을 실측해야 할 수 있다
+- KG-53-6 kin-find 는 가볍게(그림·글꼴 차단)인 채로 nid 자동 로그인을 한다. 캡차 그림이 안 떠도 #captcha 틀·글자로 멈추지만 실측 전
+- KG-53-7 마소 표지 문구(2단계·캡차·비번틀림)는 공개 화면 실측 전 추정. 실제 이메일 화면에 「코드」「본인 확인」 같은 글자가 늘 있으면 처음부터 멈춘다(안전 쪽 실패)
+
+- **D199 (2026-10-17, Arch)** 리뷰 Should Fix 반영: 마이크로소프트 마지막 단계 시간초과도 「모르는화면」(blocked). kin-find --dry/--look 의 로그인 시도는 그대로 둔다(원장이 손으로 돌리는 확인용, 20시간 제한이 막는다). KG-53-5(빙 만료 → /webmasters/about)는 원장 --all 뒤 실제 만료 때 확인.

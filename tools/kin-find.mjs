@@ -30,6 +30,7 @@ import { 가볍게 } from "./lean-browser.mjs";
 import pg from "pg";
 import { loadClients } from "../academy/clients.mjs";
 import { 네이버쿠키 } from "./login-rules.mjs";
+import { 네이버다시로그인, 계정이름, 세션남은일, 세션경고, 저장값있음 } from "./auto-login.mjs";
 import { 목록주소, 목록읽기, 분야주소, 분야읽기, 도구맞음, 질문읽기, 날짜풀기, 막힘, 후보거름, kst날 } from "../web/lib/kin-core.mjs";
 import { MARKETING_DDL } from "../web/lib/marketing-core.mjs";
 
@@ -79,6 +80,8 @@ if (!c?.marketing?.pages?.length || !c.marketing.blogProfile) {
 }
 const 맞는페이지 = (t) => c.marketing.pages.find((x) => x.re.test(t)) ?? null;
 const 프로필 = path.join(HERE, c.marketing.blogProfile);
+const 계정 = 계정이름(프로필);
+const KST = () => new Date().toLocaleString("sv-SE", { timeZone: "Asia/Seoul" }).slice(0, 16);
 const 로그인일감 = (why) => 사람일감(c.id, `login-naver-blog-${c.slug}`, `${c.name} 네이버 로그인 필요`,
   `${why} 지식iN 질문 찾기·답 창이 이 프로필(${c.marketing.blogProfile})을 씁니다. 현황판 「로그인 창 열기」를 누르거나 PC 에서 node tools/open-session.mjs --blog ${c.marketing.blogProfile} 로 로그인해 주세요.`);
 
@@ -139,9 +142,25 @@ const 찾음 = [], 떨어짐 = [];
 let 검색 = 0, 분야읽음 = 0, 열어봄 = 0, 못읽음 = "";
 const 분야셈 = { 읽음: 0, 칠일: 0, 맞음: 0 };
 try {
+  // 로그인이 풀렸으면 그 고객 계정 저장값으로만 한 번 혼자 다시 로그인(Step 53 D190). 안 되면 멈춘 까닭을 일감에
+  let 멈춤 = null;
   if (네이버쿠키(await ctx.cookies("https://nid.naver.com").catch(() => [])) === "없음") {
+    await page.goto("https://nid.naver.com/nidlogin.login?url=https%3A%2F%2Fwww.naver.com%2F", { waitUntil: "domcontentloaded", timeout: 30000 }).catch(() => {});
+    await page.waitForTimeout(3000);
+    const r = await 네이버다시로그인(page, ctx, 프로필);
+    if (r.ok) console.log("✓ 네이버 자동 로그인");
+    else { 멈춤 = r.줄; console.log(r.줄); }
+  }
+  const 쿠키 = await ctx.cookies("https://nid.naver.com").catch(() => []);
+  if (네이버쿠키(쿠키) !== "없음") {
+    // 세션 남은 날(D194) — 저장값이 없고 3일 이하면 이 고객 행에 naver-session-soon. --dry 는 DB 안 건드림
+    const 남은 = 세션남은일(쿠키);
+    console.log(남은 === null ? "NID_AUT 남은 날 모름" : `NID_AUT 남은 ${남은}일`);
+    if (남은 !== null && !DRY && 계정) await 세션경고(q, 남은, 저장값있음(계정), KST(), c.id, 계정).catch((e) => console.log(`  ⚠ 세션 경고 못 남김: ${e.message}`));
+  }
+  if (네이버쿠키(쿠키) === "없음") {
     console.log("✗ 로그인이 필요합니다 — 네이버 로그인이 풀렸습니다");
-    await 로그인일감("네이버 로그인이 풀렸습니다.");
+    await 로그인일감(멈춤 ? `네이버 로그인이 풀렸습니다. ${멈춤}.` : "네이버 로그인이 풀렸습니다.");
     await 활동(false, "로그인 필요", c.id);
     await 실행기록("실패", "로그인 필요");
     끝코드 = 2;

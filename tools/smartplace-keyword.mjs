@@ -16,6 +16,7 @@
  */
 import { chromium } from "playwright";
 import path from "node:path";
+import { 네이버다시로그인 } from "./auto-login.mjs";
 
 const BIZ = process.env.SMARTPLACE_ID || "5013357"; // 로봇앤코딩학원
 const arg = (n) => { const i = process.argv.indexOf(n); return i >= 0 ? process.argv[i + 1] : null; };
@@ -28,7 +29,8 @@ const MAX = 5;
 if (!LIST && !ADD && !REMOVE) { console.log("사용법: --add 단어 [--remove 단어] [--dry] | --list"); process.exit(1); }
 if (ADD && ADD.length > 15) { console.log(`「${ADD}」는 15자를 넘습니다`); process.exit(1); }
 
-const ctx = await chromium.launchPersistentContext(path.join(process.cwd(), ".browser-profile"), {
+const PROFILE = path.join(process.cwd(), ".browser-profile");
+const ctx = await chromium.launchPersistentContext(PROFILE, {
   headless: false,
   viewport: { width: 1440, height: 940 },
   locale: "ko-KR",
@@ -40,10 +42,25 @@ page.on("dialog", async (d) => { console.log("  · " + d.message().slice(0, 80))
 
 const 끝내기 = async (code) => { await ctx.close().catch(() => {}); process.exit(code); };
 
+/**
+ * 로그인 화면으로 튀면 학원 계정 저장값으로 한 번 혼자 다시 로그인(Step 53 D190). 학원 블로그 이관과 같은 naver 상태라 둘 합쳐 20시간 1회(D191).
+ * 됐으면 원래 주소로 다시 가서 nid 를 한 번 더 본다 — 로그인 뒤 엉뚱한 화면을 읽지 않게
+ */
 const 열기 = async () => {
-  await page.goto(`https://new.smartplace.naver.com/bizes/place/${BIZ}/details?menu=basic`, { waitUntil: "domcontentloaded" });
-  await page.waitForTimeout(9000);
-  if (/nid\.naver\.com/.test(page.url())) { console.log("로그인이 안 돼 있습니다."); await 끝내기(2); }
+  const 가기 = async () => {
+    await page.goto(`https://new.smartplace.naver.com/bizes/place/${BIZ}/details?menu=basic`, { waitUntil: "domcontentloaded" });
+    await page.waitForTimeout(9000);
+  };
+  await 가기();
+  if (!/nid\.naver\.com/.test(page.url())) return;
+  const r = await 네이버다시로그인(page, ctx, PROFILE);
+  if (r.ok) {
+    console.log("✓ 네이버 자동 로그인");
+    await 가기();
+    if (!/nid\.naver\.com/.test(page.url())) return;
+  } else console.log(r.줄);
+  console.log("로그인이 안 돼 있습니다.");
+  await 끝내기(2);
 };
 
 /**

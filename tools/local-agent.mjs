@@ -24,7 +24,7 @@ import pg from "pg";
 import { indexClients, loadClients } from "../academy/clients.mjs";
 import { 빙미등록 } from "./bing-site.mjs";
 import { CODE_SLUGS, 탐침읽기, 탐침저장 } from "../web/lib/client-core.mjs";
-import { 멈춤줄, 남은날줄, 세션경고, 저장값있음 } from "./auto-login.mjs";
+import { 멈춤줄, 남은날줄, 세션경고, 저장값있음, 계정이름 } from "./auto-login.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const LOCK = path.join(HERE, ".local-agent.lock");
@@ -104,13 +104,13 @@ const KST = () => new Date().toLocaleString("sv-SE", { timeZone: "Asia/Seoul" })
 const 활동 = (agent, action, ok, summary, taskId = null, clientId = 1) =>
   q(`insert into geo.agent_activity (client_id, agent, action, ok, summary, task_id, run_url) values ($6,$1,$2,$3,$4,$5,'local-agent')`,
     [agent, action, ok, String(summary).slice(0, 1000), taskId, clientId]).catch(() => {});
-// 근거(멈춘 까닭 한 줄)가 있으면 evidence 뒤에 붙인다. 자동 다시 로그인은 네이버만(Step 52) — 그 안내도 네이버 일감에만
+// 근거(멈춘 까닭 한 줄)가 있으면 evidence 뒤에 붙인다. 자동 다시 로그인은 네이버(Step 52)·마이크로소프트(D198)만 — 그 안내도 그 일감에만
 const 사람로그인 = (kind, what, 근거 = null) =>
   q(`insert into geo.agent_tasks (client_id, agent, kind, dedupe_key, title, detail, status, priority, payload, evidence)
      values (1, 'deliver', 'human', $1, $2, $3, '사람 대기', 5, '{"sticky":true}'::jsonb, coalesce($4::text, ''))
      on conflict (client_id, dedupe_key) do update set status='사람 대기', updated_at=now(),
        evidence = case when $4::text is null then geo.agent_tasks.evidence else left(coalesce(geo.agent_tasks.evidence, '') || E'\n' || $4::text, 4000) end`,
-    [`login-${kind}`, `${what} 로그인이 풀렸습니다`, `로컬 에이전트가 ${what} 일을 못 했습니다. 현황판 「로그인 창 열기」를 누르거나 PC 에서 node tools/open-session.mjs 로 로그인하면 다음 실행(12:40·19:10)부터 다시 돕니다.${kind === "naver" ? " 저장된 로그인 값이 있으면 먼저 혼자 다시 로그인해 보고, 막혔을 때만 이 일감이 뜹니다." : ""}`, 근거]);
+    [`login-${kind}`, `${what} 로그인이 풀렸습니다`, `로컬 에이전트가 ${what} 일을 못 했습니다. 현황판 「로그인 창 열기」를 누르거나 PC 에서 node tools/open-session.mjs 로 로그인하면 다음 실행(12:40·19:10)부터 다시 돕니다.${kind === "naver" || kind === "microsoft" ? " 저장된 로그인 값이 있으면 먼저 혼자 다시 로그인해 보고, 막혔을 때만 이 일감이 뜹니다." : ""}`, 근거]);
 const 로그인됨 = (kind) =>
   q(`update geo.agent_tasks set status='완료', done_at=now(), updated_at=now() where client_id=1 and dedupe_key=$1 and status='사람 대기'`, [`login-${kind}`]);
 
@@ -208,11 +208,14 @@ try {
     if (!대기.length) continue;
     const 프로필 = path.join(HERE, c.marketing.blogProfile);
     const 아이디 = c.marketing.blogId ?? process.env[`NAVER_BLOG_ID_${c.slug.toUpperCase()}`];
-    const 로그인일감 = (why) => q(`insert into geo.agent_tasks (client_id, agent, kind, dedupe_key, title, detail, status, priority, payload)
-        values ($1, 'deliver', 'human', $2, $3, $4, '사람 대기', 5, '{"sticky":true}'::jsonb)
-        on conflict (client_id, dedupe_key) do update set status='사람 대기', updated_at=now()`,
+    const 계정 = 계정이름(프로필);
+    // 근거(자동 로그인이 멈춘 까닭 한 줄)가 있으면 evidence 뒤에 붙인다 — 사람로그인과 같은 꼴(Step 53)
+    const 로그인일감 = (why, 근거 = null) => q(`insert into geo.agent_tasks (client_id, agent, kind, dedupe_key, title, detail, status, priority, payload, evidence)
+        values ($1, 'deliver', 'human', $2, $3, $4, '사람 대기', 5, '{"sticky":true}'::jsonb, coalesce($5::text, ''))
+        on conflict (client_id, dedupe_key) do update set status='사람 대기', updated_at=now(),
+          evidence = case when $5::text is null then geo.agent_tasks.evidence else left(coalesce(geo.agent_tasks.evidence, '') || E'\n' || $5::text, 4000) end`,
       [c.id, `login-naver-blog-${c.slug}`, `${c.name} 블로그 로그인 필요`,
-        `${why} 현황판 「로그인 창 열기」를 누르거나 PC 에서 node tools/open-session.mjs --blog ${c.marketing.blogProfile} 로 ${c.name} 블로그 네이버 계정에 로그인하고, academy/.env.local 에 NAVER_BLOG_ID_${c.slug.toUpperCase()}=<블로그 아이디> 를 적어 주세요. 다음 실행(12:40·19:10)부터 확인한 블로그 초안을 올립니다.`]);
+        `${why} 현황판 「로그인 창 열기」를 누르거나 PC 에서 node tools/open-session.mjs --blog ${c.marketing.blogProfile} 로 ${c.name} 블로그 네이버 계정에 로그인하고, academy/.env.local 에 NAVER_BLOG_ID_${c.slug.toUpperCase()}=<블로그 아이디> 를 적어 주세요. 다음 실행(12:40·19:10)부터 확인한 블로그 초안을 올립니다.${계정 ? ` node tools/save-login.mjs ${계정} 를 한 번 돌리면 그다음부터 혼자 다시 로그인합니다.` : ""}`, 근거]);
     if (!fs.existsSync(프로필) || !아이디) {
       await 로그인일감(!fs.existsSync(프로필) ? "블로그용 프로필이 아직 없습니다." : "블로그 아이디가 아직 없습니다.");
       await 활동("deliver", `${c.name} 블로그 멈춤`, false, "로그인 필요 — 프로필 또는 블로그 아이디 없음", null, c.id);
@@ -229,15 +232,19 @@ try {
     const r = 돌리기("naver-blog-post.mjs", ["--marketing", String(m.id), "--profile", 프로필], 15, { NAVER_BLOG_ID: 아이디 });
     const [after] = await q(`select status, posted_url from geo.marketing_posts where id = $1`, [m.id]);
     const 발행했을수도 = /발행 버튼을 누릅니다|ETIMEDOUT|timed out|SIGTERM/i.test(r.out);
+    // 세션 남은 날(D194) — 이 고객 행·이 계정으로. 저장값이 있으면 안 올린다
+    const 남은 = 남은날줄(r.out);
+    if (남은 !== null && 계정) await 세션경고(q, 남은, 저장값있음(계정), KST(), c.id, 계정).catch((e) => 기록(`${c.slug} 세션 경고 실패 ${e.message}`));
     if (after?.status === "올림") {
       await q(`update geo.agent_tasks set status='완료', done_at=now(), updated_at=now() where id=$1`, [attempt.id]);
       await q(`update geo.agent_tasks set status='완료', done_at=now(), updated_at=now() where client_id=$1 and dedupe_key=$2 and status='사람 대기'`,
         [c.id, `login-naver-blog-${c.slug}`]);
       await 활동("deliver", `${c.name} 블로그 게시: ${m.title}`, true, after.posted_url, attempt.id, c.id);
     } else if (/로그인이 필요/.test(r.out)) {
+      const 멈춤 = 멈춤줄(r.out);
       await q(`update geo.agent_tasks set status='닫힘', done_at=now(), updated_at=now(), evidence='발행 전 멈춤: 로그인 필요' where id=$1`, [attempt.id]);
-      await 로그인일감("네이버 로그인이 풀렸습니다.");
-      await 활동("deliver", `${c.name} 블로그 멈춤`, false, "로그인 필요", attempt.id, c.id);
+      await 로그인일감("네이버 로그인이 풀렸습니다.", 멈춤 ? `${KST()} ${멈춤}` : null);
+      await 활동("deliver", `${c.name} 블로그 멈춤`, false, 멈춤 ? `로그인 필요 — ${멈춤}` : "로그인 필요", attempt.id, c.id);
     } else if (발행했을수도) {
       await q(`update geo.agent_tasks set status='사람 대기', updated_at=now(), last_error=$2 where id=$1`,
         [attempt.id, `${c.name} 블로그에 이 글이 올라갔는지 확인해 주세요. 올라갔으면 update geo.marketing_posts set status='올림', posted_url='<주소>', posted_at=now() where id=${m.id}; 안 올라갔으면 이 일감을 닫으면 다시 시도합니다. 출력: ${끝(r.out, 200)}`]);
@@ -254,7 +261,12 @@ try {
     const args = [...(p.add ? ["--add", p.add] : []), ...(p.remove ? ["--remove", p.remove] : [])];
     if (!args.length) continue;
     const r = 돌리기("smartplace-keyword.mjs", args, 5);
-    if (/로그인이 안 돼 있습니다/.test(r.out)) { await 사람로그인("naver", "네이버"); await 활동("deliver", "플레이스 키워드 멈춤", false, "로그인 필요", t.id); break; }
+    if (/로그인이 안 돼 있습니다/.test(r.out)) {
+      const 멈춤 = 멈춤줄(r.out);
+      await 사람로그인("naver", "네이버", 멈춤 ? `${KST()} ${멈춤}` : null);
+      await 활동("deliver", "플레이스 키워드 멈춤", false, 멈춤 ? `로그인 필요 — ${멈춤}` : "로그인 필요", t.id);
+      break;
+    }
     const 결과 = /KEYWORDS=(.*)/.exec(r.out)?.[1] ?? "";
     await q(`update geo.agent_tasks set status=$2, done_at=case when $2='완료' then now() else done_at end, updated_at=now(),
               attempts = attempts + case when $2='완료' then 0 else 1 end,
@@ -372,8 +384,9 @@ try {
   for (const c of indexClients(고객들)) {
     const 빙 = 돌리기("bing-submit-urls.mjs", ["--client", c.slug], 10);
     if (/로그인이 풀렸습니다/.test(빙.out)) {
-      await 사람로그인("microsoft", "빙 웹마스터");
-      await 활동("deliver", "빙 주소 제출 멈춤", false, "로그인 필요", null, c.id);
+      const 멈춤 = 멈춤줄(빙.out);
+      await 사람로그인("microsoft", "빙 웹마스터", 멈춤 ? `${KST()} ${멈춤}` : null);
+      await 활동("deliver", "빙 주소 제출 멈춤", false, 멈춤 ? `로그인 필요 — ${멈춤}` : "로그인 필요", null, c.id);
       break;
     }
     const dedupe = `bing-site-${c.slug}`;
