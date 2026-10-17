@@ -48,6 +48,8 @@ const md = [];
 for (const c of await 잠깐DB((q) => 고객고르기(process.argv, q))) {
   const queries = c.queries.filter((x) => x.kind === "경쟁").map((x) => x.q);
   if (!queries.length) { console.log(`${c.slug}: queries.compete 없음 — 건너뜀`); continue; }
+  // 홈페이지 없는 고객(Step 55)은 domain 이 빈 글자 — url.includes("") 가 모든 주소를 「우리」로 센다
+  if (!c.domain) { console.log(`${c.slug}: domain 없음 — 건너뜀`); continue; }
   console.log(`\n══ ${c.name} · ${c.domain} ══`);
   md.push(`## ${c.name} — 경쟁 검색어에서 이기고 있는 지면`, "");
 

@@ -2179,3 +2179,58 @@ Should Fix:
 - **D219 (Arch)** 세팅·구축 고객은 연 날이 있으면 30일을 site_launch_on 에서 바로 센다. DB started_on·ends_on 은 안 쓴다(낡은 기간이 안 보이게). 셈은 academy/pilot-plan.mjs 파일럿일정 과 같다: 끝 = 연 날 + 29(첫날 포함 30일). Arch 메시지의 「launch+30」은 이 함수와 같은 셈으로 읽었다. period·day30·다음 고비가 같은 끝 날을 쓴다. 시험: 낡은 started_on·ends_on 을 넣어도 10/1~10/30
 - **D220 (Arch)** 서치어드바이저 「확인파일보냄」(고객 담당)은 일수·재촉 글을 안 만든다. 보낸 날을 저장하지 않아 셀 근거가 없다. 상태는 고객 기다림 그대로. 시험 추가
 - 결과: test-onboard-core 18/0 · test-client-core 188/0 · test-clients 99/0 · tsc 0 · next build 성공. --live 화면 시험은 다시 안 돌림(지시)
+
+## Step 55 브리프 — 두 칸 등록 · 나머지 자동 세팅 · 고객 글에 기술 말 금지 (2026-10-17, Arch)
+원장 원문(2026-10-17): 「온보딩 화면에서 고객사 이름하고 홈페이지 정도만 적을수 있는 칸을 만들고 나머지는 모두 자동 세팅 해」. 같은 날 블로그만 있는 외부 고객(id 18)을 등록하자 세팅 점검이 blog.naver.com 에 robots·사이트맵·llms.txt·IndexNow 키를 올리라는 글을 만듦 — 원장: 「이렇게 보내도 뭔소린지 몰라 이런 질문 자체도 보내는것이 의미가 없어」. 브리프 handoff/ARCHITECT-BRIEF.md, Step 54 브리프는 handoff/research/ARCHITECT-BRIEF-step54.md
+- 실측(읽기만, 10-17): 고객 5곳(코드 3 · cited · id 18 외부). id 18 domain = blog.naver.com(경로 잃음) · crawl_key NULL · 판별 말 3개 전부 지역+과목+학원 꼴(흔함) · 경쟁 검색어 한 낱말 3개 · 파일럿 없음. 네이버 자동완성 원장 PC 에서 200(「송파 치과」 4개). Vercel sin1·GH 러너는 안 재봄. geo.pilots NOT NULL 은 client_id·price(기본 390000)·started_on·ends_on·status·needs_build·competitors
+- **D221 (Arch)** 새 등록 길을 따로 만들지 않는다. 두 칸 폼은 칸을 자동으로 채워 기존 등록()·세팅점검·체크리스트·사람일감맞추기·패널점검을 그대로 부른다. 긴 등록 폼(ClientForm new·registerClient)은 지운다. ClientForm 은 「자세히」(고치기)로만 남는다
+- **D222 (Arch)** slug: 사이트·빌더는 호스트 첫 마디, 플랫폼은 블로그 아이디·인스타 계정, 그 밖은 이름 로마자(글자 대응만). 겹치면 -2·-3. 계정이름() 정규식(naver-<slug> 프로필)을 통과해야 한다
+- **D223 (Arch)** 판별 말 = 이름 + (사이트·빌더면) 도메인. 맨 영어 낱말(점 없는 라틴 글자 말)은 넣지 않는다 — cited 판별 말과 같은 기준. 세지 않을 앞말은 비운다(원장 몫)
+- **D224 (Arch)** 흔한 이름: 이름에서 업종표 말·시도·시군구·점/본점/지점을 지운 나머지 한글이 2자 미만이거나 이름이 2자 이하. 흔하면 이름을 판별 말에서 빼고 도메인만, 도메인도 없으면 질문을 만들지 않고 원장. 기존 고객에도 체크리스트 「이름 판별 말」 줄로 같은 기준을 건다(id 18 이 걸린다) — 레퍼런스 숫자 오염을 막는 줄이다
+- **D225 (Arch)** 업종·지역은 읽은 것만: 업종 = JSON-LD @type 표 대조 → 이름 → title 에 딱 하나. 지역 = JSON-LD address → 본문 「시도 시군구」가 서로 다른 것 하나일 때. 못 읽으면 「모름」 + 원장 두 칸 입력. 업종표(과목+학원·교습소·공부방 → 과목학원 같은 대응)는 코드의 고정 표로 시험한다 — 고객마다 추정하지 않는다
+- **D226 (Arch)** 플랫폼만 있는 고객·홈페이지 없는 고객의 needs_build 제안은 build. 손댈 수 있는 자기 사이트가 없으니 「세팅」할 것이 없고, 신청서 3갈래에서 사이트 없음 = 구축이다. 비워 두면 파일럿·질문 단계가 멈춘다. 제안일 뿐이고 계약 때 원장이 파일럿 시작 폼에서 바꾼다(되돌릴 수 있음). 빌더는 setup. 홈을 못 열면 정하지 않는다 — none 을 지어내지 않는다
+- **D227 (Arch)** 경쟁 검색어·질문 keyword 17 은 네이버 자동완성 원문만(1차 씨앗 「지역 업종」, 2차 = 1차 결과). 17 미만이면 질문을 넣지 않고 원장 일감(후보 수·씨앗·원응답). 채우거나 지어내지 않는다. brand 3 은 기존 패널과 같은 꼴
+- **D228 (Arch)** 자동완성 요청: 호스트 고정 주소 · 정직한 UA cited-setup/1.0 · 요청 3초·전체 25초·최대 16번·간격 200ms · 403/429 는 다시 두드리지 않고 실패로 적는다. UA 위장·우회 없음
+- **D229 (Arch)** 자동이 쓴 칸은 config.auto.출처 「자동: 근거」. 원장이 「자세히」로 저장하면 「원장」 — 이후 자동 단계·재시도가 덮어쓰지 않는다
+- **D230 (Arch)** 긴 단계는 서버 동작 하나에 한 단계씩, 고객 화면의 판이 차례로 부른다(단계당 ≤30초, 페이지 maxDuration 60 안). 창을 닫으면 company.mjs 매시 고리의 자동이어하기가 잇는다. 단계 상태는 config.auto.단계, 90초 임대 update 로 겹침을 막는다. agent_tasks·local-agent 는 안 쓴다: 브라우저·로그인이 필요한 단계가 없고, local-agent 는 원장 PC 가 켜져 있어야 돈다. agent_tasks 는 원장 몫 일감만(기존 사람일감맞추기 길)
+- **D231 (Arch)** 자동 파일럿은 status 리허설·입금 칸 비움. createPilot 은 리허설·paid_on null·외부 파일럿을 막지 않고 update 로 계약에 올린다. 질문이 이미 있으면 makeQuestions 를 넣지 않는다(지금은 on conflict do update 로 덮는다)
+- **D232 (Arch)** 체크리스트 send 줄을 「고칠것」(기술 목록 — 원장·Claude 세션만)과 「보낼글」(고객이 한 문장으로 할 수 있는 것)로 나눈다. 고객 글은 관리자 아이디·만든 업체 연락처·블로그 아이디 요청뿐. 빠진 것이 없거나 우리가 권한을 가졌으면 보낼글 없음 — 묻기 위해 묻지 않는다. gsc 줄도 고객에게 서치콘솔 일을 시키지 않는다(관리자 아이디를 받으면 우리가 등록)
+- **D233 (Arch)** 고객에게 가는 글 금지어(robots·sitemap·사이트맵·llms·indexnow·json-ld·스키마·서치콘솔·서치어드바이저·웹마스터·키 파일·확인 파일·크롤러·호스팅·dns·html·메타)는 client-core.mjs 한 목록, test-client-copy 가 전 조합을 돌려 0 을 본다
+- **D234 (Arch)** 빌더(아임웹·Wix·모두 등) 고객 글은 「관리자 아이디로 들어갈 수 있게」 한 줄. 빌더 설정 화면에 무엇이 있는지는 문서 줄로 확인한 적이 없어 고객 글에 쓰지 않는다(KG-55-4)
+- **D235 (Arch)** 플랫폼 호스트(platform-check.ts PLATFORMS — 네이버 블로그·플레이스·스토어·naver.me·인스타·티스토리·브런치·카카오 채널·카카오 장소·유튜브)는 고객 사이트가 아니다. 목록을 web/lib/platform-hosts.mjs 하나로 옮겨 client-core·academy 도 같이 쓴다. 그 고객은 domain null + 채널. 사이트 점검 8줄은 해당없음. domain null 등록을 허용한다 — KG-54-1 을 이 단계에서 닫는다
+- **D236 (Arch)** id 18 은 migrate-platform-domain.mjs 로 domain null·indexnow 없음·wantGsc false·derived 비움. 블로그 주소는 잃었으니 원장 일감으로 다시 받는다. 원장이 넣은 판별 말·경쟁 검색어는 바꾸지 않고 「이름 판별 말」 줄이 원장에게 알린다. 로그·문서에는 id·별칭만
+
+### Known Gaps (Step 55)
+- KG-55-1 /api/scan scanSite 의 SSRF 막기가 호스트 글자만 본다(DNS 안 봄)
+- KG-55-2 makeQuestions stage 「브랜드」 — 보고서는 'brand' 만 빼서 계약 파일럿 이름 질문이 머리 숫자에 섞일 수 있다
+- KG-55-3 라틴·한글 경계 띄어쓰기 변형을 answerPattern 이 안 잡는다
+- KG-55-4 빌더별 설정 화면에서 고객이 직접 켤 수 있는 것(문서 확인 뒤)
+- KG-55-5 플레이스·인스타 페이지에서 업종·지역 읽기
+- KG-55-6 자동완성 2차 씨앗 깊이·개수 조정
+- KG-55-7 고칠것을 Claude 세션 일감으로 올리기
+- KG-55-8 경쟁사 상호(pilots.competitors) 자동 — 안 한다, 원장 몫
+- KG-54-1 닫음(D235)
+
+### Step 55 빌드 (2026-10-17, Bob) — DONE_WITH_CONCERNS · Richard 검토 대기 · 커밋·배포·이행 --apply 안 함
+- 55a platform-hosts.mjs(+d.mts) — PLATFORMS·SMARTPLACE·platformOf·classifyTarget 옮김(+ BUILDER_HOSTS·builderOf·호스트갈래). platform-check.ts 는 import 해 다시 내보냄. 옮기기 전/후 platformOf 26호스트·classifyTarget 11입력 차이 0. step50 verify 로더가 .mjs 를 file: 주소로 넘기게 한 줄(handoff/research/step50/verify.mjs)
+- 55b client-core 체크리스트 — domain null·플랫폼 → 사이트 8줄 해당없음 · send 를 보낼글(관리자 아이디 한 문장)/고칠것(기술 목록)으로 · dns 우리면 기다림+고칠것(열린 setup-send 는 닫힘) · gsc 할일 고객에게 안 물음 · auto·name 줄 · 고객금지말/금지말찾기. onboard-core — dns물음·intake·blog 보낼글·send 는 보낼글만 · 자동 리허설(외부·입금 전)은 파일럿 없음과 같은 순서
+- 55c 등록() domain null·crawl_key·channels·auto·channel-taken·name-dup(「그래도 등록」) · 입력검사 domain 빈칸·플랫폼 거부·경쟁 0개 · 재점검고르기 domain null·플랫폼 뺌 · 새크롤키(setup-multiclient 도 씀) · 고치기가 config.auto 출처를 「원장」으로
+- 55d auto-setup-core.mjs(+d.mts) · auto-setup-words.mjs(업종표·시도표·이름흔함 — client-core·auto-setup-core 가 서로 부르지 않게 따로 둠)
+- 55e auto-setup-actions.ts · NewClientForm · AutoSetupPanel · 고객 화면(판 맨 위·자세히·보낼글만 복사·고칠것 접힘) · onboard 요약 한 줄. registerClient·ClientForm new 지움
+- 55f createPilot — 리허설·입금 전·외부면 update 로 진행 · 질문이 있으면 makeQuestions 안 넣음 · 파일럿 폼 기본값(지역·업종·needs_build)
+- 55g company.mjs 자동이어하기 한 줄 · migrate-platform-domain.mjs(dry 확인만, --apply 는 Arch)
+- 결정(Bob, 리뷰에서 뒤집을 수 있음): ① 시험 고객 등록은 도메인·채널·이름 중복을 시험 고객끼리만 본다 — 브리프 55h 가 cited.kr 로 시험 A(slug cited-2)를 요구해서. 진짜 고객 등록은 전부와 견준다 ② IndexNow 「없음」 대신 기존 값 「안 씀」(clients.mjs 고객설정이 「없음」을 형 틀림으로 적는다) ③ 자동완성 403·429 를 받으면 남은 씨앗도 안 두드림(그 씨앗만이 아니라) ④ 매시 고리에는 플랫폼 확인기(TS)가 없어 플랫폼 고객의 사이트 단계는 건너뜀 — 고객 화면 판이 연다 ⑤ 도는중 임대가 시도 3에서 또 끊기면 원장
+- 시험: test-client-core 227 · test-auto-setup-core 124 · test-client-copy 11(768조합·고객 글 2140개 금지어 0) · test-clients 99 · test-client-status 14 · test-onboard-core 18(바뀐 단언 4: 5번의 send 보낼글·dns 우리 근거·dns물음 문구 + fixture send 모양) · test-seed-panel 통과 · test-login 56 · tsc 0 · next build 통과 · step50 verify ALL PASS 183 · test-client-screen --live 38/0 · test-onboard-screen --live 28/0 · test-auto-setup-live --live 32/0(A·B·C 지움, client_id·pilot_id 30칸·agent_tasks·agent_activity 0)
+- 실측(로컬 원장 PC, 10-17 16:12 KST) 네이버 자동완성 상태 원문: 1차 「송파 치과」 200·4개 · 「송파구 치과」 200·1개 · 「송파 치과 추천」 200·1개 · 2차 「송파 치과의원」 200·1개 · 「송파 치과병원」 200·1개 · 「송파치과」 200·4개 → 후보 5개(17 미만) → 검색어 단계 원장·질문 0. Vercel sin1·GH 러너 실측은 아직(Arch 배포 뒤)
+- 실측 *.modoo.at: shop.modoo.at · modoo.at 200(넘김 없음) — 본문 「네이버 modoo!가 2025년 6월 26일 종료 되었습니다」. 열리기는 해서 빌더 → 사이트 단계 됨(setup)으로 간다 — 아래 Known Gap
+- 실측: 옛 시험 주소 geo-rose-nine.vercel.app 이 cited.kr 로 308 — 세팅점검이 「다른 주소로 넘어가」에서 멈춘다(넘김 실패 길이 실제로 맞게 돈 것). 화면 시험 둘을 cited.kr 로 바꿈
+- 이행 dry(id 18 · 고객 A): domain → null · IndexNow 우리 → 안 씀 · wantGsc → false · derived 키 7개 → 0 · 사이트 단계 원장 · 체크리스트 뒤 사이트 8줄 해당없음·measure·auto·name 사람. 판별 말 흔함 1/3
+
+### Known Gaps (Step 55 빌드)
+- KG-55-9 네이버 modoo! 는 2025-06-26 종료 — *.modoo.at 은 종료 안내 페이지로 200. 자동 세팅이 「빌더 사이트 — 기술 세팅」으로 간다. 모두를 빌더에서 빼고 「사이트 없음」 갈래로 볼지 Arch
+- KG-55-10 domain null 고객은 measure-targets 측정설정(answerRe·domain 둘 다 필요)에서 빠진다 — 플랫폼·홈페이지 없음 고객의 자동 질문은 승인돼도 지금은 안 잰다
+- KG-55-11 D224 기준으로 id 18 판별 말 3개 중 1개만 흔함 — 단지 이름(시군구 표에 없음) 낀 말, 나머지 한글이 딱 2자인 말은 안 걸린다. 브리프는 셋 다 흔하다고 봤다. 기준(<2 → ≤2, 동네·단지 말)을 넓힐지 Arch
+- KG-55-12 업종 「안과」「내과」는 낱말 끝 일치라 「편안과」 같은 제목 낱말에도 걸릴 수 있다(제목은 ③ 마지막 출처)
+- KG-55-13 ai-measure cited 판정 `c.domain.endsWith("." + domain)` 은 domain 빈 글자면 「.」로 끝나는 출처에 맞는다 — domain null 고객은 측정 대상이 아니라 지금은 안 탄다(KG-55-10 을 풀 때 같이)
+- **D237 (Arch, 10-17)** 네이버 modoo! 는 2025-06-26 종료 — *.modoo.at 은 빌더가 아니라 「홈페이지 없음」과 같다(needs_build build · 사이트 줄 해당없음). KG-55-9 닫음. 반영(Bob): platform-hosts BUILDER_HOSTS 에서 modoo 뺌 · ENDED_HOSTS·endedOf · 호스트갈래 → 「없음」 · 입력나누기 domain null(원문은 auto.입력) · 입력검사(자세히) modoo 거부 · 체크리스트·재점검고르기는 갈래로 따라옴. 시험 +6(test-auto-setup-core 128 · test-client-core 229) · test-client-copy 11 · tsc 0
+- Arch 결정(10-17): KG-55-10 은 Known Gap 으로 두고 Step 56 에서 · KG-55-11 그대로(원장 줄이 열린다) · Bob 결정 ①~⑤ 받아들임

@@ -4,7 +4,7 @@
  *   node academy/scripts/test-onboard-screen.mjs --live [--out <폴더>]
  *
  * 로컬 next dev(운영 DB) + 새 헤드리스 chromium(빈 프로필) + /admin/enter?key= 로 관리자 쿠키만. 원장 로그인 브라우저는 안 연다.
- * 시험 고객(status 'test', 도메인은 우리 랜딩 — 남의 사이트를 두드리지 않는다)을 화면으로 등록 → 파일럿 시작(사이트 구축) →
+ * 시험 고객(status 'test', 도메인은 우리 랜딩 — 남의 사이트를 두드리지 않는다)을 두 칸 폼으로 등록(Step 55) → 파일럿 시작(사이트 구축 — 자동 리허설을 계약으로 올림) →
  * 상황 저장(도메인 담당 우리 · 블로그 받음) → 줄 상태 단언 → 1440·390 스크린샷 → cited(자사·리허설) 두 폭 → 시험 고객 지우기 · 남은 행 0.
  * 스크린샷은 --out 폴더(없으면 OS 임시 폴더). 저장소에 남기지 않는다
  */
@@ -45,7 +45,9 @@ const 한연결 = async (fn) => { const c = await pool.connect(); try { return a
 
 const WEB = fileURLToPath(new URL("../../web/", import.meta.url));
 const PORT = 3078, BASE = `http://localhost:${PORT}`;
-const SLUG = "e2e-onboard", NAME = "착수시험고객", DOMAIN = "geo-rose-nine.vercel.app";
+// 두 칸 등록(Step 55) — 관리명은 홈페이지 첫 마디로 자동(cited 가 쓰여 cited-2). 옛 시험 주소 geo-rose-nine.vercel.app 은
+// 이제 cited.kr 로 308 넘어가(2026-10-17 실측) 점검이 「다른 주소로 넘어가」에서 멈춘다 — 우리 사이트 cited.kr 를 직접 쓴다(시험 고객은 시험끼리만 중복을 본다)
+const SLUG = "cited-2", NAME = "착수시험고객", DOMAIN = "cited.kr";
 
 let 통과 = 0, 실패 = 0;
 const 봄 = (이름, 참, 보탬 = "") => { if (참) { 통과++; console.log(`  ✓ ${이름}`); } else { 실패++; console.log(`  ✗ ${이름}${보탬 ? ` — ${보탬}` : ""}`); } };
@@ -112,13 +114,13 @@ try {
   봄("관리자 쿠키 → /admin/clients", new URL(page.url()).pathname === "/admin/clients", page.url());
   봄("목록에 「계약 뒤 순서」 링크(코드 고객 빼고)", (await page.locator('a.cl-ob[href="/admin/clients/cited/onboard"]').count()) === 1
     && (await page.locator('a.cl-ob[href="/admin/clients/robotncoding/onboard"]').count()) === 0);
-  봄("등록 폼 도메인 설명 한 줄", (await page.locator("form.cl-form").first().innerText()).includes("홈페이지가 없으면 열 도메인(구축 계약 때 정함)"));
+  봄("등록 폼 홈페이지 설명 한 줄", (await page.locator('[data-testid="new-client"]').innerText()).includes("없으면 비움 · 블로그·플레이스·인스타 주소도 됨"));
 
-  // 2. 등록 — 화면 폼, 시험 고객
-  const f = page.locator("form.cl-form").first();
-  for (const [k, v] of Object.entries({ name: NAME, slug: SLUG, domain: `https://${DOMAIN}/`, answer_terms: `${NAME}, e2e-onboard`, compete: "시험 검색어 하나\n시험 검색어 둘\n시험 검색어 셋" })) {
-    await f.locator(`[name="${k}"]`).fill(v);
-  }
+  // 2. 등록 — 두 칸 폼, 시험 고객
+  const f = page.locator('[data-testid="new-client"]');
+  await f.locator('[name="name"]').fill(NAME);
+  await f.locator('[name="homepage"]').fill(`https://${DOMAIN}/`);
+  await f.locator("details > summary").click();
   await f.locator('[name="test"]').check();
   await f.locator('button[type="submit"]').click();
   await page.waitForURL(`**/admin/clients/${SLUG}**`, { timeout: 90000 });
@@ -132,7 +134,9 @@ try {
   const 단계순서 = async () => (await page.locator("[data-stage]").evaluateAll((xs) => xs.map((x) => x.getAttribute("data-stage")))).join(",");
   const 줄상태 = async (stage, rid) => page.locator(`[data-stage="${stage}"] [data-row="${rid}"]`).getAttribute("data-state");
   봄("파일럿 없음 — 진단 통과 순서", (await 단계순서()) === "contract,receive,site,kickoff,baseline,run30,day30", await 단계순서());
-  봄("파일럿 없음 — contract.pilot 원장님 몫", (await 줄상태("contract", "pilot")) === "원장님 몫");
+  봄("파일럿 없음 — contract.pilot 원장님 몫(자동 리허설은 계약 전)", (await 줄상태("contract", "pilot")) === "원장님 몫");
+  봄("자동 세팅 요약 한 줄 — 고객 화면 링크", (await page.locator('[data-testid="auto-summary"]').innerText()).startsWith("자동 세팅 ")
+    && ((await page.locator('[data-testid="auto-summary"]').innerText()).includes("마침") || (await page.locator(`[data-testid="auto-summary"] a[href="/admin/clients/${SLUG}"]`).count()) === 1));
 
   // 4. 파일럿 시작 — 사이트 구축
   await page.goto(`${BASE}/admin/clients/${SLUG}#pilot`);
@@ -156,8 +160,10 @@ try {
   await page.locator('#situation select[name="dns"]').evaluate((s) => { const o = document.createElement("option"); o.value = "누구"; s.appendChild(o); s.value = "누구"; });
   await page.locator('#situation button[type="submit"]').click();
   await page.waitForURL("**err=onboard**", { timeout: 90000 });
+  // config.auto 는 자동 세팅이 따로 쓴다(판·매시 고리) — 견줄 때 뺀다
+  const 자동빼고 = ({ auto: _a, ...x }) => JSON.stringify(x);
   봄("모르는 값 → 저장 안 됨 · 오류 한 줄", (await page.locator(".cl-err").innerText()).includes("저장 안 됨")
-    && JSON.stringify((await q(`select config from geo.clients where id = $1`, [id]))[0].config) === JSON.stringify(옛config));
+    && 자동빼고((await q(`select config from geo.clients where id = $1`, [id]))[0].config) === 자동빼고(옛config));
 
   // 6. 상황 저장 — 도메인 담당 우리 · 블로그 받음
   await page.goto(`${BASE}/admin/clients/${SLUG}/onboard`);
@@ -169,7 +175,8 @@ try {
   const 새config = (await q(`select config from geo.clients where id = $1`, [id]))[0].config;
   봄("config.onboard 저장 — dns 우리 · blog 받음", 새config.onboard?.dns === "우리" && 새config.onboard?.blog === "받음", JSON.stringify(새config.onboard));
   const { onboard: _o, ...나머지 } = 새config;
-  봄("다른 config 키는 그대로(indexnow 키·gsc·queries)", JSON.stringify(나머지) === JSON.stringify(옛config));
+  const { onboard: _o2, ...옛나머지 } = 옛config;
+  봄("다른 config 키는 그대로(indexnow 키·gsc·queries)", 자동빼고(나머지) === 자동빼고(옛나머지));
 
   // 7. 줄 상태
   봄("구축 순서 — 기준선이 사이트보다 먼저", (await 단계순서()) === "contract,receive,kickoff,baseline,site,run30,day30", await 단계순서());

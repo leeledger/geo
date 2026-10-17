@@ -2,6 +2,14 @@
 *Read this before reading anything else. If it covers current state, skip BUILD-LOG.*
 
 
+## Where We Stopped (2026-10-17 밤) — Step 55 브리프(두 칸 등록 · 자동 세팅 · 고객 글 기술 말 금지)
+
+- handoff/ARCHITECT-BRIEF.md = Step 55. Step 54 브리프는 handoff/research/ARCHITECT-BRIEF-step54.md
+- 55a platform-hosts.mjs(목록 옮기기만) / 55b 플랫폼·domain null → 사이트 8줄 해당없음 · send = 고칠것+보낼글 · 금지어 / 55c 등록 domain null·crawl_key·channel-taken·name-dup / 55d auto-setup-core(사이트→업종지역→검색어→파일럿→질문, 90초 임대) / 55e 두 칸 폼·자동 세팅 판·「자세히」 / 55f createPilot 리허설 업그레이드 / 55g company 자동이어하기·id 18 이행 / 55h 시험·--live A·B·C
+- 결정 D221~D236, KG-55-1~8 BUILD-LOG. KG-54-1 닫음
+- 다음: Bob(builder) → Richard → main 푸시 → 운영 시험 고객 1곳으로 자동완성(sin1) 상태 원문 기록·지우기 → migrate-platform-domain --apply(id 18) → 매시 로그 확인
+- 원장 몫: id 18 블로그 주소 전체를 다시 넣기 · id 18 흔한 판별 말 바꾸기(일감으로 뜬다)
+
 ## Where We Stopped (2026-10-17 저녁) — Step 54 브리프(계약 뒤 순서 화면)
 
 - handoff/ARCHITECT-BRIEF.md = Step 54. Step 53 브리프는 handoff/research/ARCHITECT-BRIEF-step53.md

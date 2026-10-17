@@ -40,17 +40,28 @@ export async function createPilot(form:FormData){await guard();
   // 답에 이 고객 이름이 나왔는지 가리는 말 — 고객 등록 때 받았다. 없으면 측정이 「측정 설정 없음」으로 멈춘다(Step 25 D1)
   if(!String(c.answer_pattern??"").trim())fail("terms");
   if(!NEEDS_BUILD.includes(needsBuild))fail("needs");
-  // 파일럿은 고객당 하나. 있으면 덮어쓰지 않고 되돌린다(두 번 누름·옛 화면) — 계약 칸 고치기는 파일럿 화면에서
-  if((await inqPool().query(`select 1 from geo.pilots where client_id=$1`,[c.id])).rows.length)fail("pilot-exists");
+  // 파일럿은 고객당 하나. 있으면 덮어쓰지 않고 되돌린다(두 번 누름·옛 화면) — 계약 칸 고치기는 파일럿 화면에서.
+  // 자동 세팅이 만든 리허설 파일럿(외부·입금 전)만은 막지 않고 그 행을 계약으로 올린다(Step 55f D231)
+  const 있는=(await inqPool().query(`select id,status,paid_on from geo.pilots where client_id=$1`,[c.id])).rows[0];
+  const 올림=!!있는&&있는.status==="리허설"&&있는.paid_on==null&&c.relation==="외부";
+  if(있는&&!올림)fail("pilot-exists");
   const brand=String(c.name);
   const db=await inqPool().connect(); let pilotId="";
   try{
     await db.query("begin");
     for(const s of PILOT_COLUMNS)await db.query(s);
     // 시작·종료는 입금 확인일 포함 30일(신청서 8행 — 고객 승인이 늦어진 기간도 든다). 구축·세팅이면 사이트 연 날이 생길 때 company.mjs 가 고친다(academy/pilot-plan.mjs)
-    const p=(await db.query(`insert into geo.pilots(client_id,price,payment_ref,contact_name,contact_email,contact_phone,receipt_type,terms_evidence,paid_at,started_on,ends_on,status,terms_accepted_at,needs_build,competitors,biz_type,refund_terms_sent_on,paid_on) values($1,390000,$2,$3,$4,$5,$6,$7,now(),$12::date,$12::date+29,'진행',now(),$8,$9,$10,$11,$12) returning id,started_on::text as started_on`,[c.id,payment,contactName,contactEmail,contactPhone,receiptType,terms,needsBuild,competitors,bizType,refundTermsOn,paidOn])).rows[0];
-    const qs=makeQuestions(brand,district,neighborhood,category,audience);
-    for(let i=0;i<qs.length;i++)await db.query(`insert into geo.pilot_questions(pilot_id,position,stage,text) values($1,$2,$3,$4) on conflict(pilot_id,position) do update set text=excluded.text`,[p.id,i+1,i<8?'지역':i<13?'문제':i<17?'비교':'브랜드',qs[i]]);
+    const 값=[c.id,payment,contactName,contactEmail,contactPhone,receiptType,terms,needsBuild,competitors,bizType,refundTermsOn,paidOn];
+    const p=올림
+      // 리허설 → 진행. 같은 행·같은 식 — 리허설·입금 전일 때만(그사이 바뀌었으면 0행 → pilot-exists)
+      ?(await db.query(`update geo.pilots set price=390000,payment_ref=$2,contact_name=$3,contact_email=$4,contact_phone=$5,receipt_type=$6,terms_evidence=$7,paid_at=now(),started_on=$12::date,ends_on=$12::date+29,status='진행',terms_accepted_at=now(),needs_build=$8,competitors=$9,biz_type=$10,refund_terms_sent_on=$11,paid_on=$12 where id=$13 and client_id=$1 and status='리허설' and paid_on is null returning id,started_on::text as started_on`,[...값,있는.id])).rows[0]
+      :(await db.query(`insert into geo.pilots(client_id,price,payment_ref,contact_name,contact_email,contact_phone,receipt_type,terms_evidence,paid_at,started_on,ends_on,status,terms_accepted_at,needs_build,competitors,biz_type,refund_terms_sent_on,paid_on) values($1,390000,$2,$3,$4,$5,$6,$7,now(),$12::date,$12::date+29,'진행',now(),$8,$9,$10,$11,$12) returning id,started_on::text as started_on`,값)).rows[0];
+    // 0행 = 그사이 리허설이 아니게 됨 — 아래 catch 가 같은 말(pilot-exists)로 돌려보낸다
+    if(!p)throw Object.assign(new Error("리허설 파일럿이 그사이 바뀜"),{code:"23505"});
+    // 질문이 이미 있으면(자동 패널·원장 승인) 덮지 않는다 — 없을 때만 makeQuestions(D231)
+    const 질문수=Number((await db.query(`select count(*)::int n from geo.pilot_questions where pilot_id=$1`,[p.id])).rows[0].n);
+    if(!질문수){const qs=makeQuestions(brand,district,neighborhood,category,audience);
+      for(let i=0;i<qs.length;i++)await db.query(`insert into geo.pilot_questions(pilot_id,position,stage,text) values($1,$2,$3,$4) on conflict(pilot_id,position) do nothing`,[p.id,i+1,i<8?'지역':i<13?'문제':i<17?'비교':'브랜드',qs[i]]);}
     for(const t of pilotTasks(needsBuild))await db.query(`insert into geo.pilot_tasks(pilot_id,code,title,due_on,owner,anchor,offset_days) values($1,$2,$3,$4::date+$5::int,$6,$7,$8) on conflict(pilot_id,code) do nothing`,[p.id,t.code,t.title,p.started_on,t.provisional,t.owner,t.anchor,t.offset]);
     for(const source of auditSources(category))for(const field of auditFields(category))await db.query(`insert into geo.local_audits(pilot_id,source,field) values($1,$2,$3) on conflict do nothing`,[p.id,source,field]);
     await db.query(`insert into geo.content_approvals(pilot_id) select $1 where not exists(select 1 from geo.content_approvals where pilot_id=$1)`,[p.id]);

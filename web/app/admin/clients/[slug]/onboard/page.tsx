@@ -7,6 +7,7 @@ import { markGscGranted } from "@/lib/client-actions";
 import { getOnboard } from "@/lib/onboard";
 import { saveOnboard } from "@/lib/onboard-actions";
 import { 착수순서, type 줄상태 } from "@/lib/onboard-core.mjs";
+import { 자동요약, type Auto } from "@/lib/auto-setup-core.mjs";
 import AdminNav from "../../../AdminNav";
 import SubmitButton from "../../../SubmitButton";
 import CopyButton from "../../../ops/CopyButton";
@@ -52,6 +53,9 @@ export default async function Page({ params, searchParams }: {
   const r = 코드 ? null : 착수순서(입력);
   const ob = (row.config?.onboard ?? {}) as Record<string, any>;
   const ch = (ob.channels ?? {}) as Record<string, string | null>;
+  // 자동 세팅 요약 한 줄 — 판은 고객 화면에만 있다(복제하지 않는다, 55e)
+  const auto = (row.config?.auto ?? null) as Auto | null;
+  const 자동 = auto?.단계 ? 자동요약(auto) : null;
 
   return (
     <main className="adm">
@@ -65,6 +69,11 @@ export default async function Page({ params, searchParams }: {
           {입력.pilot?.id && <> · <Link href={`/admin/pilots/${입력.pilot.id}`}>파일럿 화면</Link></>}
           {" · "}<Link href="/admin/clients">고객사 목록</Link>
         </p>
+        {자동 && (
+          <p className="ob-sum" data-testid="auto-summary">
+            {자동.끝 ? `자동 세팅 ${자동.된}/${자동.전부} 마침` : <>자동 세팅 {자동.된}/{자동.전부}{자동.원장.length ? " · 원장님 몫이 있습니다" : ""} — <Link href={`/admin/clients/${slug}`}>고객 화면에서</Link></>}
+          </p>
+        )}
         {saved && <p className="cl-note" role="status">저장했습니다.</p>}
         {err === "onboard" && <p className="cl-err" role="alert">저장 안 됨 — 고를 수 없는 값이나 틀린 주소·날짜가 있습니다</p>}
 

@@ -5,8 +5,11 @@
  * 새로 저장하는 것은 없다(D204) — 체크리스트()·geo.pilots·pilot_tasks·getPilot()·로그인 일감·크롤 방문을 읽어 묶는다.
  * 상황 답(도메인 담당·서치어드바이저·빙·블로그 계정·기존 채널·이관)만 config.onboard 에 둔다.
  * 숫자는 입력에 있는 것만 쓴다(D211). 못 읽었으면 「못 읽음」, 기록이 없으면 「기록 없음」 — 0 을 지어내지 않는다. 비율·성공 판정은 계산하지 않는다.
+ * 고객에게 가는 글(보낼글)에는 기술 말이 없다(D233 — client-core 고객금지말, 시험 test-client-copy). 고객이 할 일이 없으면 보낼 글도 없다.
  */
 import { 오늘KST, 월일 } from "./client-status-core.mjs";
+import { 갈래 as 홈갈래 } from "./client-core.mjs";
+import { platformOf } from "./platform-hosts.mjs";
 
 export const 누가 = { 자동: "자동", 세션: "Claude 세션", 원장: "원장님", 고객: "고객" };
 export const 상태 = { 됨: "됨", 도는: "도는 중", 원장: "원장님 몫", 고객: "고객 기다림", 아직: "아직", 없음: "해당없음", 못: "못 읽음" };
@@ -48,7 +51,8 @@ const 판정글 = "지역·문제·비교 17문항의 7일 비율이 기준선�
 const 인사 = (name) => `안녕하세요, ${name} 담당자님.`;
 /** 재촉 글 — 무엇을 · 왜 지금 필요한지 · 회신 방법. 불안을 팔지 않는다 */
 const 재촉 = (name, 무엇, 왜) => `${인사(name)}\n${무엇} 아직 받지 못했습니다. ${왜}. 이 메일에 답장으로 보내 주시거나 편하실 때 전화 주세요.`;
-const dns물음 = (name) => `${인사(name)}\n홈페이지 도메인과 호스팅 관리 화면에 누가 들어갈 수 있는지 알려 주세요. 저희가 직접 고칠지, 담당자께 고칠 목록을 드릴지 정하려고 합니다.`;
+const dns물음 = (name) => `${인사(name)}\n홈페이지 관리자 아이디를 알려 주시거나, 홈페이지를 만든 업체 연락처를 알려 주세요. 손볼 곳은 저희가 직접 고칩니다.`;
+const 블로그물음 = (name, 플랫폼) => `${인사(name)}\n${플랫폼} 아이디로 저희가 들어갈 수 있게 해 주세요. 글은 저희가 올리고 미리 보여 드립니다.`;
 
 const 주소인가 = (s) => { try { const u = new URL(String(s)); return u.protocol === "http:" || u.protocol === "https:"; } catch { return false; } };
 
@@ -62,7 +66,11 @@ export function 착수순서(입력, 오늘 = 오늘KST()) {
   const c = row.config && typeof row.config === "object" ? row.config : {};
   const ob = c.onboard && typeof c.onboard === "object" && !Array.isArray(c.onboard) ? c.onboard : {};
   const 기록표앞 = 입력.site ?? SITE;
-  const p = 입력.pilot ?? null;
+  // 자동 세팅이 만든 리허설 파일럿(외부·입금 전)은 계약 전이다 — 파일럿 없음과 같은 순서로 편다(55f 가 계약으로 올린다)
+  const 자동리허설 = 입력.pilot?.status === "리허설" && row.relation === "외부" && !날(입력.pilot?.paid_on);
+  const p = 자동리허설 ? null : 입력.pilot ?? null;
+  const 홈 = 홈갈래(row);
+  const 홈있음 = 홈 === "사이트" || 홈 === "빌더";
   const 배열 = (x) => (Array.isArray(x) ? x : []);
   const tasks = 배열(입력.tasks), questions = 배열(입력.questions), content = 배열(입력.content), ai = 배열(입력.ai), checks = 배열(입력.checks), audits = 배열(입력.audits);
   const 세팅 = new Map(배열(입력.세팅줄).map((x) => [x.id, x]));
@@ -138,8 +146,9 @@ export function 착수순서(입력, 오늘 = 오늘KST()) {
     ? { id: "intake", 칸: "사업자·공식 정보·관리자 권한", 누가: 누가.고객, 상태: 아직, 사람말: "파일럿을 시작하면 받을 것 목록이 생깁니다" }
     : 완료("intake")
       ? { id: "intake", 칸: "사업자·공식 정보·관리자 권한", 누가: 누가.고객, 상태: 됨, 사람말: "받았습니다" }
-      : 고객줄({ id: "intake", 칸: "사업자·공식 정보·관리자 권한", 사람말: "상호·주소·전화·운영시간과 사이트 관리자 권한을 받습니다", 링크: 파일럿링크 }, T("intake")?.due_on,
-        "사업자 정보와 공식 정보(상호·주소·전화·운영시간), 사이트 관리자 권한을", "곳마다 같은 정보로 맞춰야 첫 측정과 점검을 시작할 수 있습니다"));
+      : 고객줄({ id: "intake", 칸: "사업자·공식 정보·관리자 권한", 사람말: `상호·주소·전화·운영시간${홈있음 ? "과 홈페이지 관리자 아이디" : ""}를 받습니다`, 링크: 파일럿링크 }, T("intake")?.due_on,
+        홈있음 ? "사업자 정보와 공식 정보(상호·주소·전화·운영시간), 홈페이지 관리자 아이디를" : "사업자 정보와 공식 정보(상호·주소·전화·운영시간)를",
+        "곳마다 같은 정보로 맞춰야 첫 측정과 점검을 시작할 수 있습니다"));
 
   const ch = ob.channels && typeof ob.channels === "object" ? ob.channels : {};
   const 채널 = [["blog", "블로그"], ["place", "플레이스"], ["sns", "SNS"]].filter(([k]) => 주소인가(ch[k]));
@@ -186,6 +195,8 @@ export function 착수순서(입력, 오늘 = 오늘KST()) {
 
   const 일감 = 입력.로그인일감;
   const blog = ob.blog ?? null;
+  const 블로그주소 = 주소인가(ch.blog) ? String(ch.blog) : null;
+  const 블로그플랫폼 = 블로그주소 ? (() => { try { return platformOf(new URL(블로그주소).hostname)?.name ?? "블로그"; } catch { return "블로그"; } })() : null;
   const 저장명령 = `원장 PC 에서 한 번: node tools/save-login.mjs naver-${row.slug} — 끝나면 「상황 바꾸기」에 저장한 날을 넣습니다`;
   receive.push(
     blog === "없음" ? { id: "blog", 칸: "네이버 블로그 계정", 누가: 누가.고객, 상태: 없음, 사람말: "고객에게 네이버 블로그가 없습니다" }
@@ -197,6 +208,9 @@ export function 착수순서(입력, 오늘 = 오늘KST()) {
         : 날(ob.blogSavedOn)
           ? { id: "blog", 칸: "네이버 블로그 계정", 누가: 누가.원장, 상태: 됨, 사람말: `${월일(날(ob.blogSavedOn))} 원장 PC 에 로그인을 저장했다고 표시했습니다` }
           : { id: "blog", 칸: "네이버 블로그 계정", 누가: 누가.원장, 상태: 원장, 사람말: 저장명령 })
+    // 채널에 블로그 주소가 있으면 묻지 않고 아이디만 받는다 — 보낼 글 하나
+    : 블로그주소 ? { id: "blog", 칸: "네이버 블로그 계정", 누가: 누가.원장, 상태: 원장, 사람말: `블로그(${블로그주소})에 우리가 글을 올리려면 아이디가 필요합니다 — 받으면 「상황 바꾸기」에서 「받음」`,
+      보낼글: 블로그물음(row.name, 블로그플랫폼), 링크: 상황링크 }
     : { id: "blog", 칸: "네이버 블로그 계정", 누가: 누가.원장, 상태: 원장, 사람말: "블로그가 있는지, 우리가 글을 올려도 되는지 묻고 「상황 바꾸기」에서 고릅니다", 링크: 상황링크 });
 
   if (ob.migrate === true) {
@@ -215,17 +229,19 @@ export function 착수순서(입력, 오늘 = 오늘KST()) {
     else if (!x) site.push({ id, 칸: 칸이름[id], 누가: 누가.자동, 상태: 못, 사람말: "세팅 체크리스트를 못 읽었습니다" });
     else site.push({ id, 칸: x.칸, 누가: 누가.자동, 상태: 세팅상태[x.상태] ?? 못, 사람말: x.사람말 });
   }
+  // send — 세팅줄의 보낼글만 고객에게 간다(D232). 할일·고칠것(기술 목록)은 보낼글로 쓰지 않는다
   const send = 세팅.get("send");
   if (!사이트있음) site.push({ id: "send", 칸: "고객 담당에게 보낼 것", 누가: 누가.원장, 상태: 없음, 사람말: 연뒤 });
   else if (!send) site.push({ id: "send", 칸: "고객 담당에게 보낼 것", 누가: 누가.원장, 상태: 못, 사람말: "세팅 체크리스트를 못 읽었습니다" });
+  else if (send.상태 === "해당없음") site.push({ id: "send", 칸: send.칸, 누가: 누가.원장, 상태: 없음, 사람말: send.사람말 });
   else if (send.상태 === "됨") site.push({ id: "send", 칸: send.칸, 누가: dns === "우리" ? 누가.세션 : 누가.원장, 상태: 됨, 사람말: send.사람말 });
-  else if (send.상태 !== "사람") site.push({ id: "send", 칸: send.칸, 누가: 누가.자동, 상태: 세팅상태[send.상태] ?? 못, 사람말: send.사람말 });
-  else if (dns === "우리") {
-    const n = /^(\d+)가지/.exec(send.사람말 ?? "")?.[1];
-    site.push({ id: "send", 칸: "고칠 것", 누가: 누가.세션, 상태: 도는, 사람말: `우리가 직접 고칩니다 — ${n ? `빠진 ${n}가지를` : "위에서 빠진 것을"} Claude 세션이 반영합니다`, 근거: send.할일 });
-  } else if (dns === "모름") {
+  else if (dns === "우리" && send.고칠것) {
+    const n = /^.*?고칠 것 (\d+)가지/.exec(send.고칠것)?.[1];
+    site.push({ id: "send", 칸: "고칠 것", 누가: 누가.세션, 상태: 도는, 사람말: `우리가 직접 고칩니다 — ${n ? `빠진 ${n}가지를` : "위에서 빠진 것을"} Claude 세션이 반영합니다`, 근거: send.고칠것 });
+  } else if (send.상태 !== "사람") site.push({ id: "send", 칸: send.칸, 누가: 누가.자동, 상태: 세팅상태[send.상태] ?? 못, 사람말: send.사람말 });
+  else if (dns === "모름") {
     site.push({ id: "send", 칸: send.칸, 누가: 누가.원장, 상태: 원장, 사람말: "고칠 것이 있는데 누가 고칠지 모릅니다 — 먼저 묻고 「상황 바꾸기」에서 고릅니다", 보낼글: dns물음(row.name) });
-  } else site.push({ id: "send", 칸: send.칸, 누가: 누가.원장, 상태: 원장, 사람말: send.사람말, 보낼글: send.할일 });
+  } else site.push({ id: "send", 칸: send.칸, 누가: 누가.원장, 상태: 원장, 사람말: send.사람말, ...(send.보낼글 ? { 보낼글: send.보낼글 } : {}) });
 
   if (구축) {
     const 보인날 = 날(nb === "build" ? ob.draftShownOn : ob.setupReportOn);
@@ -255,7 +271,8 @@ export function 착수순서(입력, 오늘 = 오늘KST()) {
   const 승인수 = questions.filter((x) => x.approved === true).length;
   const 승인됨 = !!approvedAt || 완료("questions");
   const kickoffRows = [];
-  if (!p) kickoffRows.push({ id: "questions", 칸: "질문 20개 승인", 누가: 누가.고객, 상태: 아직, 사람말: "파일럿을 시작하면 질문 20개가 생깁니다" });
+  if (!p) kickoffRows.push({ id: "questions", 칸: "질문 20개 승인", 누가: 누가.고객, 상태: 아직,
+    사람말: 자동리허설 && questions.length ? `질문 ${questions.length}개를 자동으로 만들어 두었습니다 — 파일럿을 시작하면 승인을 받습니다` : "파일럿을 시작하면 질문 20개가 생깁니다" });
   else if (승인됨) kickoffRows.push({ id: "questions", 칸: "질문 20개 승인", 누가: 누가.고객, 상태: 됨, 사람말: `승인 ${승인수}/${questions.length}${approvedAt ? ` · ${월일(approvedAt)}` : ""}`, 근거: `${승인수}/${questions.length}` });
   else kickoffRows.push(고객줄({ id: "questions", 칸: "질문 20개 승인",
     사람말: `승인 ${승인수}/${questions.length} — 고객이 승인하면 다음 측정부터 잽니다${nb === "none" && ends ? ` · 승인이 늦어도 30일은 ${월일(ends)} 에 끝납니다(신청서 8행)` : ""}`,

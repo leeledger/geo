@@ -11,13 +11,20 @@ export type 입력칸 = {
   name: string; slug: string; domain: string | null;
   answerTerms: string[]; answerExclude: string[]; compete: string[]; brand: string[];
   address: string | null; phone4: string | null; relation: string; test: boolean; wantGsc: boolean;
+  /** 두 칸 등록(Step 55) — config.auto · config.onboard.channels · 같은 이름 「그래도 등록」 */
+  auto?: Record<string, unknown>; channels?: Record<string, string | null>; 이름겹침허용?: boolean;
 };
+export function 호스트(raw: unknown): { host: string | null; 까닭: string | null };
+export const 고객금지말: string[];
+export function 금지말찾기(글: unknown): string[];
+export function 채널정리(url: unknown): string | null;
 export function 입력검사(f: Record<string, unknown>): { ok: boolean; 칸: 입력칸; 오류: string[] };
 export const 오류말: Record<string, string>;
 
-export type 결과 = { ok: true; id: number; slug: string; 도메인바뀜?: boolean } | { ok: false; err: string; 남음?: number };
+export type 결과 = { ok: true; id: number; slug: string; 도메인바뀜?: boolean } | { ok: false; err: string; 남음?: number; 겹침?: string };
 export function 고객칸준비(q: Q): Promise<void>;
 export function 새키(): string;
+export function 새크롤키(): string;
 export function 등록(q: Q, 칸: 입력칸): Promise<결과>;
 export function 고치기(q: Q, slug: string, 칸: 입력칸): Promise<결과>;
 export function 폼값(row: Record<string, any>): {
@@ -39,6 +46,7 @@ export function 바깥글폼값(row: Record<string, any>): Record<string, string
 type 칸결과 = { status: number | null; type?: string; error?: string; head?: string };
 export type Derived = {
   checkedAt: string;
+  platform?: Record<string, any>;
   home: 칸결과;
   homeLdTypes?: string[];
   robots: 칸결과 & { blocked?: string[] };
@@ -58,10 +66,16 @@ type LookupLike = (host: string) => Promise<{ address: string; family?: number }
 export const 본문상한: number;
 export function 내부주소(ip: string): boolean;
 export function 세팅점검(domain: string, key: string | null, opts?: { fetch?: FetchLike; lookup?: LookupLike; 한도?: number; 전체?: number; 상한?: number; now?: () => Date }): Promise<Derived>;
-export function 점검저장(q: Q, row: Record<string, any>, opts?: { fetch?: FetchLike }): Promise<Derived>;
+export function 홈열기(domain: string, opts?: { fetch?: FetchLike; lookup?: LookupLike; 한도?: number; 전체?: number; 상한?: number }): Promise<{ status: number | null; url: string; type?: string; body?: string; headers?: Record<string, string>; error?: string }>;
+export function 점검저장(q: Q, row: Record<string, any>, opts?: { fetch?: FetchLike; lookup?: LookupLike }): Promise<Derived>;
 
 export type 상태 = "됨" | "기다림" | "사람" | "해당없음";
-export type 줄 = { id: string; 칸: string; 상태: 상태; 사람말: string; 할일?: string };
+export type 줄 = { id: string; 칸: string; 상태: 상태; 사람말: string; 할일?: string; 보낼글?: string; 고칠것?: string };
+export type 자동단계이름 = "사이트" | "업종지역" | "검색어" | "파일럿" | "질문";
+export const 자동단계: 자동단계이름[];
+export const 자동단계말: Record<자동단계이름, string>;
+export function 갈래(row: Record<string, any> | null | undefined): "사이트" | "빌더" | "플랫폼" | "없음";
+export const 보낼글말: { 사이트: (name: string) => string; 빌더: (name: string, 빌더: string) => string };
 export type 파일럿 = { id: string; status: string; approved: boolean } | null;
 export function 체크리스트(row: Record<string, any>, derived: unknown, opts?: { pilot?: 파일럿 }): 줄[];
 export function 요약(줄: 줄[]): { 사람: number; 기다림: number };

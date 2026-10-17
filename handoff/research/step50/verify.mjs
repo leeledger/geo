@@ -108,6 +108,8 @@ async function tsUrl(file) {
   let js = ts.transpileModule(fs.readFileSync(file, "utf8"), { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } }).outputText;
   const dir = file.slice(0, file.lastIndexOf("/"));
   for (const m of [...js.matchAll(/from\s+"((?:\.\/|@\/lib\/)[^"]+)"/g)]) {
+    // .mjs 는 그대로 file: 주소로(Step 55a — platform-hosts.mjs)
+    if (m[1].endsWith(".mjs")) { js = js.replace(`"${m[1]}"`, `"${new URL(m[1].replace(/^@\/lib\//, "./"), `file:///${dir}/`).href}"`); continue; }
     const dep = m[1].startsWith("@/lib/") ? `C:/dev/AGO&GEO/web/lib/${m[1].slice(6)}.ts` : `${dir}/${m[1].slice(2)}.ts`;
     js = js.replace(`"${m[1]}"`, `"${await tsUrl(dep)}"`);
   }

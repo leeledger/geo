@@ -5,16 +5,16 @@ import { isAdmin } from "@/lib/admin-auth";
 import { inqPool } from "@/lib/inquiries";
 import { CODE_SLUGS, 체크리스트, 요약, 오류말 } from "@/lib/client-core.mjs";
 import AdminNav from "../AdminNav";
-import ClientForm from "./ClientForm";
+import NewClientForm from "./NewClientForm";
 import "./clients.css";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
-// 등록 서버 동작이 저장 뒤 고객 사이트를 연다(한 주소 8초·전체 20초). 서버 동작 시간 한도는 이 페이지의 maxDuration 이다(next docs maxDuration「Server Actions」)
+// 두 칸 등록은 바깥 요청 없이 칸만 채운다(2초 안). 사이트를 여는 자동 세팅은 고객 화면 판이 한 단계씩(그 페이지 maxDuration 60)
 export const maxDuration = 60;
 
 /**
- * 고객사 — 목록과 등록(Step 38). 고객사를 만드는 곳은 여기 하나다. 파일럿은 고객 상세에서 시작한다.
+ * 고객사 — 목록과 등록(Step 38 → Step 55: 두 칸). 고객사를 만드는 곳은 여기 하나다. 파일럿은 고객 상세에서 시작한다.
  * 코드로 설정한 3곳(학원·아이로그·문서딱)은 academy/clients.mjs 에 있어 화면에서 안 고친다.
  */
 
@@ -80,8 +80,8 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ k
 
         <section className="cl-new" aria-labelledby="cl-new-h">
           <h2 id="cl-new-h">새 고객사 등록</h2>
-          <p className="sub">저장하면 IndexNow 키를 만들고, 사이트를 바로 열어 robots·사이트맵·llms.txt·JSON-LD·키 파일을 봅니다. 빈 칸은 고객 상세 맨 위 체크리스트가 말합니다.</p>
-          <ClientForm mode="new" 값={{ relation: "외부", want_gsc: "on" }} />
+          <p className="sub">이름과 홈페이지만 넣습니다. 나머지(관리명·판별 말·업종·지역·검색어·질문·리허설 파일럿)는 고객 화면의 자동 세팅이 근거가 있는 것만 채우고, 못 찾으면 원장님 몫으로 올립니다.</p>
+          <NewClientForm />
         </section>
       </div>
     </main>

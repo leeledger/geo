@@ -4,10 +4,10 @@ import { redirect } from "next/navigation";
 
 import { isAdmin } from "./admin-auth";
 import { inqPool } from "./inquiries";
-import { CODE_SLUGS, 고치기, 등록, 오류말, 입력검사, 점검저장, 지우기, 바깥글입력검사, 바깥글고치기 } from "./client-core.mjs";
+import { CODE_SLUGS, 고치기, 오류말, 입력검사, 점검저장, 지우기, 바깥글입력검사, 바깥글고치기 } from "./client-core.mjs";
 
 /**
- * 고객사 등록·고치기·다시 점검·GSC 권한 받음·지우기 (Step 38). 계산·SQL 은 client-core.mjs — 회사 루프·시험과 같은 함수.
+ * 고객사 고치기·다시 점검·GSC 권한 받음·지우기 (Step 38). 새 등록은 두 칸 폼(auto-setup-actions.ts registerAuto, Step 55 D221). 계산·SQL 은 client-core.mjs — 회사 루프·시험과 같은 함수.
  * 서버 동작은 동작 번호만 알면 누구나 부를 수 있다 — 화면과 별개로 여기서 관리자를 다시 본다(pilot-actions 와 같은 guard).
  * 점검은 한 주소 8초·전체 20초. 이 화면 page.tsx 의 maxDuration 60 안에 든다(node_modules/next/dist/docs … maxDuration「Server Actions」).
  */
@@ -15,7 +15,7 @@ async function guard() {
   if (!(await isAdmin())) throw new Error("관리자만 할 수 있습니다");
 }
 
-/** 한 연결에 묶은 q — 등록·지우기가 그 위에서 begin/commit 한다 */
+/** 한 연결에 묶은 q — 지우기가 그 위에서 begin/commit 한다 */
 async function 연결<T>(fn: (q: (s: string, p?: unknown[]) => Promise<any[]>) => Promise<T>): Promise<T> {
   const db = await inqPool().connect();
   try {
@@ -45,20 +45,7 @@ export type FormState = { 오류: string[]; 값: Record<string, string>; n: numb
 // 「$ACTION_…」 은 Next 가 넣는 칸 — 돌려줄 값에서 뺀다
 const 폼글자 = (form: FormData) => Object.fromEntries([...form.entries()].filter(([k]) => !k.startsWith("$")).map(([k, v]) => [k, String(v)]));
 
-/** 등록 폼(useActionState). 입력 오류·거부는 화면에 그대로, 값은 돌려줘 다시 치지 않게 */
-export async function registerClient(prev: FormState, form: FormData): Promise<FormState> {
-  await guard();
-  const 값 = 폼글자(form);
-  const r = 입력검사(값);
-  if (!r.ok) return { 오류: r.오류, 값, n: prev.n + 1 };
-  const 결과 = await 연결((dq) => 등록(dq, r.칸));
-  if (!결과.ok) return { 오류: [오류말[결과.err] ?? "저장 안 됨"], 값, n: prev.n + 1 };
-  const ok = await 점검(결과.slug);
-  revalidatePath("/admin/clients");
-  redirect(`/admin/clients/${결과.slug}${ok ? "" : "?err=check"}`);
-}
-
-/** 고치기 폼. slug 는 바꾸지 않는다. 도메인이 바뀌면 바로 다시 점검 */
+/** 고치기 폼(「자세히」). slug 는 바꾸지 않는다. 도메인이 바뀌면 바로 다시 점검(홈페이지가 없으면 안 연다) */
 export async function updateClient(prev: FormState, form: FormData): Promise<FormState> {
   await guard();
   const 값 = 폼글자(form);
@@ -67,7 +54,7 @@ export async function updateClient(prev: FormState, form: FormData): Promise<For
   if (!r.ok) return { 오류: r.오류, 값, n: prev.n + 1 };
   const 결과 = await 고치기(q, slug, r.칸);
   if (!결과.ok) return { 오류: [오류말[결과.err] ?? "저장 안 됨"], 값, n: prev.n + 1 };
-  const ok = 결과.도메인바뀜 ? await 점검(slug) : true;
+  const ok = 결과.도메인바뀜 && r.칸.domain ? await 점검(slug) : true;
   revalidatePath(`/admin/clients/${slug}`);
   redirect(`/admin/clients/${slug}?${ok ? "saved=1" : "err=check"}`);
 }

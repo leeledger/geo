@@ -3,7 +3,8 @@ import Link from "next/link";
 
 import { isAdmin } from "@/lib/admin-auth";
 import { inqPool } from "@/lib/inquiries";
-import { CODE_SLUGS, 체크리스트, 폼값, 바깥글폼값, 오류말, 파일럿상태, type Derived } from "@/lib/client-core.mjs";
+import { CODE_SLUGS, 체크리스트, 폼값, 바깥글폼값, 오류말, 파일럿상태, 갈래, 자동단계, 자동단계말, type Derived } from "@/lib/client-core.mjs";
+import { 다음단계, 자동요약, type Auto } from "@/lib/auto-setup-core.mjs";
 import { createPilot } from "@/lib/pilot-actions";
 import { recheckClient, markGscGranted, deleteTestClient } from "@/lib/client-actions";
 import { NEEDS_BUILD, NEEDS_BUILD_LABEL } from "@/lib/pilot-plan";
@@ -11,16 +12,17 @@ import AdminNav from "../../AdminNav";
 import SubmitButton from "../../SubmitButton";
 import CopyButton from "../../ops/CopyButton";
 import ClientForm from "../ClientForm";
+import AutoSetupPanel, { type 판줄 } from "./AutoSetupPanel";
 import MarketingForm from "../MarketingForm";
 import "../clients.css";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
-// 「다시 점검」·고치기(도메인 바뀜) 서버 동작이 고객 사이트를 연다(전체 20초). 서버 동작 시간 한도 = 이 페이지 maxDuration(next docs)
+// 「다시 점검」·고치기(도메인 바뀜)·자동 세팅 한 단계(≤30초) 서버 동작이 바깥을 연다. 서버 동작 시간 한도 = 이 페이지 maxDuration(next docs)
 export const maxDuration = 60;
 
 /**
- * 고객 한 곳(Step 38). 맨 위 체크리스트(됨·기다림·사람·해당없음) → 고치기 → 점검 근거 → 파일럿 시작(외부·파일럿 없음) → 지우기(시험만).
+ * 고객 한 곳(Step 38 → 55). 맨 위 자동 세팅 판(두 칸 등록 고객) → 체크리스트(됨·기다림·사람·해당없음) → 점검 근거 → 자세히(고치기) → 파일럿 시작(외부·파일럿 없음) → 지우기(시험만).
  * 점검 근거(고객 사이트 본문 앞 300자)는 이 화면에만 보인다.
  */
 
@@ -49,6 +51,18 @@ function errText(err?: string, f?: string): string | null {
 
 const kstToday = () => new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(0, 10);
 const kst = (iso?: string) => (iso ? new Date(iso).toLocaleString("ko-KR", { timeZone: "Asia/Seoul", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "—");
+
+/** 자동 세팅 판 줄 — 시각은 KST, 도는중이면 몇 분 전 */
+function 판줄들(auto: Auto, now: number): 판줄[] {
+  return 자동단계.map((k) => {
+    const s = auto.단계?.[k] ?? { 상태: "대기" as const };
+    const t = Date.parse(s.at ?? "");
+    return {
+      k, 이름: 자동단계말[k], 상태: s.상태, 말: s.말 ?? "", 시각: s.at ? kst(s.at) : "", 시도: s.시도 ?? 0, ...(s.오류 ? { 오류: s.오류 } : {}),
+      몇분전: s.상태 === "도는중" && Number.isFinite(t) ? Math.max(0, Math.floor((now - t) / 60000)) : null,
+    };
+  });
+}
 const 상태반 = { 됨: "done", 기다림: "wait", 사람: "human", 해당없음: "na" } as const;
 
 export default async function Page({ params, searchParams }: {
@@ -72,6 +86,15 @@ export default async function Page({ params, searchParams }: {
   const 말 = errText(err, f);
   const 값 = 폼값(row);
   const 폼 = Object.fromEntries(Object.entries(값).map(([k, v]) => [k, typeof v === "boolean" ? (v ? "on" : "") : v]));
+  const auto = (row.config?.auto ?? null) as Auto | null;
+  const 지금 = Date.now();
+  const 요약 = auto?.단계 ? 자동요약(auto) : null;
+  const 사이트있음 = !["없음", "플랫폼"].includes(갈래(row));
+  // 파일럿 시작 폼 기본값 — 자동 세팅이 읽은 업종·지역·사이트 상태(원장이 고칠 수 있다, 55f)
+  const 기본: Record<string, string> = { district: auto?.사실?.지역?.값 ?? "", category: auto?.사실?.업종?.값 ?? "" };
+  const [리허설] = row.relation === "외부" && !pilot
+    ? await q(`select id from geo.pilots where client_id = $1 and status = '리허설' and paid_on is null`, [row.id]).catch(() => [])
+    : [];
 
   const 근거: [string, { status?: number | null; type?: string; head?: string; error?: string; url?: string } | undefined, string][] = [
     ["홈", d.home, Array.isArray(d.homeLdTypes) ? `JSON-LD: ${d.homeLdTypes.length ? d.homeLdTypes.join(", ") : "없음"}` : ""],
@@ -88,7 +111,7 @@ export default async function Page({ params, searchParams }: {
           <h1>{row.name}{row.status === "test" && <span className="cl-tag">시험</span>}</h1>
           <AdminNav here="/admin/clients" />
         </div>
-        <p className="sub">{row.domain} · {row.relation ?? "외부"} · <Link href="/admin/clients">고객사 목록</Link>{!코드 && <> · <Link href={here + "/onboard"}>계약 뒤 순서</Link></>}</p>
+        <p className="sub">{row.domain ?? "홈페이지 없음"} · {row.relation ?? "외부"} · <Link href="/admin/clients">고객사 목록</Link>{!코드 && <> · <Link href={here + "/onboard"}>계약 뒤 순서</Link></>}</p>
         {saved && <p className="cl-note" role="status">저장했습니다.</p>}
         {checked && <p className="cl-note" role="status">사이트를 다시 열어 봤습니다.</p>}
         {말 && <p className="cl-err" role="alert">{말}</p>}
@@ -97,6 +120,11 @@ export default async function Page({ params, searchParams }: {
           <p className="adm-empty">코드로 설정한 고객입니다(academy/clients.mjs). 화면에서 고치지 않습니다.</p>
         ) : (
           <>
+            {auto?.단계 && 요약 && (
+              <AutoSetupPanel slug={slug} 줄={판줄들(auto, 지금)} 다음={다음단계(auto, new Date(지금), { 실패도: false })} 끝={요약.끝} 된={요약.된}
+                사실={{ 업종: auto.사실?.업종?.값 ?? "", 지역: auto.사실?.지역?.값 ?? "" }}
+                출처={{ 업종: auto.사실?.업종?.출처 ?? "아직 안 읽음", 지역: auto.사실?.지역?.출처 ?? "아직 안 읽음" }} />
+            )}
             <section aria-labelledby="ck-h">
               <h2 id="ck-h">세팅 체크리스트</h2>
               <p className="sub">마지막 점검 {kst(d.checkedAt)} · 매시 회사 루프가 24시간 지난 고객을 다시 엽니다</p>
@@ -106,14 +134,16 @@ export default async function Page({ params, searchParams }: {
                     <span className="k">{x.칸}</span>
                     <span className={`s ${상태반[x.상태]}`}>{x.상태 === "사람" ? "원장님 몫" : x.상태}</span>
                     <span className="m">{x.사람말}</span>
-                    {x.상태 === "사람" && x.할일 && (
+                    {/* 고객에게 가는 글은 보낼글만 복사 칸으로(D232). 할일·고칠것은 원장·Claude 세션이 읽는 글 */}
+                    {x.상태 === "사람" && (x.할일 || x.보낼글) && (
                       <div className="todo">
-                        {x.id === "send" ? (
+                        {x.보낼글 && (
                           <>
-                            <textarea readOnly defaultValue={x.할일} aria-label="고객 담당에게 보낼 글" />
-                            <div><CopyButton text={x.할일} label="보낼 글 복사" /></div>
+                            <textarea readOnly defaultValue={x.보낼글} aria-label="고객 담당에게 보낼 글" />
+                            <div><CopyButton text={x.보낼글} label="보낼 글 복사" /></div>
                           </>
-                        ) : <span>{x.할일}</span>}
+                        )}
+                        {x.할일 && <span className="todo-t">{x.할일}</span>}
                         {x.id === "gsc" && (
                           <form action={markGscGranted}>
                             <input type="hidden" name="slug" value={slug} />
@@ -123,14 +153,22 @@ export default async function Page({ params, searchParams }: {
                         {x.id === "measure" && <div><a className="adm-btn alt" href="#pilot">파일럿 시작 폼으로</a></div>}
                       </div>
                     )}
+                    {x.고칠것 && (
+                      <details className="fix">
+                        <summary>고칠 것 — 원장·Claude 세션만 봅니다(고객에게 보내지 않음)</summary>
+                        <pre>{x.고칠것}</pre>
+                      </details>
+                    )}
                   </li>
                 ))}
               </ul>
               <div className="cl-acts">
-                <form action={recheckClient}>
-                  <input type="hidden" name="slug" value={slug} />
-                  <SubmitButton className="adm-btn alt" pendingText="사이트를 여는 중… (20초까지)">다시 점검</SubmitButton>
-                </form>
+                {사이트있음 && (
+                  <form action={recheckClient}>
+                    <input type="hidden" name="slug" value={slug} />
+                    <SubmitButton className="adm-btn alt" pendingText="사이트를 여는 중… (20초까지)">다시 점검</SubmitButton>
+                  </form>
+                )}
                 {pilot && <Link href={`/admin/pilots/${pilot.id}`}>파일럿 화면 열기</Link>}
               </div>
             </section>
@@ -159,10 +197,11 @@ export default async function Page({ params, searchParams }: {
               </div>
             </details>
 
-            <details className="adm-more">
-              <summary>고치기</summary>
+            <details className="adm-more" id="detail">
+              <summary>자세히 — 이름·판별 말·검색어·도메인 고치기</summary>
               <div className="in">
-                <ClientForm mode="edit" 값={폼} slug={slug} />
+                <p className="sub">여기서 저장한 판별 말·브랜드·경쟁 검색어는 「원장」 값이 됩니다. 자동 세팅이 다시 돌아도 덮어쓰지 않습니다.</p>
+                <ClientForm 값={폼} slug={slug} />
               </div>
             </details>
 
@@ -177,15 +216,16 @@ export default async function Page({ params, searchParams }: {
               <details className="adm-more" id="pilot" open={err && ["missing", "terms", "needs"].includes(err) ? true : undefined}>
                 <summary>파일럿 시작 — 계약 칸</summary>
                 <div className="in">
-                  <p className="sub">입금을 확인한 뒤 넣습니다. 질문 20개와 착수·기준선·30일 업무가 생깁니다. 이름·도메인·답에서 찾을 이름은 이 고객 정보에서 씁니다.</p>
+                  <p className="sub">입금을 확인한 뒤 넣습니다. 착수·기준선·30일 업무가 생깁니다. 이름·도메인·답에서 찾을 이름은 이 고객 정보에서 씁니다.
+                    {리허설 ? " 자동 세팅이 만든 리허설 파일럿을 계약으로 올립니다 — 이미 만든 질문 20개는 그대로 둡니다." : " 질문 20개가 만들어집니다."}</p>
                   <form className="cl-form" action={createPilot}>
                     <input type="hidden" name="client_id" value={row.id} />
-                    {PILOT_FIELDS.map(([n, l]) => <label key={n}>{l}<input name={n} required /></label>)}
+                    {PILOT_FIELDS.map(([n, l]) => <label key={n}>{l}<input name={n} required defaultValue={기본[n] ?? ""} /></label>)}
                     {/* 구축 없음이면 30일이 이날부터다(신청서 8행) */}
                     <label>입금 확인일<input type="date" name="paid_on" defaultValue={kstToday()} required /></label>
                     <label>환불 절 서면 전달일<input type="date" name="refund_terms_sent_on" required /></label>
                     <label>필요한 준비
-                      <select name="needs_build" defaultValue="none">
+                      <select name="needs_build" defaultValue={auto?.사이트상태 ?? "none"}>
                         {NEEDS_BUILD.map((n) => <option key={n} value={n}>{NEEDS_BUILD_LABEL[n]}</option>)}
                       </select>
                     </label>

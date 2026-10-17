@@ -1,10 +1,10 @@
 /**
- * 끝에서 끝 — 고객사 화면(/admin/clients)을 실제로 눌러 등록 → 세팅 점검 → 체크리스트 → 사람 일감 → 파일럿 시작 → 지우기 (Step 38).
+ * 끝에서 끝 — 고객사 화면(/admin/clients)을 실제로 눌러 두 칸 등록 → 자동 세팅(사이트 점검) → 체크리스트 → 사람 일감 → 중복 거부 → 파일럿 시작 → 지우기 (Step 38 → 55).
  *
  *   node scripts/test-client-screen.mjs --live     로컬 next dev(운영 DB)를 띄우고 새 헤드리스 브라우저로 누른다
  *
  * 원장 로그인 브라우저는 안 연다 — Playwright 새 chromium(빈 프로필) + /admin/enter?key= 로 관리자 쿠키만.
- * 시험 도메인은 우리 랜딩(geo-rose-nine.vercel.app). 남의 사이트를 시험으로 두드리지 않는다.
+ * 시험 도메인은 우리 사이트(cited.kr). 남의 사이트를 시험으로 두드리지 않는다.
  * 시험 고객은 status 'test' — 매시 회사 루프(세팅재점검·측정)가 안 읽는다. 끝에서 화면 「지우기」로 지우고 남은 행 0 을 센다
  */
 import fs from "node:fs";
@@ -15,7 +15,8 @@ import pg from "pg";
 import { chromium } from "../../tools/node_modules/playwright/index.mjs";
 import { loadClients } from "../clients.mjs";
 import { 고객사말 } from "../masks.mjs";
-import { 체크리스트, 사람일감맞추기, 파일럿상태, 지우기 } from "../../web/lib/client-core.mjs";
+import { 체크리스트, 사람일감맞추기, 파일럿상태, 지우기, 보낼글말, 금지말찾기 } from "../../web/lib/client-core.mjs";
+import { 다음단계 } from "../../web/lib/auto-setup-core.mjs";
 
 if (!process.argv.includes("--live")) {
   console.log("사용: node scripts/test-client-screen.mjs --live   (로컬 next dev + 운영 DB 에 시험 고객을 화면으로 넣었다 지운다)");
@@ -41,7 +42,9 @@ const 한연결 = async (fn) => { const c = await pool.connect(); try { return a
 
 const WEB = fileURLToPath(new URL("../../web/", import.meta.url));
 const PORT = 3077, BASE = `http://localhost:${PORT}`;
-const SLUG = "e2e-screen", NAME = "화면시험고객", DOMAIN = "geo-rose-nine.vercel.app";
+// 두 칸 등록(Step 55) — 관리명은 홈페이지 첫 마디로 자동(cited 가 쓰여 cited-2). 옛 시험 주소 geo-rose-nine.vercel.app 은
+// 이제 cited.kr 로 308 넘어가(2026-10-17 실측) 점검이 「다른 주소로 넘어가」에서 멈춘다 — 우리 사이트 cited.kr 를 직접 쓴다(시험 고객은 시험끼리만 중복을 본다)
+const SLUG = "cited-2", NAME = "화면시험고객", DOMAIN = "cited.kr";
 
 let 통과 = 0, 실패 = 0;
 const 봄 = (이름, 참, 보탬 = "") => { if (참) { 통과++; console.log(`  ✓ ${이름}`); } else { 실패++; console.log(`  ✗ ${이름}${보탬 ? ` — ${보탬}` : ""}`); } };
@@ -94,40 +97,37 @@ try {
   await page.goto(`${BASE}/admin/enter?key=${encodeURIComponent(KEY)}&to=/admin/clients`);
   봄("관리자 쿠키 → /admin/clients", new URL(page.url()).pathname === "/admin/clients", page.url());
 
-  const 폼채우기 = async (값) => {
-    const f = page.locator("form.cl-form").first();
-    for (const [k, v] of Object.entries(값)) await f.locator(`[name="${k}"]`).fill(v);
-    return f;
+  // 2. 등록 — 두 칸 폼(Step 55e D221). 시험 고객 체크는 접힌 「시험용」 안
+  const 새폼 = page.locator('[data-testid="new-client"]');
+  봄("새 등록 폼은 두 칸(+ 접힌 시험용)", (await 새폼.locator("input:not([type=checkbox]):not([type=hidden])").count()) === 2
+    && (await 새폼.locator('[name="name"]').count()) === 1 && (await 새폼.locator('[name="homepage"]').count()) === 1 && !(await 새폼.locator('[name="slug"]').count()));
+  const 두칸 = async (이름, 홈) => {
+    await page.goto(`${BASE}/admin/clients`);
+    await 새폼.locator('[name="name"]').fill(이름);
+    await 새폼.locator('[name="homepage"]').fill(홈);
+    await 새폼.locator("details > summary").click();
+    await 새폼.locator('[name="test"]').check();
+    await 새폼.locator('button[type="submit"]').click();
   };
-  const 값 = {
-    name: NAME, slug: SLUG, domain: `https://${DOMAIN}/`, answer_terms: `${NAME}, e2e-screen`,
-    compete: "시험 검색어 하나\n시험 검색어 둘\n시험 검색어 셋",
-  };
-
-  // 2. 중복 거부 — docttak.com 은 문서딱이 쓴다
-  let f = await 폼채우기({ ...값, slug: "e2e-dup", domain: "docttak.com" });
-  await f.locator('[name="test"]').check();
-  await f.locator('button[type="submit"]').click();
-  await page.locator(".cl-err").first().waitFor();
-  const 중복말 = await page.locator(".cl-err").first().innerText();
-  봄("docttak.com 중복 거부 — 사람 말", 중복말.includes("같은 도메인"), 중복말);
-  봄("거부 뒤 친 값이 남음", (await page.locator('form.cl-form [name="name"]').inputValue()) === NAME);
-  봄("거부는 행을 안 만듦", (await q(`select count(*)::int as n from geo.clients where slug = 'e2e-dup'`))[0].n === 0);
-
-  // 3. 등록 — 화면 폼에서, 시험 고객
-  await page.goto(`${BASE}/admin/clients`);
-  f = await 폼채우기(값);
-  await f.locator('[name="test"]').check();
   const 시작 = Date.now();
-  await f.locator('button[type="submit"]').click();
+  await 두칸(NAME, `https://${DOMAIN}/`);
   await page.waitForURL(`**/admin/clients/${SLUG}**`, { timeout: 90000 });
   console.log(`  등록 → 상세 ${((Date.now() - 시작) / 1000).toFixed(1)}초 (${page.url().replace(BASE, "")})`);
-  const [row] = (await q(`select to_jsonb(c) as r from geo.clients c where slug = $1`, [SLUG])).map((x) => x.r);
+  let [row] = (await q(`select to_jsonb(c) as r from geo.clients c where slug = $1`, [SLUG])).map((x) => x.r);
   id = row?.id ?? null;
   봄("행 생김 — status test · 외부 · alias 「고객 …」", row?.status === "test" && row?.relation === "외부" && /^고객 [A-Z]+$/.test(row?.alias ?? ""), JSON.stringify({ status: row?.status, relation: row?.relation, alias: row?.alias }));
   const key = row?.config?.indexnow?.key ?? "";
-  봄("IndexNow 키 32자 · mode 우리", /^[0-9a-f]{32}$/.test(key) && row?.config?.indexnow?.mode === "우리");
-  봄("answer_pattern 만들어짐", typeof row?.answer_pattern === "string" && new RegExp(row.answer_pattern, "i").test(`답: ${NAME} 입니다`));
+  봄("IndexNow 키 32자 · mode 우리 · crawl_key 36자", /^[0-9a-f]{32}$/.test(key) && row?.config?.indexnow?.mode === "우리" && /^[0-9a-f]{36}$/.test(row?.crawl_key ?? ""));
+  봄("answer_pattern 만들어짐(이름·도메인)", typeof row?.answer_pattern === "string" && new RegExp(row.answer_pattern, "i").test(`답: ${NAME} 입니다`) && new RegExp(row.answer_pattern, "i").test(DOMAIN));
+
+  // 3. 자동 세팅 판이 멈출 때까지(최대 3분) — 사이트 단계가 derived 를 채운다
+  for (let i = 0; i < 90; i++) {
+    [row] = (await q(`select to_jsonb(c) as r from geo.clients c where id = $1`, [id])).map((x) => x.r);
+    if (row.config.auto?.단계?.사이트?.상태 === "됨" && !다음단계(row.config.auto, new Date(), { 실패도: false })) break;
+    await 쉼(2000);
+  }
+  console.log(`  자동 세팅: ${Object.entries(row.config.auto?.단계 ?? {}).map(([k, s]) => `${k} ${s.상태}`).join(" · ")}`);
+  봄("자동 세팅 — 사이트 단계 됨", row.config.auto?.단계?.사이트?.상태 === "됨", JSON.stringify(row.config.auto?.단계?.사이트));
 
   // 4. derived — 실제 값
   const d = row?.derived ?? {};
@@ -140,32 +140,53 @@ try {
   봄("키 파일 없음(우리 랜딩에 이 키 파일은 없다)", d.indexnowFile?.ok === false, `status ${d.indexnowFile?.status}`);
 
   // 5. 체크리스트 — 화면
+  await page.goto(`${BASE}/admin/clients/${SLUG}`);
   const 칸상태 = async (cid) => page.locator(`[data-check="${cid}"]`).getAttribute("data-state");
-  봄("체크리스트 뜸", (await page.locator('[data-testid="checklist"] li').count()) === 10);
+  봄("체크리스트 뜸(12줄)", (await page.locator('[data-testid="checklist"] li').count()) === 12);
   봄("사이트 열림 = 됨", (await 칸상태("site")) === "됨");
   봄("「고객 담당에게 보낼 것」 = 사람", (await 칸상태("send")) === "사람");
   const 보낼글 = await page.locator('[data-check="send"] textarea').inputValue();
-  봄("보낼 글에 키 파일 이름·내용", 보낼글.includes(`https://${DOMAIN}/${key}.txt`) && 보낼글.includes(`내용은 이 한 줄입니다: ${key}`), 보낼글.slice(0, 200));
+  봄("보낼 글 = 관리자 아이디 한 문장 · 금지어 0", 보낼글 === 보낼글말.사이트(NAME) && !금지말찾기(보낼글).length, 보낼글.slice(0, 200));
+  const 고칠 = (await page.locator('[data-check="send"] details.fix pre').textContent()) ?? ""; // 접힌 details 안이라 innerText 는 빈 글자
+  봄("고칠 것(원장·세션만)에 키 파일 이름·내용 · 복사 단추 없음", 고칠.includes(`https://${DOMAIN}/${key}.txt`) && 고칠.includes(`내용은 이 한 줄입니다: ${key}`)
+    && (await page.locator('[data-check="send"] details.fix button').count()) === 0, 고칠.slice(0, 200));
   봄("GSC = 사람 · 파일럿 = 사람", (await 칸상태("gsc")) === "사람" && (await 칸상태("measure")) === "사람");
-  봄("바깥 글 = 해당없음", (await 칸상태("offsite")) === "해당없음");
-  봄("사람 칸 셋까지", (await page.locator('[data-state="사람"]').count()) <= 3);
+  봄("바깥 글 = 해당없음 · 이름 판별 말 = 됨", (await 칸상태("offsite")) === "해당없음" && (await 칸상태("name")) === "됨");
+  봄("자동 세팅 판이 맨 위", (await page.locator('[data-testid="auto-setup"]').count()) === 1
+    && (await page.locator('[data-testid="auto-setup"]').boundingBox()).y < (await page.locator('[data-testid="checklist"]').boundingBox()).y);
 
   // 6. 동기화 — 회사 루프와 같은 함수를 이 id 로
   const 줄 = 체크리스트(row, d, { pilot: await 파일럿상태(q, id) });
   const s1 = await 사람일감맞추기(q, row, 줄, { admin: BASE });
   const s2 = await 사람일감맞추기(q, row, 줄, { admin: BASE });
-  const 일감 = await q(`select dedupe_key, status, title, agent, kind, link from geo.agent_tasks where client_id = $1 order by dedupe_key`, [id]);
+  const 일감 = await q(`select dedupe_key, status, title, agent, kind, link, detail from geo.agent_tasks where client_id = $1 order by dedupe_key`, [id]);
   console.log(`  동기화 1차 엶 [${s1.열림.join(",")}] · 2차 엶 [${s2.열림.join(",")}]`);
   for (const t of 일감) console.log(`     ${t.dedupe_key} · ${t.status} · ${t.title}`);
-  봄("사람 대기 일감 셋(setup-send·gsc·measure)", JSON.stringify(일감.map((t) => t.dedupe_key)) === '["setup-gsc","setup-measure","setup-send"]' && 일감.every((t) => t.status === "사람 대기" && t.kind === "setup"));
-  봄("두 번 돌려도 중복 없음", s2.열림.length === 0 && 일감.length === 3);
-  봄("제목 사람 말 · 링크 고객 화면", 일감.some((t) => t.title === `${NAME}: 고객 담당에게 보낼 것이 있습니다`) && 일감.every((t) => t.link === `${BASE}/admin/clients/${SLUG}`));
+  const 사람키 = 줄.filter((x) => x.상태 === "사람").map((x) => `setup-${x.id}`).sort();
+  봄("사람 대기 일감 = 체크리스트 사람 칸(send·gsc·measure 포함)", ["setup-gsc", "setup-measure", "setup-send"].every((k) => 사람키.includes(k))
+    && JSON.stringify(일감.filter((t) => t.status === "사람 대기").map((t) => t.dedupe_key).sort()) === JSON.stringify(사람키) && 일감.every((t) => t.kind === "setup"), 사람키.join(","));
+  봄("두 번 돌려도 중복 없음", s2.열림.length === 0);
+  봄("제목 사람 말 · 링크 고객 화면 · setup-send 글 금지어 0", 일감.some((t) => t.title === `${NAME}: 고객 담당에게 보낼 것이 있습니다`) && 일감.every((t) => t.link === `${BASE}/admin/clients/${SLUG}`)
+    && !금지말찾기(일감.find((t) => t.dedupe_key === "setup-send")?.detail).length);
 
-  // 7. 가림 — 새 이름이 고객사말에
+  // 7. 중복 거부 — 같은 홈페이지(시험끼리) · 같은 이름(「그래도 등록」 확인)
+  await 두칸("화면시험고객둘", `https://www.${DOMAIN}/`);
+  await page.locator(".cl-err").first().waitFor();
+  const 중복말 = await page.locator(".cl-err").first().innerText();
+  봄("같은 홈페이지 거부 — 사람 말", 중복말.includes("같은 도메인"), 중복말);
+  봄("거부 뒤 친 값이 남음", (await 새폼.locator('[name="name"]').inputValue()) === "화면시험고객둘");
+  await 두칸(NAME, "");
+  await page.locator(".cl-err").first().waitFor();
+  const 이름말 = await page.locator(".cl-err").first().innerText();
+  봄("같은 이름 → 「그래도 등록」 확인 문구 · 체크 칸이 나옴", 이름말.includes(`같은 이름의 고객이 있습니다(${SLUG})`) && (await 새폼.locator('[name="allow_dup"]').count()) === 1, 이름말);
+  봄("거부는 행을 안 만듦", (await q(`select count(*)::int as n from geo.clients where name in ('화면시험고객둘') or (name = $1 and id <> $2)`, [NAME, id]))[0].n === 0);
+
+  // 8. 가림 — 새 이름이 고객사말에
   const 말 = 고객사말(await loadClients(q, { includeTest: true }));
   봄("고객사말에 새 이름·도메인", 말.includes(NAME) && 말.includes(DOMAIN));
 
-  // 8. GSC 권한 받음 버튼 → 체크리스트 됨 → 동기화가 닫음
+  // 9. GSC 권한 받음 버튼 → 체크리스트 됨 → 동기화가 닫음
+  await page.goto(`${BASE}/admin/clients/${SLUG}`);
   await page.locator('[data-check="gsc"] button[type="submit"]').click();
   await page.waitForLoadState("networkidle");
   await page.locator('[data-check="gsc"][data-state="됨"]').waitFor();

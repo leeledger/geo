@@ -1,0 +1,10 @@
+export const 업종표: { 업종: string; 말: string[]; ld: string[] }[];
+export function 업종말(업종: string | null | undefined): string[];
+export function 낱말업종(token: string): { 업종: string; 말: string } | null;
+export function 낱말들(s: unknown): string[];
+export function 업종낱말들(s: unknown): string[];
+export const 시도표: [string[], string[]][];
+export const 모든시군구: string[];
+export const 모든시도말: string[];
+export function 지역짧게(x: string): string;
+export function 이름흔함(term: string): boolean;

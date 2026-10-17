@@ -9,6 +9,7 @@
 import { BOTS, UA, stripTags } from "./scan";
 import { robotsState, verdict } from "./robots";
 import { josa } from "./no-site";
+import { PLATFORMS, platformOf, classifyTarget, type PlatformDef, type Target } from "./platform-hosts.mjs";
 
 /** 봇 id → 사장님이 알아듣는 이름 */
 export const BOT_PLAIN: Record<string, string> = {
@@ -25,56 +26,9 @@ export const BOT_PLAIN: Record<string, string> = {
   "CCBot": "공개 웹 수집(Common Crawl)",
 };
 
-type PlatformDef = { id: string; name: string; hosts: string[] | RegExp; self: string | null };
-
-/** 호스트 → 이름. 봇 정책은 적지 않는다 */
-export const PLATFORMS: PlatformDef[] = [
-  { id: "naver_blog", name: "네이버 블로그", hosts: ["blog.naver.com", "m.blog.naver.com"], self: "Yeti" },
-  { id: "naver_place", name: "네이버 플레이스", hosts: ["m.place.naver.com", "pcmap.place.naver.com", "map.naver.com"], self: "Yeti" },
-  { id: "naver_store", name: "네이버 스마트스토어", hosts: ["smartstore.naver.com", "m.smartstore.naver.com"], self: "Yeti" },
-  { id: "tistory", name: "티스토리", hosts: /^[a-z0-9-]+\.tistory\.com$/, self: null },
-  { id: "instagram", name: "인스타그램", hosts: ["instagram.com", "www.instagram.com"], self: null },
-  { id: "kakao_channel", name: "카카오톡 채널", hosts: ["pf.kakao.com"], self: null },
-  { id: "kakao_place", name: "카카오맵 장소", hosts: ["place.map.kakao.com"], self: null },
-  { id: "brunch", name: "브런치", hosts: ["brunch.co.kr"], self: null },
-  { id: "youtube", name: "유튜브", hosts: ["youtube.com", "www.youtube.com", "m.youtube.com"], self: null },
-  { id: "naver_short", name: "네이버 짧은 주소", hosts: ["naver.me"], self: null },
-];
-
-const SMARTPLACE = ["smartplace.naver.com", "new.smartplace.naver.com"];
-
-const ERR_ADDR = "주소를 다시 확인해 주세요. (예: blog.naver.com/아이디)";
-const ERR_SMARTPLACE = "스마트플레이스 관리 화면 주소입니다. 네이버 지도에서 우리 가게를 열고 공유 주소를 넣어 주세요.";
-const ERR_ROOT = "블로그·계정 주소 전체를 넣어 주세요. (예: blog.naver.com/아이디)";
-
-export function platformOf(host: string): PlatformDef | null {
-  const h = host.toLowerCase();
-  return PLATFORMS.find((p) => (Array.isArray(p.hosts) ? p.hosts.includes(h) : p.hosts.test(h))) ?? null;
-}
-
-export type Target =
-  | { kind: "error"; msg: string }
-  | { kind: "site" }
-  | { kind: "platform"; id: string; url: string };
-
-/** 입력 하나를 세 길로 가른다. 플랫폼은 호스트 정확 일치(tistory 만 정규식) */
-export function classifyTarget(raw: string): Target {
-  const t = (raw || "").trim();
-  if (!t) return { kind: "error", msg: ERR_ADDR };
-  const scheme = t.match(/^([a-z][a-z0-9+.-]*):\/\//i);
-  if (scheme && !/^https?$/i.test(scheme[1])) return { kind: "error", msg: ERR_ADDR };
-  let u: URL;
-  try { u = new URL(scheme ? t : `https://${t}`); } catch { return { kind: "error", msg: ERR_ADDR }; }
-  if (!/^https?:$/.test(u.protocol) || !u.hostname.includes(".")) return { kind: "error", msg: ERR_ADDR };
-  const host = u.hostname.toLowerCase();
-  if (SMARTPLACE.includes(host)) return { kind: "error", msg: ERR_SMARTPLACE };
-  const p = platformOf(host);
-  if (!p) return { kind: "site" };
-  if (u.port) return { kind: "error", msg: ERR_ADDR };
-  if ((u.pathname === "/" || !u.pathname) && p.id !== "tistory" && p.id !== "naver_short") return { kind: "error", msg: ERR_ROOT };
-  // 사용자 이름·비밀번호·# 은 버리고 https 로만 연다
-  return { kind: "platform", id: p.id, url: `https://${host}${u.pathname}${u.search}` };
-}
+// 플랫폼 목록·platformOf·classifyTarget 은 platform-hosts.mjs 하나에 있다(Step 55a D235) — 바깥 모양 그대로 다시 내보낸다
+export { PLATFORMS, platformOf, classifyTarget };
+export type { PlatformDef, Target };
 
 export type Fetched = { ok: boolean; status: number; url: string; body: string };
 

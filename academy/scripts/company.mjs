@@ -39,6 +39,7 @@ import { 탐침측정DDL } from "./loop-grow.mjs";
 import { MARKETING_DDL } from "../../web/lib/marketing-core.mjs";
 import { GROWTH_DDL } from "../../web/lib/growth-core.mjs";
 import { 세팅재점검 } from "../../web/lib/client-core.mjs";
+import { 자동이어하기 } from "../../web/lib/auto-setup-core.mjs";
 import { 오래된창요청닫기 } from "../../web/lib/login-core.mjs";
 import { 오래된kin요청닫기 } from "../../web/lib/kin-core.mjs";
 import { 오픈라우터, 재시도, 모델들, 공급자들 } from "./writer-common.mjs";
@@ -1033,6 +1034,8 @@ const main = async () => {
   await 계획(clients, latest);
   // 고객사 세팅 점검(Step 38) — 화면 등록 고객(active) 중 점검 없음·24시간 지난 3곳. 사이트를 열고 체크리스트 사람 칸을 일감으로
   await 세팅재점검(q, { admin: ADMIN }).catch((e) => console.log("  ⚠ 세팅 점검을 못 돌림", 끝(e.message, 200)));
+  // 두 칸 등록 고객의 자동 세팅(Step 55g) — 판 창을 닫아도 여기서 한 걸음씩 잇는다. 플랫폼 확인(TS)은 고객 화면 판 몫
+  await 자동이어하기(q, { admin: ADMIN }).catch((e) => console.log("  ⚠ 자동 세팅을 못 이어 감", 끝(e.message, 200)));
   const [s] = await q(`select count(*) filter (where status='대기')::int wait, count(*) filter (where status='사람 대기')::int human,
       count(*) filter (where status='로컬 대기')::int local, count(*) filter (where status='관찰')::int watch from geo.agent_tasks`);
   console.log(`  일감: 대기 ${s.wait} · 관찰 ${s.watch} · 사람 대기 ${s.human} · 로컬 대기 ${s.local}`);

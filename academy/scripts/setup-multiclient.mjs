@@ -15,7 +15,7 @@
  *   node scripts/setup-multiclient.mjs --show-key ilog     고객사 서버에 넣을 키 보기
  */
 import fs from "node:fs";
-import { randomBytes } from "node:crypto";
+import { 새크롤키 } from "../../web/lib/client-core.mjs";
 import { Pool } from "pg";
 
 for (const l of fs.readFileSync(new URL("../.env.local", import.meta.url), "utf8").split(/\r?\n/)) {
@@ -90,7 +90,7 @@ for (const [name, sql] of STEPS) {
 // 키가 없는 고객사에 하나씩. 한 번 만들면 바꾸지 않는다 — 바꾸면 고객사 서버 설정도 바꿔야 한다.
 const need = await q(`select id, slug from geo.clients where crawl_key is null`);
 for (const c of need) {
-  await pool.query(`update geo.clients set crawl_key = $1 where id = $2`, [randomBytes(18).toString("hex"), c.id]);
+  await pool.query(`update geo.clients set crawl_key = $1 where id = $2`, [새크롤키(), c.id]);
   console.log(`  OK  ${c.slug} 크롤러 기록 키 생성 (--show-key ${c.slug} 로 확인)`);
 }
 
