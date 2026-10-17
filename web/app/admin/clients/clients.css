@@ -33,3 +33,31 @@
 .cl-ev pre{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px;color:var(--ink2);max-width:560px}
 .cl-danger{margin-top:28px;border:1px solid #6b2a2a;border-radius:14px;padding:14px 16px}
 @media(max-width:720px){.cl-form{grid-template-columns:1fr}.cl-row{grid-template-columns:1fr}}
+/* 계약 뒤 순서(Step 54) — 줄 = 칸 · 누가 칩 · 상태 칩 · 사람말. 좁은 폭에선 칸 줄과 사람말 줄 둘로 접힌다 */
+.ob-band{background:#1d1a14;border:1px solid #5c4a2a;border-radius:12px;padding:10px 14px;margin:12px 0 0;word-break:keep-all}
+.ob-band p{margin:0}
+.ob-band p+p{margin-top:6px;color:var(--warn)}
+.ob-sum{font-size:15px;margin:12px 0 0;word-break:keep-all}
+.ob-stage{margin-top:22px}
+.ob-stage h2{display:flex;gap:10px;align-items:center}
+.ob-n{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:999px;border:1px solid var(--line);font-size:14px;color:var(--ink2)}
+.ob-rows{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:6px}
+.ob-row{display:grid;grid-template-columns:190px 92px 96px minmax(0,1fr);gap:10px;align-items:start;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:9px 14px;word-break:keep-all;min-width:0}
+.ob-row.human{border-color:#5c4a2a;background:#1d1a14}
+.ob-row.na{opacity:.7}
+.ob-k{font-weight:800}
+.ob-who{font-size:13px;color:var(--ink2);border:1px solid var(--line);border-radius:999px;padding:1px 8px;justify-self:start;white-space:nowrap}
+.ob-s{font-weight:800;font-size:14px;white-space:nowrap}
+.ob-s.done{color:var(--cool)}
+.ob-s.run{color:var(--ok)}
+.ob-s.human{color:#F0CE87}
+.ob-s.cust{color:var(--acc)}
+.ob-s.wait,.ob-s.na{color:var(--ink2)}
+.ob-s.bad{color:var(--crit)}
+.ob-m{font-size:15px;min-width:0;overflow-wrap:anywhere}
+.ob-ev{display:block;font-size:13px;color:var(--ink2);overflow-wrap:anywhere;white-space:pre-wrap}
+.ob-todo{grid-column:1/-1;display:grid;gap:8px;min-width:0}
+.ob-todo textarea{width:100%;min-height:150px;font:inherit;font-size:14px;overflow-wrap:anywhere}
+.cl-line{display:grid;gap:4px}
+.cl-line .cl-ob{font-size:14px;justify-self:start;padding:0 4px}
+@media(max-width:720px){.ob-row{grid-template-columns:minmax(0,1fr) auto auto;gap:6px 8px}.ob-m{grid-column:1/-1}}

@@ -186,6 +186,17 @@ const 칸 = 입력검사(좋은폼).칸;
   봄("폼값 — 원문 말 되살림", 폼.answer_terms === "a1, b2" && 폼.answer_exclude === "행복한" && 폼.address_part === "석촌동" && 폼.phone_last4 === "0525" && 폼.compete.split("\n").length === 3);
   봄("nextAlias", nextAlias(["고객 A", "고객 B"]) === "고객 C" && nextAlias([]) === "고객 A");
 }
+{
+  // 계약 뒤 순서(Step 54 D209) — 상황 답은 config.onboard 에 있다. 고치기·바깥글config 가 옛 config 를 펼쳐 쓰므로 그대로 남아야 한다
+  const onboard = { dns: "우리", blog: "받음", channels: { blog: "https://blog.naver.com/x", place: null, sns: null }, blogSavedOn: "2026-10-05" };
+  const db = 가짜DB({ clients: [...있는고객, { id: 11, slug: "ob-keep", name: "보존치과", domain: "ob-keep.kr", alias: "고객 D", relation: "외부", status: "active",
+    config: { v: 1, indexnow: { mode: "우리", key: "k".repeat(32) }, gsc: false, onboard }, derived: {} }] });
+  const r = await 고치기(db.q, "ob-keep", { ...칸, name: "보존치과의원", domain: "ob-keep.kr" });
+  const c = db.clients.find((x) => x.id === 11);
+  봄("고치기 — config.onboard 그대로 남음", r.ok && JSON.stringify(c.config.onboard) === JSON.stringify(onboard), JSON.stringify(c.config));
+  const 바깥 = 바깥글config({ v: 1, onboard }, 바깥글입력검사({ enabled: "" }).칸, "2026-10-17");
+  봄("바깥글config — config.onboard 그대로 남음", JSON.stringify(바깥.onboard) === JSON.stringify(onboard), JSON.stringify(바깥));
+}
 
 // ─────────────────────────────────────────── robots
 봄("robots — 봇 이름 막힘", JSON.stringify(robots막힘("User-agent: GPTBot\nDisallow: /\n\nUser-agent: *\nAllow: /")) === '["GPTBot"]');

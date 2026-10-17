@@ -2,6 +2,14 @@
 *Read this before reading anything else. If it covers current state, skip BUILD-LOG.*
 
 
+## Where We Stopped (2026-10-17 저녁) — Step 54 브리프(계약 뒤 순서 화면)
+
+- handoff/ARCHITECT-BRIEF.md = Step 54. Step 53 브리프는 handoff/research/ARCHITECT-BRIEF-step53.md
+- 54a onboard-core.mjs(착수순서 · onboard입력검사) / 54b onboard.ts(getPilot·체크리스트 재사용) / 54c saveOnboard(config.onboard jsonb_set) / 54d /admin/clients/<slug>/onboard / 54e 링크 / 54f 시험 15 + 화면 시험 1440·390
+- 결정 D204~D216, KG-54-1~6 BUILD-LOG
+- 다음: Bob(builder) → Richard → main 푸시 → 운영 /admin/clients/cited/onboard 200
+- 원장 몫: 없음(첫 외부 고객 계약 때 이 화면부터 연다)
+
 ## Where We Stopped (2026-10-17 오후) — Step 53 브리프(모든 네이버 계정 자동 재로그인)
 
 - handoff/ARCHITECT-BRIEF.md = Step 53. Step 52 브리프는 handoff/research/ARCHITECT-BRIEF-step52.md

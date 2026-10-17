@@ -67,7 +67,12 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ k
                 );
                 return 코드
                   ? <div className="adm-card" key={r.id}>{머리}</div>
-                  : <Link className="adm-card cl-item" href={`/admin/clients/${r.slug}`} key={r.id}>{머리}</Link>;
+                  : (
+                    <div className="cl-line" key={r.id}>
+                      <Link className="adm-card cl-item" href={`/admin/clients/${r.slug}`}>{머리}</Link>
+                      <Link className="cl-ob" href={`/admin/clients/${r.slug}/onboard`}>계약 뒤 순서</Link>
+                    </div>
+                  );
               })}
             </div>
           )}

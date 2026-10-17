@@ -2136,3 +2136,46 @@ Should Fix:
 - **D202 (2026-10-17, Arch)** 영상 S4 문구 2곳: 「학부모가 이 학원을 물으면」→「이 학원을 물으면」(실제 질문 기록 없음), 「대부분 의무 안내문이었다」→「대부분 의무 안내문」(반말 조각). page.tsx FILM_LINES 같이. 1440p 다시 굽고(같은 cited.wav) 웹용 1920×1080·30fps 4.8MB 교체.
 
 - **D203 (2026-10-17)** 문서딱 안내 글 pdf-merge-free 를 네이버 블로그로: 원장 「블로그에 올려야지」(10-17, 안내 글 발행 직후) → geo.marketing_posts #36(blog, note 「게시 승인 …」 원장 말 인용) → https://blog.naver.com/robohelio/224444675606 . 원문 복사 아님 — 같은 사실로 다시 씀(1629자, slop 검사 통과, 원문·도구·기기별 안내 링크). 원장 규칙(10-17) 「블로그는 항상 이미지도 동봉」: 도해 2장(맥 Finder·미리보기 / 브라우저 합치기·50개·500·150 MB, 안내 글 사실만). naver-blog-post --marketing 의 그림 자리를 tools/marketing-img/marketing-<id>/ 로(학원 public 에 남의 그림을 두지 않게). 저장 확인: 모바일 PostView 에 제목·본문·사진 2장. 아이로그는 네이버 블로그 없음(원장 확인) — 안 만듦. 참고: 같은 주제 블로그 #15(pdf-merge, 10-05)가 이미 있다.
+
+## Step 54 브리프 — 계약한 고객의 계약 뒤 순서 화면 (2026-10-17, Arch)
+원장 원문(2026-10-17): 「신규 고객사가 계약이 되었을때 업무를 랜딩하는 페이지가 필요해 여러 실제 상황을 반영해서 만들어봐」. 브리프 handoff/ARCHITECT-BRIEF.md, Step 53 브리프는 handoff/research/ARCHITECT-BRIEF-step53.md
+- 실측(읽기만, 10-17): geo.clients 4곳(학원·아이로그·문서딱·cited) 전부 자사, 외부 고객 0. 파일럿 4개 전부 리허설. clients.domain 은 DB 에서 null 허용이나 입력검사가 요구. pilot_tasks 29행(사람 대기 3). 계약 칸(paid_on·refund_terms_sent_on·invoice_issued_on·needs_build·site_launch_on·cancelled_on·refund_amount)은 이미 geo.pilots 에 있다
+- **D204 (Arch)** 새 저장소를 만들지 않는다. 화면은 체크리스트()·geo.pilots·geo.pilot_tasks·getPilot()·agent_tasks(로그인 일감)·crawl_hits 를 읽어 한 줄 순서로 묶는다. 새로 저장하는 것은 DB 어디에도 없는 상황 답(도메인 담당·서치어드바이저·빙·블로그 계정·기존 채널·이관)뿐이고 geo.clients.config.onboard 한 키에 둔다
+- **D205 (Arch)** 상황 갈래는 신청서(research/paid-pilot-order-form.md)와 지난 온보딩에서 뽑았다: 준비 3갈래(needs_build) · 기존 채널만 · 이관 · 도메인 담당 · GSC · 서치어드바이저 · 빙 · 블로그 계정 · 고객 느림 · 취소 · 자사·리허설·코드 고객 · 기준선 전 개시. 준비 갈래는 파일럿 시작 폼에서 이미 고르는 needs_build 를 그대로 쓴다(두 번 묻지 않는다)
+- **D206 (Arch)** 홈페이지 없는 고객도 등록은 「열 도메인」으로 한다. 도메인 없는 등록은 세팅점검·측정·색인 전부에 번진다 → KG-54-1
+- **D207 (Arch)** 누가는 넷만: 자동 · Claude 세션 · 원장님 · 고객. pilot_tasks owner 「사이티드」를 코드별로 나눈다(measure-start 자동, local-audit·baseline-report·content-draft·content-publish·final-report Claude 세션, inquiry-sheet·manual-baseline·site-launch·manual-day30·renewal 원장님). 손 확인(구글 AI 개요·네이버 AI 브리핑)은 사람 몫이다
+- **D208 (Arch)** 도메인·호스팅 담당이 send 줄을 가른다: 고객 → 기존 복사 글 · 우리 → Claude 세션이 직접 · 모름 → 고객에게 묻는 글(원장님 몫). 서치어드바이저 소유 확인은 캡차라 원장님 몫(우회 안 함), 확인 파일을 올릴 사람은 같은 갈래
+- **D209 (Arch)** 상황 저장은 jsonb_set 한 문장으로 config.onboard 만 바꾼다. 고치기·바깥글고치기는 옛 config 를 펼쳐 쓰므로 onboard 가 남는다 — 회귀 단언 추가
+- **D210 (Arch)** 단계 순서는 신청서 「순서」를 따른다: 구축·세팅 고객은 손대기 전 첫 7일 기준선이 먼저, 사이트 일은 그 뒤, 30일은 연 날부터. 연 날이 착수+7 보다 이르면 맨 위 경고(전후 비교가 깨짐)
+- **D211 (Arch)** 화면 숫자는 DB 에서 읽은 것만. 읽기 실패는 「못 읽음」, 기록 없음은 「기록 없음」 — 0 을 지어내지 않는다. 비율·성공 판정은 이 화면에서 계산하지 않는다(최종 보고서 몫)
+- **D212 (Arch)** 환불 위치 문장은 refundGuide 와 글자가 같아야 한다 — 시험이 pilot-plan.ts 를 읽어 대조
+- **D213 (Arch)** 블로그 비번 저장 여부는 웹이 모른다(tools/.secrets 는 PC 에만). 원장이 표시한 날짜만 「됨」 근거로 쓰고, naver-session-soon·login-naver-blog-<slug> 일감이 열려 있으면 그것이 상태다
+- **D214 (Arch)** 고객 몫이 3일 이상 밀리면 재촉 글을 복사로 준다. 진단 통과 고객은 「승인이 늦어도 30일은 끝나는 날이 같다」(신청서 8행)를 같이 보여 준다. 늦은 착수 7일 원장 일감(company.mjs)은 그대로 둔다
+- **D215 (Arch)** 이 화면은 활동·일감·로그에 쓰지 않는다(읽기 + 상황 저장만). 원장 몫을 ops 할 일로 올리는 것은 KG-54-2
+- **D216 (Arch)** 주소: /admin/clients/<slug>/onboard 「계약 뒤 순서」. 고객 목록·고객 화면에서 링크. 기존 폼(고치기·파일럿 시작·파일럿 계약 칸)은 복제하지 않고 링크만. 검증은 시험 고객(status test, 우리 랜딩 도메인) + cited 실데이터를 1440·390 스크린샷으로
+
+### Known Gaps (Step 54)
+- KG-54-1 도메인 없는 고객 등록(구축인데 도메인 미정)
+- KG-54-2 계약 뒤 순서의 원장 몫을 /admin/ops 할 일로 올리기
+- KG-54-3 고치기·바깥글고치기의 config 통째 쓰기 경합(1인 관리자라 드묾)
+- KG-54-4 블로그 글 이관 도구 없음 — 이관 줄은 수동 상태
+- KG-54-5 맞춤 계약(착수 + 월 관리 × 3, 7·30·60·90일 보고) — 파일럿 행으로 담고 60·90일 줄 없음
+- KG-54-6 서치어드바이저·빙 소유 확인 자동 판정 없음
+
+### Step 54 빌드 (2026-10-17, Bob) — DONE, 리뷰 대기 · 커밋·배포 안 함
+- 새 파일: web/lib/onboard-core.mjs(+ .d.mts) · web/lib/onboard.ts · web/lib/onboard-actions.ts · web/app/admin/clients/[slug]/onboard/page.tsx · academy/scripts/test-onboard-core.mjs · academy/scripts/test-onboard-screen.mjs
+- 고친 파일: clients.css(.ob-* · .cl-line) · [slug]/page.tsx(sub 줄 링크) · clients/page.tsx(줄마다 링크 — 카드 Link 안에 Link 를 못 넣어 div.cl-line 로 감쌈) · ClientForm.tsx(등록 모드 도메인 설명) · test-client-core.mjs(onboard 보존 단언 2)
+- 결과: test-onboard-core 16/0 · test-client-core 188/0 · test-client-status 14/0 · test-clients 99/0 · tsc 0 · next build 성공 · test-onboard-screen --live 27/0(시험 고객 id 17 지움, client_id·pilot_id 표 30칸 남은 행 0)
+- **B54-1** 「고객 기다림」 외 Claude 세션 몫이 아직 안 끝났으면 상태는 「도는 중」(상태 목록에 세션 몫이 따로 없음)
+- **B54-2** dns 모름 — 사이트가 있으면 물음 글은 send 줄에만, 구축 연 날 전(send 해당없음)이면 dns 줄에 둔다(같은 글 두 번 안 띄움)
+- **B54-3** 빙·서치어드바이저는 구축 연 날 전이면 「아직 · 사이트를 연 뒤」. GSC 를 안 쓰면 빙은 직접 등록 원장님 몫
+- **B54-4** 자사·리허설에는 재촉 글을 안 만든다(일수는 보임). 띠 환불 문장은 「지금 취소하면: 」 + refundGuide 글자 그대로
+- **B54-5** 30일 기간: none → paid_on(없으면 started_on)~ends_on, 구축·세팅 → 연 날 뒤 started_on~ends_on(company.mjs 기간칸 이 맞춤)
+- **B54-6** pg date 는 PC 시간대 자정 Date — onboard.ts 가 로컬 날짜 글자로 바꿔 넘긴다(toISOString 은 KST PC 에서 하루 당겨짐)
+- Known Gap **KG-54-7** 착수 뒤·기준선 전 파일럿의 띠 환불 문장 「195,000원(50%)」에 % 가 들어간다(D212 글자 같음 우선). 시험 12 는 착수 전 띠로 % 없음을 본다 — Arch 판단 필요
+
+### Step 54 리뷰 1차 반영 (2026-10-17, Bob) — Richard FAIL → Arch 결정
+- **D218 (Arch)** Must Fix: 상담 유입 기록표 주소의 기본값을 https://cited.kr 로 바꿨다(onboard-core.mjs SITE). onboard.ts 가 site.ts SITE_URL 을 입력 site 로 넘긴다. 시험: /record/ 주소가 https://cited.kr/record/ 로 시작
+- **D219 (Arch)** 세팅·구축 고객은 연 날이 있으면 30일을 site_launch_on 에서 바로 센다. DB started_on·ends_on 은 안 쓴다(낡은 기간이 안 보이게). 셈은 academy/pilot-plan.mjs 파일럿일정 과 같다: 끝 = 연 날 + 29(첫날 포함 30일). Arch 메시지의 「launch+30」은 이 함수와 같은 셈으로 읽었다. period·day30·다음 고비가 같은 끝 날을 쓴다. 시험: 낡은 started_on·ends_on 을 넣어도 10/1~10/30
+- **D220 (Arch)** 서치어드바이저 「확인파일보냄」(고객 담당)은 일수·재촉 글을 안 만든다. 보낸 날을 저장하지 않아 셀 근거가 없다. 상태는 고객 기다림 그대로. 시험 추가
+- 결과: test-onboard-core 18/0 · test-client-core 188/0 · test-clients 99/0 · tsc 0 · next build 성공. --live 화면 시험은 다시 안 돌림(지시)

@@ -88,7 +88,7 @@ export default async function Page({ params, searchParams }: {
           <h1>{row.name}{row.status === "test" && <span className="cl-tag">시험</span>}</h1>
           <AdminNav here="/admin/clients" />
         </div>
-        <p className="sub">{row.domain} · {row.relation ?? "외부"} · <Link href="/admin/clients">고객사 목록</Link></p>
+        <p className="sub">{row.domain} · {row.relation ?? "외부"} · <Link href="/admin/clients">고객사 목록</Link>{!코드 && <> · <Link href={here + "/onboard"}>계약 뒤 순서</Link></>}</p>
         {saved && <p className="cl-note" role="status">저장했습니다.</p>}
         {checked && <p className="cl-note" role="status">사이트를 다시 열어 봤습니다.</p>}
         {말 && <p className="cl-err" role="alert">{말}</p>}

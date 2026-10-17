@@ -43,7 +43,7 @@ export default function ClientForm({ mode, 값: 처음, slug }: Props) {
       {mode === "new"
         ? 글("slug", "영문 관리명", { hint: "영문 소문자·숫자·- · 나중에 못 바꿉니다", max: 40, ph: "miso-dental" })
         : <label>영문 관리명<small>바꾸지 않습니다</small><input value={slug} readOnly /></label>}
-      {글("domain", "홈페이지 도메인", { ph: "miso-dental.co.kr", max: 260 })}
+      {글("domain", "홈페이지 도메인", { ph: "miso-dental.co.kr", max: 260, ...(mode === "new" ? { hint: "홈페이지가 없으면 열 도메인(구축 계약 때 정함)" } : {}) })}
       <label>
         자사·외부
         <select name="relation" defaultValue={v.relation ?? "외부"}>
